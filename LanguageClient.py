@@ -3,6 +3,7 @@ import os, subprocess
 import json
 import threading
 import time
+from functools import partial
 
 class RPC:
     def __init__(self, infile, outfile, handler):
@@ -66,12 +67,12 @@ class LanguageClient:
         self.nvim.command('echo "{}"'.format(message))
 
     @neovim.command('LanguageClientInitialize')
-    def initialize(self, rootPath: str=None):
+    def initialize(self, rootPath: str=None, cb=None):
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
         mid = self.incMid()
-        self.queue[mid] = self.handleInitializeResponse
+        self.queue[mid] = partial(self.handleInitializeResponse, cb=cb)
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
@@ -80,9 +81,11 @@ class LanguageClient:
             "trace":"verbose"
             }, mid)
 
-    def handleInitializeResponse(self, result: dict):
+    def handleInitializeResponse(self, result: dict, cb):
         self.capabilities = result['capabilities']
         self.nvim.command('echom "LanguageClient started."')
+        if cb is not None:
+            cb(result)
 
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, filename: str=None):
@@ -102,9 +105,9 @@ class LanguageClient:
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
-    def textDocument_hover(self, filename: str, line: int, character: int):
+    def textDocument_hover(self, filename: str, line: int, character: int, cb=None):
        mid = self.incMid()
-       self.queue[mid] = self.handleTextDocumentHoverResponse
+       self.queue[mid] = partial(self.handleTextDocumentHoverResponse, cb=cb)
 
        self.rpc.call('textDocument/hover', {
            "textDocument": {
@@ -116,11 +119,13 @@ class LanguageClient:
                }
            }, mid)
 
-    def handleTextDocumentHoverResponse(self, result: dict):
+    def handleTextDocumentHoverResponse(self, result: dict, cb):
         value = ''
         for content in result['contents']:
             value += content['value']
-            self.echo(value)
+        self.echo(value)
+        if cb is not None:
+            cb(value)
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
@@ -166,25 +171,30 @@ def convertToURI(filename: str) -> str:
 def test_convertToURI():
     assert convertToURI("/tmp/sample-rs/src/main.rs") == "file:///tmp/sample-rs/src/main.rs"
 
+def assertEqual(v1, v2):
+    if v1 != v2:
+        raise Exception('Assertion failed, {} == {}'.format(v1, v2))
+
 def test_LanguageClient():
     nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
     client = LanguageClient(nvim)
 
     # initialize
     client.initialize("/private/tmp/sample-rs")
-    while not client.capabilities:
+    while len(client.queue) > 0:
         time.sleep(0.1)
+
     ## wait for notification
     # time.sleep(300)
 
     # textDocument/didOpen
     client.textDocument_didOpen("/private/tmp/sample-rs/src/main.rs")
 
-    time.sleep(2)
+    time.sleep(3)
 
     # textDocument/hover
-    client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22)
-
+    client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22,
+            lambda value: assertEqual(value, 'fn () -> i32'))
     while len(client.queue) > 0:
         time.sleep(0.1)
 
