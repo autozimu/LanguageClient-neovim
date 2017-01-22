@@ -22,17 +22,18 @@ class RPC:
                 "Content-Length: {}\r\n\r\n"
                 "{}".format(len(content), content)
                 )
+        print(content)
         self.outfile.write(message)
         self.outfile.flush()
 
     def serve(self):
-        print('started')
         while True:
             line = self.infile.readline()
             if line:
                 contentLength = int(line.split(":")[1])
                 content = self.infile.read(contentLength + 1)
-                self.handler.handle(content)
+                print(content)
+                self.handler.handle(json.loads(content))
 
 @neovim.plugin
 class LanguageServerClient:
@@ -47,20 +48,31 @@ class LanguageServerClient:
             stderr=subprocess.PIPE,
             universal_newlines=True)
         self.rpc = RPC(self.server.stdout, self.server.stdin, self)
-        threading.Thread(target=self.rpc.serve, name="RPC Server",
-                daemon=True).start()
-
-    def handle(self, message):
-        print(message)
+        threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
+        self.mid = 0
+        self.queue = {}
 
     @neovim.command('initialize')
     def initialize(self):
+        mid = self.mid
+        self.mid += 1
+        self.queue[mid] = self.handleInitializeResponse;
+
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": "/private/tmp/sample-rs",
             "capabilities":{},
             "trace":"verbose"
             })
+
+    def handleInitializeResponse(self, result):
+        print("recieved response")
+        print(result)
+
+    def handle(self, message):
+        if 'result' in message: # got response
+            mid = message['id']
+            self.queue[mid](message['result'])
 
 def test_LanguageServerClient():
     client = LanguageServerClient(None)
