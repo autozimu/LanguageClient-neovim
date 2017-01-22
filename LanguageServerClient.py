@@ -1,6 +1,8 @@
 import neovim
 import os, subprocess
 import json
+import threading
+import time
 
 class RPC:
     def __init__(self, infile, outfile, handler):
@@ -24,6 +26,7 @@ class RPC:
         self.outfile.flush()
 
     def serve(self):
+        print('started')
         while True:
             line = self.infile.readline()
             if line:
@@ -44,6 +47,8 @@ class LanguageServerClient:
             stderr=subprocess.PIPE,
             universal_newlines=True)
         self.rpc = RPC(self.server.stdout, self.server.stdin, self)
+        threading.Thread(target=self.rpc.serve, name="RPC Server",
+                daemon=True).start()
 
     def handle(self, message):
         print(message)
@@ -56,8 +61,8 @@ class LanguageServerClient:
             "capabilities":{},
             "trace":"verbose"
             })
-        self.rpc.serve()
 
 def test_LanguageServerClient():
     client = LanguageServerClient(None)
     client.GetDocumentation()
+    time.sleep(3)
