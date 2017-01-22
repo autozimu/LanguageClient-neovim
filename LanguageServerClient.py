@@ -31,7 +31,7 @@ class RPC:
             line = self.infile.readline()
             if line:
                 contentLength = int(line.split(":")[1])
-                content = self.infile.read(contentLength)
+                content = self.infile.read(contentLength + 1)
                 self.handler.handle(content)
 
 @neovim.plugin
