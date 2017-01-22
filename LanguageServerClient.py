@@ -3,9 +3,10 @@ import os, subprocess
 import json
 
 class RPC:
-    def __init__(self, infile, outfile):
+    def __init__(self, infile, outfile, handler):
         self.infile = infile
         self.outfile = outfile
+        self.handler = handler
 
     def call(self, method, params):
         content = {
@@ -28,7 +29,7 @@ class RPC:
             if line:
                 contentLength = int(line.split(":")[1])
                 content = self.infile.read(contentLength)
-                print(content)
+                self.handler.handle(content)
 
 @neovim.plugin
 class LanguageServerClient:
@@ -42,7 +43,10 @@ class LanguageServerClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
-        self.rpc = RPC(self.server.stdout, self.server.stdin)
+        self.rpc = RPC(self.server.stdout, self.server.stdin, self)
+
+    def handle(self, message):
+        print(message)
 
     @neovim.command('GetDocumentation')
     def GetDocumentation(self):
