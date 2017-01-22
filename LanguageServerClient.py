@@ -11,13 +11,14 @@ class RPC:
         self.outfile = outfile
         self.handler = handler
 
-    def call(self, method, params):
+    def call(self, method, params, mid=None):
         content = {
                 "jsonrpc": "2.0",
-                "id": 0,
                 "method": method,
                 "params": params
                 }
+        if mid != None:
+            content["id"] = mid
         content = json.dumps(content)
         message = (
                 "Content-Length: {}\r\n\r\n"
@@ -68,7 +69,7 @@ class LanguageServerClient:
             "rootPath": rootPath,
             "capabilities":{},
             "trace":"verbose"
-            })
+            }, mid)
 
     def handleInitializeResponse(self, mid, result):
         del self.queue[mid]
