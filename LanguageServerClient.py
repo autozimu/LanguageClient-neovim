@@ -3,6 +3,7 @@ import os, subprocess
 import json
 import threading
 import time
+from functools import partial
 
 class RPC:
     def __init__(self, infile, outfile, handler):
@@ -51,12 +52,13 @@ class LanguageServerClient:
         threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
         self.mid = 0
         self.queue = {}
+        self.capabilities = {}
 
     @neovim.command('initialize')
     def initialize(self):
         mid = self.mid
         self.mid += 1
-        self.queue[mid] = self.handleInitializeResponse;
+        self.queue[mid] = partial(self.handleInitializeResponse, mid);
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
@@ -65,8 +67,9 @@ class LanguageServerClient:
             "trace":"verbose"
             })
 
-    def handleInitializeResponse(self, result):
-        pass
+    def handleInitializeResponse(self, mid, result):
+        del self.queue[mid]
+        self.capabilities = result['capabilities']
 
     def textDocument_publishDiagnostics(self, params):
         print(params)
@@ -85,3 +88,4 @@ def test_LanguageServerClient():
     client = LanguageServerClient(None)
     client.initialize()
     time.sleep(3)
+    assert client.capabilities
