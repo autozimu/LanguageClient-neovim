@@ -17,7 +17,7 @@ class RPC:
                 "method": method,
                 "params": params
                 }
-        if mid != None:
+        if mid is not None:
             content["id"] = mid
         content = json.dumps(content)
         message = (
@@ -60,7 +60,7 @@ class LanguageClient:
 
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath=None):
-        if not rootPath:
+        if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
         mid = self.mid
@@ -79,12 +79,21 @@ class LanguageClient:
         self.capabilities = result['capabilities']
         self.nvim.command('echom "LanguageClient started."')
 
-    def textDocument_didOpen(self):
+    @neovim.function('LanguageClient_textDocument_didOpen')
+    def textDocument_didOpen(self, filename=None):
+        if filename is None:
+            filename = self.nvim.current.buffer.name
+
+        uri = convertToURI(filename)
+        languageId = self.nvim.eval('&filetype')
+        with open(filename) as f:
+            text = f.read()
+
         self.rpc.call('textDocument/didOpen', {
-            "uri": "file:///private/tmp/sample-rs/src/main.rs",
-            "languageId": "rust",
+            "uri": uri,
+            "languageId": languageId,
             "version": 1,
-            "text": "\n\nfn greet() -> i32 {\n    42\n}\n\nfn main() {\n let a = 1;\n    println!(\"{}\", greet());\n}\n",
+            "text": text
             })
 
     def textDocument_publishDiagnostics(self, params):
@@ -108,7 +117,7 @@ class LanguageClient:
                 getattr(self, methodname)(message['params'])
 
 
-def getRootPath(filename: str):
+def getRootPath(filename: str) -> str:
     if filename.endswith('.rs'):
         return traverseUp(filename, lambda path:
                 os.path.exists(os.path.join(path, 'Cargo.toml')))
@@ -116,11 +125,20 @@ def getRootPath(filename: str):
     else:
         return filename
 
-def traverseUp(path: str, stop):
+def traverseUp(path: str, stop) -> str:
     if stop(path):
         return path
     else:
         return traverseUp(os.path.dirname(path), stop)
+
+def test_getRootPath():
+    assert getRootPath("/tmp/sample-rs/src/main.rs") == "/tmp/sample-rs"
+
+def convertToURI(filename: str) -> str:
+    return "file://" + filename
+
+def test_convertToURI():
+    assert convertToURI("/tmp/sample-rs/src/main.rs") == "file:///tmp/sample-rs/src/main.rs"
 
 def test_LanguageClient():
     nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
@@ -134,6 +152,5 @@ def test_LanguageClient():
     # time.sleep(300)
 
     # textDocument/didOpen
-    client.textDocument_didOpen()
+    client.textDocument_didOpen("/tmp/sample-rs/src/main.rs")
 
-    assert getRootPath("/tmp/sample-rs/src/main.rs") == "/tmp/sample-rs"
