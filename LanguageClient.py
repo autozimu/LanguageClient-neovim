@@ -58,13 +58,17 @@ class LanguageClient:
         self.queue = {}
         self.capabilities = {}
 
+    def incMid(self) -> int:
+        mid = self.mid
+        self.mid += 1
+        return mid
+
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath=None):
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
-        mid = self.mid
-        self.mid += 1
+        mid = self.incMid()
         self.queue[mid] = partial(self.handleInitializeResponse, mid);
 
         self.rpc.call('initialize', {
