@@ -66,13 +66,20 @@ class LanguageServerClient:
             })
 
     def handleInitializeResponse(self, result):
-        print("recieved response")
-        print(result)
+        pass
+
+    def textDocument_publishDiagnostics(self, params):
+        print(params)
 
     def handle(self, message):
         if 'result' in message: # got response
             mid = message['id']
             self.queue[mid](message['result'])
+        else: # request/notification
+            methodname = message['method'].replace('/', '_')
+            if hasattr(self, methodname):
+                getattr(self, methodname)(message['params'])
+
 
 def test_LanguageServerClient():
     client = LanguageServerClient(None)
