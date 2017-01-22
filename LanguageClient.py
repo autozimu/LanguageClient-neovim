@@ -38,7 +38,7 @@ class RPC:
                 self.handler.handle(json.loads(content))
 
 @neovim.plugin
-class LanguageServerClient:
+class LanguageClient:
     def __init__(self, nvim):
         self.nvim = nvim
         self.server = subprocess.Popen(
@@ -74,6 +74,7 @@ class LanguageServerClient:
     def handleInitializeResponse(self, mid, result):
         del self.queue[mid]
         self.capabilities = result['capabilities']
+        self.nvim.command('echo "LanguageClient started."')
 
     def textDocument_didOpen(self):
         self.rpc.call('textDocument/didOpen', {
@@ -117,7 +118,7 @@ def traverseUp(path: str, stop):
 
 def test_LanguageServerClient():
     nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
-    client = LanguageServerClient(nvim)
+    client = LanguageClient(nvim)
 
     # initialize
     client.initialize("/private/tmp/sample-rs")
