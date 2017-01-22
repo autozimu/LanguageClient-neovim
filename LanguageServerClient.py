@@ -54,15 +54,18 @@ class LanguageServerClient:
         self.queue = {}
         self.capabilities = {}
 
-    @neovim.command('initialize')
-    def initialize(self):
+    @neovim.function('LanguageServerClient#Initialize')
+    def initialize(self, rootPath=None):
+        if not rootPath:
+            rootPath = getRootPath(self.nvim.current.buffer.name)
+
         mid = self.mid
         self.mid += 1
         self.queue[mid] = partial(self.handleInitializeResponse, mid);
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
-            "rootPath": "/private/tmp/sample-rs",
+            "rootPath": rootPath,
             "capabilities":{},
             "trace":"verbose"
             })
@@ -70,6 +73,14 @@ class LanguageServerClient:
     def handleInitializeResponse(self, mid, result):
         del self.queue[mid]
         self.capabilities = result['capabilities']
+
+    def textDocument_didOpen(self):
+        self.rpc.call('textDocument/didOpen', {
+            "uri": "file:///private/tmp/sample-rs/src/main.rs",
+            "languageId": "rust",
+            "version": 1,
+            "text": "\n\nfn greet() -> i32 {\n    42\n}\n\nfn main() {\n let a = 1;\n    println!(\"{}\", greet());\n}\n",
+            })
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
@@ -89,9 +100,30 @@ class LanguageServerClient:
                 getattr(self, methodname)(message['params'])
 
 
+def getRootPath(filename: str):
+    if filename.endswith('.rs'):
+        return traverseUp(filename, lambda path:
+                os.path.exists(os.path.join(path, 'Cargo.toml')))
+    # TODO: detect for other filetypes
+    else:
+        return filename
+
+def traverseUp(path: str, stop):
+    if stop(path):
+        return path
+    else:
+        return traverseUp(os.path.dirname(path), stop)
+
 def test_LanguageServerClient():
     nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
     client = LanguageServerClient(nvim)
-    client.initialize()
-    time.sleep(3)
-    assert client.capabilities
+
+    # initialize
+    client.initialize("/private/tmp/sample-rs")
+    while not client.capabilities:
+        time.sleep(0.1)
+
+    # textDocument/didOpen
+    client.textDocument_didOpen()
+
+    assert getRootPath("/tmp/sample-rs/src/main.rs") == "/tmp/sample-rs"
