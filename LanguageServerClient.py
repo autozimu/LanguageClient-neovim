@@ -13,32 +13,35 @@ class LanguageServerClient:
             # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            universal_newlines=True)
+
+    def rpc(self, method, params):
+        payload = {
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": method,
+                "params": params
+                }
+        payload = json.dumps(payload)
+        message = (
+                "Content-Length: {}\r\n\r\n"
+                "{}".format(len(payload), payload)
+                )
+        self.server.stdin.write(message)
+        self.server.stdin.flush()
 
     @neovim.command('GetDocumentation')
     def GetDocumentation(self):
-        MESSAGE = {
-                "jsonrpc": "2.0",
-                "id": 0,
-                "method": "initialize",
-                "params": {
-                    "processId": os.getpid(),
-                    "rootPath": "/private/tmp/sample-rs",
-                    "capabilities":{},
-                    "trace":"verbose"
-                    }
-                }
-        body = json.dumps(MESSAGE)
-        response = (
-                "Content-Length: {}\r\n\r\n"
-                "{}".format(len(body), body)
-                )
-
-        self.server.stdin.write(response.encode('utf-8'))
-        self.server.stdin.flush()
+        self.rpc('initialize', {
+            "processId": os.getpid(),
+            "rootPath": "/private/tmp/sample-rs",
+            "capabilities":{},
+            "trace":"verbose"
+            })
 
         while True:
-            line = self.server.stdout.readline().decode('utf-8')
+            line = self.server.stdout.readline()
             if line:
                 print(line)
                 break
