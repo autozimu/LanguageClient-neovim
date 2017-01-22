@@ -8,16 +8,16 @@ class RPC:
         self.outfile = outfile
 
     def call(self, method, params):
-        payload = {
+        content = {
                 "jsonrpc": "2.0",
                 "id": 0,
                 "method": method,
                 "params": params
                 }
-        payload = json.dumps(payload)
+        content = json.dumps(content)
         message = (
                 "Content-Length: {}\r\n\r\n"
-                "{}".format(len(payload), payload)
+                "{}".format(len(content), content)
                 )
         self.outfile.write(message)
         self.outfile.flush()
@@ -26,8 +26,9 @@ class RPC:
         while True:
             line = self.infile.readline()
             if line:
-                print(line)
-                break
+                contentLength = int(line.split(":")[1])
+                content = self.infile.read(contentLength)
+                print(content)
 
 @neovim.plugin
 class LanguageServerClient:
