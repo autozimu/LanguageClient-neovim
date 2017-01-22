@@ -55,7 +55,7 @@ class LanguageClient:
         self.queue = {}
         self.capabilities = {}
 
-    @neovim.function('LanguageServerClient#Initialize')
+    @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath=None):
         if not rootPath:
             rootPath = getRootPath(self.nvim.current.buffer.name)
@@ -116,7 +116,7 @@ def traverseUp(path: str, stop):
     else:
         return traverseUp(os.path.dirname(path), stop)
 
-def test_LanguageServerClient():
+def test_LanguageClient():
     nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
     client = LanguageClient(nvim)
 
