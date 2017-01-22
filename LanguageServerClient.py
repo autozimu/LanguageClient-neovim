@@ -53,8 +53,8 @@ class LanguageServerClient:
     def handle(self, message):
         print(message)
 
-    @neovim.command('GetDocumentation')
-    def GetDocumentation(self):
+    @neovim.command('initialize')
+    def initialize(self):
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": "/private/tmp/sample-rs",
@@ -64,5 +64,5 @@ class LanguageServerClient:
 
 def test_LanguageServerClient():
     client = LanguageServerClient(None)
-    client.GetDocumentation()
+    client.initialize()
     time.sleep(3)
