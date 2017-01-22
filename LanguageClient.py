@@ -25,6 +25,7 @@ class RPC:
                 "{}".format(len(content), content)
                 )
         print(content)
+        print()
         self.outfile.write(message)
         self.outfile.flush()
 
@@ -33,8 +34,10 @@ class RPC:
             line = self.infile.readline()
             if line:
                 contentLength = int(line.split(":")[1])
-                content = self.infile.read(contentLength + 1)
+                self.infile.readline()
+                content = self.infile.read(contentLength)
                 print(content)
+                print()
                 self.handler.handle(json.loads(content))
 
 @neovim.plugin
@@ -74,7 +77,7 @@ class LanguageClient:
     def handleInitializeResponse(self, mid, result):
         del self.queue[mid]
         self.capabilities = result['capabilities']
-        self.nvim.command('echo "LanguageClient started."')
+        self.nvim.command('echom "LanguageClient started."')
 
     def textDocument_didOpen(self):
         self.rpc.call('textDocument/didOpen', {
@@ -90,7 +93,9 @@ class LanguageClient:
             source = diagnostic['source']
             severity = diagnostic['severity']
             message = diagnostic['message']
-            self.nvim.command('echo "{}"'.format(message))
+            # TODO: escape speical character
+            # self.nvim.command('echom "{}"'.format(message))
+            self.nvim.command('echom "Diagnostic message received"')
 
     def handle(self, message):
         if 'result' in message: # got response
@@ -98,6 +103,7 @@ class LanguageClient:
             self.queue[mid](message['result'])
         else: # request/notification
             methodname = message['method'].replace('/', '_')
+            import ipdb; ipdb.set_trace()
             if hasattr(self, methodname):
                 getattr(self, methodname)(message['params'])
 
@@ -124,6 +130,8 @@ def test_LanguageClient():
     client.initialize("/private/tmp/sample-rs")
     while not client.capabilities:
         time.sleep(0.1)
+    ## wait for notification
+    # time.sleep(300)
 
     # textDocument/didOpen
     client.textDocument_didOpen()
