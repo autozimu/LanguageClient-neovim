@@ -3,7 +3,6 @@ import os, subprocess
 import json
 import threading
 import time
-from functools import partial
 
 class RPC:
     def __init__(self, infile, outfile, handler):
@@ -69,7 +68,7 @@ class LanguageClient:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
         mid = self.incMid()
-        self.queue[mid] = partial(self.handleInitializeResponse, mid);
+        self.queue[mid] = self.handleInitializeResponse
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
@@ -78,8 +77,7 @@ class LanguageClient:
             "trace":"verbose"
             }, mid)
 
-    def handleInitializeResponse(self, mid, result):
-        del self.queue[mid]
+    def handleInitializeResponse(self, result):
         self.capabilities = result['capabilities']
         self.nvim.command('echom "LanguageClient started."')
 
@@ -114,6 +112,7 @@ class LanguageClient:
         if 'result' in message: # got response
             mid = message['id']
             self.queue[mid](message['result'])
+            del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
             import ipdb; ipdb.set_trace()
