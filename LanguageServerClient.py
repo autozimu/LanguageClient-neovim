@@ -85,7 +85,8 @@ class LanguageServerClient:
 
 
 def test_LanguageServerClient():
-    client = LanguageServerClient(None)
+    nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
+    client = LanguageServerClient(nvim)
     client.initialize()
     time.sleep(3)
     assert client.capabilities
