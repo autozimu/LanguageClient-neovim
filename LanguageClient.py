@@ -62,8 +62,11 @@ class LanguageClient:
         self.mid += 1
         return mid
 
+    def echo(self, message):
+        self.nvim.command('echo "{}"'.format(message))
+
     @neovim.command('LanguageClientInitialize')
-    def initialize(self, rootPath=None):
+    def initialize(self, rootPath: str=None):
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
@@ -77,12 +80,12 @@ class LanguageClient:
             "trace":"verbose"
             }, mid)
 
-    def handleInitializeResponse(self, result):
+    def handleInitializeResponse(self, result: dict):
         self.capabilities = result['capabilities']
         self.nvim.command('echom "LanguageClient started."')
 
     @neovim.function('LanguageClient_textDocument_didOpen')
-    def textDocument_didOpen(self, filename=None):
+    def textDocument_didOpen(self, filename: str=None):
         if filename is None:
             filename = self.nvim.current.buffer.name
 
@@ -97,6 +100,27 @@ class LanguageClient:
             "version": 1,
             "text": text
             })
+
+    @neovim.function('LanguageClient_textDocument_hover')
+    def textDocument_hover(self, filename: str, line: int, character: int):
+       mid = self.incMid()
+       self.queue[mid] = self.handleTextDocumentHoverResponse
+
+       self.rpc.call('textDocument/hover', {
+           "textDocument": {
+               "uri": convertToURI(filename)
+               },
+           "position": {
+               "line": line,
+               "character": character
+               }
+           }, mid)
+
+    def handleTextDocumentHoverResponse(self, result: dict):
+        value = ''
+        for content in result['contents']:
+            value += content['value']
+            self.echo(value)
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
@@ -115,7 +139,6 @@ class LanguageClient:
             del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
-            import ipdb; ipdb.set_trace()
             if hasattr(self, methodname):
                 getattr(self, methodname)(message['params'])
 
@@ -155,5 +178,13 @@ def test_LanguageClient():
     # time.sleep(300)
 
     # textDocument/didOpen
-    client.textDocument_didOpen("/tmp/sample-rs/src/main.rs")
+    client.textDocument_didOpen("/private/tmp/sample-rs/src/main.rs")
+
+    time.sleep(2)
+
+    # textDocument/hover
+    client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22)
+
+    while len(client.queue) > 0:
+        time.sleep(0.1)
 
