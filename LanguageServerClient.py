@@ -72,7 +72,12 @@ class LanguageServerClient:
         self.capabilities = result['capabilities']
 
     def textDocument_publishDiagnostics(self, params):
-        print(params)
+        uri = params['uri']
+        for diagnostic in params['diagnostics']:
+            source = diagnostic['source']
+            severity = diagnostic['severity']
+            message = diagnostic['message']
+            self.nvim.command('echo "{}"'.format(message))
 
     def handle(self, message):
         if 'result' in message: # got response
