@@ -175,26 +175,30 @@ def assertEqual(v1, v2):
     if v1 != v2:
         raise Exception('Assertion failed, {} == {}'.format(v1, v2))
 
-def test_LanguageClient():
-    nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
-    client = LanguageClient(nvim)
+class TestLanguageClient():
+    @classmethod
+    def setup_class(cls):
+        nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
+        cls.client = LanguageClient(nvim)
 
-    # initialize
-    client.initialize("/private/tmp/sample-rs")
-    while len(client.queue) > 0:
-        time.sleep(0.1)
+    def test_initialize(self):
+        # initialize
+        self.client.initialize("/private/tmp/sample-rs")
+        while len(self.client.queue) > 0:
+            time.sleep(0.1)
 
-    ## wait for notification
-    # time.sleep(300)
+        ## wait for notification
+        # time.sleep(300)
 
-    # textDocument/didOpen
-    client.textDocument_didOpen("/private/tmp/sample-rs/src/main.rs")
+    def test_textDocument_hover(self):
+        # textDocument/didOpen
+        self.client.textDocument_didOpen("/private/tmp/sample-rs/src/main.rs")
 
-    time.sleep(3)
+        time.sleep(3)
 
-    # textDocument/hover
-    client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22,
-            lambda value: assertEqual(value, 'fn () -> i32'))
-    while len(client.queue) > 0:
-        time.sleep(0.1)
+        # textDocument/hover
+        self.client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22,
+                lambda value: assertEqual(value, 'fn () -> i32'))
+        while len(self.client.queue) > 0:
+            time.sleep(0.1)
 
