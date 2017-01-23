@@ -5,6 +5,13 @@ import threading
 import time
 from functools import partial
 
+logfile = open('/tmp/client.log', 'a')
+
+def log(message):
+    logfile.write(message)
+    logfile.write('\n\n')
+    logfile.flush()
+
 class RPC:
     def __init__(self, infile, outfile, handler):
         self.infile = infile
