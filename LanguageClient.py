@@ -64,7 +64,7 @@ class LanguageClient:
         return mid
 
     def echo(self, message):
-        self.nvim.command('echo "{}"'.format(message))
+        self.nvim.command("echom '{}'".format(message.replace("'", "''")))
 
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath: str=None, cb=None):
