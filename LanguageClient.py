@@ -95,9 +95,12 @@ class LanguageClient:
             cb(result)
 
     @neovim.function('LanguageClient_textDocument_didOpen')
-    def textDocument_didOpen(self, filename: str=None):
-        if filename is None:
+    def textDocument_didOpen(self, args):
+        if len(args) == 0:
             filename = self.nvim.current.buffer.name
+        else:
+            filename = args[0]
+
 
         uri = convertToURI(filename)
         languageId = self.nvim.eval('&filetype')
@@ -110,6 +113,9 @@ class LanguageClient:
             "version": 1,
             "text": text
             })
+
+        # FIXME
+        time.sleep(2)
 
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args, cb=None):
@@ -204,10 +210,10 @@ class TestLanguageClient():
         # time.sleep(300)
 
     def test_textDocument_hover(self):
-        # textDocument/didOpen
-        self.client.textDocument_didOpen(self.joinPath("tests/sample-rs/src/main.rs"))
+        self.client.textDocument_didOpen([
+            self.joinPath("tests/sample-rs/src/main.rs")
+            ])
 
-        time.sleep(3)
 
         # textDocument/hover
         self.client.textDocument_hover((self.joinPath("tests/sample-rs/src/main.rs"), 8, 22),
