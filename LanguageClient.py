@@ -50,16 +50,7 @@ class LanguageClient:
     def __init__(self, nvim):
         logger.info('class init')
         self.nvim = nvim
-        self.server = subprocess.Popen(
-            # ["/bin/bash", "/opt/rls/wrapper.sh"],
-            ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
-            # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True)
-        self.rpc = RPC(self.server.stdout, self.server.stdin, self)
-        threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
+        self.server = None
         self.mid = 0
         self.queue = {}
         self.capabilities = {}
@@ -74,9 +65,40 @@ class LanguageClient:
                 self.nvim.command("echom '{}'".format(
                     message.replace("'", "''"))))
 
-    @neovim.command('LanguageClientInitialize')
+    def alive(self) -> bool:
+        if self.server == None:
+            return False
+        if self.server.poll() != None:
+            self.server = None
+            return False
+        return True
+
+    @neovim.command('LanguageClientStart')
+    def start(self):
+        logger.info('start')
+
+
+        if self.alive():
+            return
+
+        self.server = subprocess.Popen(
+            # ["/bin/bash", "/opt/rls/wrapper.sh"],
+            ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
+            # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True)
+        self.rpc = RPC(self.server.stdout, self.server.stdin, self)
+        threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
+
+    @neovim.function('LanguageClient_initialize')
     def initialize(self, rootPath: str=None, cb=None):
         logger.info('initialize')
+
+        if not self.alive():
+            return
+
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
@@ -100,6 +122,10 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, args):
         logger.info('textDocument/didOpen')
+
+        if not self.alive():
+            return
+
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
         else:
@@ -118,6 +144,10 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args, cb=None):
         logger.info('textDocument/hover')
+
+        if not self.alive():
+            return
+
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
             # vim start with 1
@@ -213,6 +243,7 @@ class TestLanguageClient():
         nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
         cls.client = LanguageClient(nvim)
         cls.currPath = os.path.dirname(os.path.abspath(__file__))
+        cls.client.start()
 
     def joinPath(self, part):
         return os.path.join(self.currPath, part)
