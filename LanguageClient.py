@@ -147,6 +147,20 @@ class LanguageClient:
         if cb is not None:
             cb(value)
 
+    #TODO
+    # textDocument/didChange
+    # textDocument/didSave
+    # textDocument/didClose
+    # textDocument/completion
+    # completionItem/resolve
+    # textDocument/signatureHelp
+    # textDocument/definition
+    # textDocument/references
+    # textDocument/rename
+    # textDocument/documentSymbol
+    # workspace/symbol
+    # textDocument/codeAction
+
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
         for diagnostic in params['diagnostics']:
