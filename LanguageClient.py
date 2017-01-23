@@ -4,13 +4,13 @@ import json
 import threading
 import time
 from functools import partial
+import logging
 
-logfile = open('/tmp/client.log', 'a')
-
-def log(message):
-    logfile.write(message)
-    logfile.write('\n\n')
-    logfile.flush()
+logger = logging.getLogger('LanguageClient')
+fileHandler = logging.FileHandler(filename='/tmp/client.log')
+fileHandler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s (%(name)s) %(message)s'))
+logger.addHandler(fileHandler)
+logger.setLevel(logging.INFO)
 
 class RPC:
     def __init__(self, infile, outfile, handler):
@@ -31,7 +31,7 @@ class RPC:
                 "Content-Length: {}\r\n\r\n"
                 "{}".format(len(content), content)
                 )
-        log(content)
+        logger.info(content)
         self.outfile.write(message)
         self.outfile.flush()
 
@@ -42,13 +42,13 @@ class RPC:
                 contentLength = int(line.split(":")[1])
                 self.infile.readline()
                 content = self.infile.read(contentLength)
-                log(content)
+                logger.info(content)
                 self.handler.handle(json.loads(content))
 
 @neovim.plugin
 class LanguageClient:
     def __init__(self, nvim):
-        log('class init')
+        logger.info('class init')
         self.nvim = nvim
         self.server = subprocess.Popen(
             ["/bin/bash", "/opt/rls/wrapper.sh"],
@@ -76,7 +76,7 @@ class LanguageClient:
 
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath: str=None, cb=None):
-        log('init')
+        logger.info('initialize')
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
@@ -98,7 +98,7 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, args):
-        log('didOpen')
+        logger.info('textDocument/didOpen')
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
         else:
@@ -122,7 +122,7 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args, cb=None):
-        log('hover')
+        logger.info('textDocument/hover')
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
             # vim start with 1
