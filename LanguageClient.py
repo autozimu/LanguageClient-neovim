@@ -167,6 +167,8 @@ class LanguageClient:
             methodname = message['method'].replace('/', '_')
             if hasattr(self, methodname):
                 getattr(self, methodname)(message['params'])
+            else:
+                logger.warn('no handler implemented for ' + methodname)
 
 
 def getRootPath(filename: str) -> str:
