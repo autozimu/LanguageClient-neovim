@@ -1,0 +1,6 @@
+[package]
+name = "sample"
+version = "0.1.0"
+authors = ["Junfeng Li <autozimu@gmail.com>"]
+
+[dependencies]

@@ -155,20 +155,18 @@ class LanguageClient:
 
 def getRootPath(filename: str) -> str:
     if filename.endswith('.rs'):
-        return traverseUp(filename, lambda path:
-                os.path.exists(os.path.join(path, 'Cargo.toml')))
+        return traverseUp(filename, lambda folder:
+                os.path.exists(os.path.join(folder, 'Cargo.toml')))
     # TODO: detect for other filetypes
     else:
         return filename
 
-def traverseUp(path: str, stop) -> str:
-    if stop(path):
-        return path
+def traverseUp(folder: str, stop) -> str:
+    if stop(folder):
+        return folder
     else:
-        return traverseUp(os.path.dirname(path), stop)
+        return traverseUp(os.path.dirname(folder), stop)
 
-def test_getRootPath():
-    assert getRootPath("/tmp/sample-rs/src/main.rs") == "/tmp/sample-rs"
 
 def convertToURI(filename: str) -> str:
     return "file://" + filename
@@ -185,10 +183,13 @@ class TestLanguageClient():
     def setup_class(cls):
         nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
         cls.client = LanguageClient(nvim)
+        cls.currPath = os.path.dirname(os.path.abspath(__file__))
+
+    def joinPath(self, part):
+        return os.path.join(self.currPath, part)
 
     def test_initialize(self):
-        # initialize
-        self.client.initialize("/private/tmp/sample-rs")
+        self.client.initialize(self.joinPath("tests/sample-rs"))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
 
@@ -197,12 +198,16 @@ class TestLanguageClient():
 
     def test_textDocument_hover(self):
         # textDocument/didOpen
-        self.client.textDocument_didOpen("/private/tmp/sample-rs/src/main.rs")
+        self.client.textDocument_didOpen(self.joinPath("tests/sample-rs/src/main.rs"))
 
         time.sleep(3)
 
         # textDocument/hover
-        self.client.textDocument_hover("/private/tmp/sample-rs/src/main.rs", 8, 22,
+        self.client.textDocument_hover(self.joinPath("tests/sample-rs/src/main.rs"), 8, 22,
                 lambda value: assertEqual(value, 'fn () -> i32'))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
+
+    def test_getRootPath(self):
+        assert (getRootPath(self.joinPath("tests/sample-rs/src/main.rs"))
+                ==  self.joinPath("tests/sample-rs"))
