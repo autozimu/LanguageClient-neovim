@@ -117,9 +117,6 @@ class LanguageClient:
             "text": text
             })
 
-        # FIXME
-        time.sleep(2)
-
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args, cb=None):
         logger.info('textDocument/hover')
@@ -219,6 +216,7 @@ class TestLanguageClient():
             self.joinPath("tests/sample-rs/src/main.rs")
             ])
 
+        time.sleep(2)
 
         # textDocument/hover
         self.client.textDocument_hover((self.joinPath("tests/sample-rs/src/main.rs"), 8, 22),
