@@ -93,14 +93,16 @@ class LanguageClient:
         threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
     @neovim.function('LanguageClient_initialize')
-    def initialize(self, rootPath: str=None, cb=None):
+    def initialize(self, args, cb=None):
         logger.info('initialize')
 
         if not self.alive():
             return
 
-        if rootPath is None:
+        if len(args) == 0:
             rootPath = getRootPath(self.nvim.current.buffer.name)
+        else:
+            rootPath = args[0]
 
         mid = self.incMid()
         self.queue[mid] = partial(self.handleInitializeResponse, cb=cb)
@@ -249,7 +251,7 @@ class TestLanguageClient():
         return os.path.join(self.currPath, part)
 
     def test_initialize(self):
-        self.client.initialize(self.joinPath("tests/sample-rs"))
+        self.client.initialize([self.joinPath("tests/sample-rs")])
         while len(self.client.queue) > 0:
             time.sleep(0.1)
 
