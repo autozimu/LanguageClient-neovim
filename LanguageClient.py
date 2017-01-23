@@ -31,8 +31,7 @@ class RPC:
                 "Content-Length: {}\r\n\r\n"
                 "{}".format(len(content), content)
                 )
-        print(content)
-        print()
+        log(content)
         self.outfile.write(message)
         self.outfile.flush()
 
@@ -43,8 +42,7 @@ class RPC:
                 contentLength = int(line.split(":")[1])
                 self.infile.readline()
                 content = self.infile.read(contentLength)
-                print(content)
-                print()
+                log(content)
                 self.handler.handle(json.loads(content))
 
 @neovim.plugin
@@ -71,7 +69,9 @@ class LanguageClient:
         return mid
 
     def echo(self, message):
-        self.nvim.command("echom '{}'".format(message.replace("'", "''")))
+        self.nvim.async_call(lambda:
+                self.nvim.command("echom '{}'".format(
+                    message.replace("'", "''"))))
 
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath: str=None, cb=None):
@@ -90,7 +90,7 @@ class LanguageClient:
 
     def handleInitializeResponse(self, result: dict, cb):
         self.capabilities = result['capabilities']
-        self.nvim.command('echom "LanguageClient started."')
+        self.echo("LanguageClient started.")
         if cb is not None:
             cb(result)
 
@@ -140,9 +140,7 @@ class LanguageClient:
             source = diagnostic['source']
             severity = diagnostic['severity']
             message = diagnostic['message']
-            # TODO: escape speical character
-            # self.nvim.command('echom "{}"'.format(message))
-            self.nvim.command('echom "Diagnostic message received"')
+            self.echo(message)
 
     def handle(self, message):
         if 'result' in message: # got response
@@ -208,4 +206,3 @@ class TestLanguageClient():
                 lambda value: assertEqual(value, 'fn () -> i32'))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
-
