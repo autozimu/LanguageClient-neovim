@@ -48,6 +48,7 @@ class RPC:
 @neovim.plugin
 class LanguageClient:
     def __init__(self, nvim):
+        log('class init')
         self.nvim = nvim
         self.server = subprocess.Popen(
             ["/bin/bash", "/opt/rls/wrapper.sh"],
@@ -75,6 +76,7 @@ class LanguageClient:
 
     @neovim.command('LanguageClientInitialize')
     def initialize(self, rootPath: str=None, cb=None):
+        log('init')
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
 
@@ -96,6 +98,7 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, args):
+        log('didOpen')
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
         else:
@@ -119,9 +122,11 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args, cb=None):
+        log('hover')
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
-            line = self.nvim.eval("line('.')")
+            # vim start with 1
+            line = self.nvim.eval("line('.')") - 1
             character = self.nvim.eval("col('.')")
         else:
             filename, line, character = args
