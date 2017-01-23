@@ -1,0 +1,2 @@
+- Copy wrapper.sh to repo.
+- Start server should be done in function, not in class constructor.
