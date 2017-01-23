@@ -86,6 +86,7 @@ class LanguageClient:
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
+            "rootUri": convertToURI(rootPath),
             "capabilities":{},
             "trace":"verbose"
             }, mid)
