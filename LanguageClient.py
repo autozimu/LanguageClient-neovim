@@ -51,8 +51,8 @@ class LanguageClient:
         logger.info('class init')
         self.nvim = nvim
         self.server = subprocess.Popen(
-            ["/bin/bash", "/opt/rls/wrapper.sh"],
-            # ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
+            # ["/bin/bash", "/opt/rls/wrapper.sh"],
+            ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
             # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
