@@ -1,6 +1,7 @@
 import os, time
 import neovim
-from .context import LanguageClient, getRootPath, joinPath
+from LanguageClient import LanguageClient
+from util import joinPath
 
 def assertEqual(v1, v2):
     if v1 != v2:
@@ -14,7 +15,7 @@ class TestLanguageClient():
         cls.client.start()
 
     def test_initialize(self):
-        self.client.initialize([joinPath("sample-rs")])
+        self.client.initialize([joinPath("tests/sample-rs")])
         while len(self.client.queue) > 0:
             time.sleep(0.1)
 
@@ -23,13 +24,13 @@ class TestLanguageClient():
 
     def test_textDocument_hover(self):
         self.client.textDocument_didOpen([
-            joinPath("sample-rs/src/main.rs")
+            joinPath("tests/sample-rs/src/main.rs")
             ])
 
         time.sleep(2)
 
         # textDocument/hover
-        self.client.textDocument_hover((joinPath("sample-rs/src/main.rs"), 8, 22),
+        self.client.textDocument_hover((joinPath("tests/sample-rs/src/main.rs"), 8, 22),
                 lambda value: assertEqual(value, 'fn () -> i32'))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
