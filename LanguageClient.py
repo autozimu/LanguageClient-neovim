@@ -108,14 +108,11 @@ class LanguageClient:
 
         uri = convertToURI(filename)
         languageId = self.nvim.eval('&filetype')
-        with open(filename) as f:
-            text = f.read()
 
         self.rpc.call('textDocument/didOpen', {
             "uri": uri,
             "languageId": languageId,
             "version": 1,
-            "text": text
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
