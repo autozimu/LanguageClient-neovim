@@ -112,19 +112,26 @@ class LanguageClient:
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
-    def textDocument_hover(self, filename: str, line: int, character: int, cb=None):
-       mid = self.incMid()
-       self.queue[mid] = partial(self.handleTextDocumentHoverResponse, cb=cb)
+    def textDocument_hover(self, args, cb=None):
+        if len(args) == 0:
+            filename = self.nvim.current.buffer.name
+            line = self.nvim.eval("line('.')")
+            character = self.nvim.eval("col('.')")
+        else:
+            filename, line, character = args
 
-       self.rpc.call('textDocument/hover', {
-           "textDocument": {
-               "uri": convertToURI(filename)
-               },
-           "position": {
-               "line": line,
-               "character": character
-               }
-           }, mid)
+        mid = self.incMid()
+        self.queue[mid] = partial(self.handleTextDocumentHoverResponse, cb=cb)
+
+        self.rpc.call('textDocument/hover', {
+            "textDocument": {
+                "uri": convertToURI(filename)
+                },
+            "position": {
+                "line": line,
+                "character": character
+                }
+            }, mid)
 
     def handleTextDocumentHoverResponse(self, result: dict, cb):
         value = ''
@@ -203,7 +210,7 @@ class TestLanguageClient():
         time.sleep(3)
 
         # textDocument/hover
-        self.client.textDocument_hover(self.joinPath("tests/sample-rs/src/main.rs"), 8, 22,
+        self.client.textDocument_hover((self.joinPath("tests/sample-rs/src/main.rs"), 8, 22),
                 lambda value: assertEqual(value, 'fn () -> i32'))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
