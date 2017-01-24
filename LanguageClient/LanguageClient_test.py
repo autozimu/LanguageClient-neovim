@@ -1,7 +1,8 @@
 import os, time
 import neovim
-from LanguageClient import LanguageClient
-from util import joinPath
+
+from . LanguageClient import LanguageClient
+from . util import joinPath
 
 def assertEqual(v1, v2):
     if v1 != v2:

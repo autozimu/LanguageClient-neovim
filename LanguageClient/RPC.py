@@ -1,5 +1,6 @@
 import json
-from logger import logger
+
+from . logger import logger
 
 class RPC:
     def __init__(self, infile, outfile, handler):

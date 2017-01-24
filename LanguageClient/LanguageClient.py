@@ -5,9 +5,9 @@ import threading
 import time
 from functools import partial
 
-from util import getRootPath, convertToURI
-from logger import logger
-from RPC import RPC
+from . util import getRootPath, convertToURI
+from . logger import logger
+from . RPC import RPC
 
 @neovim.plugin
 class LanguageClient:

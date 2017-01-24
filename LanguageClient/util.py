@@ -1,6 +1,6 @@
 import os
 
-currPath = os.path.dirname(os.path.abspath(__file__))
+currPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def joinPath(part):
     return os.path.join(currPath, part)
