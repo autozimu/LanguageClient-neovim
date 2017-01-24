@@ -39,6 +39,10 @@ class LanguageClient:
         _, line, character, _ = self.nvim.eval("getpos('.')")
         return [line - 1, character - 1]
 
+    def applyChanges(self):
+        # TODO
+        logger.warn('applyChanges not implemented')
+
     def alive(self) -> bool:
         if self.server == None:
             return False
@@ -159,7 +163,6 @@ class LanguageClient:
     # completionItem/resolve
     # textDocument/signatureHelp
     # textDocument/references
-    # textDocument/rename
     # textDocument/documentSymbol
     # workspace/symbol
     # textDocument/codeAction
@@ -202,6 +205,38 @@ class LanguageClient:
 
         if cb is not None:
             cb([line, character])
+
+    @neovim.function('LanguageClient_textDocument_rename')
+    def textDocument_rename(self, args, cb=None):
+        logger.info('textDocument/rename')
+
+        if not self.alive():
+            return
+
+        if len(args) == 1:
+            filename = self.nvim.current.buffer.name
+            line, character = self.getPos()
+            newName = args[0]
+        else:
+            filename, line, character, newName = args
+
+        mid = self.incMid()
+        self.queue[mid] = partial(self.handleTextDocumentRenameResponse, cb=cb)
+
+        self.rpc.call('textDocument/rename', {
+            "textDocument": {
+                "uri": convertToURI(filename)
+                },
+            "position": {
+                "line": line,
+                "character": character,
+                },
+            "newName": newName
+            }, mid)
+
+    def handleTextDocumentRenameResponse(self, result: dict, cb):
+        changes = result['changes']
+        self.applyChanges(changes)
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
