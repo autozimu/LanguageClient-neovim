@@ -6,7 +6,7 @@ import time
 from functools import partial
 from typing import List
 
-from . util import getRootPath, convertToURI
+from . util import getRootPath, convertToURI, escape
 from . logger import logger
 from . RPC import RPC
 
@@ -25,15 +25,17 @@ class LanguageClient:
         self.mid += 1
         return mid
 
-    def asyncEcho(self, message):
-        message = message.replace("'", "''")
-        self.nvim.async_call(lambda:
-                self.nvim.command("echom '{}'".format(message)))
-
     def asyncEval(self, expr):
-        expr = expr.replace("'", "''")
         self.nvim.async_call(lambda:
                 self.nvim.eval(expr))
+
+    def asycCommand(self, cmds):
+        self.nvim.async_call(lambda:
+                self.nvim.command(cmds))
+
+    def asyncEcho(self, message):
+        message = escape(message)
+        self.asycCommand("echom '{}'".format(message))
 
     def getPos(self):
         _, line, character, _ = self.nvim.eval("getpos('.')")

@@ -26,3 +26,9 @@ def convertToURI(filename: str) -> str:
 
 def test_convertToURI():
     assert convertToURI("/tmp/sample-rs/src/main.rs") == "file:///tmp/sample-rs/src/main.rs"
+
+def escape(string: str) -> str:
+    return string.replace("'", "''")
+
+def test_escape():
+    assert escape("my' precious") == "my'' precious"
