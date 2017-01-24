@@ -1,7 +1,7 @@
 image: "archlinuxjp/archlinux"
 
 before_script:
-- pacman -Sy --noconfirm neovim python-{neovim,pytest} git rustup base-devel
+- pacman -Sy --noconfirm neovim python-{neovim,pytest} git rustup base-devel cmake
 - git clone https://github.com/jonathandturner/rls /opt/rls
 - rustup default nightly
 
