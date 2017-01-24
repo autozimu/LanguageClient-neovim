@@ -119,7 +119,7 @@ class LanguageClient:
             filename = self.nvim.current.buffer.name
             # vim start with 1
             line = self.nvim.eval("line('.')") - 1
-            character = self.nvim.eval("col('.')")
+            character = self.nvim.eval("col('.')") - 1
         else:
             filename, line, character = args
 
@@ -167,7 +167,7 @@ class LanguageClient:
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
             line = self.nvim.eval("line('.')") - 1
-            character = self.nvim.eval("col('.')")
+            character = self.nvim.eval("col('.')") - 1
         else:
             filename, line, character = args
 
@@ -191,7 +191,7 @@ class LanguageClient:
         defn = result[0]
         fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
-        character = defn['range']['start']['character']
+        character = defn['range']['start']['character'] + 1
         self.nvim.async_call(lambda:
                 self.nvim.eval("cursor({}, {})".format(line, character)))
 
