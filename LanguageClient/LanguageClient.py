@@ -151,7 +151,7 @@ class LanguageClient:
         value = ''
         for content in result['contents']:
             value += content['value']
-        self.asyncEval(value)
+        self.asyncEcho(value)
         if cb is not None:
             cb(value)
 
