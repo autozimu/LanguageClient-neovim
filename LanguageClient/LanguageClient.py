@@ -42,8 +42,16 @@ class LanguageClient:
         return [line - 1, character - 1]
 
     def applyChanges(self, changes):
-        # TODO
-        logger.warn('applyChanges not implemented')
+        # FIXME: restore curson postion
+        # this one does not work due to threading issue.
+        # line0, character0 = self.getPos()
+        for uri, edits in changes.items():
+            for edit in edits:
+                line = edit['range']['start']['line'] + 1
+                character = edit['range']['start']['character'] + 1
+                newText = edit['newText']
+                cmd = "normal! {}G{}|cw{}".format(line, character, newText)
+                self.asycCommand(cmd)
 
     def alive(self) -> bool:
         if self.server == None:
@@ -284,15 +292,15 @@ class LanguageClient:
             mid = message['id']
             try:
                 self.queue[mid](message['result'])
-            except Exception as ex:
-                logger.error(ex)
+            except:
+                logger.exception("Exception in handle.")
             del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
             if hasattr(self, methodname):
                 try:
                     getattr(self, methodname)(message['params'])
-                except Exception as ex:
-                    logger.error(ex)
+                except:
+                    logger.exception("Exception in handle")
             else:
                 logger.warn('no handler implemented for ' + methodname)
