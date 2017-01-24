@@ -21,4 +21,5 @@ image: "scorpil/rust:stable"
 test:cargo:
   script:
   - rustc --version && cargo --version      # Print version info for debugging
-  - cargo test --verbose --jobs 1 --release # Don't paralize to make errors more readable
+  - git clone https://github.com/jonathandturner/rls /opt/rls
+  - py.test
