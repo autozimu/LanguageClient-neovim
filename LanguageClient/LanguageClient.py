@@ -163,7 +163,6 @@ class LanguageClient:
     # completionItem/resolve
     # textDocument/signatureHelp
     # textDocument/references
-    # textDocument/documentSymbol
     # workspace/symbol
     # textDocument/codeAction
 
