@@ -1,12 +1,12 @@
 # This file is a template, and might need editing before it works on your project.
 # Unofficial language image. Look for the different tagged releases at:
 # https://hub.docker.com/r/scorpil/rust/tags/
-image: "scorpil/rust:nightly"
+image: "archlinuxjp/archlinux"
 
 before_script:
-- apt-get update -yqq
-- apt-get install -yqq --no-install-recommends git
+- pacman -Sy --no-confirm neovim python{neovim,python-pytest} git neovim
 - git clone https://github.com/jonathandturner/rls /opt/rls
+- rustup default nightly
 
 # Use cargo to test the project
 test:cargo:
