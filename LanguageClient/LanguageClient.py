@@ -199,6 +199,8 @@ class LanguageClient:
         character = defn['range']['start']['character'] + 1
         self.asyncEval("cursor({}, {})".format(line, character))
 
+        if cb is not None:
+            cb([line, character])
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']

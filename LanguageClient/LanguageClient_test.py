@@ -15,23 +15,28 @@ class TestLanguageClient():
         cls.client = LanguageClient(nvim)
         cls.client.start()
 
-    def test_initialize(self):
-        self.client.initialize([joinPath("tests/sample-rs")])
-        while len(self.client.queue) > 0:
+        cls.client.initialize([joinPath("tests/sample-rs")])
+        while len(cls.client.queue) > 0:
             time.sleep(0.1)
 
-        ## wait for notification
-        # time.sleep(300)
+        assert cls.client.capabilities
 
-    def test_textDocument_hover(self):
-        self.client.textDocument_didOpen([
+        cls.client.textDocument_didOpen([
             joinPath("tests/sample-rs/src/main.rs")
             ])
 
         time.sleep(2)
 
-        # textDocument/hover
-        self.client.textDocument_hover((joinPath("tests/sample-rs/src/main.rs"), 8, 22),
-                lambda value: assertEqual(value, 'fn () -> i32'))
+    def test_textDocument_hover(self):
+        self.client.textDocument_hover(
+                [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
+                lambda sign: assertEqual(sign, 'fn () -> i32'))
+        while len(self.client.queue) > 0:
+            time.sleep(0.1)
+
+    def test_textDocument_definition(self):
+        self.client.textDocument_definition(
+                [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
+                lambda loc:  assertEqual(loc, [3, 4]))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
