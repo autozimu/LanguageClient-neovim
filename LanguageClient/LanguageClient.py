@@ -25,10 +25,15 @@ class LanguageClient:
         self.mid += 1
         return mid
 
-    def echo(self, message):
+    def asyncEcho(self, message):
         message = message.replace("'", "''")
         self.nvim.async_call(lambda:
                 self.nvim.command("echom '{}'".format(message)))
+
+    def asyncEval(self, expr):
+        expr = expr.replace("'", "''")
+        self.nvim.async_call(lambda:
+                self.nvim.eval(expr))
 
     def alive(self) -> bool:
         if self.server == None:
@@ -82,7 +87,7 @@ class LanguageClient:
 
     def handleInitializeResponse(self, result: dict, cb):
         self.capabilities = result['capabilities']
-        self.echo("LanguageClient started.")
+        self.asyncEcho("LanguageClient started.")
         if cb is not None:
             cb(result)
 
@@ -140,7 +145,7 @@ class LanguageClient:
         value = ''
         for content in result['contents']:
             value += content['value']
-        self.echo(value)
+        self.asyncEval(value)
         if cb is not None:
             cb(value)
 
@@ -192,8 +197,7 @@ class LanguageClient:
         fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
-        self.nvim.async_call(lambda:
-                self.nvim.eval("cursor({}, {})".format(line, character)))
+        self.asyncEval("cursor({}, {})".format(line, character))
 
 
     def textDocument_publishDiagnostics(self, params):
@@ -202,7 +206,7 @@ class LanguageClient:
             source = diagnostic['source']
             severity = diagnostic['severity']
             message = diagnostic['message']
-            self.echo(message)
+            self.asyncEcho(message)
 
     def handle(self, message):
         if 'result' in message: # got response
