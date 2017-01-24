@@ -16,10 +16,6 @@ class TestLanguageClient():
         cls.client.start()
 
         cls.client.initialize([joinPath("tests/sample-rs")])
-        while len(cls.client.queue) > 0:
-            time.sleep(0.1)
-
-        assert cls.client.capabilities
 
         cls.client.textDocument_didOpen([
             joinPath("tests/sample-rs/src/main.rs")
@@ -27,32 +23,38 @@ class TestLanguageClient():
 
         time.sleep(3)
 
+        assert cls.client.capabilities
+
+    def waitForResponse(self, timeout):
+        while len(self.client.queue) > 0 and timeout > 0:
+            time.sleep(0.1)
+            timeout -= 0.1
+
+        if len(self.client.queue) > 0:
+            assert False, "timeout"
+
     def test_textDocument_hover(self):
         self.client.textDocument_hover(
                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
                 lambda sign: assertEqual(sign, 'fn () -> i32'))
-        while len(self.client.queue) > 0:
-            time.sleep(0.1)
+        self.waitForResponse(5)
 
     def test_textDocument_definition(self):
         self.client.textDocument_definition(
                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
                 lambda loc:  assertEqual(loc, [3, 4]))
-        while len(self.client.queue) > 0:
-            time.sleep(0.1)
+        self.waitForResponse(5)
 
     def test_textDocument_rename(self):
         self.client.textDocument_rename(
                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22, "hello"]
                 )
         # TODO: assert changes
-        while len(self.client.queue) > 0:
-            time.sleep(0.1)
+        self.waitForResponse(5)
 
     def test_textDocument_documentSymbol(self):
         self.client.textDocument_documentSymbol(
                 [joinPath("tests/sample-rs/src/main.rs")]
                 )
         # TODO: assert changes
-        while len(self.client.queue) > 0:
-            time.sleep(0.1)
+        self.waitForResponse(5)
