@@ -41,10 +41,7 @@ class LanguageClient:
         _, line, character, _ = self.nvim.eval("getpos('.')")
         return [line - 1, character - 1]
 
-    def applyChanges(self, changes):
-        # FIXME: restore curson postion
-        # this one does not work due to threading issue.
-        # line0, character0 = self.getPos()
+    def applyChanges(self, changes: dict, curPos: List):
         for uri, edits in changes.items():
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
@@ -52,6 +49,7 @@ class LanguageClient:
                 newText = edit['newText']
                 cmd = "normal! {}G{}|cw{}".format(line, character, newText)
                 self.asycCommand(cmd)
+        self.asycCommand("normal! {}G{}|".format(curPos[0] + 1, curPos[1] + 1))
 
     def alive(self) -> bool:
         if self.server == None:
@@ -230,7 +228,8 @@ class LanguageClient:
             filename, line, character, newName = args
 
         mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentRenameResponse, cb=cb)
+        self.queue[mid] = partial(self.handleTextDocumentRenameResponse,
+                curPos=[line, character], cb=cb)
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
@@ -243,9 +242,9 @@ class LanguageClient:
             "newName": newName
             }, mid)
 
-    def handleTextDocumentRenameResponse(self, result: dict, cb):
+    def handleTextDocumentRenameResponse(self, result: dict, curPos: List, cb):
         changes = result['changes']
-        self.applyChanges(changes)
+        self.applyChanges(changes, curPos)
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
     def textDocument_documentSymbol(self, args, cb=None):
