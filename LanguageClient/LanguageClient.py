@@ -4,6 +4,7 @@ import json
 import threading
 import time
 from functools import partial
+from typing import List
 
 from . util import getRootPath, convertToURI
 from . logger import logger
@@ -25,9 +26,9 @@ class LanguageClient:
         return mid
 
     def echo(self, message):
+        message = message.replace("'", "''")
         self.nvim.async_call(lambda:
-                self.nvim.command("echom '{}'".format(
-                    message.replace("'", "''"))))
+                self.nvim.command("echom '{}'".format(message)))
 
     def alive(self) -> bool:
         if self.server == None:
@@ -150,12 +151,50 @@ class LanguageClient:
     # textDocument/completion
     # completionItem/resolve
     # textDocument/signatureHelp
-    # textDocument/definition
     # textDocument/references
     # textDocument/rename
     # textDocument/documentSymbol
     # workspace/symbol
     # textDocument/codeAction
+
+    @neovim.function('LanguageClient_textDocument_definition')
+    def textDocument_definition(self, args, cb=None):
+        logger.info('textDocument/definition')
+
+        if not self.alive():
+            return
+
+        if len(args) == 0:
+            filename = self.nvim.current.buffer.name
+            line = self.nvim.eval("line('.')") - 1
+            character = self.nvim.eval("col('.')")
+        else:
+            filename, line, character = args
+
+        mid = self.incMid()
+        self.queue[mid] = partial(self.handleTextDocumentDefinitionResponse, cb=cb)
+
+        self.rpc.call('textDocument/definition', {
+            "textDocument": {
+                "uri": convertToURI(filename)
+                },
+            "position": {
+                "line": line,
+                "character": character
+                }
+            }, mid)
+
+    def handleTextDocumentDefinitionResponse(self, result: List, cb):
+        if len(result) > 1:
+            logger.warn("Handling multiple definition are not implemented yet.")
+
+        defn = result[0]
+        fileuri = defn['uri']
+        line = defn['range']['start']['line'] + 1
+        character = defn['range']['start']['character']
+        self.nvim.async_call(lambda:
+                self.nvim.eval("cursor({}, {})".format(line, character)))
+
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
