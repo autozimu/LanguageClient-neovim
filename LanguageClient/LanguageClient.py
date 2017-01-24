@@ -35,6 +35,10 @@ class LanguageClient:
         self.nvim.async_call(lambda:
                 self.nvim.eval(expr))
 
+    def getPos(self):
+        _, line, character, _ = self.nvim.eval("getpos('.')")
+        return [line - 1, character - 1]
+
     def alive(self) -> bool:
         if self.server == None:
             return False
@@ -122,9 +126,7 @@ class LanguageClient:
 
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
-            # vim start with 1
-            line = self.nvim.eval("line('.')") - 1
-            character = self.nvim.eval("col('.')") - 1
+            line, character = self.getPos()
         else:
             filename, line, character = args
 
@@ -171,8 +173,7 @@ class LanguageClient:
 
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
-            line = self.nvim.eval("line('.')") - 1
-            character = self.nvim.eval("col('.')") - 1
+            line, character = self.getPos()
         else:
             filename, line, character = args
 

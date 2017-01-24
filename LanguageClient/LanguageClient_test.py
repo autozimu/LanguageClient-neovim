@@ -25,7 +25,7 @@ class TestLanguageClient():
             joinPath("tests/sample-rs/src/main.rs")
             ])
 
-        time.sleep(2)
+        time.sleep(3)
 
     def test_textDocument_hover(self):
         self.client.textDocument_hover(
