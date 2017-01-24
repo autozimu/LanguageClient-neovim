@@ -238,6 +238,31 @@ class LanguageClient:
         changes = result['changes']
         self.applyChanges(changes)
 
+    @neovim.function('LanguageClient_textDocument_symbol')
+    def textDocument_symbol(self, args, cb=None):
+        logger.info('textDocument/symbol')
+
+        if not self.alive():
+            return
+
+        if len(args) == 0:
+            filename = self.nvim.current.buffer.name
+        else:
+            filename = args[0]
+
+        mid = self.incMid()
+        self.queue[mid] = partial(self.handleTextDocumentSymbolResponse, cb=cb)
+
+        self.rpc.call('textDocument/symbol', {
+            "textDocument": {
+                "uri": convertToURI(filename)
+                }
+            }, mid)
+
+    def handleTextDocumentSymbolResponse(self, result: List, cb):
+        if cb is not None:
+            cb(result)
+
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
         for diagnostic in params['diagnostics']:
