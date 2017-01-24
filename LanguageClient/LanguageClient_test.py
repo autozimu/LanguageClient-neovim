@@ -40,3 +40,19 @@ class TestLanguageClient():
                 lambda loc:  assertEqual(loc, [3, 4]))
         while len(self.client.queue) > 0:
             time.sleep(0.1)
+
+    def test_textDocument_rename(self):
+        self.client.textDocument_rename(
+                [joinPath("tests/sample-rs/src/main.rs"), 8, 22, "hello"]
+                )
+        # TODO: assert changes
+        while len(self.client.queue) > 0:
+            time.sleep(0.1)
+
+    def test_textDocument_documentSymbol(self):
+        self.client.textDocument_documentSymbol(
+                [joinPath("tests/sample-rs/src/main.rs")]
+                )
+        # TODO: assert changes
+        while len(self.client.queue) > 0:
+            time.sleep(0.1)

@@ -39,7 +39,7 @@ class LanguageClient:
         _, line, character, _ = self.nvim.eval("getpos('.')")
         return [line - 1, character - 1]
 
-    def applyChanges(self):
+    def applyChanges(self, changes):
         # TODO
         logger.warn('applyChanges not implemented')
 
@@ -238,9 +238,9 @@ class LanguageClient:
         changes = result['changes']
         self.applyChanges(changes)
 
-    @neovim.function('LanguageClient_textDocument_symbol')
-    def textDocument_symbol(self, args, cb=None):
-        logger.info('textDocument/symbol')
+    @neovim.function('LanguageClient_textDocument_documentSymbol')
+    def textDocument_documentSymbol(self, args, cb=None):
+        logger.info('textDocument/documentSymbol')
 
         if not self.alive():
             return
@@ -251,15 +251,15 @@ class LanguageClient:
             filename = args[0]
 
         mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentSymbolResponse, cb=cb)
+        self.queue[mid] = partial(self.handleTextDocumentDocumentSymbolResponse, cb=cb)
 
-        self.rpc.call('textDocument/symbol', {
+        self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": convertToURI(filename)
                 }
             }, mid)
 
-    def handleTextDocumentSymbolResponse(self, result: List, cb):
+    def handleTextDocumentDocumentSymbolResponse(self, result: List, cb):
         if cb is not None:
             cb(result)
 
@@ -272,13 +272,26 @@ class LanguageClient:
             self.asyncEcho(message)
 
     def handle(self, message):
-        if 'result' in message: # got response
+        if 'error' in message: # got error
+            if 'id' in message:
+                mid = message['id']
+                del self.queue[mid]
+            error = message['error']
+            self.asyncEcho('LanguageClient: ' + error['message'])
+            logger.error(message)
+        elif 'result' in message: # got response
             mid = message['id']
-            self.queue[mid](message['result'])
+            try:
+                self.queue[mid](message['result'])
+            except Exception as ex:
+                logger.error(ex)
             del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
             if hasattr(self, methodname):
-                getattr(self, methodname)(message['params'])
+                try:
+                    getattr(self, methodname)(message['params'])
+                except Exception as ex:
+                    logger.error(ex)
             else:
                 logger.warn('no handler implemented for ' + methodname)
