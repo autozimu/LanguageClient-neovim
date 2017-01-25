@@ -17,7 +17,7 @@ def nvim() -> neovim.Nvim:
     nvim.command("LanguageClientStart")
     nvim.command("call LanguageClient_initialize()")
     nvim.command("call LanguageClient_textDocument_didOpen()")
-    time.sleep(2)
+    time.sleep(3)
     return nvim
 
 def test_textDocument_hover(nvim):
