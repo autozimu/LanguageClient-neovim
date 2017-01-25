@@ -63,7 +63,6 @@ class LanguageClient:
     def start(self):
         logger.info('start')
 
-
         if self.alive():
             return
 
@@ -208,7 +207,7 @@ class LanguageClient:
         fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
-        self.asyncEval("cursor({}, {})".format(line, character))
+        self.nvim.normal("normal! {}G{}|".format(line, character))
 
         if cb is not None:
             cb([line, character])
