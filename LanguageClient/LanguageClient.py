@@ -61,10 +61,10 @@ class LanguageClient:
 
     @neovim.command('LanguageClientStart')
     def start(self):
-        logger.info('start')
-
         if self.alive():
             return
+
+        logger.info('start')
 
         self.server = subprocess.Popen(
             # ["/bin/bash", "/opt/rls/wrapper.sh"],

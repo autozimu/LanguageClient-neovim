@@ -1,62 +1,61 @@
-import os, time
+import os, time, subprocess
 import neovim
+import pytest
 
 from . LanguageClient import LanguageClient
 from . util import joinPath
 
-def assertEqual(v1, v2):
-    if v1 != v2:
-        raise Exception('Assertion failed, {} == {}'.format(v1, v2))
+NVIM_LISTEN_ADDRESS = "/tmp/nvim-LanguageClient-IntegrationTest"
+PROJECT_ROOT_PATH = joinPath("tests/sample-rs")
+MAINRS_PATH = joinPath("tests/sample-rs/src/main.rs")
 
-class TestLanguageClient():
-    @classmethod
-    def setup_class(cls):
-        nvim = neovim.attach('child', argv=[
-            '/usr/bin/env', 'nvim', '--embed', '-U', 'NONE'
-            ])
-        cls.client = LanguageClient(nvim)
-        cls.client.start()
 
-        cls.client.initialize([joinPath("tests/sample-rs")])
+@pytest.fixture(scope="module")
+def nvim() -> neovim.Nvim:
+    nvim = neovim.attach('socket', path=NVIM_LISTEN_ADDRESS)
+    nvim.command("edit {}".format(MAINRS_PATH))
+    return nvim
 
-        cls.client.textDocument_didOpen([
-            joinPath("tests/sample-rs/src/main.rs")
-            ])
+def test_start(nvim):
+    nvim.command("LanguageClientStart")
 
-        time.sleep(3)
+def test_initialize(nvim):
+    nvim.command("call LanguageClient_initialize()")
 
-        assert cls.client.capabilities
+def test_textDocument_didOpen(nvim):
+    nvim.command("call LanguageClient_textDocument_didOpen()")
 
-    def waitForResponse(self, timeout):
-        while len(self.client.queue) > 0 and timeout > 0:
-            time.sleep(0.1)
-            timeout -= 0.1
+def test_textDocument_didOpen(nvim):
+    nvim.command("call LanguageClient_textDocument_didOpen()")
 
-        if len(self.client.queue) > 0:
-            assert False, "timeout"
+def test_textDocument_hover(nvim):
+    nvim.command('normal! 9G23|')
+    nvim.command('call LanguageClient_textDocument_hover()')
+    time.sleep(3)
+    print(nvim.command_output("messages"))
 
-    def test_textDocument_hover(self):
-        self.client.textDocument_hover(
-                [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
-                lambda sign: assertEqual(sign, 'fn () -> i32'))
-        self.waitForResponse(5)
+#     def test_textDocument_hover(self):
+#         self.client.textDocument_hover(
+#                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
+#                 lambda sign: assertEqual(sign, 'fn () -> i32'))
+#         self.waitForResponse(5)
 
-    def test_textDocument_definition(self):
-        self.client.textDocument_definition(
-                [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
-                lambda loc:  assertEqual(loc, [3, 4]))
-        self.waitForResponse(5)
+#     def test_textDocument_definition(self):
+#         self.client.textDocument_definition(
+#                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22],
+#                 lambda loc:  assertEqual(loc, [3, 4]))
+#         self.waitForResponse(5)
 
-    def test_textDocument_rename(self):
-        self.client.textDocument_rename(
-                [joinPath("tests/sample-rs/src/main.rs"), 8, 22, "hello"]
-                )
-        # TODO: assert changes
-        self.waitForResponse(5)
+#     def test_textDocument_rename(self):
+#         self.client.textDocument_rename(
+#                 [joinPath("tests/sample-rs/src/main.rs"), 8, 22, "hello"]
+#                 )
+#         # TODO: assert changes
+#         self.waitForResponse(5)
 
-    def test_textDocument_documentSymbol(self):
-        self.client.textDocument_documentSymbol(
-                [joinPath("tests/sample-rs/src/main.rs")]
-                )
-        # TODO: assert changes
-        self.waitForResponse(5)
+#     def test_textDocument_documentSymbol(self):
+#         self.client.textDocument_documentSymbol(
+#                 [joinPath("tests/sample-rs/src/main.rs")]
+#                 )
+#         # TODO: assert changes
+#         self.waitForResponse(5)
