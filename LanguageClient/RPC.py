@@ -21,7 +21,7 @@ class RPC:
                 "Content-Length: {}\r\n\r\n"
                 "{}".format(len(content), content)
                 )
-        logger.info(content)
+        logger.info('=> ' +  content)
         self.outfile.write(message)
         self.outfile.flush()
 
@@ -32,6 +32,6 @@ class RPC:
                 contentLength = int(line.split(":")[1])
                 self.infile.readline()
                 content = self.infile.read(contentLength)
-                logger.info(content)
+                logger.info('<= ' + content)
                 self.handler.handle(json.loads(content))
 
