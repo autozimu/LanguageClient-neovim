@@ -35,7 +35,7 @@ class LanguageClient:
 
     def asyncEcho(self, message):
         message = escape(message)
-        self.asyncCommand("echom '{}'".format(message))
+        self.asyncCommand("echo '{}'".format(message))
 
     def getPos(self):
         _, line, character, _ = self.nvim.eval("getpos('.')")
@@ -288,11 +288,17 @@ class LanguageClient:
             logger.error(message)
         elif 'result' in message: # got response
             mid = message['id']
-            self.queue[mid](message['result'])
+            try:
+                self.queue[mid](message['result'])
+            except:
+                logger.exception("Exception in handle.")
             del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
             if hasattr(self, methodname):
-                getattr(self, methodname)(message['params'])
+                try:
+                    getattr(self, methodname)(message['params'])
+                except:
+                    logger.exception("Exception in handle.")
             else:
                 logger.warn('no handler implemented for ' + methodname)
