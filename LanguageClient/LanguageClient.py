@@ -29,13 +29,13 @@ class LanguageClient:
         self.nvim.async_call(lambda:
                 self.nvim.eval(expr))
 
-    def asycCommand(self, cmds):
+    def asyncCommand(self, cmds):
         self.nvim.async_call(lambda:
                 self.nvim.command(cmds))
 
     def asyncEcho(self, message):
         message = escape(message)
-        self.asycCommand("echom '{}'".format(message))
+        self.asyncCommand("echom '{}'".format(message))
 
     def getPos(self):
         _, line, character, _ = self.nvim.eval("getpos('.')")
@@ -48,8 +48,8 @@ class LanguageClient:
                 character = edit['range']['start']['character'] + 1
                 newText = edit['newText']
                 cmd = "normal! {}G{}|cw{}".format(line, character, newText)
-                self.asycCommand(cmd)
-        self.asycCommand("normal! {}G{}|".format(curPos[0] + 1, curPos[1] + 1))
+                self.asyncCommand(cmd)
+        self.asyncCommand("normal! {}G{}|".format(curPos[0] + 1, curPos[1] + 1))
 
     def alive(self) -> bool:
         if self.server == None:
