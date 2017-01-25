@@ -16,14 +16,7 @@ class LanguageClient:
         logger.info('__init__')
         self.nvim = nvim
         self.server = None
-        self.mid = 0
-        self.queue = {}
         self.capabilities = {}
-
-    def incMid(self) -> int:
-        mid = self.mid
-        self.mid += 1
-        return mid
 
     def asyncEval(self, expr):
         self.nvim.async_call(lambda:
@@ -51,18 +44,19 @@ class LanguageClient:
                 self.asyncCommand(cmd)
         self.asyncCommand("normal! {}G{}|".format(curPos[0] + 1, curPos[1] + 1))
 
-    def alive(self) -> bool:
+    def alive(self, warn=True) -> bool:
         if self.server == None:
+            if warn: logger.warn("Language server is not started.")
             return False
         if self.server.poll() != None:
+            if warn: logger.warn("Language server is not started.")
             self.server = None
             return False
         return True
 
     @neovim.command('LanguageClientStart')
     def start(self):
-        if self.alive():
-            return
+        if self.alive(warn=False): return
 
         logger.info('start')
 
@@ -78,19 +72,19 @@ class LanguageClient:
         threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
     @neovim.function('LanguageClient_initialize')
-    def initialize(self, args, cb=None):
+    def initialize(self, args): # [rootPath?: str, cb?]
+        if not self.alive(): return
+
         logger.info('initialize')
 
-        if not self.alive():
-            return
-
-        if len(args) == 0:
-            rootPath = getRootPath(self.nvim.current.buffer.name)
-        else:
+        if len(args) > 0:
             rootPath = args[0]
-
-        mid = self.incMid()
-        self.queue[mid] = partial(self.handleInitializeResponse, cb=cb)
+        else:
+            rootPath = getRootPath(self.nvim.current.buffer.name)
+        if len(args) > 1:
+            cb = args[1]
+        else:
+            cb = self.handleInitializeResponse
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
@@ -98,42 +92,37 @@ class LanguageClient:
             "rootUri": convertToURI(rootPath),
             "capabilities":{},
             "trace":"verbose"
-            }, mid)
+            }, cb)
 
-    def handleInitializeResponse(self, result: dict, cb):
+    def handleInitializeResponse(self, result: dict):
         self.capabilities = result['capabilities']
-        self.asyncEcho("LanguageClient started.")
-        if cb is not None:
-            cb(result)
+        self.asyncEcho("LanguageClient initialization finished.")
 
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, args):
-        logger.info('textDocument/didOpen')
+        if not self.alive(): return
 
-        if not self.alive():
-            return
+        logger.info('textDocument/didOpen')
 
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
         else:
             filename = args[0]
 
-
         uri = convertToURI(filename)
         languageId = self.nvim.eval('&filetype')
 
-        self.rpc.call('textDocument/didOpen', {
+        self.rpc.notify('textDocument/didOpen', {
             "uri": uri,
             "languageId": languageId,
             "version": 1,
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
-    def textDocument_hover(self, args, cb=None):
-        logger.info('textDocument/hover')
+    def textDocument_hover(self, args):
+        if not self.alive(): return
 
-        if not self.alive():
-            return
+        logger.info('textDocument/hover')
 
         if len(args) == 0:
             filename = self.nvim.current.buffer.name
@@ -278,7 +267,12 @@ class LanguageClient:
             message = diagnostic['message']
             self.asyncEcho(message)
 
-    def handle(self, message):
+    def handleError(error):
+        echo ()
+
+    def handleRequestOrNotification(self, method, message):
+        methodname = message['method'].replace('/', '_')
+
         if 'error' in message: # got error
             if 'id' in message:
                 mid = message['id']
