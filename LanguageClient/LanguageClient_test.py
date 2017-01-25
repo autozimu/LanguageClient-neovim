@@ -11,7 +11,9 @@ def assertEqual(v1, v2):
 class TestLanguageClient():
     @classmethod
     def setup_class(cls):
-        nvim = neovim.attach('child', argv=['/usr/bin/env', 'nvim', '--embed'])
+        nvim = neovim.attach('child', argv=[
+            '/usr/bin/env', 'nvim', '--embed', '-U', 'NONE'
+            ])
         cls.client = LanguageClient(nvim)
         cls.client.start()
 
