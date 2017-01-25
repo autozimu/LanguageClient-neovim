@@ -13,7 +13,7 @@ from . RPC import RPC
 @neovim.plugin
 class LanguageClient:
     def __init__(self, nvim):
-        logger.info('class init')
+        logger.info('__init__')
         self.nvim = nvim
         self.server = None
         self.mid = 0
@@ -207,7 +207,7 @@ class LanguageClient:
         fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
-        self.nvim.command("normal! {}G{}|".format(line, character))
+        self.asyncCommand("normal! {}G{}|".format(line, character))
 
         if cb is not None:
             cb([line, character])
