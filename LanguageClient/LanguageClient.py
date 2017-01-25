@@ -207,7 +207,7 @@ class LanguageClient:
         fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
-        self.nvim.normal("normal! {}G{}|".format(line, character))
+        self.nvim.command("normal! {}G{}|".format(line, character))
 
         if cb is not None:
             cb([line, character])
@@ -288,17 +288,11 @@ class LanguageClient:
             logger.error(message)
         elif 'result' in message: # got response
             mid = message['id']
-            try:
-                self.queue[mid](message['result'])
-            except:
-                logger.exception("Exception in handle.")
+            self.queue[mid](message['result'])
             del self.queue[mid]
         else: # request/notification
             methodname = message['method'].replace('/', '_')
             if hasattr(self, methodname):
-                try:
-                    getattr(self, methodname)(message['params'])
-                except:
-                    logger.exception("Exception in handle")
+                getattr(self, methodname)(message['params'])
             else:
                 logger.warn('no handler implemented for ' + methodname)
