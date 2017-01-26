@@ -34,6 +34,32 @@ class LanguageClient:
         _, line, character, _ = self.nvim.eval("getpos('.')")
         return [line - 1, character - 1]
 
+    def getArgs(self, args: dict, keys: List) -> List:
+        if len(args) == 0:
+            args = {}
+        else:
+            args = args[0]
+
+        pos = []
+
+        res = []
+        for k in keys:
+            if k == "filename":
+                v = args.get("filename", self.nvim.current.buffer.name)
+            elif k == "line":
+                pos = self.getPos()
+                v = args.get("line", pos[0])
+            elif k == "character":
+                v = args.get("character", pos[1])
+            else:
+                v = args.get(k, None)
+            res.append(v)
+
+        if len(res) == 1:
+            return res[0]
+        else:
+            return res
+
     def applyChanges(self, changes: dict, curPos: List):
         for uri, edits in changes.items():
             for edit in edits:
@@ -68,22 +94,22 @@ class LanguageClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
-        self.rpc = RPC(self.server.stdout, self.server.stdin, self)
+        self.rpc = RPC(self.server.stdout, self.server.stdin,
+                self.handleRequestOrNotification,
+                self.handleRequestOrNotification,
+                self.handleError)
         threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
     @neovim.function('LanguageClient_initialize')
-    def initialize(self, args): # [rootPath?: str, cb?]
+    def initialize(self, args): # {rootPath?: str, cb?}
         if not self.alive(): return
 
         logger.info('initialize')
 
-        if len(args) > 0:
-            rootPath = args[0]
-        else:
+        rootPath, cb = self.getArgs(args, ["rootPath", "cb"])
+        if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
-        if len(args) > 1:
-            cb = args[1]
-        else:
+        if cb is None:
             cb = self.handleInitializeResponse
 
         self.rpc.call('initialize', {
@@ -99,39 +125,31 @@ class LanguageClient:
         self.asyncEcho("LanguageClient initialization finished.")
 
     @neovim.function('LanguageClient_textDocument_didOpen')
-    def textDocument_didOpen(self, args):
+    def textDocument_didOpen(self, args): # {filename?: str}
         if not self.alive(): return
 
         logger.info('textDocument/didOpen')
 
-        if len(args) == 0:
-            filename = self.nvim.current.buffer.name
-        else:
-            filename = args[0]
-
-        uri = convertToURI(filename)
+        filename = self.getArgs(args, ["filename"])
         languageId = self.nvim.eval('&filetype')
 
         self.rpc.notify('textDocument/didOpen', {
-            "uri": uri,
+            "uri": convertToURI(filename),
             "languageId": languageId,
             "version": 1,
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args):
+        # {filename?: str, line?: int, character?: int, cb?}
         if not self.alive(): return
 
         logger.info('textDocument/hover')
 
-        if len(args) == 0:
-            filename = self.nvim.current.buffer.name
-            line, character = self.getPos()
-        else:
-            filename, line, character = args
-
-        mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentHoverResponse, cb=cb)
+        filename, line, character, cb = self.getArgs(args,
+                ["filename", "line", "character", "cb"])
+        if cb is None:
+            cb = self.handleTextDocumentHoverResponse
 
         self.rpc.call('textDocument/hover', {
             "textDocument": {
@@ -141,15 +159,13 @@ class LanguageClient:
                 "line": line,
                 "character": character
                 }
-            }, mid)
+            }, cb)
 
-    def handleTextDocumentHoverResponse(self, result: dict, cb):
+    def handleTextDocumentHoverResponse(self, result: dict):
         value = ''
         for content in result['contents']:
             value += content['value']
         self.asyncEcho(value)
-        if cb is not None:
-            cb(value)
 
     #TODO
     # textDocument/didChange
@@ -163,20 +179,16 @@ class LanguageClient:
     # textDocument/codeAction
 
     @neovim.function('LanguageClient_textDocument_definition')
-    def textDocument_definition(self, args, cb=None):
+    def textDocument_definition(self, args):
+        # {filename?: str, line?: int, character?: int, cb?}
+        if not self.alive(): return
+
         logger.info('textDocument/definition')
 
-        if not self.alive():
-            return
-
-        if len(args) == 0:
-            filename = self.nvim.current.buffer.name
-            line, character = self.getPos()
-        else:
-            filename, line, character = args
-
-        mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentDefinitionResponse, cb=cb)
+        filename, line, character, cb = self.getArgs(args,
+                ["filename", "line", "character", "cb"])
+        if cb is None:
+            cb = self.handleTextDocumentDefinitionResponse
 
         self.rpc.call('textDocument/definition', {
             "textDocument": {
@@ -186,9 +198,9 @@ class LanguageClient:
                 "line": line,
                 "character": character
                 }
-            }, mid)
+            }, cb)
 
-    def handleTextDocumentDefinitionResponse(self, result: List, cb):
+    def handleTextDocumentDefinitionResponse(self, result: List):
         if len(result) > 1:
             logger.warn("Handling multiple definition are not implemented yet.")
 
@@ -198,26 +210,18 @@ class LanguageClient:
         character = defn['range']['start']['character'] + 1
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
-        if cb is not None:
-            cb([line, character])
-
     @neovim.function('LanguageClient_textDocument_rename')
-    def textDocument_rename(self, args, cb=None):
+    def textDocument_rename(self, args):
+        # {filename?: str, line?: int, character?: int, newName: str, cb?}
+        if not self.alive(): return
+
         logger.info('textDocument/rename')
 
-        if not self.alive():
-            return
-
-        if len(args) == 1:
-            filename = self.nvim.current.buffer.name
-            line, character = self.getPos()
-            newName = args[0]
-        else:
-            filename, line, character, newName = args
-
-        mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentRenameResponse,
-                curPos=[line, character], cb=cb)
+        filename, line, character, newName, cb = self.getArgs(args,
+                ["filename", "line", "character", "newName", "cb"])
+        if cb is None:
+            cb = partial(self.handleTextDocumentRenameResponse,
+                    curPos = [line, character])
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
@@ -228,36 +232,32 @@ class LanguageClient:
                 "character": character,
                 },
             "newName": newName
-            }, mid)
+            }, cb)
 
-    def handleTextDocumentRenameResponse(self, result: dict, curPos: List, cb):
+    def handleTextDocumentRenameResponse(self, result: dict, curPos: List):
         changes = result['changes']
         self.applyChanges(changes, curPos)
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
-    def textDocument_documentSymbol(self, args, cb=None):
+    def textDocument_documentSymbol(self, args):
+        # {filename?: str, cb?}
+        if not self.alive(): return
+
         logger.info('textDocument/documentSymbol')
 
-        if not self.alive():
-            return
-
-        if len(args) == 0:
-            filename = self.nvim.current.buffer.name
-        else:
-            filename = args[0]
-
-        mid = self.incMid()
-        self.queue[mid] = partial(self.handleTextDocumentDocumentSymbolResponse, cb=cb)
+        filename, cb = self.getArgs(args,
+                ["filename", "cb"])
+        if cb is None:
+            cb = self.handleTextDocumentDocumentSymbolResponse
 
         self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": convertToURI(filename)
                 }
-            }, mid)
+            }, cb)
 
-    def handleTextDocumentDocumentSymbolResponse(self, result: List, cb):
-        if cb is not None:
-            cb(result)
+    def handleTextDocumentDocumentSymbolResponse(self, result: List):
+        self.asyncEcho("{} symbols".format(len(result)))
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
@@ -267,32 +267,16 @@ class LanguageClient:
             message = diagnostic['message']
             self.asyncEcho(message)
 
-    def handleError(error):
-        echo ()
-
-    def handleRequestOrNotification(self, method, message):
-        methodname = message['method'].replace('/', '_')
-
-        if 'error' in message: # got error
-            if 'id' in message:
-                mid = message['id']
-                del self.queue[mid]
-            error = message['error']
-            self.asyncEcho('LanguageClient: ' + error['message'])
-            logger.error(message)
-        elif 'result' in message: # got response
-            mid = message['id']
+    def handleRequestOrNotification(self, message):
+        method = message['method'].replace('/', '_')
+        if hasattr(self, method):
             try:
-                self.queue[mid](message['result'])
+                getattr(self, method)(message['params'])
             except:
                 logger.exception("Exception in handle.")
-            del self.queue[mid]
-        else: # request/notification
-            methodname = message['method'].replace('/', '_')
-            if hasattr(self, methodname):
-                try:
-                    getattr(self, methodname)(message['params'])
-                except:
-                    logger.exception("Exception in handle.")
-            else:
-                logger.warn('no handler implemented for ' + methodname)
+        else:
+            logger.warn('no handler implemented for ' + method)
+
+    def handleError(message):
+        self.asyncEcho(json.dumps(message))
+

@@ -57,29 +57,29 @@ class RPC:
             if "id" in message:
                 mid = message["id"]
                 del self.queue[mid]
-            error = message["error"]
             try:
-                self.onError(error)
+                self.onError(message)
             except:
                 logger.exception("Exception in RPC.onError.")
-        else "result" in message: # result
+        elif "result" in message: # result
             mid = message['id']
             try:
                 self.queue[mid](message['result'])
             except:
                 logger.exception("Exception in RPC request callback.")
             del self.queue[mid]
-        else "method" in message: # request/notification
+        elif "method" in message: # request/notification
             method = message["method"]
             params = message["params"]
             if "id" in message: # request
                 try:
-                    self.onRequest(method, params)
+                    self.onRequest(message)
                 except:
                     logger.exception("Exception in RPC.onRequest")
             else:
                 try:
-                    self.onNotification(method, params)
+                    self.onNotification(message)
                 except:
                     logger.exception("Exception in RPC.onNotification")
-
+        else:
+            logger.error('Unexpected')

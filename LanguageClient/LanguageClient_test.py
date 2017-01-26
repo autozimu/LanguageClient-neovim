@@ -20,6 +20,9 @@ def nvim() -> neovim.Nvim:
     time.sleep(3)
     return nvim
 
+def test_fixture(nvim):
+    pass
+
 def test_textDocument_hover(nvim):
     nvim.command("normal! 9G23|")
     nvim.command("redir => g:echo")
@@ -38,7 +41,7 @@ def test_textDocument_definition(nvim):
 def test_textDocument_rename(nvim):
     bufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
     nvim.command("normal! 9G23|")
-    nvim.command("call LanguageClient_textDocument_rename('hello')")
+    nvim.command("call LanguageClient_textDocument_rename({'newName': 'hello'})")
     time.sleep(0.1)
     updatedBufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
     assert updatedBufferContent == bufferContent.replace("greet", "hello")
