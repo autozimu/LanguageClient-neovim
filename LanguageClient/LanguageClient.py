@@ -296,6 +296,21 @@ class LanguageClient:
             "contentChanges": contentChanges
             })
 
+    # TODO: test.
+    @neovim.function("LanguageClient_textDocument_didSave")
+    def textDocument_didSave(self, args):
+        # {filename?: str}
+        if not self.alive(): return
+        logger.info("textDocument/didSave")
+
+        filename = self.getArgs(args, ["filename"])
+
+        self.rpc.notify("textDocument/didSave", {
+            "textDocument": {
+                "uri": convertToURI(filename)
+                }
+            })
+
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
         for diagnostic in params['diagnostics']:
