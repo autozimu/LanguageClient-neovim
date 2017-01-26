@@ -256,7 +256,8 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDocumentSymbolResponse(self, result: List):
-        self.asyncCommand("call fzf#run(fzf#wrap({'source': [1, 2, 3]}))")
+        symbols = [item["name"] for item in result]
+        self.asyncCommand("call fzf#run(fzf#wrap({{'source': {}}}))".format(symbols))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 
     @neovim.function('LanguageClient_workspace_symbol')
