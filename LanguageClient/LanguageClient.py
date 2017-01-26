@@ -261,17 +261,38 @@ class LanguageClient:
     @neovim.function('LanguageClient_workspace_symbol')
     def workspace_symbol(self, args):
         if not self.alive(): return
+        logger.info("workspace/symbol")
 
         query, cb = self.getArgs(args, ["query", "cb"])
         if cb is None:
             cb = self.handleWorkspaceSymbolResponse
 
         self.rpc.call('workspace/symbol', {
-            "query": "g"
+            "query": query
             }, cb)
 
     def handleWorkspaceSymbolResponse(self, result: list):
         self.asyncEcho("{} symbols".format(len(result)))
+
+    # TODO: test.
+    @neovim.function("LanguageClient_textDocument_didChange")
+    def textDocument_didChange(self, args):
+        # {filename?: str, contentChanges?: []}
+        if not self.alive(): return
+        logger.info("textDocument/didChange")
+
+        filename, contentChanges = self.getArgs(args, ["filename", "contentChanges"])
+
+        if contentChanges is None:
+            content = str.join("\n", self.nvim.eval("getline(1, '$')"))
+            contentChanges = [{
+                "text": content
+                }]
+
+        self.rpc.notify("textDocument/didChange", {
+            "textDocument": convertToURI(filename),
+            "contentChanges": contentChanges
+            })
 
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
