@@ -1,12 +1,16 @@
 image: "archlinuxjp/archlinux"
 
+cache:
+  paths:
+  - /opt/rls
+
 before_script:
 - pacman -Sy --noconfirm neovim python-{neovim,pytest} git rustup base-devel cmake
-- git clone https://github.com/jonathandturner/rls /opt/rls
+- test -d "/opt/rls" || git clone https://github.com/jonathandturner/rls /opt/rls
 - rustup default nightly
 
 test:cargo:
   script:
   - rustc --version && cargo --version
   - cargo build --manifest-path=/opt/rls/Cargo.toml
-  - py.test
+  - make test
