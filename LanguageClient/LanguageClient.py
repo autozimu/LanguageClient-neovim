@@ -290,7 +290,9 @@ class LanguageClient:
                 }]
 
         self.rpc.notify("textDocument/didChange", {
-            "textDocument": convertToURI(filename),
+            "textDocument": {
+                "uri": convertToURI(filename)
+                },
             "contentChanges": contentChanges
             })
 
