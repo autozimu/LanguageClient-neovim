@@ -175,7 +175,6 @@ class LanguageClient:
     # completionItem/resolve
     # textDocument/signatureHelp
     # textDocument/references
-    # workspace/symbol
     # textDocument/codeAction
 
     @neovim.function('LanguageClient_textDocument_definition')
@@ -259,6 +258,21 @@ class LanguageClient:
     def handleTextDocumentDocumentSymbolResponse(self, result: List):
         self.asyncEcho("{} symbols".format(len(result)))
 
+    @neovim.function('LanguageClient_workspace_symbol')
+    def workspace_symbol(self, args):
+        if not self.alive(): return
+
+        query, cb = self.getArgs(args, ["query", "cb"])
+        if cb is None:
+            cb = self.handleWorkspaceSymbolResponse
+
+        self.rpc.call('workspace/symbol', {
+            "query": "g"
+            }, cb)
+
+    def handleWorkspaceSymbolResponse(self, result: list):
+        self.asyncEcho("{} symbols".format(len(result)))
+
     def textDocument_publishDiagnostics(self, params):
         uri = params['uri']
         for diagnostic in params['diagnostics']:
@@ -277,6 +291,6 @@ class LanguageClient:
         else:
             logger.warn('no handler implemented for ' + method)
 
-    def handleError(message):
+    def handleError(self, message):
         self.asyncEcho(json.dumps(message))
 
