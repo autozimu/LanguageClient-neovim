@@ -256,13 +256,15 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDocumentSymbolResponse(self, symbols: List):
-        names = [item["name"] for item in symbols]
-        self.asyncCommand("call fzf#run(fzf#wrap({{'source': {}}}))".format(names))
+        source = []
+        for sb in symbols:
+            name = sb["name"]
+            start = sb["location"]["range"]["start"]
+            line = start["line"] + 1
+            character = start["character"] + 1
+            source.append("{}:{}:{}:    {}".format("main.rs", line, character, name))
+        self.asyncCommand("call fzf#run(fzf#wrap({{'source': {}}}))".format(source))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
-
-    @neovim.function('LanguageClient_handleFZFSelection')
-    def handleFZFSelection(self, args):
-        logger.info(args)
 
     @neovim.function('LanguageClient_workspace_symbol')
     def workspace_symbol(self, args):
