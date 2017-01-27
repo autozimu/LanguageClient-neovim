@@ -31,7 +31,7 @@ class LanguageClient:
         self.asyncCommand("echo '{}'".format(message))
 
     def getPos(self):
-        _, line, character, _ = self.nvim.eval("getpos('.')")
+        _, line, character, _ = self.nvim.call("getpos", ".")
         return [line - 1, character - 1]
 
     def getArgs(self, args: dict, keys: List) -> List:
