@@ -256,15 +256,27 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDocumentSymbolResponse(self, symbols: List):
-        source = []
+        opts = {
+            "source": [],
+            "sink": "LanguageClientFZFSink"
+            }
         for sb in symbols:
             name = sb["name"]
             start = sb["location"]["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
-            source.append("{}:{}:{}:    {}".format("main.rs", line, character, name))
-        self.asyncCommand("call fzf#run(fzf#wrap({{'source': {}}}))".format(source))
+            entry = "{}:{}:    {}".format(line, character, name)
+            opts["source"].append(entry)
+        self.asyncCommand("call fzf#run(fzf#wrap({}))".format(opts))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+
+    @neovim.command('LanguageClientFZFSink', nargs='*')
+    def fzfSink(self, args):
+        logger.info(args)
+        splitted = args[0].split(":")
+        line = int(splitted[0])
+        character = int(splitted[1])
+        self.asyncCommand("normal! {}G{}|".format(line, character))
 
     @neovim.function('LanguageClient_workspace_symbol')
     def workspace_symbol(self, args):
