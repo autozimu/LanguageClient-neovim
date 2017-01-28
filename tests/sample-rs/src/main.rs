@@ -7,4 +7,5 @@ fn greet() -> i32 {
 fn main() {
     let a = 1;
     println!("{}", greet());
+
 }

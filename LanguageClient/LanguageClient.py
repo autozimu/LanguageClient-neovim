@@ -9,6 +9,7 @@ from typing import List, Dict, Any  # noqa: F401
 from . util import getRootPath, convertToURI, escape
 from . logger import logger
 from . RPC import RPC
+from . TextDocumentItem import TextDocumentItem
 
 
 @neovim.plugin
@@ -18,7 +19,7 @@ class LanguageClient:
         self.nvim = nvim
         self.server = None
         self.capabilities = {}
-        self.textDocumentVersion = {}
+        self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
 
     def asyncEval(self, expr: str) -> None:
         self.nvim.async_call(lambda: self.nvim.eval(expr))
@@ -30,8 +31,8 @@ class LanguageClient:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
-    def getPos(self) -> List[int]:
-        _, line, character, _ = self.nvim.call("getpos", ".")
+    def getPos(self, mark=".") -> List[int]:
+        _, line, character, _ = self.nvim.call("getpos", mark)
         return [line - 1, character - 1]
 
     def getArgs(self, argsL: List, keys: List) -> List:
@@ -139,12 +140,18 @@ class LanguageClient:
         logger.info('textDocument/didOpen')
 
         filename, = self.getArgs(args, ["filename"])
+        uri = convertToURI(filename)
         languageId = self.nvim.eval('&filetype')
+        text = self.nvim.call("getline", 1, "$")
+
+        textDocumentItem = TextDocumentItem(uri, languageId, text)
+        self.textDocuments[uri] = textDocumentItem
 
         self.rpc.notify('textDocument/didOpen', {
-            "uri": convertToURI(filename),
+            "uri": uri,
             "languageId": languageId,
-            "version": 1,
+            "version": textDocumentItem.version,
+            "text": str.join("", [l + "\n" for l in text])
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
@@ -326,22 +333,17 @@ class LanguageClient:
 
         filename, contentChanges = self.getArgs(
                 args, ["filename", "contentChanges"])
+        uri = convertToURI(filename)
 
-        self.textDocumentVersion[filename] = (
-                self.textDocumentVersion.get(filename, 1) + 1)
-
-        if contentChanges is None:
-            content = str.join("\n", self.nvim.eval("getline(1, '$')"))
-            contentChanges = [{
-                "text": content
-                }]
+        newText = self.nvim.call("getline", 1, "$")
+        version, changes = self.textDocuments[uri].change(newText)
 
         self.rpc.notify("textDocument/didChange", {
             "textDocument": {
-                "uri": convertToURI(filename),
-                "version": self.textDocumentVersion[filename]
+                "uri": uri,
+                "version": version
                 },
-            "contentChanges": contentChanges
+            "contentChanges": changes
             })
 
     # TODO: test.
