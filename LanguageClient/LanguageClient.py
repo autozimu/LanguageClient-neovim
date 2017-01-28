@@ -45,8 +45,8 @@ class LanguageClient:
 
         res = []
         for k in keys:
-            if k == "filename":
-                v = args.get("filename", self.nvim.current.buffer.name)
+            if k == "uri":
+                v = args.get("uri", convertToURI(self.nvim.current.buffer.name))
             elif k == "line":
                 pos = self.getPos()
                 v = args.get("line", pos[0])
@@ -133,14 +133,13 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_didOpen')
     def textDocument_didOpen(self, args: List) -> None:
-        # {filename?: str}
+        # {uri?: str}
         if not self.alive():
             return
 
         logger.info('textDocument/didOpen')
 
-        filename, = self.getArgs(args, ["filename"])
-        uri = convertToURI(filename)
+        uri, = self.getArgs(args, ["uri"])
         languageId = self.nvim.eval('&filetype')
         text = self.nvim.call("getline", 1, "$")
 
@@ -156,20 +155,20 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args: List) -> None:
-        # {filename?: str, line?: int, character?: int, cb?}
+        # {uri?: str, line?: int, character?: int, cb?}
         if not self.alive():
             return
 
         logger.info('textDocument/hover')
 
-        filename, line, character, cb = self.getArgs(
-            args, ["filename", "line", "character", "cb"])
+        uri, line, character, cb = self.getArgs(
+            args, ["uri", "line", "character", "cb"])
         if cb is None:
             cb = self.handleTextDocumentHoverResponse
 
         self.rpc.call('textDocument/hover', {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": uri
                 },
             "position": {
                 "line": line,
@@ -205,20 +204,20 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_definition')
     def textDocument_definition(self, args: List) -> None:
-        # {filename?: str, line?: int, character?: int, cb?}
+        # {uri?: str, line?: int, character?: int, cb?}
         if not self.alive():
             return
 
         logger.info('textDocument/definition')
 
-        filename, line, character, cb = self.getArgs(
-            args, ["filename", "line", "character", "cb"])
+        uri, line, character, cb = self.getArgs(
+            args, ["uri", "line", "character", "cb"])
         if cb is None:
             cb = self.handleTextDocumentDefinitionResponse
 
         self.rpc.call('textDocument/definition', {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": uri
                 },
             "position": {
                 "line": line,
@@ -238,14 +237,14 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_rename')
     def textDocument_rename(self, args: List) -> None:
-        # {filename?: str, line?: int, character?: int, newName: str, cb?}
+        # {uri?: str, line?: int, character?: int, newName: str, cb?}
         if not self.alive():
             return
 
         logger.info('textDocument/rename')
 
-        filename, line, character, newName, cb = self.getArgs(
-            args, ["filename", "line", "character", "newName", "cb"])
+        uri, line, character, newName, cb = self.getArgs(
+            args, ["uri", "line", "character", "newName", "cb"])
         if cb is None:
             cb = partial(
                     self.handleTextDocumentRenameResponse,
@@ -253,7 +252,7 @@ class LanguageClient:
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": uri
                 },
             "position": {
                 "line": line,
@@ -268,19 +267,19 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
     def textDocument_documentSymbol(self, args: List) -> None:
-        # {filename?: str, cb?}
+        # {uri?: str, cb?}
         if not self.alive():
             return
 
         logger.info('textDocument/documentSymbol')
 
-        filename, cb = self.getArgs(args, ["filename", "cb"])
+        uri, cb = self.getArgs(args, ["uri", "cb"])
         if cb is None:
             cb = self.handleTextDocumentDocumentSymbolResponse
 
         self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": uri
                 }
             }, cb)
 
@@ -326,14 +325,13 @@ class LanguageClient:
     # TODO: test + send incremental change ('`[', '`]').
     @neovim.function("LanguageClient_textDocument_didChange")
     def textDocument_didChange(self, args: List) -> None:
-        # {filename?: str, contentChanges?: []}
+        # {uri?: str, contentChanges?: []}
         if not self.alive():
             return
         logger.info("textDocument/didChange")
 
-        filename, contentChanges = self.getArgs(
-                args, ["filename", "contentChanges"])
-        uri = convertToURI(filename)
+        uri, contentChanges = self.getArgs(
+                args, ["uri", "contentChanges"])
 
         newText = self.nvim.call("getline", 1, "$")
         version, changes = self.textDocuments[uri].change(newText)
@@ -349,16 +347,16 @@ class LanguageClient:
     # TODO: test.
     @neovim.function("LanguageClient_textDocument_didSave")
     def textDocument_didSave(self, args: List) -> None:
-        # {filename?: str}
+        # {uri?: str}
         if not self.alive():
             return
         logger.info("textDocument/didSave")
 
-        filename, = self.getArgs(args, ["filename"])
+        uri, = self.getArgs(args, ["uri"])
 
         self.rpc.notify("textDocument/didSave", {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": uri
                 }
             })
 
