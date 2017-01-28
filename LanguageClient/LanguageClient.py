@@ -1,14 +1,15 @@
 import neovim
-import os, subprocess
+import os
+import subprocess
 import json
 import threading
-import time
 from functools import partial
-from typing import List
+from typing import List, Dict, Any
 
 from . util import getRootPath, convertToURI, escape
 from . logger import logger
 from . RPC import RPC
+
 
 @neovim.plugin
 class LanguageClient:
@@ -18,29 +19,27 @@ class LanguageClient:
         self.server = None
         self.capabilities = {}
 
-    def asyncEval(self, expr):
-        self.nvim.async_call(lambda:
-                self.nvim.eval(expr))
+    def asyncEval(self, expr: str) -> None:
+        self.nvim.async_call(lambda: self.nvim.eval(expr))
 
-    def asyncCommand(self, cmds):
-        self.nvim.async_call(lambda:
-                self.nvim.command(cmds))
+    def asyncCommand(self, cmds: str) -> None:
+        self.nvim.async_call(lambda: self.nvim.command(cmds))
 
-    def asyncEcho(self, message):
+    def asyncEcho(self, message: str) -> None:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
-    def getPos(self):
+    def getPos(self) -> List[int]:
         _, line, character, _ = self.nvim.call("getpos", ".")
         return [line - 1, character - 1]
 
-    def getArgs(self, args: dict, keys: List) -> List:
-        if len(args) == 0:
-            args = {}
+    def getArgs(self, argsL: List, keys: List) -> List:
+        if len(argsL) == 0:
+            args = {}  # type: Dict[str, Any]
         else:
-            args = args[0]
+            args = argsL[0]
 
-        pos = []
+        pos = []  # type: List[int]
 
         res = []
         for k in keys:
@@ -55,12 +54,9 @@ class LanguageClient:
                 v = args.get(k, None)
             res.append(v)
 
-        if len(res) == 1:
-            return res[0]
-        else:
-            return res
+        return res
 
-    def applyChanges(self, changes: dict, curPos: List):
+    def applyChanges(self, changes: Dict, curPos: List) -> None:
         for uri, edits in changes.items():
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
@@ -68,21 +64,26 @@ class LanguageClient:
                 newText = edit['newText']
                 cmd = "normal! {}G{}|cw{}".format(line, character, newText)
                 self.asyncCommand(cmd)
-        self.asyncCommand("normal! {}G{}|".format(curPos[0] + 1, curPos[1] + 1))
+        line = curPos[0] + 1
+        character = curPos[1] + 1
+        self.asyncCommand("normal! {}G{}|".format(line, character))
 
     def alive(self, warn=True) -> bool:
-        if self.server == None:
-            if warn: logger.warn("Language server is not started.")
+        if self.server is None:
+            if warn:
+                logger.warn("Language server is not started.")
             return False
-        if self.server.poll() != None:
-            if warn: logger.warn("Language server is not started.")
+        if self.server.poll() is not None:
+            if warn:
+                logger.warn("Language server is not started.")
             self.server = None
             return False
         return True
 
     @neovim.command('LanguageClientStart')
-    def start(self):
-        if self.alive(warn=False): return
+    def start(self) -> None:
+        if self.alive(warn=False):
+            return
 
         logger.info('start')
 
@@ -94,15 +95,18 @@ class LanguageClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
-        self.rpc = RPC(self.server.stdout, self.server.stdin,
-                self.handleRequestOrNotification,
-                self.handleRequestOrNotification,
-                self.handleError)
+        self.rpc = RPC(
+            self.server.stdout, self.server.stdin,
+            self.handleRequestOrNotification,
+            self.handleRequestOrNotification,
+            self.handleError)
         threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
     @neovim.function('LanguageClient_initialize')
-    def initialize(self, args): # {rootPath?: str, cb?}
-        if not self.alive(): return
+    def initialize(self, args: List) -> None:
+        # {rootPath?: str, cb?}
+        if not self.alive():
+            return
 
         logger.info('initialize')
 
@@ -116,21 +120,23 @@ class LanguageClient:
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": convertToURI(rootPath),
-            "capabilities":{},
-            "trace":"verbose"
+            "capabilities": {},
+            "trace": "verbose"
             }, cb)
 
-    def handleInitializeResponse(self, result: dict):
+    def handleInitializeResponse(self, result: Dict) -> None:
         self.capabilities = result['capabilities']
         self.asyncEcho("LanguageClient initialization finished.")
 
     @neovim.function('LanguageClient_textDocument_didOpen')
-    def textDocument_didOpen(self, args): # {filename?: str}
-        if not self.alive(): return
+    def textDocument_didOpen(self, args: List) -> None:
+        # {filename?: str}
+        if not self.alive():
+            return
 
         logger.info('textDocument/didOpen')
 
-        filename = self.getArgs(args, ["filename"])
+        filename, = self.getArgs(args, ["filename"])
         languageId = self.nvim.eval('&filetype')
 
         self.rpc.notify('textDocument/didOpen', {
@@ -140,14 +146,15 @@ class LanguageClient:
             })
 
     @neovim.function('LanguageClient_textDocument_hover')
-    def textDocument_hover(self, args):
+    def textDocument_hover(self, args: List) -> None:
         # {filename?: str, line?: int, character?: int, cb?}
-        if not self.alive(): return
+        if not self.alive():
+            return
 
         logger.info('textDocument/hover')
 
-        filename, line, character, cb = self.getArgs(args,
-                ["filename", "line", "character", "cb"])
+        filename, line, character, cb = self.getArgs(
+            args, ["filename", "line", "character", "cb"])
         if cb is None:
             cb = self.handleTextDocumentHoverResponse
 
@@ -161,13 +168,13 @@ class LanguageClient:
                 }
             }, cb)
 
-    def handleTextDocumentHoverResponse(self, result: dict):
+    def handleTextDocumentHoverResponse(self, result: Dict) -> None:
         value = ''
         for content in result['contents']:
             value += content['value']
         self.asyncEcho(value)
 
-    #TODO
+    # TODO
     # textDocument/didChange
     # textDocument/didSave
     # textDocument/didClose
@@ -178,14 +185,15 @@ class LanguageClient:
     # textDocument/codeAction
 
     @neovim.function('LanguageClient_textDocument_definition')
-    def textDocument_definition(self, args):
+    def textDocument_definition(self, args: List) -> None:
         # {filename?: str, line?: int, character?: int, cb?}
-        if not self.alive(): return
+        if not self.alive():
+            return
 
         logger.info('textDocument/definition')
 
-        filename, line, character, cb = self.getArgs(args,
-                ["filename", "line", "character", "cb"])
+        filename, line, character, cb = self.getArgs(
+            args, ["filename", "line", "character", "cb"])
         if cb is None:
             cb = self.handleTextDocumentDefinitionResponse
 
@@ -199,28 +207,29 @@ class LanguageClient:
                 }
             }, cb)
 
-    def handleTextDocumentDefinitionResponse(self, result: List):
+    def handleTextDocumentDefinitionResponse(self, result: List) -> None:
         if len(result) > 1:
             logger.warn("Handling multiple definition are not implemented yet.")
 
         defn = result[0]
-        fileuri = defn['uri']
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
     @neovim.function('LanguageClient_textDocument_rename')
-    def textDocument_rename(self, args):
+    def textDocument_rename(self, args: List) -> None:
         # {filename?: str, line?: int, character?: int, newName: str, cb?}
-        if not self.alive(): return
+        if not self.alive():
+            return
 
         logger.info('textDocument/rename')
 
-        filename, line, character, newName, cb = self.getArgs(args,
-                ["filename", "line", "character", "newName", "cb"])
+        filename, line, character, newName, cb = self.getArgs(
+            args, ["filename", "line", "character", "newName", "cb"])
         if cb is None:
-            cb = partial(self.handleTextDocumentRenameResponse,
-                    curPos = [line, character])
+            cb = partial(
+                    self.handleTextDocumentRenameResponse,
+                    curPos=[line, character])
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
@@ -233,19 +242,19 @@ class LanguageClient:
             "newName": newName
             }, cb)
 
-    def handleTextDocumentRenameResponse(self, result: dict, curPos: List):
+    def handleTextDocumentRenameResponse(self, result: Dict, curPos: List) -> None:
         changes = result['changes']
         self.applyChanges(changes, curPos)
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
-    def textDocument_documentSymbol(self, args):
+    def textDocument_documentSymbol(self, args: List) -> None:
         # {filename?: str, cb?}
-        if not self.alive(): return
+        if not self.alive():
+            return
 
         logger.info('textDocument/documentSymbol')
 
-        filename, cb = self.getArgs(args,
-                ["filename", "cb"])
+        filename, cb = self.getArgs(args, ["filename", "cb"])
         if cb is None:
             cb = self.handleTextDocumentDocumentSymbolResponse
 
@@ -255,11 +264,11 @@ class LanguageClient:
                 }
             }, cb)
 
-    def handleTextDocumentDocumentSymbolResponse(self, symbols: List):
+    def handleTextDocumentDocumentSymbolResponse(self, symbols: List) -> None:
         opts = {
             "source": [],
             "sink": "LanguageClientFZFSink"
-            }
+            }  # type: Dict[str, Any]
         for sb in symbols:
             name = sb["name"]
             start = sb["location"]["range"]["start"]
@@ -271,16 +280,16 @@ class LanguageClient:
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 
     @neovim.command('LanguageClientFZFSink', nargs='*')
-    def fzfSink(self, args):
-        logger.info(args)
+    def fzfSink(self, args: List) -> None:
         splitted = args[0].split(":")
         line = int(splitted[0])
         character = int(splitted[1])
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
     @neovim.function('LanguageClient_workspace_symbol')
-    def workspace_symbol(self, args):
-        if not self.alive(): return
+    def workspace_symbol(self, args: List) -> None:
+        if not self.alive():
+            return
         logger.info("workspace/symbol")
 
         query, cb = self.getArgs(args, ["query", "cb"])
@@ -291,17 +300,19 @@ class LanguageClient:
             "query": query
             }, cb)
 
-    def handleWorkspaceSymbolResponse(self, result: list):
+    def handleWorkspaceSymbolResponse(self, result: list) -> None:
         self.asyncEcho("{} symbols".format(len(result)))
 
     # TODO: test.
     @neovim.function("LanguageClient_textDocument_didChange")
-    def textDocument_didChange(self, args):
+    def textDocument_didChange(self, args: List) -> None:
         # {filename?: str, contentChanges?: []}
-        if not self.alive(): return
+        if not self.alive():
+            return
         logger.info("textDocument/didChange")
 
-        filename, contentChanges = self.getArgs(args, ["filename", "contentChanges"])
+        filename, contentChanges = self.getArgs(
+                args, ["filename", "contentChanges"])
 
         if contentChanges is None:
             content = str.join("\n", self.nvim.eval("getline(1, '$')"))
@@ -318,9 +329,10 @@ class LanguageClient:
 
     # TODO: test.
     @neovim.function("LanguageClient_textDocument_didSave")
-    def textDocument_didSave(self, args):
+    def textDocument_didSave(self, args: List) -> None:
         # {filename?: str}
-        if not self.alive(): return
+        if not self.alive():
+            return
         logger.info("textDocument/didSave")
 
         filename = self.getArgs(args, ["filename"])
@@ -331,15 +343,12 @@ class LanguageClient:
                 }
             })
 
-    def textDocument_publishDiagnostics(self, params):
-        uri = params['uri']
+    def textDocument_publishDiagnostics(self, params) -> None:
         for diagnostic in params['diagnostics']:
-            source = diagnostic['source']
-            severity = diagnostic['severity']
             message = diagnostic['message']
             self.asyncEcho(message)
 
-    def handleRequestOrNotification(self, message):
+    def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
         if hasattr(self, method):
             try:
@@ -349,6 +358,5 @@ class LanguageClient:
         else:
             logger.warn('no handler implemented for ' + method)
 
-    def handleError(self, message):
+    def handleError(self, message) -> None:
         self.asyncEcho(json.dumps(message))
-

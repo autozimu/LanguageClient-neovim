@@ -1,6 +1,8 @@
 import json
+from typing import Dict, Any
 
 from . logger import logger
+
 
 class RPC:
     def __init__(self, infile, outfile, onRequest, onNotification, onError):
@@ -17,29 +19,29 @@ class RPC:
         self.mid += 1
         return mid
 
-    def call(self, method: str, params: dict, cb):
-        if cb is not None: # a call
+    def call(self, method: str, params: Dict[str, Any], cb) -> None:
+        if cb is not None:  # a call
             mid = self.incMid()
             self.queue[mid] = cb
 
-        content = {
+        contentDict = {
                 "jsonrpc": "2.0",
                 "method": method,
                 "params": params,
-                }
+                }  # type: Dict[str, Any]
         if cb is not None:
-            content["id"] = mid
+            contentDict["id"] = mid
 
-        content = json.dumps(content)
+        content = json.dumps(contentDict)
         message = (
                 "Content-Length: {}\r\n\r\n"
                 "{}".format(len(content), content)
                 )
-        logger.info('=> ' +  content)
+        logger.info('=> ' + content)
         self.outfile.write(message)
         self.outfile.flush()
 
-    def notify(self, method, params):
+    def notify(self, method: str, params: Dict[str, Any]) -> None:
         self.call(method, params, None)
 
     def serve(self):
@@ -52,8 +54,8 @@ class RPC:
                 logger.info('<= ' + content)
                 self.handle(json.loads(content))
 
-    def handle(self, message: dict):
-        if "error" in message: # error
+    def handle(self, message: Dict[str, Any]):
+        if "error" in message:  # error
             if "id" in message:
                 mid = message["id"]
                 del self.queue[mid]
@@ -61,17 +63,15 @@ class RPC:
                 self.onError(message)
             except:
                 logger.exception("Exception in RPC.onError.")
-        elif "result" in message: # result
+        elif "result" in message:  # result
             mid = message['id']
             try:
                 self.queue[mid](message['result'])
             except:
                 logger.exception("Exception in RPC request callback.")
             del self.queue[mid]
-        elif "method" in message: # request/notification
-            method = message["method"]
-            params = message["params"]
-            if "id" in message: # request
+        elif "method" in message:  # request/notification
+            if "id" in message:  # request
                 try:
                     self.onRequest(message)
                 except:
