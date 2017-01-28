@@ -4,7 +4,7 @@ import subprocess
 import json
 import threading
 from functools import partial
-from typing import List, Dict, Any
+from typing import List, Dict, Any # NOQA
 
 from . util import getRootPath, convertToURI, escape
 from . logger import logger

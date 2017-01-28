@@ -1,1 +1,1 @@
-from . LanguageClient import LanguageClient
+from . LanguageClient import LanguageClient  # NOQA
