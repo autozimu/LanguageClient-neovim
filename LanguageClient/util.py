@@ -31,7 +31,8 @@ def convertToURI(filename: str) -> str:
 
 
 def test_convertToURI():
-    assert convertToURI("/tmp/sample-rs/src/main.rs") == "file:///tmp/sample-rs/src/main.rs"
+    assert (convertToURI("/tmp/sample-rs/src/main.rs") ==
+            "file:///tmp/sample-rs/src/main.rs")
 
 
 def escape(string: str) -> str:

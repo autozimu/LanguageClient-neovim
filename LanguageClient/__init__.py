@@ -1,1 +1,1 @@
-from . LanguageClient import LanguageClient  # NOQA
+from . LanguageClient import LanguageClient  # noqa: F401

@@ -4,7 +4,7 @@ import subprocess
 import json
 import threading
 from functools import partial
-from typing import List, Dict, Any # NOQA
+from typing import List, Dict, Any  # noqa: F401
 
 from . util import getRootPath, convertToURI, escape
 from . logger import logger
@@ -90,7 +90,7 @@ class LanguageClient:
         self.server = subprocess.Popen(
             # ["/bin/bash", "/opt/rls/wrapper.sh"],
             ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
-            # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'],
+            # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'], # NOQA
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -100,7 +100,8 @@ class LanguageClient:
             self.handleRequestOrNotification,
             self.handleRequestOrNotification,
             self.handleError)
-        threading.Thread(target=self.rpc.serve, name="RPC Server", daemon=True).start()
+        threading.Thread(
+                target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
@@ -209,7 +210,8 @@ class LanguageClient:
 
     def handleTextDocumentDefinitionResponse(self, result: List) -> None:
         if len(result) > 1:
-            logger.warn("Handling multiple definition are not implemented yet.")
+            logger.warn(
+                "Handling multiple definition are not implemented yet.")
 
         defn = result[0]
         line = defn['range']['start']['line'] + 1
@@ -242,7 +244,7 @@ class LanguageClient:
             "newName": newName
             }, cb)
 
-    def handleTextDocumentRenameResponse(self, result: Dict, curPos: List) -> None:
+    def handleTextDocumentRenameResponse(self, result: Dict, curPos: List) -> None: # NOQA
         changes = result['changes']
         self.applyChanges(changes, curPos)
 
