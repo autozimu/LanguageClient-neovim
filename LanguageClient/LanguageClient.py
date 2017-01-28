@@ -18,6 +18,7 @@ class LanguageClient:
         self.nvim = nvim
         self.server = None
         self.capabilities = {}
+        self.textDocumentVersion = {}
 
     def asyncEval(self, expr: str) -> None:
         self.nvim.async_call(lambda: self.nvim.eval(expr))
@@ -316,6 +317,9 @@ class LanguageClient:
         filename, contentChanges = self.getArgs(
                 args, ["filename", "contentChanges"])
 
+        self.textDocumentVersion[filename] = (
+                self.textDocumentVersion.get(filename, 1) + 1)
+
         if contentChanges is None:
             content = str.join("\n", self.nvim.eval("getline(1, '$')"))
             contentChanges = [{
@@ -324,7 +328,8 @@ class LanguageClient:
 
         self.rpc.notify("textDocument/didChange", {
             "textDocument": {
-                "uri": convertToURI(filename)
+                "uri": convertToURI(filename),
+                "version": self.textDocumentVersion[filename]
                 },
             "contentChanges": contentChanges
             })
