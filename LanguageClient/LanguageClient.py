@@ -306,7 +306,7 @@ class LanguageClient:
     def handleWorkspaceSymbolResponse(self, result: list) -> None:
         self.asyncEcho("{} symbols".format(len(result)))
 
-    # TODO: test.
+    # TODO: test + send incremental change.
     @neovim.function("LanguageClient_textDocument_didChange")
     def textDocument_didChange(self, args: List) -> None:
         # {filename?: str, contentChanges?: []}
