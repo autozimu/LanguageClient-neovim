@@ -337,7 +337,7 @@ class LanguageClient:
             return
         logger.info("textDocument/didSave")
 
-        filename = self.getArgs(args, ["filename"])
+        filename, = self.getArgs(args, ["filename"])
 
         self.rpc.notify("textDocument/didSave", {
             "textDocument": {
