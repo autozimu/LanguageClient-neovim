@@ -352,7 +352,7 @@ class LanguageClient:
 
     def textDocument_publishDiagnostics(self, params) -> None:
         for diagnostic in params['diagnostics']:
-            message = diagnostic['message']
+            message = diagnostic['message'].replace("\n", ". ")
             self.asyncEcho(message)
 
     def handleRequestOrNotification(self, message) -> None:
