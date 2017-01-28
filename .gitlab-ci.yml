@@ -2,17 +2,18 @@ image: "archlinuxjp/archlinux"
 
 cache:
   paths:
-  - /opt/rls
+  - rls
 
 before_script:
 - pacman -Sy --noconfirm neovim python-{neovim,pytest} git rustup base-devel cmake
-- test -d "/opt/rls" || git clone https://github.com/jonathandturner/rls /opt/rls
+- test -d "rls" || git clone https://github.com/jonathandturner/rls
+- ln -s ${PWD}/rls /opt/
 - rustup default nightly
 
 test:cargo:
   script:
   - rustc --version && cargo --version
-  - cargo build --manifest-path=/opt/rls/Cargo.toml
+  - cargo build --manifest-path=rls/Cargo.toml
   - mkdir -p $HOME/.config/nvim/rplugin
-  - ln -s /builds/autozimu/LanguageClient-neovim $HOME/.config/nvim/rplugin/python3
+  - ln -s ${PWD} $HOME/.config/nvim/rplugin/python3
   - make test
