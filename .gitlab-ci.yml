@@ -1,6 +1,6 @@
 image: "autozimu/languageclientneovim"
 
-test:cargo:
+test:
   script:
   - mkdir -p $HOME/.config/nvim/rplugin
   - ln -s ${PWD} $HOME/.config/nvim/rplugin/python3
