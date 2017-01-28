@@ -17,7 +17,7 @@ def nvim() -> neovim.Nvim:
     nvim.command("LanguageClientStart")
     nvim.call("LanguageClient_initialize")
     nvim.call("LanguageClient_textDocument_didOpen")
-    time.sleep(3)
+    time.sleep(5)
     return nvim
 
 
@@ -29,7 +29,7 @@ def test_textDocument_hover(nvim):
     nvim.command("normal! 9G23|")
     nvim.command("redir => g:echo")
     nvim.call("LanguageClient_textDocument_hover")
-    time.sleep(0.2)
+    time.sleep(0.5)
     nvim.command("redir END")
     assert nvim.eval("g:echo").strip() == "fn () -> i32"
 
