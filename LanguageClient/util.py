@@ -7,14 +7,14 @@ def joinPath(part):
     return os.path.join(currPath, part)
 
 
-def getRootPath(filename: str) -> str:
-    if filename.endswith('.rs'):
+def getRootPath(filepath: str) -> str:
+    if filepath.endswith('.rs'):
         return traverseUp(
-            filename,
+            filepath,
             lambda folder: os.path.exists(os.path.join(folder, 'Cargo.toml')))
     # TODO: detect for other filetypes
     else:
-        return filename
+        return filepath
 
 
 def traverseUp(folder: str, stop) -> str:
@@ -26,8 +26,8 @@ def traverseUp(folder: str, stop) -> str:
         return traverseUp(os.path.dirname(folder), stop)
 
 
-def convertToURI(filename: str) -> str:
-    return "file://" + filename
+def convertToURI(filepath: str) -> str:
+    return "file://" + filepath
 
 
 def test_convertToURI():
