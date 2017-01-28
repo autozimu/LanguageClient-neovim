@@ -170,10 +170,20 @@ class LanguageClient:
                 }
             }, cb)
 
+    def markedStringToString(self, s: Any) -> str:
+        if isinstance(s, str):
+            return s
+        else:
+            return s["value"]
+
     def handleTextDocumentHoverResponse(self, result: Dict) -> None:
+        contents = result["contents"]
         value = ''
-        for content in result['contents']:
-            value += content['value']
+        if isinstance(contents, list):
+            for markedString in result['contents']:
+                value += self.markedStringToString(markedString)
+        else:
+            value += self.markedStringToString(contents)
         self.asyncEcho(value)
 
     # TODO
