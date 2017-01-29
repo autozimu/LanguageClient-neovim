@@ -253,7 +253,7 @@ class LanguageClient:
 
     @neovim.function('LanguageClient_textDocument_rename')
     def textDocument_rename(self, args: List) -> None:
-        # {uri?: str, line?: int, character?: int, newName: str, cb?}
+        # {uri?: str, line?: int, character?: int, newName?: str, cb?}
         if not self.alive():
             return
 
@@ -261,6 +261,10 @@ class LanguageClient:
 
         uri, line, character, newName, cb = self.getArgs(
             args, ["uri", "line", "character", "newName", "cb"])
+        if newName is None:
+            self.nvim.call("inputsave")
+            newName = self.nvim.call("input", "Rename to: ")
+            self.nvim.call("inputrestore")
         if cb is None:
             cb = partial(
                     self.handleTextDocumentRenameResponse,
