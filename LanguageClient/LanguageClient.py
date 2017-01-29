@@ -156,6 +156,23 @@ class LanguageClient:
             "text": text
             })
 
+    @neovim.function('LanguageClient_textDocument_didClose')
+    def textDocument_didClose(self, args: List) -> None:
+        # {uri?: str}
+        if not self.alive():
+            return
+
+        logger.info('textDocument/didClose')
+
+        uri, = self.getArgs(args, ["uri"])
+        del self.textDocuments[uri]
+
+        self.rpc.notify('textDocument/didClose', {
+            "textDocument": {
+                "uri": uri
+                }
+            })
+
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, cb?}
@@ -196,7 +213,6 @@ class LanguageClient:
         self.asyncEcho(value)
 
     # TODO
-    # textDocument/didClose
     # textDocument/completion
     # completionItem/resolve
     # textDocument/signatureHelp
@@ -350,7 +366,6 @@ class LanguageClient:
             "contentChanges": changes
             })
 
-    # TODO: test.
     @neovim.function("LanguageClient_textDocument_didSave")
     def textDocument_didSave(self, args: List) -> None:
         # {uri?: str}
