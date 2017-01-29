@@ -74,16 +74,16 @@ class LanguageClient:
     def alive(self, warn=True) -> bool:
         if self.server is None:
             if warn:
-                logger.warn("Language server is not started.")
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")
             return False
         if self.server.poll() is not None:
             if warn:
-                logger.warn("Language server is not started.")
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")
             self.server = None
             return False
         return True
 
-    @neovim.command('LanguageClientStart')
+    @neovim.command('LanguageClientStartServer')
     def start(self) -> None:
         if self.alive(warn=False):
             return
@@ -379,6 +379,16 @@ class LanguageClient:
                 "uri": uri
                 }
             })
+
+    # FIXME: python infinite loop after this call.
+    @neovim.function("LanguageClient_exit")
+    def exit(self, args: List) -> None:
+        # {uri?: str}
+        if not self.alive():
+            return
+        logger.info("exit")
+
+        self.rpc.notify("exit", {})
 
     def textDocument_publishDiagnostics(self, params) -> None:
         for diagnostic in params['diagnostics']:

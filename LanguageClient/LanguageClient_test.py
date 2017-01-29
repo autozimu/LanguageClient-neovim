@@ -14,7 +14,7 @@ def nvim() -> neovim.Nvim:
     nvim = neovim.attach('socket', path=NVIM_LISTEN_ADDRESS)
     time.sleep(0.1)
     nvim.command("edit! {}".format(MAINRS_PATH))
-    nvim.command("LanguageClientStart")
+    nvim.command("LanguageClientStartServer")
     nvim.call("LanguageClient_initialize")
     nvim.call("LanguageClient_textDocument_didOpen")
     time.sleep(5)
@@ -74,3 +74,6 @@ def test_textDocument_didSave(nvim):
 
 def test_textDocument_didClose(nvim):
     nvim.call("LanguageClient_textDocument_didClose")
+
+def test_exit(nvim):
+    nvim.call("LanguageClient_exit")

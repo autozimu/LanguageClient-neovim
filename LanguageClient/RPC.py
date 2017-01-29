@@ -45,7 +45,7 @@ class RPC:
         self.call(method, params, None)
 
     def serve(self):
-        while True:
+        while not self.infile.closed:
             line = self.infile.readline()
             if line:
                 contentLength = int(line.split(":")[1])
