@@ -16,6 +16,7 @@ def nvim() -> neovim.Nvim:
     nvim.command("edit! {}".format(MAINRS_PATH))
     nvim.command("LanguageClientStart")
     nvim.call("LanguageClient_initialize")
+    nvim.call("LanguageClient_textDocument_didOpen")
     time.sleep(5)
     return nvim
 
