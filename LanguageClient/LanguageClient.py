@@ -287,6 +287,11 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDocumentSymbolResponse(self, symbols: List) -> None:
+        if nvim.eval("get(g:, 'loaded_fzf', 0)") == 0:
+            logger.warn("FZF not loaded.")
+            self.asyncEcho("{} symbols.".format(len(symbols)))
+            return
+
         opts = {
             "source": [],
             "sink": "LanguageClientFZFSink"
