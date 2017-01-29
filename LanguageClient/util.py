@@ -1,4 +1,6 @@
 import os
+from urllib import parse
+from pathlib import Path
 
 currPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,13 +28,22 @@ def traverseUp(folder: str, stop) -> str:
         return traverseUp(os.path.dirname(folder), stop)
 
 
-def convertToURI(filepath: str) -> str:
-    return "file://" + filepath
+def pathToURI(filepath: str) -> str:
+    return Path(filepath).as_uri()
 
 
-def test_convertToURI():
-    assert (convertToURI("/tmp/sample-rs/src/main.rs") ==
+def test_pathToURI():
+    assert (pathToURI("/tmp/sample-rs/src/main.rs") ==
             "file:///tmp/sample-rs/src/main.rs")
+
+
+def uriToPath(uri: str) -> str:
+    return parse.urlparse(uri).path
+
+
+def testUriToPath():
+    assert (uriToPath("file:///tmp/sample-rs/src/main.rs") ==
+            "/tmp/sample-rs/src/main.rs")
 
 
 def escape(string: str) -> str:

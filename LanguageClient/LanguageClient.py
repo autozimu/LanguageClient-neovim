@@ -6,7 +6,7 @@ import threading
 from functools import partial
 from typing import List, Dict, Any  # noqa: F401
 
-from . util import getRootPath, convertToURI, escape
+from . util import getRootPath, pathToURI, escape
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -46,7 +46,7 @@ class LanguageClient:
         res = []
         for k in keys:
             if k == "uri":
-                v = args.get("uri", convertToURI(self.nvim.current.buffer.name))
+                v = args.get("uri", pathToURI(self.nvim.current.buffer.name))
             elif k == "line":
                 pos = self.getPos()
                 v = args.get("line", pos[0])
@@ -90,8 +90,8 @@ class LanguageClient:
         logger.info('start')
 
         self.server = subprocess.Popen(
-            # ["/bin/bash", "/opt/rls/wrapper.sh"],
-            ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
+            ["/bin/bash", "/opt/rls/wrapper.sh"],
+            # ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
             # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'], # NOQA
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -122,7 +122,7 @@ class LanguageClient:
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
-            "rootUri": convertToURI(rootPath),
+            "rootUri": pathToURI(rootPath),
             "capabilities": {},
             "trace": "verbose"
             }, cb)
