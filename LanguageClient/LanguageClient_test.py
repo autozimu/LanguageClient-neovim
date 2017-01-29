@@ -67,5 +67,6 @@ def test_textDocument_didChange(nvim):
     _, line, character, _ = nvim.call("getpos", ".")
     assert (line, character) == (12, 4)
 
+
 def test_textDocument_didSave(nvim):
     nvim.call("LanguageClient_textDocument_didSave")
