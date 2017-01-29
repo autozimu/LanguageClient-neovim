@@ -1,1 +1,3 @@
-- CI.
+- Integrate with ale.
+- Completion.
+- Integrate with deoplete.
