@@ -196,8 +196,6 @@ class LanguageClient:
         self.asyncEcho(value)
 
     # TODO
-    # textDocument/didChange
-    # textDocument/didSave
     # textDocument/didClose
     # textDocument/completion
     # completionItem/resolve
