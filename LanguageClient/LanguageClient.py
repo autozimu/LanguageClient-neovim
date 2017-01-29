@@ -316,9 +316,10 @@ class LanguageClient:
             start = sb["location"]["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
-            entry = "{}:{}:    {}".format(line, character, name)
+            entry = "{}:{}:\t{}".format(line, character, name)
             opts["source"].append(entry)
-        self.asyncCommand("call fzf#run(fzf#wrap({}))".format(opts))
+        self.asyncCommand("call fzf#run(fzf#wrap({}))"
+                .format(json.dumps(opts)))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 
     @neovim.command('LanguageClientFZFSink', nargs='*')
