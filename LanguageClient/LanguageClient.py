@@ -10,6 +10,7 @@ from . util import getRootPath, pathToURI, escape
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
+from . Debounce import Debounce
 
 
 @neovim.plugin
@@ -322,8 +323,8 @@ class LanguageClient:
     def handleWorkspaceSymbolResponse(self, result: list) -> None:
         self.asyncEcho("{} symbols".format(len(result)))
 
-    # TODO: test + send incremental change ('`[', '`]').
     @neovim.function("LanguageClient_textDocument_didChange")
+    @Debounce(1)
     def textDocument_didChange(self, args: List) -> None:
         # {uri?: str, contentChanges?: []}
         if not self.alive():
