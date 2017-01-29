@@ -5,7 +5,7 @@ def test_TextDocumentItem():
     textDocumentItem = TextDocumentItem(
             "file:///tmp/sample.rs",
             "rust",
-"""
+            """
 
 fn greet() -> i32 {
     42
@@ -37,4 +37,3 @@ fn main() {
     assert textDocumentItem.text == newText
     assert version == 2
     assert len(changes) == 1
-

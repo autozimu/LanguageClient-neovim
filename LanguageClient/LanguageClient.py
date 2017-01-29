@@ -142,7 +142,9 @@ class LanguageClient:
 
         uri, = self.getArgs(args, ["uri"])
         languageId = self.nvim.eval('&filetype')
-        text = str.join("", [l + "\n" for l in self.nvim.call("getline", 1, "$")])
+        text = str.join(
+                "",
+                [l + "\n" for l in self.nvim.call("getline", 1, "$")])
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
         self.textDocuments[uri] = textDocumentItem
@@ -334,7 +336,9 @@ class LanguageClient:
         uri, contentChanges = self.getArgs(
                 args, ["uri", "contentChanges"])
 
-        newText = str.join("", [l + "\n" for l in self.nvim.call("getline", 1, "$")])
+        newText = str.join(
+                "",
+                [l + "\n" for l in self.nvim.call("getline", 1, "$")])
         version, changes = self.textDocuments[uri].change(newText)
 
         self.rpc.notify("textDocument/didChange", {

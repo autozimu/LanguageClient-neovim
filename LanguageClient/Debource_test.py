@@ -1,5 +1,6 @@
 from . Debounce import Debounce
 
+
 class A:
     def __init__(self):
         self.n = 0
@@ -7,6 +8,7 @@ class A:
     @Debounce(1.0)
     def increment(self):
         self.n += 1
+
 
 def test_Debounce():
     a = A()

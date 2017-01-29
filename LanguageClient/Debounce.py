@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import time
 
 # <https://gist.github.com/esromneb/8eac6bf5bdfef58304cb>
