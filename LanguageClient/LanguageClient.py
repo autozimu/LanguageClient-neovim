@@ -74,11 +74,11 @@ class LanguageClient:
     def alive(self, warn=True) -> bool:
         if self.server is None:
             if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")  # noqa: E501
             return False
         if self.server.poll() is not None:
             if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")  # noqa: E501
             self.server = None
             return False
         return True
