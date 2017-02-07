@@ -318,7 +318,8 @@ class LanguageClient:
             character = start["character"] + 1
             entry = "{}:{}:\t{}".format(line, character, name)
             opts["source"].append(entry)
-        self.asyncCommand("call fzf#run(fzf#wrap({}))"
+        self.asyncCommand(
+                "call fzf#run(fzf#wrap({}))"
                 .format(json.dumps(opts)))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 

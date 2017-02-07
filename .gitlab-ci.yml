@@ -4,4 +4,4 @@ test:
   script:
   - mkdir -p $HOME/.config/nvim/rplugin
   - ln -s ${PWD} $HOME/.config/nvim/rplugin/python3
-  - make test
+  - cd rplugin/python3 && make test
