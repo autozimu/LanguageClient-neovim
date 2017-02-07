@@ -14,9 +14,8 @@ def nvim() -> neovim.Nvim:
     nvim = neovim.attach('socket', path=NVIM_LISTEN_ADDRESS)
     time.sleep(0.1)
     nvim.command("edit! {}".format(MAINRS_PATH))
-    nvim.command("LanguageClientStartServer")
-    nvim.call("LanguageClient_initialize")
-    nvim.call("LanguageClient_textDocument_didOpen")
+    time.sleep(0.1)
+    nvim.command("LanguageClientStart")
     time.sleep(5)
     return nvim
 

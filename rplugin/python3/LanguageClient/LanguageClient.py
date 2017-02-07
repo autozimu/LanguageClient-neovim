@@ -3,6 +3,7 @@ import os
 import subprocess
 import json
 import threading
+import time
 from functools import partial
 from typing import List, Dict, Any  # noqa: F401
 
@@ -74,26 +75,31 @@ class LanguageClient:
     def alive(self, warn=True) -> bool:
         if self.server is None:
             if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")  # noqa: E501
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStart")  # noqa: E501
             return False
         if self.server.poll() is not None:
             if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStartServer")  # noqa: E501
+                self.asyncEcho("Language server is not running. Start server by :LanguageClientStart")  # noqa: E501
             self.server = None
             return False
         return True
 
-    @neovim.command('LanguageClientStartServer')
+    @neovim.command('LanguageClientStart')
     def start(self) -> None:
         if self.alive(warn=False):
             return
 
         logger.info('start')
 
+        filetype = self.nvim.eval('&filetype')
+        commands = self.nvim.eval('g:LanguageClient_serverCommands')
+        if filetype not in commands:
+            self.asyncEcho("No language server commmand found for type: {}.".format(filetype))
+        command = commands[filetype]
+
         self.server = subprocess.Popen(
             # ["/bin/bash", "/opt/rls/wrapper.sh"],
-            ["cargo", "run", "--manifest-path=/opt/rls/Cargo.toml"],
-            # ['langserver-go', '-trace', '-logfile', '/tmp/langserver-go.log'], # NOQA
+            command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -105,6 +111,10 @@ class LanguageClient:
             self.handleError)
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
+        time.sleep(0.5)
+
+        self.initialize([])
+        self.textDocument_didOpen([])
 
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
