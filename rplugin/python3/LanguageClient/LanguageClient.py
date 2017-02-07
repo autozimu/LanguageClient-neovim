@@ -88,8 +88,9 @@ class LanguageClient:
 
         filetype = self.nvim.eval('&filetype')
         commands = self.nvim.eval('g:LanguageClient_serverCommands')
-        if filetype not in commands:
+        if not filetype or filetype not in commands:
             self.asyncEcho("No language server commmand found for type: {}.".format(filetype))  # noqa: E501
+            return
         command = commands[filetype]
 
         self.server = subprocess.Popen(
