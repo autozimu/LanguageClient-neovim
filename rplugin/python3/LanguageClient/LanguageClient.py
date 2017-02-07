@@ -356,7 +356,7 @@ class LanguageClient:
     @Debounce(1)
     def textDocument_didChange(self, args: List) -> None:
         # {uri?: str, contentChanges?: []}
-        if not self.alive():
+        if not self.alive(warn=False):
             return
         logger.info("textDocument/didChange")
 
@@ -379,7 +379,7 @@ class LanguageClient:
     @neovim.function("LanguageClient_textDocument_didSave")
     def textDocument_didSave(self, args: List) -> None:
         # {uri?: str}
-        if not self.alive():
+        if not self.alive(warn=False):
             return
         logger.info("textDocument/didSave")
 
