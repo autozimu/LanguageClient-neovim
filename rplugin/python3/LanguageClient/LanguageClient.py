@@ -73,14 +73,9 @@ class LanguageClient:
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
     def alive(self, warn=True) -> bool:
-        if self.server is None:
+        if self.server is None or self.server.poll() is not None:
             if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStart")  # noqa: E501
-            return False
-        if self.server.poll() is not None:
-            if warn:
-                self.asyncEcho("Language server is not running. Start server by :LanguageClientStart")  # noqa: E501
-            self.server = None
+                self.asyncEcho("Language client is not running. Try :LanguageClientStart")  # noqa: E501
             return False
         return True
 
@@ -94,7 +89,7 @@ class LanguageClient:
         filetype = self.nvim.eval('&filetype')
         commands = self.nvim.eval('g:LanguageClient_serverCommands')
         if filetype not in commands:
-            self.asyncEcho("No language server commmand found for type: {}.".format(filetype))
+            self.asyncEcho("No language server commmand found for type: {}.".format(filetype))  # noqa: E501
         command = commands[filetype]
 
         self.server = subprocess.Popen(
