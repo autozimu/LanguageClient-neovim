@@ -32,11 +32,6 @@ def pathToURI(filepath: str) -> str:
     return Path(filepath).as_uri()
 
 
-def test_pathToURI():
-    assert (pathToURI("/tmp/sample-rs/src/main.rs") ==
-            "file:///tmp/sample-rs/src/main.rs")
-
-
 def uriToPath(uri: str) -> str:
     return parse.urlparse(uri).path
 
