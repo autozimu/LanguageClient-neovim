@@ -16,12 +16,15 @@ from . Debounce import Debounce
 
 @neovim.plugin
 class LanguageClient:
+    _instance = None  # type: LanguageClient
+
     def __init__(self, nvim):
         logger.info('__init__')
         self.nvim = nvim
         self.server = None
         self.capabilities = {}
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
+        type(self)._instance = self
 
     def asyncEval(self, expr: str) -> None:
         self.nvim.async_call(lambda: self.nvim.eval(expr))
