@@ -84,6 +84,7 @@ class LanguageClient:
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         if self.alive(warn=False):
+            self.asyncEcho("Language client has already started.")
             return
 
         logger.info('start')
