@@ -13,6 +13,6 @@ fn main() {
 
 mod lib;
 use lib::yo;
-fn yo_in_main() -> i32 {
+fn ref_in_main() -> i32 {
     yo() + 1
 }

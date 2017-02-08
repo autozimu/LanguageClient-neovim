@@ -1,4 +1,5 @@
 set noswapfile
+set hidden
 
 autocmd BufReadPost *.rs setlocal filetype=rust
 
