@@ -9,3 +9,9 @@ fn main() {
     println!("{}", greet());
 
 }
+
+mod lib;
+use lib::yo;
+fn yo_in_main() -> i32 {
+    yo() + 1
+}
