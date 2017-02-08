@@ -7,6 +7,7 @@ from . util import joinPath
 NVIM_LISTEN_ADDRESS = "/tmp/nvim-LanguageClient-IntegrationTest"
 PROJECT_ROOT_PATH = joinPath("tests/sample-rs")
 MAINRS_PATH = joinPath("tests/sample-rs/src/main.rs")
+LIBRS_PATH = joinPath("tests/sample-rs/src/lib.rs")
 
 
 @pytest.fixture(scope="module")
@@ -48,6 +49,18 @@ def test_textDocument_rename(nvim):
     time.sleep(0.1)
     updatedBufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
     assert updatedBufferContent == bufferContent.replace("greet", "hello")
+    nvim.command("edit! {}".format(MAINRS_PATH))
+
+
+def test_textDocument_rename_multiple_files(nvim):
+    bufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    nvim.command("normal! 17G6|")
+    nvim.call("LanguageClient_textDocument_rename", {"newName": "hello"})
+    time.sleep(0.2)
+    updatedBufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    assert updatedBufferContent == bufferContent.replace("yo", "hello")
+    nvim.command("bd!")
+    nvim.command("bd!")
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 

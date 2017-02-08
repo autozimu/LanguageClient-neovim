@@ -69,7 +69,8 @@ class LanguageClient:
                 newText = edit['newText']
                 cmd = "normal! {}G{}|cw{}".format(line, character, newText)
                 self.asyncCommand(cmd)
-        self.asyncCommand("edit {}".format(uriToPath(curPos["uri"])))
+        time.sleep(0.05)
+        self.asyncCommand("buffer {}".format(uriToPath(curPos["uri"])))
         line = curPos["line"] + 1
         character = curPos["character"] + 1
         self.asyncCommand("normal! {}G{}|".format(line, character))
