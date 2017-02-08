@@ -60,7 +60,7 @@ class LanguageClient:
 
         return res
 
-    def applyChanges(self, changes: Dict, curPos: List) -> None:
+    def applyChanges(self, changes: Dict, curPos: Dict) -> None:
         for uri, edits in changes.items():
             self.asyncCommand("edit {}".format(uriToPath(uri)))
             for edit in edits:
@@ -69,8 +69,9 @@ class LanguageClient:
                 newText = edit['newText']
                 cmd = "normal! {}G{}|cw{}".format(line, character, newText)
                 self.asyncCommand(cmd)
-        line = curPos[0] + 1
-        character = curPos[1] + 1
+        self.asyncCommand("edit {}".format(uriToPath(curPos["uri"])))
+        line = curPos["line"] + 1
+        character = curPos["character"] + 1
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
     def alive(self, warn=True) -> bool:
@@ -276,7 +277,7 @@ class LanguageClient:
         if cb is None:
             cb = partial(
                     self.handleTextDocumentRenameResponse,
-                    curPos=[line, character])
+                    curPos={"line": line, "character": character, "uri": uri})
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
@@ -289,7 +290,8 @@ class LanguageClient:
             "newName": newName
             }, cb)
 
-    def handleTextDocumentRenameResponse(self, result: Dict, curPos: List) -> None: # NOQA
+    def handleTextDocumentRenameResponse(
+            self, result: Dict, curPos: Dict) -> None:
         changes = result['changes']
         self.applyChanges(changes, curPos)
 
