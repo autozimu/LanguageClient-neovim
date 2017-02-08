@@ -7,7 +7,7 @@ import time
 from functools import partial
 from typing import List, Dict, Any  # noqa: F401
 
-from . util import getRootPath, pathToURI, escape
+from . util import getRootPath, pathToURI, uriToPath, escape
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -62,6 +62,7 @@ class LanguageClient:
 
     def applyChanges(self, changes: Dict, curPos: List) -> None:
         for uri, edits in changes.items():
+            self.asyncCommand("edit {}".format(uriToPath(uri)))
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
                 character = edit['range']['start']['character'] + 1
@@ -253,6 +254,7 @@ class LanguageClient:
                 "Handling multiple definition are not implemented yet.")
 
         defn = result[0]
+        self.asyncCommand("edit {}".format(uriToPath(defn["uri"])))
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
         self.asyncCommand("normal! {}G{}|".format(line, character))
