@@ -36,14 +36,5 @@ def uriToPath(uri: str) -> str:
     return parse.urlparse(uri).path
 
 
-def testUriToPath():
-    assert (uriToPath("file:///tmp/sample-rs/src/main.rs") ==
-            "/tmp/sample-rs/src/main.rs")
-
-
 def escape(string: str) -> str:
     return string.replace("'", "''")
-
-
-def test_escape():
-    assert escape("my' precious") == "my'' precious"
