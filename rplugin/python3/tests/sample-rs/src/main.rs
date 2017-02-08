@@ -7,8 +7,9 @@ fn greet() -> i32 {
 fn main() {
     let a = 1;
     println!("{}", greet());
-
+    // place holder for didChange test.
 }
+// place holder for didChange test.
 
 mod lib;
 use lib::yo;

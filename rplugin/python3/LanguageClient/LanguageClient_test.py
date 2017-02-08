@@ -65,6 +65,7 @@ def test_textDocument_didChange(nvim):
     time.sleep(0.1)
     _, line, character, _ = nvim.call("getpos", ".")
     assert (line, character) == (12, 4)
+    nvim.command("edit! {}".format(MAINRS_PATH))
 
 
 def test_textDocument_didSave(nvim):
