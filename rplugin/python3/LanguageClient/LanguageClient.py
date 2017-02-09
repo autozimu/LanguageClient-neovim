@@ -107,6 +107,13 @@ class LanguageClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
+        time.sleep(0.1)
+        if not self.alive(warn=False):
+            self.asyncEcho(
+                    "Failed to start server. "
+                    "{}".format(self.server.stderr.readlines()))
+            return
+
         self.rpc = RPC(
             self.server.stdout, self.server.stdin,
             self.handleRequestOrNotification,
@@ -114,9 +121,7 @@ class LanguageClient:
             self.handleError)
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
-        time.sleep(0.5)
         self.initialize([])
-        time.sleep(3)
         self.textDocument_didOpen([])
 
     @neovim.function('LanguageClient_initialize')
