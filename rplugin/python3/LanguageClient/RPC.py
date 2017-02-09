@@ -19,19 +19,7 @@ class RPC:
         self.mid += 1
         return mid
 
-    def call(self, method: str, params: Dict[str, Any], cb) -> None:
-        if cb is not None:  # a call
-            mid = self.incMid()
-            self.queue[mid] = cb
-
-        contentDict = {
-                "jsonrpc": "2.0",
-                "method": method,
-                "params": params,
-                }  # type: Dict[str, Any]
-        if cb is not None:
-            contentDict["id"] = mid
-
+    def message(self, contentDict: Dict[str, Any]) -> None:
         content = json.dumps(contentDict)
         message = (
                 "Content-Length: {}\r\n\r\n"
@@ -41,8 +29,25 @@ class RPC:
         self.outfile.write(message)
         self.outfile.flush()
 
+    def call(self, method: str, params: Dict[str, Any], cb=None):
+        mid = self.incMid()
+        self.queue[mid] = cb
+
+        contentDict = {
+                "jsonrpc": "2.0",
+                "method": method,
+                "id": mid,
+                "params": params,
+                }  # type: Dict[str, Any]
+        self.message(contentDict)
+
     def notify(self, method: str, params: Dict[str, Any]) -> None:
-        self.call(method, params, None)
+        contentDict = {
+                "jsonrpc": "2.0",
+                "method": method,
+                "params": params,
+                }  # type: Dict[str, Any]
+        self.message(contentDict)
 
     def serve(self):
         while not self.infile.closed:
