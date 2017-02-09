@@ -114,7 +114,7 @@ class LanguageClient:
             self.handleError)
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
-        time.sleep(0.5)
+        time.sleep(1)
 
         self.initialize([])
         self.textDocument_didOpen([])

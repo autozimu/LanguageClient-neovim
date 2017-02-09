@@ -43,8 +43,8 @@ class RPC:
         contentDict = {
                 "jsonrpc": "2.0",
                 "method": method,
-                "id": mid,
                 "params": params,
+                "id": mid,
                 }  # type: Dict[str, Any]
         self.message(contentDict)
 
