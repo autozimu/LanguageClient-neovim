@@ -1,4 +1,5 @@
 import json
+from threading import Condition
 from typing import Dict, Any
 
 from . logger import logger
@@ -13,6 +14,8 @@ class RPC:
         self.onError = onError
         self.mid = 0
         self.queue = {}
+        self.cv = Condition()
+        self.result = None
 
     def incMid(self) -> int:
         mid = self.mid
@@ -30,8 +33,12 @@ class RPC:
         self.outfile.flush()
 
     def call(self, method: str, params: Dict[str, Any], cb=None):
+        """
+        @param cb: func. Callback to handle result. If None, turn to sync call.
+        """
         mid = self.incMid()
-        self.queue[mid] = cb
+        if cb is not None:
+            self.queue[mid] = cb
 
         contentDict = {
                 "jsonrpc": "2.0",
@@ -40,6 +47,16 @@ class RPC:
                 "params": params,
                 }  # type: Dict[str, Any]
         self.message(contentDict)
+
+        if cb is not None:
+            return
+
+        with self.cv:
+            while self.result is None:
+                self.cv.wait()
+            result = self.result
+            self.result = None
+            return result
 
     def notify(self, method: str, params: Dict[str, Any]) -> None:
         contentDict = {
@@ -70,11 +87,17 @@ class RPC:
                 logger.exception("Exception in RPC.onError.")
         elif "result" in message:  # result
             mid = message['id']
-            try:
-                self.queue[mid](message['result'])
-            except:
-                logger.exception("Exception in RPC request callback.")
-            del self.queue[mid]
+            result = message["result"]
+            if mid in self.queue:  # async call
+                try:
+                    self.queue[mid](result)
+                except:
+                    logger.exception("Exception in RPC request callback.")
+                del self.queue[mid]
+            else:  # sync call
+                with self.cv:
+                    self.result = result
+                    self.cv.notify()
         elif "method" in message:  # request/notification
             if "id" in message:  # request
                 try:
