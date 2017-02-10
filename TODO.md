@@ -1,5 +1,2 @@
-- Support user settings/user friendly.
 - Integrate with ale.
-- Completion.
-- Integrate with deoplete.
-- Test with golang/typescript language servers.
+- Test with golang/JavaScript/TypeScript language servers.
