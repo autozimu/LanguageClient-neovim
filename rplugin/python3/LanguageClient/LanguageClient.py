@@ -229,7 +229,6 @@ class LanguageClient:
         self.asyncEcho(value)
 
     # TODO
-    # textDocument/completion
     # completionItem/resolve
     # textDocument/signatureHelp
     # textDocument/references
@@ -319,7 +318,6 @@ class LanguageClient:
             else:
                 logger.warn("FZF not loaded.")
 
-        # Make use of sync call.
         self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
