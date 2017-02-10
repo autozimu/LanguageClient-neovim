@@ -86,6 +86,15 @@ class LanguageClient:
             return False
         return True
 
+    @neovim.function("LanguageClient_setLoggingLevel")
+    def setLoggingLevel(self, args):
+        logger.setLevel({
+            "ERROR": 40,
+            "WARNING": 30,
+            "INFO": 20,
+            "DEBUG": 10,
+            }[args[0]])
+
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         if self.alive(warn=False):
