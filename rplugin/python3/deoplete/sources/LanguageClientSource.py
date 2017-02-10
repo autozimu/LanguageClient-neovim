@@ -15,8 +15,7 @@ class Source(Base):
         self.name = 'LanguageClient'
         self.mark = '[LC]'
         self.rank = 200
-        self.filetypes = list(
-                self.vim.eval("g:LanguageClient_serverCommands").keys())
+        self.filetypes = list(LanguageClient._instance.serverCommands.keys())
 
     def convertToDeopleteCandidate(self, item):
         cand = {"word": item["label"]}

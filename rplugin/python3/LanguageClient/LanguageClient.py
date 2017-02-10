@@ -24,6 +24,8 @@ class LanguageClient:
         self.capabilities = {}
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
         type(self)._instance = self
+        self.serverCommands = self.nvim.eval(
+                "get(g:, 'LanguageClient_serverCommands', {})")
 
     def asyncEval(self, expr: str) -> None:
         self.nvim.async_call(lambda: self.nvim.eval(expr))
@@ -93,11 +95,10 @@ class LanguageClient:
         logger.info('start')
 
         filetype = self.nvim.eval('&filetype')
-        commands = self.nvim.eval('g:LanguageClient_serverCommands')
-        if not filetype or filetype not in commands:
+        if not filetype or filetype not in self.serverCommands:
             self.asyncEcho("No language server commmand found for type: {}.".format(filetype))  # noqa: E501
             return
-        command = commands[filetype]
+        command = self.serverCommands[filetype]
 
         self.server = subprocess.Popen(
             # ["/bin/bash", "/opt/rls/wrapper.sh"],
@@ -149,16 +150,18 @@ class LanguageClient:
         self.capabilities = result['capabilities']
         self.asyncEcho("LanguageClient initialization finished.")
 
-    @neovim.function('LanguageClient_textDocument_didOpen')
+    @neovim.autocmd('BufferReadPost', pattern="*")
     def textDocument_didOpen(self, args: List) -> None:
         # {uri?: str}
-        if not self.alive():
+        if not self.alive(warn=False):
             return
 
         logger.info('textDocument/didOpen')
 
-        uri, = self.getArgs(args, ["uri"])
         languageId = self.nvim.eval('&filetype')
+        if not languageId or languageId not in self.serverCommands:
+            return
+        uri, = self.getArgs(args, ["uri"])
         text = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
