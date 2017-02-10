@@ -407,6 +407,24 @@ class LanguageClient:
                 }
             })
 
+    @neovim.function("LanguageClient_textDocument_completion")
+    def textDocument_completion(self, args: List) -> List:
+        if not self.alive():
+            return
+        logger.info("textDocument/completion")
+
+        uri, line, character = self.getArgs(args, ["uri", "line", "character"])
+
+        return self.rpc.call('textDocument/completion', {
+            "textDocument": {
+                "uri": uri
+                },
+            "position": {
+                "line": line,
+                "character": character
+                }
+            })
+
     # FIXME: python infinite loop after this call.
     @neovim.function("LanguageClient_exit")
     def exit(self, args: List) -> None:
