@@ -160,7 +160,7 @@ class LanguageClient:
         languageId = self.nvim.eval('&filetype')
         if not languageId or languageId not in self.serverCommands:
             return
-        uri, = self.getArgs({}, ["uri"])
+        uri, = self.getArgs([], ["uri"])
         text = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
@@ -380,7 +380,7 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("textDocument/didChange")
 
-        uri, = self.getArgs({}, ["uri"])
+        uri, = self.getArgs([], ["uri"])
         if uri not in self.textDocuments:
             return
         newText = str.join(
@@ -402,7 +402,7 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("textDocument/didSave")
 
-        uri, = self.getArgs({}, ["uri"])
+        uri, = self.getArgs([], ["uri"])
 
         self.rpc.notify("textDocument/didSave", {
             "textDocument": {
