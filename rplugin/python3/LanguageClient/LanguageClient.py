@@ -11,7 +11,6 @@ from . util import getRootPath, pathToURI, uriToPath, escape
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
-from . Debounce import Debounce
 
 
 @neovim.plugin
@@ -369,7 +368,6 @@ class LanguageClient:
         self.asyncEcho("{} symbols".format(len(result)))
 
     @neovim.function("LanguageClient_textDocument_didChange")
-    @Debounce(1)
     def textDocument_didChange(self, args: List) -> None:
         # {uri?: str, contentChanges?: []}
         if not self.alive(warn=False):
@@ -410,7 +408,7 @@ class LanguageClient:
     @neovim.function("LanguageClient_textDocument_completion")
     def textDocument_completion(self, args: List) -> List:
         if not self.alive():
-            return
+            return []
         logger.info("textDocument/completion")
 
         uri, line, character = self.getArgs(args, ["uri", "line", "character"])
