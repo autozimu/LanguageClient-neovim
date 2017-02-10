@@ -81,10 +81,6 @@ def test_textDocument_didChange(nvim):
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
-def test_textDocument_didSave(nvim):
-    nvim.call("LanguageClient_textDocument_didSave")
-
-
 def test_textDocument_didClose(nvim):
     nvim.call("LanguageClient_textDocument_didClose")
 

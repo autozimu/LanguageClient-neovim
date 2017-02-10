@@ -391,7 +391,7 @@ call fzf#run(fzf#wrap({{
             "contentChanges": changes
             })
 
-    @neovim.function("LanguageClient_textDocument_didSave")
+    @neovim.autocmd("BufWritePost", pattern="*")
     def textDocument_didSave(self, args: List) -> None:
         # {uri?: str}
         if not self.alive(warn=False):
