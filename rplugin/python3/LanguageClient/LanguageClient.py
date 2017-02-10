@@ -325,23 +325,23 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDocumentSymbolResponse(self, symbols: List) -> None:
-        opts = {
-            "source": [],
-            "sink": "LanguageClientFZFSink"
-            }  # type: Dict[str, Any]
+        source = []
         for sb in symbols:
             name = sb["name"]
             start = sb["location"]["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
             entry = "{}:{}:\t{}".format(line, character, name)
-            opts["source"].append(entry)
-        self.asyncCommand(
-                "call fzf#run(fzf#wrap({}))"
-                .format(json.dumps(opts)))
+            source.append(entry)
+        self.asyncCommand("""
+call fzf#run(fzf#wrap({{
+    'source': {},
+    'sink': function('LanguageClient#FZFSinkDocumentSymbol')
+    }}))
+""".replace("\n", "").format(json.dumps(source)))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 
-    @neovim.command('LanguageClientFZFSink', nargs='*')
+    @neovim.function('LanguageClient_FZFSinkDocumentSymbol')
     def fzfSink(self, args: List) -> None:
         splitted = args[0].split(":")
         line = int(splitted[0])
