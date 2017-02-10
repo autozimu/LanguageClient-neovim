@@ -13,9 +13,9 @@ LIBRS_PATH = joinPath("tests/sample-rs/src/lib.rs")
 @pytest.fixture(scope="module")
 def nvim() -> neovim.Nvim:
     nvim = neovim.attach('socket', path=NVIM_LISTEN_ADDRESS)
-    time.sleep(0.1)
+    time.sleep(0.5)
     nvim.command("edit! {}".format(MAINRS_PATH))
-    time.sleep(0.1)
+    time.sleep(0.5)
     nvim.command("LanguageClientStart")
     time.sleep(7)
     return nvim
@@ -71,7 +71,6 @@ def test_textDocument_documentSymbol(nvim):
 def test_textDocument_didChange(nvim):
     nvim.call("setline", 12, "fn greet_again() -> i64 { 7 }")
     nvim.call("setline", 10, "    println!(\"{}\", greet_again());")
-    nvim.call("LanguageClient_textDocument_didChange")
     time.sleep(1)
     nvim.command("normal! 10G23|")
     nvim.call("LanguageClient_textDocument_definition")

@@ -122,7 +122,7 @@ class LanguageClient:
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
         self.initialize([])
-        self.textDocument_didOpen([])
+        self.textDocument_didOpen()
 
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
@@ -151,8 +151,7 @@ class LanguageClient:
         self.asyncEcho("LanguageClient initialization finished.")
 
     @neovim.autocmd('BufReadPost', pattern="*")
-    def textDocument_didOpen(self, args: List) -> None:
-        # {uri?: str}
+    def textDocument_didOpen(self) -> None:
         if not self.alive(warn=False):
             return
 
@@ -161,7 +160,7 @@ class LanguageClient:
         languageId = self.nvim.eval('&filetype')
         if not languageId or languageId not in self.serverCommands:
             return
-        uri, = self.getArgs(args, ["uri"])
+        uri, = self.getArgs({}, ["uri"])
         text = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
@@ -368,16 +367,22 @@ call fzf#run(fzf#wrap({{
     def handleWorkspaceSymbolResponse(self, result: list) -> None:
         self.asyncEcho("{} symbols".format(len(result)))
 
-    @neovim.function("LanguageClient_textDocument_didChange")
-    def textDocument_didChange(self, args: List) -> None:
-        # {uri?: str, contentChanges?: []}
+    @neovim.autocmd("TextChanged", pattern="*")
+    def textDocument_autocmdTextChanged(self):
+        self.textDocument_didChange()
+
+    @neovim.autocmd("TextChangedI", pattern="*")
+    def textDocument_autocmdTextChangedI(self):
+        self.textDocument_didChange()
+
+    def textDocument_didChange(self) -> None:
         if not self.alive(warn=False):
             return
         logger.info("textDocument/didChange")
 
-        uri, contentChanges = self.getArgs(
-                args, ["uri", "contentChanges"])
-
+        uri, = self.getArgs({}, ["uri"])
+        if uri not in self.textDocuments:
+            return
         newText = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
@@ -392,13 +397,12 @@ call fzf#run(fzf#wrap({{
             })
 
     @neovim.autocmd("BufWritePost", pattern="*")
-    def textDocument_didSave(self, args: List) -> None:
-        # {uri?: str}
+    def textDocument_didSave(self) -> None:
         if not self.alive(warn=False):
             return
         logger.info("textDocument/didSave")
 
-        uri, = self.getArgs(args, ["uri"])
+        uri, = self.getArgs({}, ["uri"])
 
         self.rpc.notify("textDocument/didSave", {
             "textDocument": {
