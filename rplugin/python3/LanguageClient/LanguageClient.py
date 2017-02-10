@@ -150,7 +150,7 @@ class LanguageClient:
         self.capabilities = result['capabilities']
         self.asyncEcho("LanguageClient initialization finished.")
 
-    @neovim.autocmd('BufferReadPost', pattern="*")
+    @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self, args: List) -> None:
         # {uri?: str}
         if not self.alive(warn=False):
