@@ -7,7 +7,7 @@ import time
 from functools import partial
 from typing import List, Dict, Any  # noqa: F401
 
-from . util import getRootPath, pathToURI, uriToPath, escape
+from . util import getRootPath, pathToURI, uriToPath, escape, retry
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -93,6 +93,7 @@ class LanguageClient:
                     curPos["character"] + 1)
         self.asyncCommand(cmd)
 
+    @neovim.function("LanguageClient_isAlive")
     def alive(self, warn=True) -> bool:
         if self.server is None or self.server.poll() is not None:
             if warn:
@@ -130,11 +131,12 @@ class LanguageClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
-        time.sleep(0.1)
+        retry(0.1, 30, lambda: not self.alive(warn=False))
         if not self.alive(warn=False):
-            self.asyncEcho(
-                    "Failed to start server. "
+            msg = ("Failed to start server. "
                     "{}".format(self.server.stderr.readlines()))
+            logger.error(msg)
+            self.asyncEcho(msg)
             return
 
         self.rpc = RPC(

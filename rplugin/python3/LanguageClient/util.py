@@ -1,6 +1,8 @@
 import os
+import time
 from urllib import parse
 from pathlib import Path
+from . logger import logger
 
 currPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,3 +40,9 @@ def uriToPath(uri: str) -> str:
 
 def escape(string: str) -> str:
     return string.replace("'", "''")
+
+def retry(span, count, condition):
+    if count > 0 and condition():
+        logger.info("retrying...")
+        time.sleep(span)
+        count -= 1
