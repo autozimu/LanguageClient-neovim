@@ -53,6 +53,8 @@ class LanguageClient:
         for k in keys:
             if k == "uri":
                 v = args.get("uri", pathToURI(self.nvim.current.buffer.name))
+            elif k == "languageId":
+                v = args.get("languageId", self.nvim.eval("&filetype"))
             elif k == "line":
                 pos = self.getPos()
                 v = args.get("line", pos[0])
@@ -166,10 +168,9 @@ class LanguageClient:
 
         logger.info('textDocument/didOpen')
 
-        languageId = self.nvim.eval('&filetype')
-        if not languageId or languageId not in self.serverCommands:
+        uri, languageId = self.getArgs([], ["uri", "languageId"])
+        if languageId not in self.serverCommands:
             return
-        uri, = self.getArgs([], ["uri"])
         text = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
@@ -389,9 +390,9 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("textDocument/didChange")
 
-        uri, = self.getArgs([], ["uri"])
+        uri, languageId = self.getArgs([], ["uri", "languageId"])
         if uri not in self.textDocuments:
-            return
+            self.textDocument_didOpen()
         newText = str.join(
                 "",
                 [l + "\n" for l in self.nvim.call("getline", 1, "$")])
@@ -411,7 +412,9 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("textDocument/didSave")
 
-        uri, = self.getArgs([], ["uri"])
+        uri, filetype = self.getArgs([], ["uri", "filetype"])
+        if languageId not in self.serverCommands:
+            return
 
         self.rpc.notify("textDocument/didSave", {
             "textDocument": {
