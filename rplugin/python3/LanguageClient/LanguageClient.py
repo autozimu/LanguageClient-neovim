@@ -69,19 +69,20 @@ class LanguageClient:
         return res
 
     def applyChanges(self, changes: Dict, curPos: Dict) -> None:
+        cmd = "echo ''"
         for uri, edits in changes.items():
-            self.asyncCommand("edit {}".format(uriToPath(uri)))
+            cmd += "| edit {}".format(uriToPath(uri))
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
                 character = edit['range']['start']['character'] + 1
                 newText = edit['newText']
-                cmd = "normal! {}G{}|cw{}".format(line, character, newText)
-                self.asyncCommand(cmd)
-        time.sleep(0.05)
-        self.asyncCommand("buffer {}".format(uriToPath(curPos["uri"])))
-        line = curPos["line"] + 1
-        character = curPos["character"] + 1
-        self.asyncCommand("normal! {}G{}|".format(line, character))
+                cmd += "| execute 'normal! {}G{}|cw{}'".format(
+                        line, character, newText)
+        cmd += "| buffer {} | normal! {}G{}|".format(
+                    uriToPath(curPos["uri"]),
+                    curPos["line"] + 1,
+                    curPos["character"] + 1)
+        self.asyncCommand(cmd)
 
     def alive(self, warn=True) -> bool:
         if self.server is None or self.server.poll() is not None:
