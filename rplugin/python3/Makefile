@@ -13,8 +13,4 @@ test:
 	rm -rf LanguageClient/__pycache__
 	sleep 1s
 	cat /dev/null > /tmp/LanguageClient.log
-	py.test --capture=no --exitfirst
-	ret=$$?
-	cat /tmp/LanguageClient.log
-	-kill $$(cat tests/nvimPID)
-	exit $$ret
+	py.test --capture=no --exitfirst; ret=$$?; cat /tmp/LanguageClient.log; kill $$(cat tests/nvimPID); exit $$ret
