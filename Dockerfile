@@ -13,6 +13,6 @@ RUN pacman -S --noconfirm rustup \
     && paccache -r -k0 \
     && rustup default nightly
 
-RUN git clone https://github.com/jonathandturner/rls /opt/rls && cargo build --manifest-path=/opt/rls/Cargo.toml
+RUN git clone https://github.com/rust-lang-nursery/rls /opt/rls && cargo build --release --manifest-path=/opt/rls/Cargo.toml
 
 CMD /bin/bash
