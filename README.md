@@ -1,4 +1,5 @@
 # LanguageClient-neovim
+[![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=master)](https://travis-ci.org/autozimu/LanguageClient-neovim)
 
 [Language Server Protocol](https://github.com/Microsoft/language-server-protocol) support for [neovim](https://github.com/neovim/neovim).
 
