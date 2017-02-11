@@ -21,7 +21,7 @@ Example configuration
 
 ```vim
 let g:LanguageClient_serverCommands = {
-    \ 'rust': ['cargo', 'run', '--manifest-path=/opt/rls/Cargo.toml'],
+    \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
     \ }
 
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
