@@ -162,7 +162,6 @@ class LanguageClient:
 
     def handleInitializeResponse(self, result: Dict) -> None:
         self.capabilities = result['capabilities']
-        self.asyncEcho("LanguageClient initialization finished.")
 
     @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self) -> None:
