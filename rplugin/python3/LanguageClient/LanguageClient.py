@@ -62,16 +62,25 @@ class LanguageClient:
                     v = pos[0]
             elif k == "character":
                 v = args.get("character") or pos[1]
+            elif k == "bufnames":
+                v = args.get("bufnames") or [b.name for b in self.nvim.buffers]
             else:
                 v = args.get(k)
             res.append(v)
 
         return res
 
-    def applyChanges(self, changes: Dict, curPos: Dict) -> None:
+    def applyChanges(
+            self, changes: Dict,
+            curPos: Dict, bufnames: List) -> None:
         cmd = "echo ''"
         for uri, edits in changes.items():
-            cmd += "| edit {}".format(uriToPath(uri))
+            path = uriToPath(uri)
+            if path in bufnames:
+                action = "buffer"
+            else:
+                action = "edit"
+            cmd += "| {} {}".format(action, path)
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
                 character = edit['range']['start']['character'] + 1
@@ -290,8 +299,8 @@ class LanguageClient:
 
         logger.info('textDocument/rename')
 
-        uri, line, character, newName, cb = self.getArgs(
-            args, ["uri", "line", "character", "newName", "cb"])
+        uri, line, character, newName, bufnames, cb = self.getArgs(
+            args, ["uri", "line", "character", "newName", "bufnames", "cb"])
         if newName is None:
             self.nvim.call("inputsave")
             newName = self.nvim.call("input", "Rename to: ")
@@ -299,7 +308,8 @@ class LanguageClient:
         if cb is None:
             cb = partial(
                     self.handleTextDocumentRenameResponse,
-                    curPos={"line": line, "character": character, "uri": uri})
+                    curPos={"line": line, "character": character, "uri": uri},
+                    bufnames=bufnames)
 
         self.rpc.call('textDocument/rename', {
             "textDocument": {
@@ -313,9 +323,10 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentRenameResponse(
-            self, result: Dict, curPos: Dict) -> None:
+            self, result: Dict,
+            curPos: Dict, bufnames: List) -> None:
         changes = result['changes']
-        self.applyChanges(changes, curPos)
+        self.applyChanges(changes, curPos, bufnames)
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
     def textDocument_documentSymbol(self, args: List) -> None:
