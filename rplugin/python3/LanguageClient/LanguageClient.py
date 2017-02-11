@@ -52,16 +52,18 @@ class LanguageClient:
         res = []
         for k in keys:
             if k == "uri":
-                v = args.get("uri", pathToURI(self.nvim.current.buffer.name))
+                v = args.get("uri") or pathToURI(self.nvim.current.buffer.name)
             elif k == "languageId":
-                v = args.get("languageId", self.nvim.eval("&filetype"))
+                v = args.get("languageId") or self.nvim.eval("&filetype")
             elif k == "line":
-                pos = self.getPos()
-                v = args.get("line", pos[0])
+                v = args.get("line")
+                if not v:
+                    pos = self.getPos()
+                    v = pos[0]
             elif k == "character":
-                v = args.get("character", pos[1])
+                v = args.get("character") or pos[1]
             else:
-                v = args.get(k, None)
+                v = args.get(k)
             res.append(v)
 
         return res
@@ -412,7 +414,7 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("textDocument/didSave")
 
-        uri, filetype = self.getArgs([], ["uri", "filetype"])
+        uri, languageId = self.getArgs([], ["uri", "languageId"])
         if languageId not in self.serverCommands:
             return
 
