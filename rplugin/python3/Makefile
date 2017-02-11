@@ -7,9 +7,12 @@ lint:
 	mypy --ignore-missing-imports .;  flake8 .
 
 test:
-	-kill $$(cat tests/nvimPID)
 	nvim +UpdateRemotePlugins +qall
 	rm -f /tmp/nvim-LanguageClient-IntegrationTest
 	NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/vimrc --headless 2>/dev/null & echo "$$!" > tests/nvimPID
-	sleep 1s && py.test --capture=no --exitfirst
-	kill $$(cat tests/nvimPID)
+	rm -rf LanguageClient/__pycache__
+	sleep 1s
+	py.test --capture=no --exitfirst
+	ret=$$?
+	-kill $$(cat tests/nvimPID)
+	exit $$ret
