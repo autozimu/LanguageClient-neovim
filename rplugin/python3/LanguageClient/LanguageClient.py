@@ -393,6 +393,8 @@ call fzf#run(fzf#wrap({{
         logger.info("textDocument/didChange")
 
         uri, languageId = self.getArgs([], ["uri", "languageId"])
+        if languageId not in self.serverCommands:
+            return
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
         newText = str.join(
