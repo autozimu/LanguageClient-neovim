@@ -4,5 +4,5 @@ set hidden
 autocmd BufReadPost *.rs setlocal filetype=rust
 
 let g:LanguageClient_serverCommands = {
-            \ 'rust': ['cargo', 'run', '--manifest-path=/opt/rls/Cargo.toml'],
-            \ }
+    \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
+    \ }
