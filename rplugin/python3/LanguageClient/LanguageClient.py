@@ -265,10 +265,12 @@ class LanguageClient:
 
         logger.info('textDocument/definition')
 
-        uri, line, character, cb = self.getArgs(
-            args, ["uri", "line", "character", "cb"])
+        uri, line, character, bufnames, cb = self.getArgs(
+            args, ["uri", "line", "character", "bufnames", "cb"])
         if cb is None:
-            cb = self.handleTextDocumentDefinitionResponse
+            cb = partial(
+                    self.handleTextDocumentDefinitionResponse,
+                    bufnames=bufnames)
 
         self.rpc.call('textDocument/definition', {
             "textDocument": {
@@ -280,16 +282,23 @@ class LanguageClient:
                 }
             }, cb)
 
-    def handleTextDocumentDefinitionResponse(self, result: List) -> None:
+    def handleTextDocumentDefinitionResponse(
+            self, result: List, bufnames: List) -> None:
         if len(result) > 1:
             logger.warn(
                 "Handling multiple definition are not implemented yet.")
 
         defn = result[0]
-        self.asyncCommand("edit {}".format(uriToPath(defn["uri"])))
+        path = uriToPath(defn["uri"])
+        if path in bufnames:
+            action = "buffer"
+        else:
+            action = "edit"
+        cmd = "{} {}".format(action, path)
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
-        self.asyncCommand("normal! {}G{}|".format(line, character))
+        cmd += "| normal! {}G{}|".format(line, character)
+        self.asyncCommand(cmd)
 
     @neovim.function('LanguageClient_textDocument_rename')
     def textDocument_rename(self, args: List) -> None:
