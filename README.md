@@ -11,7 +11,7 @@ Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
 Plug 'autozimu/LanguageClient-neovim'
-Plug 'junegunn/fzf.vim'  " Optional dependency for symbol selection
+Plug 'junegunn/fzf'          " Optional dependency for symbol selection
 Plug 'Shougo/deoplete.nvim'  " Optional dependency for completion
 ```
 
