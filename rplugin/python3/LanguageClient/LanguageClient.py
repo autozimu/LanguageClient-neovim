@@ -123,7 +123,7 @@ class LanguageClient:
             self.asyncEcho("Language client has already started.")
             return
 
-        logger.info('start')
+        logger.info('Begin LanguageClientStart')
 
         filetype = self.nvim.eval('&filetype')
         if not filetype or filetype not in self.serverCommands:
@@ -147,6 +147,8 @@ class LanguageClient:
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
+        logger.info('End LanguageClientStart')
+
         self.initialize([])
         self.textDocument_didOpen()
 
@@ -156,7 +158,7 @@ class LanguageClient:
         if not self.alive():
             return
 
-        logger.info('initialize')
+        logger.info('Begin initialize')
 
         rootPath, cb = self.getArgs(args, ["rootPath", "cb"])
         if rootPath is None:
@@ -174,6 +176,7 @@ class LanguageClient:
 
     def handleInitializeResponse(self, result: Dict) -> None:
         self.capabilities = result['capabilities']
+        logger.info('End initialize')
 
     @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self) -> None:
@@ -221,7 +224,7 @@ class LanguageClient:
         if not self.alive():
             return
 
-        logger.info('textDocument/hover')
+        logger.info('Begin textDocument/hover')
 
         uri, line, character, cb = self.getArgs(
             args, ["uri", "line", "character", "cb"])
@@ -254,6 +257,8 @@ class LanguageClient:
             value += self.markedStringToString(contents)
         self.asyncEcho(value)
 
+        logger.info('End textDocument/hover')
+
     # TODO
     # completionItem/resolve
     # textDocument/signatureHelp
@@ -266,7 +271,7 @@ class LanguageClient:
         if not self.alive():
             return
 
-        logger.info('textDocument/definition')
+        logger.info('Begin textDocument/definition')
 
         uri, line, character, bufnames, cb = self.getArgs(
             args, ["uri", "line", "character", "bufnames", "cb"])
@@ -303,13 +308,15 @@ class LanguageClient:
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 
+        logger.info('End textDocument/definition')
+
     @neovim.function('LanguageClient_textDocument_rename')
     def textDocument_rename(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, newName?: str, cb?}
         if not self.alive():
             return
 
-        logger.info('textDocument/rename')
+        logger.info('Begin textDocument/rename')
 
         uri, line, character, newName, bufnames, cb = self.getArgs(
             args, ["uri", "line", "character", "newName", "bufnames", "cb"])
@@ -339,6 +346,7 @@ class LanguageClient:
             curPos: Dict, bufnames: List) -> None:
         changes = result['changes']
         self.applyChanges(changes, curPos, bufnames)
+        logger.info('End textDocument/rename')
 
     @neovim.function('LanguageClient_textDocument_documentSymbol')
     def textDocument_documentSymbol(self, args: List) -> None:
@@ -346,7 +354,7 @@ class LanguageClient:
         if not self.alive():
             return
 
-        logger.info('textDocument/documentSymbol')
+        logger.info('Begin textDocument/documentSymbol')
 
         uri, cb = self.getArgs(args, ["uri", "cb"])
         if cb is None:
@@ -377,6 +385,7 @@ call fzf#run(fzf#wrap({{
     }}))
 """.replace("\n", "").format(json.dumps(source)))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+        logger.info('End textDocument/documentSymbol')
 
     @neovim.function('LanguageClient_FZFSinkDocumentSymbol')
     def fzfSink(self, args: List) -> None:
@@ -453,11 +462,11 @@ call fzf#run(fzf#wrap({{
     def textDocument_completion(self, args: List) -> List:
         if not self.alive():
             return []
-        logger.info("textDocument/completion")
+        logger.info("Begin textDocument/completion")
 
         uri, line, character = self.getArgs(args, ["uri", "line", "character"])
 
-        return self.rpc.call('textDocument/completion', {
+        items = self.rpc.call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
                 },
@@ -466,6 +475,9 @@ call fzf#run(fzf#wrap({{
                 "character": character
                 }
             })
+
+        logger.info("End textDocument/completion")
+        return items
 
     # FIXME: python infinite loop after this call.
     @neovim.function("LanguageClient_exit")
