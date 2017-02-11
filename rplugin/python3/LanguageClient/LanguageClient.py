@@ -3,11 +3,10 @@ import os
 import subprocess
 import json
 import threading
-import time
 from functools import partial
 from typing import List, Dict, Any  # noqa: F401
 
-from . util import getRootPath, pathToURI, uriToPath, escape, retry
+from . util import getRootPath, pathToURI, uriToPath, escape
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -95,11 +94,19 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_isAlive")
     def alive(self, warn=True) -> bool:
-        if self.server is None or self.server.poll() is not None:
-            if warn:
-                self.asyncEcho("Language client is not running. Try :LanguageClientStart")  # noqa: E501
-            return False
-        return True
+        ret = False
+        if self.server is None:
+            msg = "Language client is not running. Try :LanguageClientStart"
+        elif self.server.poll() is not None:
+            msg = "Failed to start language server: {}".format(
+                    self.server.stderr.readlines())
+            logger.error(msg)
+        else:
+            ret = True
+
+        if ret is False and warn:
+            self.asyncEcho(msg)
+        return ret
 
     @neovim.function("LanguageClient_setLoggingLevel")
     def setLoggingLevel(self, args):
@@ -131,13 +138,6 @@ class LanguageClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True)
-        retry(0.1, 30, lambda: not self.alive(warn=False))
-        if not self.alive(warn=False):
-            msg = ("Failed to start server. "
-                    "{}".format(self.server.stderr.readlines()))
-            logger.error(msg)
-            self.asyncEcho(msg)
-            return
 
         self.rpc = RPC(
             self.server.stdout, self.server.stdin,
@@ -146,6 +146,7 @@ class LanguageClient:
             self.handleError)
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
+
         self.initialize([])
         self.textDocument_didOpen()
 

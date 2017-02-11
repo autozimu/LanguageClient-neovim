@@ -18,7 +18,7 @@ def nvim() -> neovim.Nvim:
     time.sleep(0.5)
     nvim.command("LanguageClientStart")
     time.sleep(15)
-    assert nvim.call("LanguageClient_isAlive") == True
+    assert nvim.call("LanguageClient_isAlive")
     return nvim
 
 

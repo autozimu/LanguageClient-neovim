@@ -41,8 +41,9 @@ def uriToPath(uri: str) -> str:
 def escape(string: str) -> str:
     return string.replace("'", "''")
 
+
 def retry(span, count, condition):
-    if count > 0 and condition():
+    while count > 0 and condition():
         logger.info("retrying...")
         time.sleep(span)
         count -= 1
