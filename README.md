@@ -27,6 +27,8 @@ nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
+Run command `LanguageClientStart` inside neovim to start.
+
 # Commands/Functions
 
 - `LanguageClientStart`
