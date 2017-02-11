@@ -7,7 +7,7 @@
 
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
-```vimscript
+```vim
 Plug 'autozimu/LanguageClient-neovim'
 Plug 'junegunn/fzf.vim'  " Optional dependency for symbol selection
 Plug 'Shougo/deoplete.nvim'  " Optional dependency for completion
@@ -15,7 +15,7 @@ Plug 'Shougo/deoplete.nvim'  " Optional dependency for completion
 
 Example configuration
 
-```vimscript
+```vim
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['cargo', 'run', '--manifest-path=/opt/rls/Cargo.toml'],
     \ }
