@@ -71,7 +71,7 @@ def test_textDocument_documentSymbol(nvim):
 def test_textDocument_didChange(nvim):
     nvim.call("setline", 12, "fn greet_again() -> i64 { 7 }")
     nvim.call("setline", 4, "    println!(\"{}\", greet_again());")
-    time.sleep(1)
+    time.sleep(4)
     nvim.command("normal! 4G23|")
     nvim.call("LanguageClient_textDocument_definition")
     time.sleep(2)
