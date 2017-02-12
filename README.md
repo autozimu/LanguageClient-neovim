@@ -17,9 +17,11 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
-Plug 'autozimu/LanguageClient-neovim'
-Plug 'junegunn/fzf'          " Optional dependency for symbol selection
-Plug 'Shougo/deoplete.nvim'  " Optional dependency for completion
+Plug 'autozimu/LanguageClient-neovim', { 'do': ':UpdateRemotePlugins' }
+" Optional dependency for symbol selection
+Plug 'junegunn/fzf'
+" Optional dependency for completion
+Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 ```
 
 Example configuration
@@ -34,7 +36,7 @@ nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
-Run command `LanguageClientStart` inside neovim to start.
+Run command `LanguageClientStart` inside neovim to get start.
 
 # Commands/Functions
 
