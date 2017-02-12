@@ -7,6 +7,11 @@
 
 More recordings at <https://github.com/autozimu/images/tree/master/LanguageClient-neovim>.
 
+# Features
+
+- Non-blocking asynchronous calls.
+- Full integration tests.
+
 # Quick Start
 
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
