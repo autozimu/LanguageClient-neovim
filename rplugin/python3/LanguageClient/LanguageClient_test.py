@@ -40,26 +40,25 @@ def test_textDocument_definition(nvim):
     nvim.command("normal! 3G23|")
     nvim.call("LanguageClient_textDocument_definition")
     time.sleep(2)
-    _, line, character, _ = nvim.eval("getpos('.')")
-    assert [line, character] == [8, 4]
+    assert nvim.current.window.cursor == [8, 3]
 
 
 def test_textDocument_rename(nvim):
-    bufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 3G23|")
     nvim.call("LanguageClient_textDocument_rename", {"newName": "hello"})
     time.sleep(2)
-    updatedBufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    updatedBufferContent = str.join("\n", nvim.current.buffer)
     assert updatedBufferContent == bufferContent.replace("greet", "hello")
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
 def test_textDocument_rename_multiple_files(nvim):
-    bufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 17G6|")
     nvim.call("LanguageClient_textDocument_rename", {"newName": "hello"})
     time.sleep(2)
-    updatedBufferContent = str.join("\n", nvim.eval("getline(1, '$')"))
+    updatedBufferContent = str.join("\n", nvim.current.buffer)
     assert updatedBufferContent == bufferContent.replace("yo", "hello")
     nvim.command("bd!")
     nvim.command("bd!")
@@ -77,8 +76,7 @@ def test_textDocument_didChange(nvim):
     nvim.command("normal! 4G23|")
     nvim.call("LanguageClient_textDocument_definition")
     time.sleep(2)
-    _, line, character, _ = nvim.call("getpos", ".")
-    assert (line, character) == (12, 4)
+    assert nvim.current.window.cursor == [12, 3]
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
