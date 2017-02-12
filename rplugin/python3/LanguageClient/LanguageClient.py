@@ -26,9 +26,6 @@ class LanguageClient:
         self.serverCommands = self.nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
 
-    def asyncEval(self, expr: str) -> None:
-        self.nvim.async_call(lambda: self.nvim.eval(expr))
-
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(lambda: self.nvim.command(cmds))
 
@@ -36,17 +33,13 @@ class LanguageClient:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
-    def getPos(self, mark=".") -> List[int]:
-        _, line, character, _ = self.nvim.call("getpos", mark)
-        return [line - 1, character - 1]
-
     def getArgs(self, argsL: List, keys: List) -> List:
         if len(argsL) == 0:
             args = {}  # type: Dict[str, Any]
         else:
             args = argsL[0]
 
-        pos = []  # type: List[int]
+        cursor = []  # type: List[int]
 
         res = []
         for k in keys:
@@ -57,10 +50,10 @@ class LanguageClient:
             elif k == "line":
                 v = args.get("line")
                 if not v:
-                    pos = self.getPos()
-                    v = pos[0]
+                    cursor = self.nvim.current.window.cursor
+                    v = cursor[0] - 1
             elif k == "character":
-                v = args.get("character") or pos[1]
+                v = args.get("character") or cursor[1]
             elif k == "bufnames":
                 v = args.get("bufnames") or [b.name for b in self.nvim.buffers]
             else:
