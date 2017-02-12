@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+set -o verbose
+
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
 cat /dev/null > /tmp/LanguageClient.log
 rm -rf LanguageClient/__pycache__
