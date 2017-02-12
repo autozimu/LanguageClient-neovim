@@ -46,7 +46,8 @@ class LanguageClient:
             if k == "uri":
                 v = args.get("uri") or pathToURI(self.nvim.current.buffer.name)
             elif k == "languageId":
-                v = args.get("languageId") or self.nvim.eval("&filetype")
+                v = (args.get("languageId") or
+                     self.nvim.current.buffer.options['filetype'])
             elif k == "line":
                 v = args.get("line")
                 if not v:
