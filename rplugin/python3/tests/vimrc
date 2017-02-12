@@ -6,4 +6,3 @@ let g:LanguageClient_serverCommands = {
     \ }
 
 autocmd BufReadPost *.rs setlocal filetype=rust
-autocmd BufReadPost *.rs call LanguageClient_setLoggingLevel('INFO')
