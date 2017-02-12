@@ -182,9 +182,7 @@ class LanguageClient:
         uri, languageId = self.getArgs([], ["uri", "languageId"])
         if languageId not in self.serverCommands:
             return
-        text = str.join(
-                "",
-                [l + "\n" for l in self.nvim.call("getline", 1, "$")])
+        text = str.join("\n", self.nvim.current.buffer)
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
         self.textDocuments[uri] = textDocumentItem
@@ -423,9 +421,7 @@ call fzf#run(fzf#wrap({{
             return
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
-        newText = str.join(
-                "",
-                [l + "\n" for l in self.nvim.call("getline", 1, "$")])
+        newText = str.join("\n", self.nvim.current.buffer)
         version, changes = self.textDocuments[uri].change(newText)
 
         self.rpc.notify("textDocument/didChange", {
