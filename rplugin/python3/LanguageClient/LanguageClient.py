@@ -481,8 +481,9 @@ call fzf#run(fzf#wrap({{
 
     def textDocument_publishDiagnostics(self, params) -> None:
         for diagnostic in params['diagnostics']:
+            # TODO: integration with ale.
             message = diagnostic['message'].replace("\n", ". ")
-            self.asyncEcho(message)
+            # self.asyncEcho(message)
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
