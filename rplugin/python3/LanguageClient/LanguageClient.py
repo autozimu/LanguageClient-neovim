@@ -126,7 +126,7 @@ class LanguageClient:
         command = self.serverCommands[filetype]
 
         self.server = subprocess.Popen(
-            # ["/bin/bash", "/opt/rls/wrapper.sh"],
+            # ["/bin/bash", "/tmp/wrapper.sh"],
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

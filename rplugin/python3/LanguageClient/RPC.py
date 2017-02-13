@@ -67,11 +67,14 @@ class RPC:
         self.message(contentDict)
 
     def serve(self):
+        contentLength = 0
         while not self.infile.closed:
-            line = self.infile.readline()
+            line = self.infile.readline().strip()
             if line:
-                contentLength = int(line.split(":")[1])
-                self.infile.readline()
+                header, value = line.split(":")
+                if header == "Content-Length":
+                    contentLength = int(value)
+            else:
                 content = self.infile.read(contentLength)
                 logger.debug(' <= ' + content)
                 self.handle(json.loads(content))
