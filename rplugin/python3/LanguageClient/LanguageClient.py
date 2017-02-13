@@ -4,7 +4,7 @@ import subprocess
 import json
 import threading
 from functools import partial
-from typing import List, Dict, Any  # noqa: F401
+from typing import List, Dict, Union, Any  # noqa: F401
 
 from . util import getRootPath, pathToURI, uriToPath, escape
 from . logger import logger
@@ -283,12 +283,17 @@ class LanguageClient:
             }, cb)
 
     def handleTextDocumentDefinitionResponse(
-            self, result: List, bufnames: List) -> None:
-        if len(result) > 1:
-            logger.warn(
-                "Handling multiple definition are not implemented yet.")
+            self, result: List, bufnames: Union[List, Dict]) -> None:
+        if isinstance(result, list) and len(result) > 1:
+            msg = ("Handling multiple definitions is not implemented yet."
+                   " Jumping to first.")
+            logger.error(msg)
+            self.asyncEcho(msg)
 
-        defn = result[0]
+        if isinstance(result, list):
+            defn = result[0]
+        else:
+            defn = result
         path = uriToPath(defn["uri"])
         if path in bufnames:
             action = "buffer"
