@@ -1,0 +1,108 @@
+*LanguageClient.txt* Language Server Protocol support for neovim
+
+
+==============================================================================
+CONTENTS                                               *LanguageClientContents*
+
+1. Usage ....................... |LanguageClientUsage|
+2. Configuration ............... |LanguageClientConfiguration|
+3. Commands .................... |LanguageClientCommands|
+4. Functions ................... |LanguageClientFunctions|
+5. License ..................... |LanguageClientLicense|
+6. Bugs ........................ |LanguageClientBugs|
+7. Contributing ................ |LanguageClientContributing|
+
+==============================================================================
+1. Usage                                                 *LanguageClientUsage*
+
+Before using of LanguageClient, it is necessary to setup commands that are
+used to start language server. See |LanguageClient_serverCommands| for detail.
+Here is a simple example config: >
+
+    let g:LanguageClient_serverCommands = {
+        \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
+        \ }
+
+After that, open a file with one of the above filetypes, then run
+:LanguageClientStart to get start, which will start language server in
+background and get initialized.
+
+At this point, call any provided function as you like. See
+|LanguageClientFunctions| for a complete list of functions. Usually one would
+like to map these functions to some shortcuts, for example: >
+
+    nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
+    nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+    nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
+
+If one is using deoplete at the same time, completion integration should work
+out of the box.
+
+==============================================================================
+2. Configuration                                 *LanguageClientConfiguration*
+
+2.1 g:LanguageClient_serverCommands          *g:LanguageClient_serverCommands*
+
+String to list map. Defines commands to execute to start language server for
+specific filetype. For example: >
+
+    let g:LanguageClient_serverCommands = {
+        \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
+        \ }
+
+Default: {}
+
+==============================================================================
+3. Commands                                           *LanguageClientCommands*
+
+3.1 LanguageClientStart                                  *LanguageClientStart*
+
+Start language server for current buffer.
+
+==============================================================================
+4. Functions                                          *LanguageClientCommands*
+
+4.1 LanguageClient_textDocument_hover()    *LanguageClient_textDocument_hover*
+
+Show type info (and short doc) of identifier under cursor.
+
+4.2 LanguageClient_textDocument_definition() *LanguageClient_textDocument_definition*
+
+Goto definition of identifier under cursor.
+
+4.3 LanguageClient_textDocument_rename()  *LanguageClient_textDocument_rename*
+
+Rename identifier under cursor.
+
+4.4 LanguageClient_textDocument_documentSymbol() *LanguageClient_textDocument_documentSymbol*
+
+List of current buffer's symbols.
+
+If optional dependency FZF is installed, symbols will be displayed in a FZF
+prompt, selecting one of the symbol will then goto the symbol's definition.
+
+4.5 LanguageClient_workspace_symbol()        *LanguageClient_workspace_symbol*
+
+List of project's symbols.
+
+If optional dependency FZF is installed, symbols will be displayed in a FZF
+prompt, selecting one of the symbol will then goto the symbol's definition.
+
+4.6 LanguageClient_textDocument_completion() *LanguageClient_textDocument_completion*
+
+Get a list of completion items at current editing location.
+
+==============================================================================
+5. License                                             *LanguageClientLicense*
+
+The MIT License.
+
+==============================================================================
+6. Bugs                                                   *LanguageClientBugs*
+
+Please report bugs at https://github.com/autozimu/LanguageClient-neovim/issues
+
+==============================================================================
+7. Contributing                                   *LanguageClientContributing*
+
+https://github.com/autozimu/LanguageClient-neovim
