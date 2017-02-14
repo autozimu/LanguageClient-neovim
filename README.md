@@ -27,6 +27,9 @@ Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Example configuration
 
 ```vim
+" Required for operations modifying multiple buffers like rename.
+set hidden
+
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
     \ }
