@@ -104,7 +104,19 @@ prompt, selecting one of the symbol will then goto the symbol's definition.
 4.7 LanguageClient_textDocument_completion()
 *LanguageClient_textDocument_completion*
 
-Get a list of completion items at current editing location.
+Get a list of completion items at current editing location. Note, this is an
+synchronous call.
+
+When using a supported completion manager (currently only deoplete supported),
+completion should work out of the box.
+
+4.8 LanguageClient_setLoggingLevel(level: str)
+*LanguageClient_setLoggingLevel*
+
+Set the plugin logging level. By default, only errors are logged into
+/tmp/LanguageClient.log.
+
+Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
 
 ==============================================================================
 5. License                                             *LanguageClientLicense*
@@ -114,7 +126,21 @@ The MIT License.
 ==============================================================================
 6. Bugs                                                   *LanguageClientBugs*
 
-Please report bugs at https://github.com/autozimu/LanguageClient-neovim/issues
+Please report all bugs at https://github.com/autozimu/LanguageClient-neovim/issues
+
+If you believe you've find a bug in this plugin, please first try to help
+narrow down where the error happens, which will reduce bug fix time/effort
+tremendously.
+
+Try increasing logging level to 'INFO' or 'DEBUG' using the
+*LanguageClient_setLoggingLevel* function, and check the log file.
+
+There is also an utility script in: >
+
+    $RUNTIME/rplugin/python3/LanguageClient/wrapper.sh
+
+which can work like a proxy and logs all stdin  and stdout of the language
+server into a log file.
 
 ==============================================================================
 7. Contributing                                   *LanguageClientContributing*
