@@ -3,3 +3,7 @@
 function! LanguageClient#FZFSinkDocumentSymbol(line) abort
     call LanguageClient_FZFSinkDocumentSymbol(a:line)
 endfunction
+
+function! LanguageClient#FZFSinkTextDocumentReferences(line) abort
+    call LanguageClient_FZFSinkTextDocumentReferences(a:line)
+endfunction

@@ -410,6 +410,64 @@ call fzf#run(fzf#wrap({{
     def handleWorkspaceSymbolResponse(self, result: list) -> None:
         self.asyncEcho("{} symbols".format(len(result)))
 
+    @neovim.function('LanguageClient_textDocument_references')
+    def textDocument_references(self, args: List) -> None:
+        if not self.alive():
+            return
+        logger.info("Begin textDocument/references")
+
+        uri, line, character, cb = self.getArgs(
+                args, ["uri", "line", "character", "cb"])
+        if cb is None:
+            cb = self.handleTextDocumentReferencesResponse
+
+        self.rpc.call('textDocument/references', {
+            "textDocument": {
+                "uri": uri,
+                },
+            "position": {
+                "line": line,
+                "character": character,
+                },
+            "context": {
+                "includeDeclaration": True,
+                },
+            }, cb)
+
+    def handleTextDocumentReferencesResponse(self, locations: List) -> None:
+        source = []  # type: List[str]
+        for loc in locations:
+            path = loc["uri"].replace(self.rootUri + "/", "", 1)
+            start = loc["range"]["start"]
+            line = start["line"] + 1
+            character = start["character"] + 1
+            entry = "{}:{}:{}".format(path, line, character)
+            source.append(entry)
+        self.asyncCommand("""
+call fzf#run(fzf#wrap({{
+    'source': {},
+    'sink': function('LanguageClient#FZFSinkTextDocumentReferences')
+}}))""".replace("\n", "").format(json.dumps(source)))
+        self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+        logger.info("End textDocument/references")
+
+    @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")
+    def fzfSinkTextDocumentReferences(self, args: List) -> None:
+        bufnames, = self.getArgs([], ["bufnames"])
+
+        splitted = args[0].split(":")
+        path = uriToPath(self.rootUri + "/" + splitted[0])
+        line = int(splitted[1])
+        character = int(splitted[2])
+
+        if path in bufnames:
+            action = "buffer"
+        else:
+            action = "edit"
+        cmd = "{} {}".format(action, path)
+        cmd += "| normal! {}G{}|".format(line, character)
+        self.asyncCommand(cmd)
+
     @neovim.autocmd("TextChanged", pattern="*")
     def textDocument_autocmdTextChanged(self):
         self.textDocument_didChange()
