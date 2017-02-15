@@ -367,6 +367,15 @@ class LanguageClient:
                 }
             }, cb)
 
+    def fzf(self, source: List, sink: str) -> None:
+        self.asyncCommand("""
+call fzf#run(fzf#wrap({{
+    'source': {},
+    'sink': function('{}')
+    }}))
+""".replace("\n", "").format(json.dumps(source), sink))
+        self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+
     def handleTextDocumentDocumentSymbolResponse(self, symbols: List) -> None:
         source = []
         for sb in symbols:
@@ -376,13 +385,7 @@ class LanguageClient:
             character = start["character"] + 1
             entry = "{}:{}:\t{}".format(line, character, name)
             source.append(entry)
-        self.asyncCommand("""
-call fzf#run(fzf#wrap({{
-    'source': {},
-    'sink': function('LanguageClient#FZFSinkTextDocumentDocumentSymbol')
-    }}))
-""".replace("\n", "").format(json.dumps(source)))
-        self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+        self.fzf(source, "LanguageClient#FZFSinkTextDocumentDocumentSymbol")
         logger.info('End textDocument/documentSymbol')
 
     @neovim.function('LanguageClient_FZFSinkTextDocumentDocumentSymbol')
@@ -443,12 +446,7 @@ call fzf#run(fzf#wrap({{
             character = start["character"] + 1
             entry = "{}:{}:{}".format(path, line, character)
             source.append(entry)
-        self.asyncCommand("""
-call fzf#run(fzf#wrap({{
-    'source': {},
-    'sink': function('LanguageClient#FZFSinkTextDocumentReferences')
-}}))""".replace("\n", "").format(json.dumps(source)))
-        self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+        self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
         logger.info("End textDocument/references")
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")
