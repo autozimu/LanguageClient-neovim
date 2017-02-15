@@ -21,6 +21,7 @@ class LanguageClient:
         self.nvim = nvim
         self.server = None
         self.capabilities = {}
+        self.rootUri = None
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
         type(self)._instance = self
         self.serverCommands = self.nvim.eval(
@@ -157,13 +158,14 @@ class LanguageClient:
         rootPath, cb = self.getArgs(args, ["rootPath", "cb"])
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name)
+            self.rootUri = pathToURI(rootPath)
         if cb is None:
             cb = self.handleInitializeResponse
 
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
-            "rootUri": pathToURI(rootPath),
+            "rootUri": self.rootUri,
             "capabilities": {},
             "trace": "verbose"
             }, cb)
