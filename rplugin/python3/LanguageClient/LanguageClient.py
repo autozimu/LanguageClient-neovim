@@ -406,9 +406,9 @@ call fzf#run(fzf#wrap({{
             "query": query
             }, cb)
 
-    def handleWorkspaceSymbolResponse(self, result: list) -> None:
+    def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
         # TODO: implement integration with FZF.
-        self.asyncEcho("{} symbols".format(len(result)))
+        self.asyncEcho("{}".format(symbols))
 
     @neovim.function('LanguageClient_textDocument_references')
     def textDocument_references(self, args: List) -> None:

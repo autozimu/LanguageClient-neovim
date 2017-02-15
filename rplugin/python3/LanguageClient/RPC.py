@@ -85,7 +85,7 @@ class RPC:
                 mid = message["id"]
                 del self.queue[mid]
             try:
-                self.onError(message)
+                self.onError(message["error"])
             except:
                 logger.exception("Exception in RPC.onError.")
         elif "result" in message:  # result
