@@ -120,11 +120,14 @@ class LanguageClient:
 
         logger.info('Begin LanguageClientStart')
 
-        filetype = self.nvim.eval('&filetype')
-        if not filetype or filetype not in self.serverCommands:
-            self.asyncEcho("No language server commmand found for type: {}.".format(filetype))  # noqa: E501
+        languageId, = self.getArgs([], ["languageId"])
+        if languageId not in self.serverCommands:
+            msg = "No language server commmand found for type: {}.".format(
+                    languageId)
+            logger.error(msg)
+            self.asyncEcho(msg)
             return
-        command = self.serverCommands[filetype]
+        command = self.serverCommands[languageId]
 
         self.server = subprocess.Popen(
             # ["/bin/bash", "/tmp/wrapper.sh"],
