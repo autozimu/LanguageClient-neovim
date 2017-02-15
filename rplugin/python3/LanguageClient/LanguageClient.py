@@ -424,7 +424,7 @@ call fzf#run(fzf#wrap({{
         logger.info("textDocument/didChange")
 
         uri, languageId = self.getArgs([], ["uri", "languageId"])
-        if languageId not in self.serverCommands:
+        if not uri or languageId not in self.serverCommands:
             return
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
@@ -489,7 +489,7 @@ call fzf#run(fzf#wrap({{
     def textDocument_publishDiagnostics(self, params) -> None:
         for diagnostic in params['diagnostics']:
             # TODO: integration with ale.
-            message = diagnostic['message'].replace("\n", ". ")
+            message = diagnostic['message'].replace("\n", ". ")  # noqa: F841
             # self.asyncEcho(message)
 
     def handleRequestOrNotification(self, message) -> None:

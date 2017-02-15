@@ -31,6 +31,8 @@ def traverseUp(folder: str, stop) -> str:
 
 
 def pathToURI(filepath: str) -> str:
+    if filepath.startswith("term://."):
+        return None
     return Path(filepath).as_uri()
 
 
