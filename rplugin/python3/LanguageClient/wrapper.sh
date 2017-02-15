@@ -1,7 +1,8 @@
 #!/bin/sh
+# Tee server stdio into log file.
 
-RUST_LOG=rls cargo run --manifest-path=/opt/rls/Cargo.toml 2>>/tmp/client.log
+# tee -a /tmp/server.log | RUST_LOG=rls cargo run --manifest-path=/opt/rls/Cargo.toml 2>>/tmp/server.log | tee -a /tmp/server.log
 
-# tee -a /tmp/client.log | RUST_LOG=rls cargo run --manifest-path=/opt/rls/Cargo.toml 2>>/tmp/client.log | tee -a /tmp/client.log
+# tee -a /tmp/server.log | php /user/local/bin/php-language-server.php | tee -a /tmp/server.log
 
-# tee -a /tmp/LanguageClient.log | php $HOME/.config/composer/vendor/felixfbecker/language-server/bin/php-language-server.php | tee -a /tmp/LanguageClient.log
+# tee -a /tmp/server.log | /usr/local/bin/language-server-stdio.js | tee -a /tmp/server.log
