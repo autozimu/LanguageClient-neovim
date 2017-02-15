@@ -12,23 +12,36 @@ def joinPath(part):
 
 
 def getRootPath(filepath: str, languageId: str) -> str:
+    rootPath = None
     if languageId == "rust":
-        return traverseUp(
+        rootPath = traverseUp(
             filepath,
             lambda folder: os.path.exists(os.path.join(folder, 'Cargo.toml')))
+    elif languageId == "php":
+        rootPath = traverseUp(
+            filepath,
+            lambda folder: os.path.exists(os.path.join(folder, "composer.json")))
     # TODO: detect for other filetypes
-    else:
+    if not rootPath:
+        rootPath = traverseUp(
+            filepath,
+            lambda folder: (
+                os.path.exists(os.path.join(folder, ".git"))
+                or os.path.exists(os.path.join(folder, ".hg"))
+                or os.path.exists(os.path.join(folder, ".svn"))))
+    if not rootPath:
         msg = "Unknown project type. Fallback to use dir as project root."
         logger.warn(msg)
-        return os.path.dirname(filepath)
+        rootPath = os.path.dirname(filepath)
+    return rootPath
 
 
 def traverseUp(folder: str, stop) -> str:
     if stop(folder):
         return folder
+    elif folder == "/":
+        return None
     else:
-        if folder == "/":
-            raise Exception('Failed to found root path')
         return traverseUp(os.path.dirname(folder), stop)
 
 
