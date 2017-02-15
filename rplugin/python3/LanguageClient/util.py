@@ -20,7 +20,7 @@ def getRootPath(filepath: str, languageId: str) -> str:
     elif languageId == "php":
         rootPath = traverseUp(
             filepath,
-            lambda folder: os.path.exists(os.path.join(folder, "composer.json")))
+            lambda folder: os.path.exists(os.path.join(folder, "composer.json")))  # noqa: E501
     # TODO: detect for other filetypes
     if not rootPath:
         rootPath = traverseUp(
