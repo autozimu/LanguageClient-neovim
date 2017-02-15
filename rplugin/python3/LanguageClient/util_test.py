@@ -2,7 +2,7 @@ from . util import joinPath, getRootPath, pathToURI, uriToPath, escape
 
 
 def test_getRootPath():
-    assert (getRootPath(joinPath("tests/sample-rs/src/main.rs"))
+    assert (getRootPath(joinPath("tests/sample-rs/src/main.rs"), "rust")
             == joinPath("tests/sample-rs"))
 
 

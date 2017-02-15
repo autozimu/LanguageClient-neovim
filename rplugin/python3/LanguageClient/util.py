@@ -11,14 +11,16 @@ def joinPath(part):
     return os.path.join(currPath, part)
 
 
-def getRootPath(filepath: str) -> str:
-    if filepath.endswith('.rs'):
+def getRootPath(filepath: str, languageId: str) -> str:
+    if languageId == "rust":
         return traverseUp(
             filepath,
             lambda folder: os.path.exists(os.path.join(folder, 'Cargo.toml')))
     # TODO: detect for other filetypes
     else:
-        return filepath
+        msg = "Unknown project type. Fallback to use dir as project root."
+        logger.warn(msg)
+        return os.path.dirname(filepath)
 
 
 def traverseUp(folder: str, stop) -> str:
