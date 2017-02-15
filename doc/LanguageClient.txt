@@ -15,9 +15,9 @@ CONTENTS                                               *LanguageClientContents*
 ==============================================================================
 1. Usage                                                 *LanguageClientUsage*
 
-Before using of LanguageClient, it is necessary to setup commands that are
-used to start language server. See |LanguageClient_serverCommands| for detail.
-Here is a simple example config: >
+Before using of LanguageClient, it is necessary to specify commands that are
+going to be used to start language server. See |LanguageClient_serverCommands|
+for detail. Here is a simple example config: >
 
     let g:LanguageClient_serverCommands = {
         \ 'rust': ['cargo', 'run', '--release', '--manifest-path=/opt/rls/Cargo.toml'],
