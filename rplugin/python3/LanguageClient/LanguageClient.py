@@ -380,14 +380,14 @@ class LanguageClient:
         self.asyncCommand("""
 call fzf#run(fzf#wrap({{
     'source': {},
-    'sink': function('LanguageClient#FZFSinkDocumentSymbol')
+    'sink': function('LanguageClient#FZFSinkTextDocumentDocumentSymbol')
     }}))
 """.replace("\n", "").format(json.dumps(source)))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
         logger.info('End textDocument/documentSymbol')
 
-    @neovim.function('LanguageClient_FZFSinkDocumentSymbol')
-    def fzfSink(self, args: List) -> None:
+    @neovim.function('LanguageClient_FZFSinkTextDocumentDocumentSymbol')
+    def fzfSinkTextDocumentDocumentSymbol(self, args: List) -> None:
         splitted = args[0].split(":")
         line = int(splitted[0])
         character = int(splitted[1])
