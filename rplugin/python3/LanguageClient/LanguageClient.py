@@ -442,7 +442,7 @@ call fzf#run(fzf#wrap({{
     def handleTextDocumentReferencesResponse(self, locations: List) -> None:
         source = []  # type: List[str]
         for loc in locations:
-            path = loc["uri"].replace(self.rootUri + "/", "", 1)
+            path = os.path.relpath(loc["uri"], self.rootUri)
             start = loc["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
@@ -456,7 +456,7 @@ call fzf#run(fzf#wrap({{
         bufnames, = self.getArgs([], ["bufnames"])
 
         splitted = args[0].split(":")
-        path = uriToPath(self.rootUri + "/" + splitted[0])
+        path = uriToPath(os.path.join(self.rootUri, splitted[0]))
         line = int(splitted[1])
         character = int(splitted[2])
 
