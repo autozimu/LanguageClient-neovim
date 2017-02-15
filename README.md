@@ -48,5 +48,6 @@ Run command `LanguageClientStart` inside neovim to get start.
 - `LanguageClient_textDocument_definition()`
 - `LanguageClient_textDocument_rename()`
 - `LanguageClient_textDocument_documentSymbol()`
+- `LanguageClient_textDocument_references()`
 - `LanguageClient_workspace_symbol()`
 - Completion integration with deoplete.

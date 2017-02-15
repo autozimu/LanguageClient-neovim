@@ -256,7 +256,6 @@ class LanguageClient:
     # TODO
     # completionItem/resolve
     # textDocument/signatureHelp
-    # textDocument/references
     # textDocument/codeAction
 
     @neovim.function('LanguageClient_textDocument_definition')
@@ -408,6 +407,7 @@ call fzf#run(fzf#wrap({{
             }, cb)
 
     def handleWorkspaceSymbolResponse(self, result: list) -> None:
+        # TODO: implement integration with FZF.
         self.asyncEcho("{} symbols".format(len(result)))
 
     @neovim.function('LanguageClient_textDocument_references')

@@ -62,33 +62,47 @@ Start language server for current buffer.
 ==============================================================================
 4. Functions                                          *LanguageClientCommands*
 
-4.1 LanguageClient_textDocument_hover()    *LanguageClient_textDocument_hover*
+4.1 LanguageClient_textDocument_hover()
+*LanguageClient_textDocument_hover*
 
 Show type info (and short doc) of identifier under cursor.
 
-4.2 LanguageClient_textDocument_definition() *LanguageClient_textDocument_definition*
+4.2 LanguageClient_textDocument_definition()
+*LanguageClient_textDocument_definition*
 
 Goto definition of identifier under cursor.
 
-4.3 LanguageClient_textDocument_rename()  *LanguageClient_textDocument_rename*
+4.3 LanguageClient_textDocument_rename()
+*LanguageClient_textDocument_rename*
 
 Rename identifier under cursor.
 
-4.4 LanguageClient_textDocument_documentSymbol() *LanguageClient_textDocument_documentSymbol*
+4.4 LanguageClient_textDocument_documentSymbol()
+*LanguageClient_textDocument_documentSymbol*
 
 List of current buffer's symbols.
 
 If optional dependency FZF is installed, symbols will be displayed in a FZF
 prompt, selecting one of the symbol will then goto the symbol's definition.
 
-4.5 LanguageClient_workspace_symbol()        *LanguageClient_workspace_symbol*
+4.5 LanguageClient_textDocument_references()
+*LanguageClient_textDocument_references*
+
+List all references of identifier under cursor.
+
+If optional dependency FZF is installed, locations will be displayed in a FZF
+prompt, selecting one of the entry will then goto the reference location.
+
+4.6 LanguageClient_workspace_symbol()
+*LanguageClient_workspace_symbol*
 
 List of project's symbols.
 
 If optional dependency FZF is installed, symbols will be displayed in a FZF
 prompt, selecting one of the symbol will then goto the symbol's definition.
 
-4.6 LanguageClient_textDocument_completion() *LanguageClient_textDocument_completion*
+4.7 LanguageClient_textDocument_completion()
+*LanguageClient_textDocument_completion*
 
 Get a list of completion items at current editing location.
 
@@ -106,3 +120,5 @@ Please report bugs at https://github.com/autozimu/LanguageClient-neovim/issues
 7. Contributing                                   *LanguageClientContributing*
 
 https://github.com/autozimu/LanguageClient-neovim
+
+vim: ft=help
