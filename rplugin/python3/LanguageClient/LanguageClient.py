@@ -531,6 +531,9 @@ call fzf#run(fzf#wrap({{
                 }
             })
 
+        if isinstance(items, dict):  # CompletionList object
+            items = items["items"]
+
         logger.info("End textDocument/completion")
         return items
 

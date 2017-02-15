@@ -29,6 +29,6 @@ class Source(Base):
         args = {}
         args["line"] = context["position"][1] - 1
         args["character"] = context["position"][2] - 1
+        items = LanguageClient._instance.textDocument_completion([args])
         return [self.convertToDeopleteCandidate(item)
-                for item in
-                LanguageClient._instance.textDocument_completion([args])]
+                for item in items]
