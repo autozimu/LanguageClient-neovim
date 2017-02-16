@@ -1,4 +1,6 @@
-from . util import joinPath, getRootPath, pathToURI, uriToPath, escape
+from . util import (
+        joinPath, getRootPath, pathToURI, uriToPath, escape,
+        getGotoFileCommand)
 
 
 def test_getRootPath():
@@ -18,3 +20,15 @@ def testUriToPath():
 
 def test_escape():
     assert escape("my' precious") == "my'' precious"
+
+
+def test_getGotoFileCommand():
+    assert getGotoFileCommand("/tmp/sample", [
+        "/tmp/sample",
+        "/tmp/somethingelse"
+        ]) == "buffer /tmp/sample"
+
+    assert getGotoFileCommand("/tmp/sample", [
+        "/tmp/notsample",
+        "/tmp/somethingelse"
+        ]) == "edit /tmp/sample"
