@@ -401,9 +401,11 @@ call fzf#run(fzf#wrap({{
     def workspace_symbol(self, args: List) -> None:
         if not self.alive():
             return
-        logger.info("workspace/symbol")
+        logger.info("Begin workspace/symbol")
 
         query, cb = self.getArgs(args, ["query", "cb"])
+        if query is None:
+            query = ""
         if cb is None:
             cb = self.handleWorkspaceSymbolResponse
 
@@ -412,8 +414,34 @@ call fzf#run(fzf#wrap({{
             }, cb)
 
     def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
-        # TODO: implement integration with FZF.
-        self.asyncEcho("{}".format(symbols))
+        source = []
+        for sb in symbols:
+            path = os.path.relpath(sb["location"]["uri"], self.rootUri)
+            start = sb["location"]["range"]["start"]
+            line = start["line"] + 1
+            character = start["character"] + 1
+            name = sb["name"]
+            entry = "{}:{}:{}\t{}".format(path, line, character, name)
+            source.append(entry)
+        self.fzf(source, "LanguageClient#FZFSinkWorkspaceSymbol")
+        logger.info("Begin workspace/symbol")
+
+    @neovim.function("LanguageClient_FZFSinkWorkspaceSymbol")
+    def fzfSinkWorkspaceSymbol(self, args: List):
+        bufnames, = self.getArgs([], ["bufnames"])
+
+        splitted = args[0].split(":")
+        path = uriToPath(os.path.join(self.rootUri, splitted[0]))
+        line = splitted[1]
+        character = splitted[2]
+
+        if path in bufnames:
+            action = "buffer"
+        else:
+            action = "edit"
+        cmd = "{} {}".format(action, path)
+        cmd += "| normal! {}G{}|".format(line, character)
+        self.asyncCommand(cmd)
 
     @neovim.function('LanguageClient_textDocument_references')
     def textDocument_references(self, args: List) -> None:

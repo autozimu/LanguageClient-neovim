@@ -7,3 +7,7 @@ endfunction
 function! LanguageClient#FZFSinkTextDocumentReferences(line) abort
     call LanguageClient_FZFSinkTextDocumentReferences(a:line)
 endfunction
+
+function! LanguageClient#FZFSinkWorkspaceSymbol(line) abort
+    call LanguageClient_FZFSinkWorkspaceSymbol(a:line)
+endfunction
