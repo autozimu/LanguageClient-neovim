@@ -12,6 +12,8 @@ def test_pathToURI():
     assert (pathToURI("/tmp/sample-rs/src/main.rs") ==
             "file:///tmp/sample-rs/src/main.rs")
 
+def test_pathToURIRelative():
+    assert pathToURI(".") == None
 
 def testUriToPath():
     assert (uriToPath("file:///tmp/sample-rs/src/main.rs") ==
