@@ -393,8 +393,8 @@ call fzf#run(fzf#wrap({{
     @neovim.function('LanguageClient_FZFSinkTextDocumentDocumentSymbol')
     def fzfSinkTextDocumentDocumentSymbol(self, args: List) -> None:
         splitted = args[0].split(":")
-        line = int(splitted[0])
-        character = int(splitted[1])
+        line = splitted[0]
+        character = splitted[1]
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
     @neovim.function('LanguageClient_workspace_symbol')
@@ -485,8 +485,8 @@ call fzf#run(fzf#wrap({{
 
         splitted = args[0].split(":")
         path = uriToPath(os.path.join(self.rootUri, splitted[0]))
-        line = int(splitted[1])
-        character = int(splitted[2])
+        line = splitted[1]
+        character = splitted[2]
 
         if path in bufnames:
             action = "buffer"
