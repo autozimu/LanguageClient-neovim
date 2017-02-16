@@ -6,7 +6,9 @@ import threading
 from functools import partial
 from typing import List, Dict, Union, Any  # noqa: F401
 
-from . util import getRootPath, pathToURI, uriToPath, escape
+from . util import (
+        getRootPath, pathToURI, uriToPath, escape,
+        getGotoFileCommand)
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -70,11 +72,7 @@ class LanguageClient:
         cmd = "echo ''"
         for uri, edits in changes.items():
             path = uriToPath(uri)
-            if path in bufnames:
-                action = "buffer"
-            else:
-                action = "edit"
-            cmd += "| {} {}".format(action, path)
+            cmd += "| " + getGotoFileCommand(path, bufnames)
             for edit in edits:
                 line = edit['range']['start']['line'] + 1
                 character = edit['range']['start']['character'] + 1
@@ -298,11 +296,7 @@ class LanguageClient:
         else:
             defn = result
         path = uriToPath(defn["uri"])
-        if path in bufnames:
-            action = "buffer"
-        else:
-            action = "edit"
-        cmd = "{} {}".format(action, path)
+        cmd = getGotoFileCommand(path, bufnames)
         line = defn['range']['start']['line'] + 1
         character = defn['range']['start']['character'] + 1
         cmd += "| normal! {}G{}|".format(line, character)
@@ -435,11 +429,7 @@ call fzf#run(fzf#wrap({{
         line = splitted[1]
         character = splitted[2]
 
-        if path in bufnames:
-            action = "buffer"
-        else:
-            action = "edit"
-        cmd = "{} {}".format(action, path)
+        cmd = getGotoFileCommand(path, bufnames)
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 
@@ -488,11 +478,7 @@ call fzf#run(fzf#wrap({{
         line = splitted[1]
         character = splitted[2]
 
-        if path in bufnames:
-            action = "buffer"
-        else:
-            action = "edit"
-        cmd = "{} {}".format(action, path)
+        cmd = getGotoFileCommand(path, bufnames)
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 

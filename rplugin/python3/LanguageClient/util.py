@@ -64,3 +64,10 @@ def retry(span, count, condition):
         logger.info("retrying...")
         time.sleep(span)
         count -= 1
+
+
+def getGotoFileCommand(path, bufnames) -> str:
+    if path in bufnames:
+        return "buffer {}".format(path)
+    else:
+        return "edit {}".format(path)
