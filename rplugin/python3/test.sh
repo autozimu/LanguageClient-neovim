@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 set -o verbose
 
@@ -11,7 +11,7 @@ NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/vi
 PID=$!
 sleep 1s
 
-py.test --capture=no --exitfirst
+py.test --capture=no --exitfirst $@
 ret=$?
 cat /tmp/LanguageClient.log
 

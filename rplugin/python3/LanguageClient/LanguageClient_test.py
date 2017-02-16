@@ -66,8 +66,14 @@ def test_textDocument_rename_multiple_files(nvim):
 
 
 def test_textDocument_documentSymbol(nvim):
+    nvim.current.buffer.cursor = [1, 1]
     nvim.call("LanguageClient_textDocument_documentSymbol")
-
+    time.sleep(3)
+    nvim.feedkeys("gr")
+    time.sleep(1)
+    nvim.input("<CR>")
+    time.sleep(2)
+    assert nvim.current.window.cursor == [8, 3]
 
 def test_textDocument_didChange(nvim):
     nvim.call("setline", 12, "fn greet_again() -> i64 { 7 }")
