@@ -598,9 +598,6 @@ call fzf#run(fzf#wrap({{
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
-        if not self.alive(warn=False):
-            return
-
         uri, line = self.getArgs([], ["uri", "line"])
         if line == self.lastLine:
             return
