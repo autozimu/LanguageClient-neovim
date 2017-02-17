@@ -12,7 +12,7 @@ from . util import (
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
-from . Severity import Severity
+from . DiagnosticsDisplay import DiagnosticsDisplay
 
 
 @neovim.plugin
@@ -29,6 +29,7 @@ class LanguageClient:
         self.diagnostics = {}
         self.lastLine = -1
         self.hlsid = None
+        self.signid = 0
         type(self)._instance = self
         self.serverCommands = self.nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
@@ -129,10 +130,14 @@ class LanguageClient:
             }[args[0]])
 
     def defineSigns(self) -> None:
-        self.nvim.command("sign define LanguageClientError text=x  texthl=SignError")
-        self.nvim.command("sign define LanguageClientWarning text=!  texthl=SignWarning")
-        self.nvim.command("sign define LanguageClientInformation text=i  texthl=SignInformation")
-        self.nvim.command("sign define LanguageClientHint text=.  texthl=SignHint")
+        cmd = "echo ''"
+        for level in DiagnosticsDisplay.values():
+            name = level["name"]
+            signText = level["signText"]
+            signTexthl = level["signTexthl"]
+            cmd += "| execute 'sign define LanguageClient{} text={} texthl={}'".format(
+                    name, signText, signTexthl)
+        self.asyncCommand(cmd)
 
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
@@ -605,21 +610,20 @@ call fzf#run(fzf#wrap({{
         if not self.hlsid:
             self.hlsid = self.nvim.new_highlight_source()
         buf.clear_highlight(self.hlsid)
+        while self.signid > 0:
+            self.nvim.command("sign unplace {}".format(self.signid))
+            self.signid -= 1
         for entry in params["diagnostics"]:
             line = entry["range"]["start"]["line"]
             start = entry["range"]["start"]["character"]
             end = entry["range"]["end"]["character"]
-            severity = Severity[entry.get("severity", 3)]
-            hlGroup = {
-                    "Error": "SyntasticError",
-                    "Warning": "SyntasticWarning",
-                    "Information": "Informational",
-                    "Hint": "Message",
-                    }[severity]
-            buf.add_highlight(hlGroup, line, start, end, self.hlsid)
-            self.asyncCommand(
-                    "sign place 1 line={} name=LanguageClient{} buffer={}"
-                    .format(line + 1, severity, buf.number))
+            display = DiagnosticsDisplay[entry.get("severity", 3)]
+            texthl = display["texthl"]
+            buf.add_highlight(texthl, line, start, end, self.hlsid)
+            name = display["name"]
+            self.signid += 1
+            self.nvim.command("sign place {} line={} name=LanguageClient{} buffer={}".format(
+                    self.signid, line + 1, name, buf.number))
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
