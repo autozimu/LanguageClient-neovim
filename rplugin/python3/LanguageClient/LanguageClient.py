@@ -320,6 +320,7 @@ class LanguageClient:
     def handleTextDocumentDefinitionResponse(
             self, result: List, bufnames: Union[List, Dict]) -> None:
         if isinstance(result, list) and len(result) > 1:
+            # TODO
             msg = ("Handling multiple definitions is not implemented yet."
                    " Jumping to first.")
             logger.error(msg)
