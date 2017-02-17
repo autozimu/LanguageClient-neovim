@@ -584,6 +584,17 @@ call fzf#run(fzf#wrap({{
             line = entry["range"]["start"]["line"]
             diagnostics[line] = entry
         self.diagnostics[uri] = diagnostics
+        self.nvim.async_call(lambda: self.addHighlight(params))
+
+    def addHighlight(self, params):
+        hlsid = self.nvim.new_highlight_source()
+        buf = self.nvim.current.buffer
+        for entry in params["diagnostics"]:
+            line = entry["range"]["start"]["line"] + 1
+            start = entry["range"]["start"]["character"] + 1
+            end = entry["range"]["end"]["character"] + 1
+            logger.info(f"{line}, {start}, {end}")
+            buf.add_highlight("Error", line, start, end, hlsid)
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
