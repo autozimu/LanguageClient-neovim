@@ -600,8 +600,14 @@ call fzf#run(fzf#wrap({{
             line = entry["range"]["start"]["line"]
             start = entry["range"]["start"]["character"]
             end = entry["range"]["end"]["character"]
-            logger.info("{}, {}, {}".format(line, start, end))
-            buf.add_highlight("Error", line, start, end, self.hlsid)
+            severity = entry.get("severity", 3)
+            hlGroup = {
+                    1: "SyntasticError",
+                    2: "SyntasticWarning",
+                    3: "Informational",
+                    4: "Message",
+                    }[severity]
+            buf.add_highlight(hlGroup, line, start, end, self.hlsid)
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
