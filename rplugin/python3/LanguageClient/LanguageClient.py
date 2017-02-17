@@ -135,8 +135,8 @@ class LanguageClient:
             name = level["name"]
             signText = level["signText"]
             signTexthl = level["signTexthl"]
-            cmd += "| execute 'sign define LanguageClient{} text={} texthl={}'".format(
-                    name, signText, signTexthl)
+            cmd += ("| execute 'sign define LanguageClient{}"
+                    " text={} texthl={}'").format(name, signText, signTexthl)
         self.asyncCommand(cmd)
 
     @neovim.command('LanguageClientStart')
@@ -622,8 +622,9 @@ call fzf#run(fzf#wrap({{
             buf.add_highlight(texthl, line, start, end, self.hlsid)
             name = display["name"]
             self.signid += 1
-            self.nvim.command("sign place {} line={} name=LanguageClient{} buffer={}".format(
-                    self.signid, line + 1, name, buf.number))
+            self.nvim.command("sign place {} line={}"
+                              " name=LanguageClient{} buffer={}".format(
+                                self.signid, line + 1, name, buf.number))
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
