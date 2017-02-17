@@ -130,6 +130,9 @@ class LanguageClient:
             }[args[0]])
 
     def defineSigns(self) -> None:
+        diagnosticsDisplay = self.nvim.eval(
+                "get(g:, 'LanguageClient_diagnosticsDisplay', {})")
+        DiagnosticsDisplay.update(diagnosticsDisplay)
         cmd = "echo ''"
         for level in DiagnosticsDisplay.values():
             name = level["name"]
