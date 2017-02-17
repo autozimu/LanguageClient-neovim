@@ -326,6 +326,9 @@ class LanguageClient:
             self.asyncEcho(msg)
 
         if isinstance(result, list):
+            if len(result) == 0:
+                self.asyncEcho("Not found.")
+                return
             defn = result[0]
         else:
             defn = result
