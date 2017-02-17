@@ -47,7 +47,7 @@ class LanguageClient:
 
         Inspired by neomake, which is in turn inspired by syntastic.
         """
-        msg = msg.replace("\n", "").replace("\t", "  ")
+        msg = msg.replace("\n", " ").replace("\t", " ")
         columns = self.nvim.options["columns"]
         if len(msg) > columns - 12:
             msg = msg[:columns - 15] + "..."
