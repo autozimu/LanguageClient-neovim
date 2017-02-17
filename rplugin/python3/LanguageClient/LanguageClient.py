@@ -27,6 +27,7 @@ class LanguageClient:
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
         self.diagnostics = {}
         self.lastLine = -1
+        self.hlsid = None
         type(self)._instance = self
         self.serverCommands = self.nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
@@ -587,14 +588,20 @@ call fzf#run(fzf#wrap({{
         self.nvim.async_call(lambda: self.addHighlight(params))
 
     def addHighlight(self, params):
-        hlsid = self.nvim.new_highlight_source()
+        uri = params["uri"]
         buf = self.nvim.current.buffer
+        if uriToPath(uri) != buf.name:
+            return
+
+        if not self.hlsid:
+            self.hlsid = self.nvim.new_highlight_source()
+        buf.clear_highlight(self.hlsid)
         for entry in params["diagnostics"]:
-            line = entry["range"]["start"]["line"] + 1
-            start = entry["range"]["start"]["character"] + 1
-            end = entry["range"]["end"]["character"] + 1
-            logger.info(f"{line}, {start}, {end}")
-            buf.add_highlight("Error", line, start, end, hlsid)
+            line = entry["range"]["start"]["line"]
+            start = entry["range"]["start"]["character"]
+            end = entry["range"]["end"]["character"]
+            logger.info("{}, {}, {}".format(line, start, end))
+            buf.add_highlight("Error", line, start, end, self.hlsid)
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
