@@ -75,10 +75,12 @@ def test_textDocument_documentSymbol(nvim):
     time.sleep(2)
     assert nvim.current.window.cursor == [8, 3]
 
+
 def test_workspace_symbol(nvim):
     nvim.current.buffer.cursor = [1, 1]
     # rls does not support this method yet.
     nvim.call("LanguageClient_workspace_symbol")
+
 
 def test_textDocument_didChange(nvim):
     nvim.call("setline", 12, "fn greet_again() -> i64 { 7 }")

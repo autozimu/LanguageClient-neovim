@@ -25,6 +25,8 @@ class LanguageClient:
         self.capabilities = {}
         self.rootUri = None
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
+        self.diagnostics = {}
+        self.lastLine = -1
         type(self)._instance = self
         self.serverCommands = self.nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
@@ -35,6 +37,20 @@ class LanguageClient:
     def asyncEcho(self, message: str) -> None:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
+
+    def asyncEchoEllipsis(self, msg: str):
+        """
+        Print as much of msg as possible without trigging "Press Enter"
+        prompt.
+
+        Inspired by neomake, which is in turn inspired by syntastic.
+        """
+        msg = msg.replace("\n", "").replace("\t", "  ")
+        columns = self.nvim.options["columns"]
+        if len(msg) > columns - 12:
+            msg = msg[:columns - 15] + "..."
+
+        self.asyncEcho(msg)
 
     def getArgs(self, argsL: List, keys: List) -> List:
         if len(argsL) == 0:
@@ -562,10 +578,43 @@ call fzf#run(fzf#wrap({{
         self.rpc.notify("exit", {})
 
     def textDocument_publishDiagnostics(self, params) -> None:
-        for diagnostic in params['diagnostics']:
-            # TODO: integration with ale.
-            message = diagnostic['message'].replace("\n", ". ")  # noqa: F841
-            # self.asyncEcho(message)
+        uri = params["uri"]
+        diagnostics = {}
+        for entry in params['diagnostics']:
+            line = entry["range"]["start"]["line"]
+            diagnostics[line] = entry
+        self.diagnostics[uri] = diagnostics
+
+    @neovim.autocmd("CursorMoved", pattern="*")
+    def showDiagnosticMessage(self) -> None:
+        if not self.alive(warn=False):
+            return
+
+        uri, line = self.getArgs([], ["uri", "line"])
+        if line == self.lastLine:
+            return
+        self.lastLine = line
+
+        entry = self.diagnostics.get(uri, {}).get(line)
+        if not entry:
+            self.asyncEcho("")
+            return
+
+        msg = ""
+        if "severity" in entry:
+            severity = {
+                    1: "E",
+                    2: "W",
+                    3: "I",
+                    4: "H",
+                    }[entry["severity"]]
+            msg += "[{}] ".format(severity)
+        if "code" in entry:
+            code = entry["code"]
+            msg += code
+        msg += entry["message"]
+
+        self.asyncEchoEllipsis(msg)
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
