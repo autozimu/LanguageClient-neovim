@@ -129,10 +129,10 @@ class LanguageClient:
             }[args[0]])
 
     def defineSigns(self) -> None:
-        self.nvim.command("sign define LanguageClientError text=✖  texthl=SignError")
-        self.nvim.command("sign define LanguageClientWarning text=⚠  texthl=SignWarning")
+        self.nvim.command("sign define LanguageClientError text=x  texthl=SignError")
+        self.nvim.command("sign define LanguageClientWarning text=!  texthl=SignWarning")
         self.nvim.command("sign define LanguageClientInformation text=i  texthl=SignInformation")
-        self.nvim.command("sign define LanguageClientHint text=h  texthl=SignHint")
+        self.nvim.command("sign define LanguageClientHint text=.  texthl=SignHint")
 
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
