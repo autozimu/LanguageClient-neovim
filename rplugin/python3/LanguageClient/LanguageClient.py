@@ -12,6 +12,7 @@ from . util import (
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
+from . Severity import Severity
 
 
 @neovim.plugin
@@ -127,6 +128,12 @@ class LanguageClient:
             "DEBUG": 10,
             }[args[0]])
 
+    def defineSigns(self) -> None:
+        self.nvim.command("sign define LanguageClientError text=✖  texthl=SignError")
+        self.nvim.command("sign define LanguageClientWarning text=⚠  texthl=SignWarning")
+        self.nvim.command("sign define LanguageClientInformation text=i  texthl=SignInformation")
+        self.nvim.command("sign define LanguageClientHint text=h  texthl=SignHint")
+
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         if self.alive(warn=False):
@@ -159,6 +166,8 @@ class LanguageClient:
             self.handleError)
         threading.Thread(
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
+
+        self.defineSigns()
 
         logger.info('End LanguageClientStart')
 
@@ -585,9 +594,9 @@ call fzf#run(fzf#wrap({{
             line = entry["range"]["start"]["line"]
             diagnostics[line] = entry
         self.diagnostics[uri] = diagnostics
-        self.nvim.async_call(lambda: self.addHighlight(params))
+        self.nvim.async_call(lambda: self.addHighlightAndSign(params))
 
-    def addHighlight(self, params):
+    def addHighlightAndSign(self, params):
         uri = params["uri"]
         buf = self.nvim.current.buffer
         if uriToPath(uri) != buf.name:
@@ -600,14 +609,17 @@ call fzf#run(fzf#wrap({{
             line = entry["range"]["start"]["line"]
             start = entry["range"]["start"]["character"]
             end = entry["range"]["end"]["character"]
-            severity = entry.get("severity", 3)
+            severity = Severity[entry.get("severity", 3)]
             hlGroup = {
-                    1: "SyntasticError",
-                    2: "SyntasticWarning",
-                    3: "Informational",
-                    4: "Message",
+                    "Error": "SyntasticError",
+                    "Warning": "SyntasticWarning",
+                    "Information": "Informational",
+                    "Hint": "Message",
                     }[severity]
             buf.add_highlight(hlGroup, line, start, end, self.hlsid)
+            self.asyncCommand(
+                    "sign place 1 line={} name=LanguageClient{} buffer={}"
+                    .format(line + 1, severity, buf.number))
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def showDiagnosticMessage(self) -> None:
