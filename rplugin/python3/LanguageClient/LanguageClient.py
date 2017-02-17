@@ -616,11 +616,11 @@ call fzf#run(fzf#wrap({{
                     3: "I",
                     4: "H",
                     }[entry["severity"]]
-            msg += "[{}] ".format(severity)
+            msg += "[{}]".format(severity)
         if "code" in entry:
             code = entry["code"]
             msg += code
-        msg += entry["message"]
+        msg += " " + entry["message"]
 
         self.asyncEchoEllipsis(msg)
 
