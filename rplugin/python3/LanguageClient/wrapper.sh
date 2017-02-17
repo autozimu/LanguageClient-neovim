@@ -6,3 +6,5 @@
 # tee -a /tmp/server.log | php /user/local/bin/php-language-server.php | tee -a /tmp/server.log
 
 # tee -a /tmp/server.log | /usr/local/bin/language-server-stdio.js | tee -a /tmp/server.log
+
+# tee -a /tmp/LanguageClient.log | pyls | tee -a /tmp/LanguageClient.log
