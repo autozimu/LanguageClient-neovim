@@ -10,7 +10,8 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 # Features
 
 - Non-blocking asynchronous calls.
-- Full integration tests.
+- Completion integration with deoplete.
+- Diagnostics support.
 
 # Quick Start
 
@@ -50,4 +51,8 @@ Run command `LanguageClientStart` inside neovim to get start.
 - `LanguageClient_textDocument_documentSymbol()`
 - `LanguageClient_textDocument_references()`
 - `LanguageClient_workspace_symbol()`
-- Completion integration with deoplete.
+- `LanguageClient_textDocument_completion()`
+
+# Language Servers
+
+Please see <http://langserver.org/>.
