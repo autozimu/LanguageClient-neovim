@@ -10,8 +10,18 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 # Features
 
 - Non-blocking asynchronous calls.
-- Completion integration with deoplete.
-- Diagnostics support.
+- [Sensible completion. Integrated with deoplete.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion)
+- [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#diagnostics)
+- [Rename.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#rename)
+- [Get identifer info.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#hover)
+- [Goto definition.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#goto-definition)
+- Goto reference locations.
+- [Workspace/Document symbols query. Integrated with FZF.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols)
+
+(Note: Most of the functionality are provided by language servers. Specific
+language servers may implement only a subset of the features, see
+<http://langserver.org>, in which case, featured listed above may not fully
+functional.)
 
 # Quick Start
 
@@ -42,17 +52,10 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 
 Run command `LanguageClientStart` inside neovim to get start.
 
-# Commands/Functions
-
-- `LanguageClientStart`
-- `LanguageClient_textDocument_hover()`
-- `LanguageClient_textDocument_definition()`
-- `LanguageClient_textDocument_rename()`
-- `LanguageClient_textDocument_documentSymbol()`
-- `LanguageClient_textDocument_references()`
-- `LanguageClient_workspace_symbol()`
-- `LanguageClient_textDocument_completion()`
-
 # Language Servers
 
-Please see <http://langserver.org/>.
+Please see <http://langserver.org>.
+
+# Documentation
+
+[LanguageClient.txt](https://github.com/autozimu/LanguageClient-neovim/blob/master/doc/LanguageClient.txt)
