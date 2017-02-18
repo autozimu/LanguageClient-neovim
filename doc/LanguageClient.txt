@@ -52,6 +52,38 @@ specific filetype. For example: >
 
 Default: {}
 
+2.2 g:LanguageClient_diagnosticsDisplay  *g:LanguageClient_diagnosticsDisplay*
+
+Control how diagnostics messages are displayed.
+
+Default: >
+    {
+        1: {
+            "name": "Error",
+            "texthl": "SyntasticError",
+            "signText": "x",
+            "signTexthl": "Error"
+        },
+        2: {
+            "name": "Warning",
+            "texthl": "SyntasticWarning",
+            "signText": "!",
+            "signTexthl": "SignWarning"
+        },
+        3: {
+            "name": "Information",
+            "texthl": "LanguageClientInformation",
+            "signText": "i",
+            "signTexthl": "SignInformation"
+        },
+        4: {
+            "name": "Hint",
+            "texthl": "LanguageClientHint",
+            "signText": ".",
+            "signTexthl": "SignHint"
+        }
+    }
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
