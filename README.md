@@ -10,13 +10,13 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 # Features
 
 - Non-blocking asynchronous calls.
-- [Sensible completion. Integrated with deoplete.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion)
+- [Sensible completion](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion). Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim).
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#diagnostics)
 - [Rename.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#rename)
 - [Get identifer info.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#hover)
 - [Goto definition.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#goto-definition)
 - Goto reference locations.
-- [Workspace/Document symbols query. Integrated with FZF.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols)
+- [Workspace/Document symbols query](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols). Integrated with [FZF](https://github.com/junegunn/fzf).
 
 (Note: Most of the functionality are provided by language servers. Specific
 language servers may implement only a subset of the features, see
