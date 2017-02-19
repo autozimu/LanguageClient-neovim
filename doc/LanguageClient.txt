@@ -92,7 +92,7 @@ Default: >
 Start language server for current buffer.
 
 ==============================================================================
-4. Functions                                          *LanguageClientCommands*
+4. Functions                                          *LanguageClientFunctions*
 
 4.1 LanguageClient_textDocument_hover()
 *LanguageClient_textDocument_hover*
