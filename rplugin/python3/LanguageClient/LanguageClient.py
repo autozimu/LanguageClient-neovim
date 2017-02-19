@@ -456,7 +456,7 @@ call fzf#run(fzf#wrap({{
             entry = "{}:{}:{}\t{}".format(path, line, character, name)
             source.append(entry)
         self.fzf(source, "LanguageClient#FZFSinkWorkspaceSymbol")
-        logger.info("Begin workspace/symbol")
+        logger.info("End workspace/symbol")
 
     @neovim.function("LanguageClient_FZFSinkWorkspaceSymbol")
     def fzfSinkWorkspaceSymbol(self, args: List):
