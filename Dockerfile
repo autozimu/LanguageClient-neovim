@@ -15,6 +15,8 @@ RUN pacman -S --noconfirm rustup \
 
 RUN git clone https://github.com/rust-lang-nursery/rls /opt/rls && cargo build --release --manifest-path=/opt/rls/Cargo.toml
 
+RUN timeout 5 cargo run --release --manifest-path=/opt/rls/Cargo.toml
+
 RUN git clone --depth 1 https://github.com/junegunn/fzf.git /root/.fzf && /root/.fzf/install --bin
 
 CMD /bin/bash
