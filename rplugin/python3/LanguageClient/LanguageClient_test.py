@@ -19,7 +19,7 @@ def nvim() -> neovim.Nvim:
     nvim.call("LanguageClient_setLoggingLevel", "INFO")
     nvim.command("LanguageClientStart")
     time.sleep(15)
-    assert nvim.call("LanguageClient_isAlive")
+    assert nvim.call("LanguageClient_alive")
     return nvim
 
 

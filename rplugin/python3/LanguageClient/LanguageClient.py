@@ -104,7 +104,7 @@ class LanguageClient:
                     curPos["character"] + 1)
         self.asyncCommand(cmd)
 
-    @neovim.function("LanguageClient_isAlive")
+    @neovim.function("LanguageClient_alive")
     def alive(self, warn=True) -> bool:
         ret = False
         if self.server is None:
