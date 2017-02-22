@@ -287,9 +287,6 @@ class LanguageClient:
 
         logger.info('End textDocument/hover')
 
-    # TODO
-    # textDocument/codeAction
-
     @neovim.function('LanguageClient_textDocument_definition')
     def textDocument_definition(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, cb?}
@@ -660,7 +657,7 @@ call fzf#run(fzf#wrap({{
         self.asyncEchoEllipsis(msg)
 
     @neovim.function("LanguageClient_completionItem/resolve")
-    def completionItem_resolve(self, args:List) -> None:
+    def completionItem_resolve(self, args: List) -> None:
         if not self.alive():
             return
 
@@ -700,6 +697,28 @@ call fzf#run(fzf#wrap({{
         # TODO: proper integration.
         self.asyncEcho(json.dumps(result))
         logger.info("End textDocument/signatureHelp")
+
+    def textDocument_codeAction(self, args: List) -> None:
+        if not self.alive():
+            return
+
+        logger.info("Begin textDocument/codeAction")
+        uri, range, context, cb = self.getArgs(
+                args,
+                ["uri", "range", "context"])
+        if cb is None:
+            cb = self.handleTextDocumentCodeActionResponse
+
+        self.rpc.call("textDocument/codeAction", {
+            "textDocument": uri,
+            "range": range,
+            "context": context,
+            }, cb)
+
+    def handleTextDocumentCodeActionResponse(self, result):
+        # TODO: proper integration.
+        self.asyncEcho(json.dumps(result))
+        logger.info("End textDocument/codeAction")
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
