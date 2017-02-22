@@ -288,7 +288,6 @@ class LanguageClient:
         logger.info('End textDocument/hover')
 
     # TODO
-    # completionItem/resolve
     # textDocument/signatureHelp
     # textDocument/codeAction
 
@@ -660,6 +659,23 @@ call fzf#run(fzf#wrap({{
         msg += " " + entry["message"]
 
         self.asyncEchoEllipsis(msg)
+
+    @neovim.function("LanguageClient_completionItem/resolve")
+    def completionItem_resolve(self, args:List) -> None:
+        if not self.alive():
+            return
+
+        logger.info("Begin completionItem/resolve")
+        completionItem, cb = self.getArgs(args, ["completionItem", "cb"])
+        if cb is None:
+            cb = self.handleCompletionItemResolveResponse
+
+        self.rpc.call("completionItem/resolve", completionItem, cb)
+
+    def handleCompletionItemResolveResponse(self, result):
+        # TODO: proper integration.
+        self.asyncEcho(json.dumps(result))
+        logger.info("End completionItem/resolve")
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
