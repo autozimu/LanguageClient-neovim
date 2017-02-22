@@ -288,7 +288,6 @@ class LanguageClient:
         logger.info('End textDocument/hover')
 
     # TODO
-    # textDocument/signatureHelp
     # textDocument/codeAction
 
     @neovim.function('LanguageClient_textDocument_definition')
@@ -676,6 +675,31 @@ call fzf#run(fzf#wrap({{
         # TODO: proper integration.
         self.asyncEcho(json.dumps(result))
         logger.info("End completionItem/resolve")
+
+    @neovim.function("LanguageClient_textDocument_signatureHelp")
+    def textDocument_signatureHelp(self, args: List):
+        if not self.alive():
+            return
+
+        logger.info("Begin textDocument/signatureHelp")
+        uri, line, character, cb = self.getArgs(
+                args,
+                ["uri", "line", "character", "cb"])
+        if cb is None:
+            cb = self.handleTextDocumentSignatureHelpResponse
+
+        self.rpc.call("textDocument/signatureHelp", {
+            "textDocument": uri,
+            "position": {
+                "line": line,
+                "character": character,
+                }
+            }, cb)
+
+    def handleTextDocumentSignatureHelpResponse(self, result):
+        # TODO: proper integration.
+        self.asyncEcho(json.dumps(result))
+        logger.info("End textDocument/signatureHelp")
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
