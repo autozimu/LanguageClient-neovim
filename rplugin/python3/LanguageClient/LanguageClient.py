@@ -388,16 +388,19 @@ class LanguageClient:
 
         uri, cb = self.getArgs(args, ["uri", "cb"])
         if cb is None:
-            if self.nvim.eval("get(g:, 'loaded_fzf', 0)") == 1:
-                cb = self.handleTextDocumentDocumentSymbolResponse
-            else:
-                logger.warn("FZF not loaded.")
+            cb = partial(self.handleTextDocumentDocumentSymbolResponse,
+                         selectionUI=self.getSelectionUI())
 
         self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
                 }
             }, cb)
+
+    def getSelectionUI(self) -> str:
+        if self.nvim.eval("get(g:, 'loaded_fzf', 0)") == 1:
+            return "fzf"
+        return ""
 
     def fzf(self, source: List, sink: str) -> None:
         self.asyncCommand("""
@@ -408,16 +411,24 @@ call fzf#run(fzf#wrap({{
 """.replace("\n", "").format(json.dumps(source), sink))
         self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
 
-    def handleTextDocumentDocumentSymbolResponse(self, symbols: List) -> None:
-        source = []
-        for sb in symbols:
-            name = sb["name"]
-            start = sb["location"]["range"]["start"]
-            line = start["line"] + 1
-            character = start["character"] + 1
-            entry = "{}:{}:\t{}".format(line, character, name)
-            source.append(entry)
-        self.fzf(source, "LanguageClient#FZFSinkTextDocumentDocumentSymbol")
+    def handleTextDocumentDocumentSymbolResponse(
+            self, symbols: List, selectionUI: str) -> None:
+        if selectionUI == "fzf":
+            source = []
+            for sb in symbols:
+                name = sb["name"]
+                start = sb["location"]["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                entry = "{}:{}:\t{}".format(line, character, name)
+                source.append(entry)
+            self.fzf(source,
+                     "LanguageClient#FZFSinkTextDocumentDocumentSymbol")
+        else:
+            msg = "No selection UI found. Consider install fzf or denite.vim."
+            self.asyncEcho(msg)
+            logger.warn(msg)
+
         logger.info('End textDocument/documentSymbol')
 
     @neovim.function('LanguageClient_FZFSinkTextDocumentDocumentSymbol')
