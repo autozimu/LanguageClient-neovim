@@ -41,7 +41,7 @@ class LanguageClient:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
-    def asyncEchoEllipsis(self, msg: str):
+    def echoEllipsis(self, msg: str):
         """
         Print as much of msg as possible without trigging "Press Enter"
         prompt.
@@ -668,7 +668,7 @@ call fzf#run(fzf#wrap({{
             msg += code
         msg += " " + entry["message"]
 
-        self.asyncEchoEllipsis(msg)
+        self.echoEllipsis(msg)
 
     @neovim.function("LanguageClient_completionItem/resolve")
     def completionItem_resolve(self, args: List) -> None:
