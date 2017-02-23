@@ -77,6 +77,8 @@ class LanguageClient:
                     v = cursor[0] - 1
             elif k == "character":
                 v = args.get("character") or cursor[1]
+            elif k == "cword":
+                v = args.get("cword") or self.nvim.call("expand", "<cword>")
             elif k == "bufnames":
                 v = args.get("bufnames") or [b.name for b in self.nvim.buffers]
             else:
@@ -345,11 +347,12 @@ class LanguageClient:
 
         logger.info('Begin textDocument/rename')
 
-        uri, line, character, newName, bufnames, cb = self.getArgs(
-            args, ["uri", "line", "character", "newName", "bufnames", "cb"])
+        uri, line, character, cword, newName, bufnames, cb = self.getArgs(
+            args, ["uri", "line", "character", "cword", "newName",
+                   "bufnames", "cb"])
         if newName is None:
             self.nvim.call("inputsave")
-            newName = self.nvim.call("input", "Rename to: ")
+            newName = self.nvim.call("input", "Rename to: ", cword)
             self.nvim.call("inputrestore")
         if cb is None:
             cb = partial(
