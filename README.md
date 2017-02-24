@@ -10,7 +10,9 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 # Features
 
 - Non-blocking asynchronous calls.
-- [Sensible completion](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion). Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim).
+- [Sensible completion](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion).
+  Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim) 
+  or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager).
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#diagnostics)
 - [Rename.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#rename)
 - [Get identifer info.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#hover)
