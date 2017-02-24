@@ -35,7 +35,7 @@ class LanguageClient:
                 "get(g:, 'LanguageClient_serverCommands', {})")
 
     def asyncCommand(self, cmds: str) -> None:
-        self.nvim.async_call(lambda: self.nvim.command(cmds))
+        self.nvim.async_call(self.nvim.command, cmds)
 
     def asyncEcho(self, message: str) -> None:
         message = escape(message)
@@ -410,7 +410,7 @@ call fzf#run(fzf#wrap({{
     'sink': function('{}')
     }}))
 """.replace("\n", "").format(json.dumps(source), sink))
-        self.nvim.async_call(lambda: self.nvim.feedkeys("i"))
+        self.nvim.async_call(self.nvim.feedkeys, "i")
 
     def handleTextDocumentDocumentSymbolResponse(
             self, symbols: List, selectionUI: str) -> None:
@@ -616,7 +616,7 @@ call fzf#run(fzf#wrap({{
             line = entry["range"]["start"]["line"]
             diagnostics[line] = entry
         self.diagnostics[uri] = diagnostics
-        self.nvim.async_call(lambda: self.addHighlightAndSign(params))
+        self.nvim.async_call(self.addHighlightAndSign, params)
 
     def addHighlightAndSign(self, params):
         uri = params["uri"]
