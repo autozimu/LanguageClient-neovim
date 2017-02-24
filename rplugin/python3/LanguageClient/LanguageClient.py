@@ -41,7 +41,7 @@ class LanguageClient:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
-    def echoEllipsis(self, msg: str):
+    def asyncEchoEllipsis(self, msg: str, columns: int):
         """
         Print as much of msg as possible without trigging "Press Enter"
         prompt.
@@ -49,7 +49,6 @@ class LanguageClient:
         Inspired by neomake, which is in turn inspired by syntastic.
         """
         msg = msg.replace("\n", " ").replace("\t", " ")
-        columns = self.nvim.options["columns"]
         if len(msg) > columns - 12:
             msg = msg[:columns - 15] + "..."
 
@@ -81,6 +80,8 @@ class LanguageClient:
                 v = args.get("cword") or self.nvim.call("expand", "<cword>")
             elif k == "bufnames":
                 v = args.get("bufnames") or [b.name for b in self.nvim.buffers]
+            elif k == "columns":
+                v = args.get("columns") or self.nvim.options["columns"]
             else:
                 v = args.get(k)
             res.append(v)
@@ -643,8 +644,11 @@ call fzf#run(fzf#wrap({{
                                 self.signid, line + 1, name, buf.number))
 
     @neovim.autocmd("CursorMoved", pattern="*")
-    def showDiagnosticMessage(self) -> None:
-        uri, line = self.getArgs([], ["uri", "line"])
+    def handleCursorMoved(self):
+        uri, line, columns = self.getArgs([], ["uri", "line", "columns"])
+        self.nvim.async_call(self.showDiagnosticMessage, uri, line, columns)
+
+    def showDiagnosticMessage(self, uri: str, line: int, columns: int) -> None:
         if not uri or line == self.lastLine:
             return
         self.lastLine = line
@@ -668,7 +672,7 @@ call fzf#run(fzf#wrap({{
             msg += code
         msg += " " + entry["message"]
 
-        self.echoEllipsis(msg)
+        self.asyncEchoEllipsis(msg, columns)
 
     @neovim.function("LanguageClient_completionItem/resolve")
     def completionItem_resolve(self, args: List) -> None:
