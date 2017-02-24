@@ -611,7 +611,7 @@ call fzf#run(fzf#wrap({{
         return items
 
     # this method is called by nvim-completion-manager framework
-    @neovim.function("LanguageClient_completionManager_refresh")
+    @neovim.function("LanguageClient_completionManager_refresh",sync=False)
     def completionManager_refresh(self, args) -> None:
         if not self.alive():
             return
