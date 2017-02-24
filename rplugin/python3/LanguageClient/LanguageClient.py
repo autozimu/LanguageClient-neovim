@@ -164,11 +164,12 @@ class LanguageClient:
         command = self.serverCommands[languageId]
 
         try:
-            self.nvim.call('cm#register_source',dict(name='LanguageClient_%s' % languageId,
-                                                     priority=9,
-                                                     scopes=[ languageId ],
-                                                     abbreviation='',
-                                                     cm_refresh='LanguageClient_completionManager_refresh'))
+            self.nvim.call('cm#register_source', dict(
+                name='LanguageClient_%s' % languageId,
+                priority=9,
+                scopes=[languageId],
+                abbreviation='',
+                cm_refresh='LanguageClient_completionManager_refresh'))
         except Exception as ex:
             # fails if completion manager has not been installed yet
             logger.exception("register completion manager source failed.")
@@ -611,7 +612,7 @@ call fzf#run(fzf#wrap({{
         return items
 
     # this method is called by nvim-completion-manager framework
-    @neovim.function("LanguageClient_completionManager_refresh",sync=False)
+    @neovim.function("LanguageClient_completionManager_refresh", sync=False)
     def completionManager_refresh(self, args) -> None:
         if not self.alive():
             return
@@ -628,21 +629,21 @@ call fzf#run(fzf#wrap({{
         args = {}
         args["line"] = ctx["lnum"] - 1
         args["character"] = ctx["col"] - 1
-        if typed=='':
+        if typed == "":
             return
 
-        uri, line, character = self.getArgs([args], ["uri", "line", "character"])
+        uri, line, character = self.getArgs(
+                [args], ["uri", "line", "character"])
 
         logger.info("uri[%s] line[%s] character[%s]", uri, line, character)
 
         def cb(result):
-
-            logger.info("result: %s",result)
+            logger.info("result: %s", result)
             items = result
             isIncomplete = False
-            if type(result)==type({}):
+            if isinstance(result, dict):
                 items = result["items"]
-                isIncomplete = result.get('isIncomplete',False)
+                isIncomplete = result.get('isIncomplete', False)
 
             # convert to vim style completion-items
             matches = []
@@ -650,14 +651,15 @@ call fzf#run(fzf#wrap({{
                 e = {}
                 e['icase'] = 1
                 e['word'] = item['label']
-                e['abbr'] = item.get('insertText',None) or ''
+                e['abbr'] = item.get('insertText', "")
                 e['dup'] = 1
-                e['info'] = item.get('documentation',None) or ''
+                e['info'] = item.get('documentation', "")
                 matches.append(e)
 
-            self.nvim.call('cm#complete', info['name'], ctx, startcol, matches, isIncomplete, async=True)
+            self.nvim.call('cm#complete', info['name'], ctx,
+                           startcol, matches, isIncomplete, async=True)
 
-        items = self.rpc.call('textDocument/completion', {
+        self.rpc.call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
                 },
@@ -665,7 +667,7 @@ call fzf#run(fzf#wrap({{
                 "line": line,
                 "character": character
                 }
-            },cb)
+            }, cb)
 
     # FIXME: python infinite loop after this call.
     @neovim.function("LanguageClient_exit")
