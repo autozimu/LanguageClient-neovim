@@ -108,8 +108,8 @@ class LanguageClient:
                     curPos["character"] + 1)
         self.asyncCommand(cmd)
 
-    @neovim.function("LanguageClient_alive")
-    def alive(self, warn=True) -> bool:
+    @neovim.function("LanguageClient_alive", sync=True)
+    def alive(self, warn=False) -> bool:
         ret = False
         if self.server is None:
             msg = "Language client is not running. Try :LanguageClientStart"
@@ -156,7 +156,7 @@ class LanguageClient:
 
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
-        if self.alive(warn=False):
+        if self.alive():
             self.asyncEcho("Language client has already started.")
             return
 
@@ -207,7 +207,7 @@ class LanguageClient:
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
         # {rootPath?: str, cb?}
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info('Begin initialize')
@@ -234,7 +234,7 @@ class LanguageClient:
 
     @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self) -> None:
-        if not self.alive(warn=False):
+        if not self.alive():
             return
 
         logger.info('textDocument/didOpen')
@@ -271,7 +271,7 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_hover')
     def textDocument_hover(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, cb?}
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info('Begin textDocument/hover')
@@ -312,7 +312,7 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_definition')
     def textDocument_definition(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, cb?}
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info('Begin textDocument/definition')
@@ -362,7 +362,7 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_rename')
     def textDocument_rename(self, args: List) -> None:
         # {uri?: str, line?: int, character?: int, newName?: str, cb?}
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info('Begin textDocument/rename')
@@ -401,7 +401,7 @@ class LanguageClient:
     @neovim.function('LanguageClient_textDocument_documentSymbol')
     def textDocument_documentSymbol(self, args: List) -> None:
         # {uri?: str, cb?}
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info('Begin textDocument/documentSymbol')
@@ -460,7 +460,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function('LanguageClient_workspace_symbol')
     def workspace_symbol(self, args: List) -> None:
-        if not self.alive():
+        if not self.alive(warn=True):
             return
         logger.info("Begin workspace/symbol")
 
@@ -502,7 +502,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function('LanguageClient_textDocument_references')
     def textDocument_references(self, args: List) -> None:
-        if not self.alive():
+        if not self.alive(warn=True):
             return
         logger.info("Begin textDocument/references")
 
@@ -558,7 +558,7 @@ call fzf#run(fzf#wrap({{
         self.textDocument_didChange()
 
     def textDocument_didChange(self) -> None:
-        if not self.alive(warn=False):
+        if not self.alive():
             return
         logger.info("textDocument/didChange")
 
@@ -580,7 +580,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.autocmd("BufWritePost", pattern="*")
     def textDocument_didSave(self) -> None:
-        if not self.alive(warn=False):
+        if not self.alive():
             return
         logger.info("textDocument/didSave")
 
@@ -596,7 +596,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_textDocument_completion")
     def textDocument_completion(self, args: List) -> List:
-        if not self.alive(warn=False):
+        if not self.alive():
             return []
         logger.info("Begin textDocument/completion")
 
@@ -619,7 +619,7 @@ call fzf#run(fzf#wrap({{
         return items
 
     # this method is called by nvim-completion-manager framework
-    @neovim.function("LanguageClient_completionManager_refresh", sync=False)
+    @neovim.function("LanguageClient_completionManager_refresh")
     def completionManager_refresh(self, args) -> None:
         if not self.alive():
             return
@@ -794,7 +794,7 @@ call fzf#run(fzf#wrap({{
         logger.info("End textDocument/signatureHelp")
 
     def textDocument_codeAction(self, args: List) -> None:
-        if not self.alive():
+        if not self.alive(warn=True):
             return
 
         logger.info("Begin textDocument/codeAction")
