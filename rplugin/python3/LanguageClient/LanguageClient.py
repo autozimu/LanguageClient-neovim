@@ -589,7 +589,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_textDocument_completion")
     def textDocument_completion(self, args: List) -> List:
-        if not self.alive():
+        if not self.alive(warn=False):
             return []
         logger.info("Begin textDocument/completion")
 
