@@ -146,6 +146,14 @@ class LanguageClient:
                     " text={} texthl={}'").format(name, signText, signTexthl)
         self.asyncCommand(cmd)
 
+    @neovim.function("LanguageClient_registerServerCommands")
+    def registerServerCommands(self, args: List) -> None:
+        """
+        Add or update serverCommands.
+        """
+        serverCommands = args[0]  # Dict[str, str]
+        self.serverCommands.update(serverCommands)
+
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         if self.alive(warn=False):
