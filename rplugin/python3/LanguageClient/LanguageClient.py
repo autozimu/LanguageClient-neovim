@@ -163,17 +163,6 @@ class LanguageClient:
             return
         command = self.serverCommands[languageId]
 
-        try:
-            self.nvim.call('cm#register_source', dict(
-                name='LanguageClient_%s' % languageId,
-                priority=9,
-                scopes=[languageId],
-                abbreviation='',
-                cm_refresh='LanguageClient_completionManager_refresh'))
-        except Exception as ex:
-            # fails if completion manager has not been installed yet
-            logger.exception("register completion manager source failed.")
-
         self.server = subprocess.Popen(
             # ["/bin/bash", "/tmp/wrapper.sh"],
             command,
@@ -191,6 +180,16 @@ class LanguageClient:
                 target=self.rpc.serve, name="RPC Server", daemon=True).start()
 
         self.defineSigns()
+
+        try:
+            self.nvim.call('cm#register_source', dict(
+                name='LanguageClient_%s' % languageId,
+                priority=9,
+                scopes=[languageId],
+                abbreviation='',
+                cm_refresh='LanguageClient_completionManager_refresh'))
+        except Exception as ex:
+            logger.warn("register completion manager source failed.")
 
         logger.info('End LanguageClientStart')
 
