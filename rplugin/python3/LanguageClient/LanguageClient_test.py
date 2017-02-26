@@ -95,7 +95,3 @@ def test_textDocument_didChange(nvim):
 
 def test_textDocument_didClose(nvim):
     nvim.call("LanguageClient_textDocument_didClose")
-
-
-def test_exit(nvim):
-    nvim.call("LanguageClient_exit")

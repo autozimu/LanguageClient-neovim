@@ -69,48 +69,43 @@ class RPC:
     def serve(self):
         contentLength = 0
         while not self.infile.closed:
-            line = self.infile.readline().strip()
-            if line:
-                header, value = line.split(":")
-                if header == "Content-Length":
-                    contentLength = int(value)
-            else:
-                content = self.infile.read(contentLength)
-                logger.debug(' <= ' + content)
-                self.handle(json.loads(content))
+            try:
+                line = self.infile.readline().strip()
+                if line:
+                    header, value = line.split(":")
+                    if header == "Content-Length":
+                        contentLength = int(value)
+                else:
+                    content = self.infile.read(contentLength)
+                    logger.debug(' <= ' + content)
+                    self.handle(json.loads(content))
+            except Exception as ex:
+                msg = "Error handling server output."
+                self.onError(msg)
+                logger.exception(msg)
+                break
 
     def handle(self, message: Dict[str, Any]):
         if "error" in message:  # error
             if "id" in message:
                 mid = message["id"]
                 del self.queue[mid]
-            try:
-                self.onError(message["error"])
-            except:
-                logger.exception("Exception in RPC.onError.")
+            self.onError(message["error"])
         elif "result" in message:  # result
             mid = message['id']
             result = message["result"]
             if mid in self.queue:  # async call
-                try:
-                    self.queue[mid](result)
-                except:
-                    logger.exception("Exception in RPC request callback.")
+                cb = self.queue[mid]
                 del self.queue[mid]
+                cb(result)
             else:  # sync call
                 with self.cv:
                     self.result = result
                     self.cv.notify()
         elif "method" in message:  # request/notification
             if "id" in message:  # request
-                try:
-                    self.onRequest(message)
-                except:
-                    logger.exception("Exception in RPC.onRequest")
+                self.onRequest(message)
             else:
-                try:
-                    self.onNotification(message)
-                except:
-                    logger.exception("Exception in RPC.onNotification")
+                self.onNotification(message)
         else:
-            logger.error('Unexpected')
+            logger.error('Unknown message.')

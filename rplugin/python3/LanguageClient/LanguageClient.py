@@ -679,7 +679,6 @@ call fzf#run(fzf#wrap({{
                 }
             }, cb)
 
-    # FIXME: python infinite loop after this call.
     @neovim.function("LanguageClient_exit")
     def exit(self, args: List) -> None:
         # {uri?: str}
@@ -823,7 +822,7 @@ call fzf#run(fzf#wrap({{
         if hasattr(self, method):
             try:
                 getattr(self, method)(message['params'])
-            except:
+            except Exception as ex:
                 logger.exception("Exception in handle.")
         else:
             logger.warn('no handler implemented for ' + method)
