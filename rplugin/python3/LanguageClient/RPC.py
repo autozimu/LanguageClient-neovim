@@ -52,8 +52,8 @@ class RPC:
             return
 
         with self.cv:
-            while self.result is None:
-                self.cv.wait()
+            if not self.cv.wait_for(lambda: self.result is not None, 3):
+                return None
             result = self.result
             self.result = None
             return result

@@ -612,6 +612,9 @@ call fzf#run(fzf#wrap({{
                 }
             })
 
+        if items is None:
+            items = []   # timeout
+
         if isinstance(items, dict):  # CompletionList object
             items = items["items"]
 
