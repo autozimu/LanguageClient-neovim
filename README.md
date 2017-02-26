@@ -31,10 +31,12 @@ Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
 Plug 'autozimu/LanguageClient-neovim', { 'do': ':UpdateRemotePlugins' }
-" Optional dependency for symbol selection
+" Optional dependency for multi-entry selection.
 Plug 'junegunn/fzf'
-" Optional dependency for completion
+" Optional dependency for completion.
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+" Optional dependency for showing function signature and doc.
+Plug 'Shougo/echodoc.vim'
 ```
 
 Example configuration
