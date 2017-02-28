@@ -516,12 +516,14 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("Begin textDocument/references")
 
-        uri, line, character, cb = self.getArgs(
-                args, ["uri", "line", "character", "cb"])
-        if cb is None:
-            cb = self.handleTextDocumentReferencesResponse
+        uri, line, character, sync, cb = self.getArgs(
+                args, ["uri", "line", "character", "sync", "cb"])
+        if not sync and not cb:
+            cb = partial(
+                    self.handleTextDocumentReferencesResponse,
+                    self.getSelectionUI())
 
-        self.rpc.call('textDocument/references', {
+        return self.rpc.call('textDocument/references', {
             "textDocument": {
                 "uri": uri,
                 },
@@ -534,16 +536,22 @@ call fzf#run(fzf#wrap({{
                 },
             }, cb)
 
-    def handleTextDocumentReferencesResponse(self, locations: List) -> None:
-        source = []  # type: List[str]
-        for loc in locations:
-            path = os.path.relpath(loc["uri"], self.rootUri)
-            start = loc["range"]["start"]
-            line = start["line"] + 1
-            character = start["character"] + 1
-            entry = "{}:{}:{}".format(path, line, character)
-            source.append(entry)
-        self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+    def handleTextDocumentReferencesResponse(
+            self, locations: List, selectionUI: str) -> None:
+        if selectionUI == "fzf":
+            source = []  # type: List[str]
+            for loc in locations:
+                path = os.path.relpath(loc["uri"], self.rootUri)
+                start = loc["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                entry = "{}:{}:{}".format(path, line, character)
+                source.append(entry)
+            self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+        else:
+            msg = "No selection UI found. Consider install fzf or denite.vim."
+            self.asyncEcho(msg)
+            logger.warn(msg)
         logger.info("End textDocument/references")
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")

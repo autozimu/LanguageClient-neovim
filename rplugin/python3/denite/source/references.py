@@ -14,21 +14,19 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
 
-        self.name = 'workspaceSymbol'
+        self.name = 'references'
         self.kind = 'file'
 
-    def convertToCandidate(self, symbols) -> List[Dict]:
+    def convertToCandidate(self, locations) -> List[Dict]:
         candidates = []
-        for sb in symbols:
-            name = sb["name"]
-            uri = sb["location"]["uri"]
+        for loc in locations:
+            uri = loc["uri"]
             filepath = path.relpath(uri, LanguageClient._instance.rootUri)
-            start = sb["location"]["range"]["start"]
+            start = loc["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
             candidates.append({
-                "word": "{}:{}:{}:\t{}".format(
-                    filepath, line, character, name),
+                "word": "{}:{}:{}".format(filepath, line, character),
                 "action__path": filepath,
                 "action__line": line,
                 "action__col": character,
@@ -37,11 +35,11 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        symbols = LanguageClient._instance.workspace_symbol([{
+        locations = LanguageClient._instance.textDocument_references([{
             "sync": True,
             }])
 
-        if symbols is None:
+        if locations is None:
             return []
 
-        return self.convertToCandidate(symbols)
+        return self.convertToCandidate(locations)
