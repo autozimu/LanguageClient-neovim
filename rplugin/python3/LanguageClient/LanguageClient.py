@@ -216,7 +216,8 @@ class LanguageClient:
                 args, ["rootPath", "languageId", "cb"])
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name, languageId)
-            self.rootUri = pathToURI(rootPath)
+        logger.info("rootPath: " + rootPath)
+        self.rootUri = pathToURI(rootPath)
         if cb is None:
             cb = self.handleInitializeResponse
 
