@@ -411,13 +411,11 @@ class LanguageClient:
             cb = partial(self.handleTextDocumentDocumentSymbolResponse,
                          selectionUI=self.getSelectionUI())
 
-        symbols = self.rpc.call('textDocument/documentSymbol', {
+        return self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
                 }
             }, cb)
-
-        return symbols
 
     def getSelectionUI(self) -> str:
         if self.nvim.eval("get(g:, 'loaded_fzf', 0)") == 1:

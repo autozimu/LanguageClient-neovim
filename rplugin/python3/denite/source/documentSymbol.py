@@ -25,7 +25,7 @@ class Source(Base):
             line = start["line"] + 1
             character = start["character"] + 1
             candidates.append({
-                "word": word,
+                "word": "{}:{}:\t{}".format(line, character, word),
                 "action__path": bufname,
                 "action__line": line,
                 "action__col": character,
