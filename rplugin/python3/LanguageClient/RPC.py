@@ -92,7 +92,9 @@ class RPC:
                 del self.queue[mid]
             self.onError(message["error"])
         elif "result" in message:  # result
-            mid = message['id']
+            mid = message["id"]
+            if isinstance(mid, str):
+                mid = int(mid)
             result = message["result"]
             if mid in self.queue:  # async call
                 cb = self.queue[mid]
