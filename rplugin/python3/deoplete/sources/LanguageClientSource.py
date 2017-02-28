@@ -16,7 +16,7 @@ class Source(Base):
         self.mark = '[LC]'
         self.rank = 1000
         self.min_pattern_length = 1
-        self.filetypes = list(LanguageClient._instance.serverCommands.keys())
+        self.filetypes = LanguageClient._instance.serverCommands.keys()
 
     def convertToDeopleteCandidate(self, item):
         cand = {"word": item["label"]}
