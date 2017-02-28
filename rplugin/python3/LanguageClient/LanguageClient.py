@@ -465,27 +465,36 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("Begin workspace/symbol")
 
-        query, cb = self.getArgs(args, ["query", "cb"])
+        query, sync, cb = self.getArgs(args, ["query", "sync", "cb"])
         if query is None:
             query = ""
-        if cb is None:
-            cb = self.handleWorkspaceSymbolResponse
+        if not sync and not cb:
+            cb = partial(
+                    self.handleWorkspaceSymbolResponse,
+                    selectionUI=self.getSelectionUI())
 
-        self.rpc.call('workspace/symbol', {
+        return self.rpc.call('workspace/symbol', {
             "query": query
             }, cb)
 
-    def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
-        source = []
-        for sb in symbols:
-            path = os.path.relpath(sb["location"]["uri"], self.rootUri)
-            start = sb["location"]["range"]["start"]
-            line = start["line"] + 1
-            character = start["character"] + 1
-            name = sb["name"]
-            entry = "{}:{}:{}\t{}".format(path, line, character, name)
-            source.append(entry)
-        self.fzf(source, "LanguageClient#FZFSinkWorkspaceSymbol")
+    def handleWorkspaceSymbolResponse(
+            self, symbols: list, selectionUI: str) -> None:
+        if selectionUI == "fzf":
+            source = []
+            for sb in symbols:
+                path = os.path.relpath(sb["location"]["uri"], self.rootUri)
+                start = sb["location"]["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                name = sb["name"]
+                entry = "{}:{}:{}\t{}".format(path, line, character, name)
+                source.append(entry)
+            self.fzf(source, "LanguageClient#FZFSinkWorkspaceSymbol")
+        else:
+            msg = "No selection UI found. Consider install fzf or denite.vim."
+            self.asyncEcho(msg)
+            logger.warn(msg)
+
         logger.info("End workspace/symbol")
 
     @neovim.function("LanguageClient_FZFSinkWorkspaceSymbol")
