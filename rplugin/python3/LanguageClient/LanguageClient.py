@@ -406,16 +406,18 @@ class LanguageClient:
 
         logger.info('Begin textDocument/documentSymbol')
 
-        uri, cb = self.getArgs(args, ["uri", "cb"])
-        if cb is None:
+        uri, sync, cb = self.getArgs(args, ["uri", "sync", "cb"])
+        if not sync and not cb:
             cb = partial(self.handleTextDocumentDocumentSymbolResponse,
                          selectionUI=self.getSelectionUI())
 
-        self.rpc.call('textDocument/documentSymbol', {
+        symbols = self.rpc.call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
                 }
             }, cb)
+
+        return symbols
 
     def getSelectionUI(self) -> str:
         if self.nvim.eval("get(g:, 'loaded_fzf', 0)") == 1:
