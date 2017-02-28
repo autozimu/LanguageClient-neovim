@@ -18,7 +18,7 @@ More recordings at <https://github.com/autozimu/images/tree/master/LanguageClien
 - [Get identifer info.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#hover)
 - [Goto definition.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#goto-definition)
 - Goto reference locations.
-- [Workspace/Document symbols query](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols). Integrated with [FZF](https://github.com/junegunn/fzf).
+- [Workspace/Document symbols query](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols).
 
 (Note: Most of the functionality are provided by language servers. Specific
 language servers may implement only a subset of the features, see
@@ -31,11 +31,18 @@ Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
 Plug 'autozimu/LanguageClient-neovim', { 'do': ':UpdateRemotePlugins' }
-" Optional dependency for multi-entry selection.
+
+" (Optional) Multi-entry selection UI.
 Plug 'junegunn/fzf'
-" Optional dependency for completion.
+" (Optional) Multi-entry selection UI.
+Plug 'Shougo/denite.nvim'
+
+" (Optional) Completion integration with deoplete.
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-" Optional dependency for showing function signature and doc.
+" (Optional) Completion integration with nvim-completion-manager.
+Plug 'roxma/nvim-completion-manager'
+
+" (Optional) Showing function signature and inline doc.
 Plug 'Shougo/echodoc.vim'
 ```
 

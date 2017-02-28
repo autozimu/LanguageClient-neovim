@@ -117,6 +117,8 @@ List of current buffer's symbols.
 If optional dependency FZF is installed, symbols will be displayed in a FZF
 prompt, selecting one of the symbol will then goto the symbol's definition.
 
+For Denite users, a source with name 'documentSymbol' is provided.
+
 4.5 LanguageClient_textDocument_references()
 *LanguageClient_textDocument_references*
 
@@ -125,6 +127,8 @@ List all references of identifier under cursor.
 If optional dependency FZF is installed, locations will be displayed in a FZF
 prompt, selecting one of the entry will then goto the reference location.
 
+For Denite users, a source with name 'references' is provided.
+
 4.6 LanguageClient_workspace_symbol()
 *LanguageClient_workspace_symbol*
 
@@ -132,6 +136,8 @@ List of project's symbols.
 
 If optional dependency FZF is installed, symbols will be displayed in a FZF
 prompt, selecting one of the symbol will then goto the symbol's definition.
+
+For Denite users, a source with name 'workspaceSymbol' is provided.
 
 4.7 LanguageClient_textDocument_completion()
 *LanguageClient_textDocument_completion*
