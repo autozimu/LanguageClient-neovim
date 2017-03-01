@@ -314,8 +314,11 @@ class LanguageClient:
             return s["value"]
 
     def handleTextDocumentHoverResponse(self, result: Dict) -> None:
-        contents = result["contents"]
-        value = ''
+        contents = result.get("contents")
+        if contents is None:
+            contents = ""
+
+        value = ""
         if isinstance(contents, list):
             for markedString in result['contents']:
                 value += self.markedStringToString(markedString)
