@@ -734,9 +734,9 @@ call fzf#run(fzf#wrap({{
         self.nvim.async_call(self.addHighlightAndSign, params)
 
     def addHighlightAndSign(self, params):
-        uri = params["uri"]
+        path = uriToPath(params["uri"])
         buf = self.nvim.current.buffer
-        if uriToPath(uri) != buf.name:
+        if path != buf.name:
             return
 
         if not self.hlsid:
@@ -745,18 +745,39 @@ call fzf#run(fzf#wrap({{
         while self.signid > 0:
             self.nvim.command("sign unplace {}".format(self.signid))
             self.signid -= 1
+        qflist = []
         for entry in params["diagnostics"]:
-            line = entry["range"]["start"]["line"]
-            start = entry["range"]["start"]["character"]
-            end = entry["range"]["end"]["character"]
-            display = DiagnosticsDisplay[entry.get("severity", 3)]
+            startline = entry["range"]["start"]["line"]
+            startcharacter = entry["range"]["start"]["character"]
+            endcharacter = entry["range"]["end"]["character"]
+            severity = entry.get("severity", 3)
+            display = DiagnosticsDisplay[severity]
             texthl = display["texthl"]
-            buf.add_highlight(texthl, line, start, end, self.hlsid)
-            name = display["name"]
+            buf.add_highlight(texthl, startline,
+                              startcharacter, endcharacter, self.hlsid)
+
+            signname = display["name"]
             self.signid += 1
-            self.nvim.command("sign place {} line={}"
-                              " name=LanguageClient{} buffer={}".format(
-                                self.signid, line + 1, name, buf.number))
+            self.nvim.command(
+                    "sign place {} line={}"
+                    " name=LanguageClient{} buffer={}".format(
+                        self.signid, startline + 1, signname, buf.number))
+
+            qftype = {
+                    1: "E",
+                    2: "W",
+                    3: "I",
+                    4: "H",
+                    }[severity]
+            qflist.append({
+                "filename": path,
+                "lnum": startline + 1,
+                "col": startcharacter + 1,
+                "nr": entry.get("code"),
+                "text": entry["message"],
+                "type": qftype,
+                  })
+        self.nvim.call("setqflist", qflist)
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def handleCursorMoved(self):
@@ -770,7 +791,6 @@ call fzf#run(fzf#wrap({{
 
         entry = self.diagnostics.get(uri, {}).get(line)
         if not entry:
-            self.asyncEcho("")
             return
 
         msg = ""
