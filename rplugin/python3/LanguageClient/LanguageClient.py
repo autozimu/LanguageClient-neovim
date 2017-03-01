@@ -144,6 +144,7 @@ class LanguageClient:
             signTexthl = level["signTexthl"]
             cmd += ("| execute 'sign define LanguageClient{}"
                     " text={} texthl={}'").format(name, signText, signTexthl)
+        cmd += ("| execute 'sign define LanguageClientDummy'")
         self.asyncCommand(cmd)
 
     @neovim.function("LanguageClient_registerServerCommands")
@@ -237,6 +238,14 @@ class LanguageClient:
     def textDocument_didOpen(self) -> None:
         if not self.alive():
             return
+
+        # Keep sign column open.
+        if self.nvim.vars.get("LanguageClient_signColumnAlwaysOn", True):
+            bufnumber = self.nvim.current.buffer.number
+            cmd = ("sign place 99999"
+                    " line=99999 name=LanguageClientDummy"
+                    " buffer={}").format(bufnumber)
+            self.asyncCommand(cmd)
 
         logger.info('textDocument/didOpen')
 

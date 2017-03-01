@@ -84,6 +84,12 @@ Default: >
         }
     }
 
+2.3 LanguageClient_signColumnAlwaysOn    *g:LanguageClient_signColumnAlwaysOn*
+
+Whether to keep sign column open even if there is no diagnostics.
+
+Default: 1
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
