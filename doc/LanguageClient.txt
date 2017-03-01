@@ -97,6 +97,10 @@ Default: 1
 
 Start language server for current buffer.
 
+3.2 LanguageClientStop                                    *LanguageClientStop*
+
+Stop current language server.
+
 ==============================================================================
 4. Functions                                          *LanguageClientFunctions*
 

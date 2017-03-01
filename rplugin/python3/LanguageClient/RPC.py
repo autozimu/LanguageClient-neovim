@@ -67,7 +67,10 @@ class RPC:
         self.message(contentDict)
 
     def serve(self):
+        self.run = True
+
         contentLength = 0
+        content = None
         while not self.infile.closed:
             try:
                 line = self.infile.readline().strip()
@@ -80,9 +83,10 @@ class RPC:
                     logger.debug(' <= ' + content)
                     self.handle(json.loads(content))
             except Exception as ex:
-                msg = "Error handling server output."
-                self.onError(msg)
-                logger.exception(msg)
+                if self.run:
+                    msg = "Error handling server output: " + content
+                    self.onError(msg)
+                    logger.exception(msg)
                 break
 
     def handle(self, message: Dict[str, Any]):

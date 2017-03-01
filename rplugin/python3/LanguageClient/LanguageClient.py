@@ -116,11 +116,11 @@ class LanguageClient:
         elif self.server.poll() is not None:
             msg = "Failed to start language server: {}".format(
                     self.server.stderr.readlines())
-            logger.error(msg)
         else:
             ret = True
 
         if ret is False and warn:
+            logger.warn(msg)
             self.asyncEcho(msg)
         return ret
 
@@ -205,6 +205,12 @@ class LanguageClient:
         self.initialize([])
         self.textDocument_didOpen()
 
+    @neovim.command("LanguageClientStop")
+    def stop(self):
+        self.rpc.run = False
+        self.exit([])
+        self.server = None
+
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
         # {rootPath?: str, cb?}
@@ -243,8 +249,8 @@ class LanguageClient:
         if self.nvim.vars.get("LanguageClient_signColumnAlwaysOn", True):
             bufnumber = self.nvim.current.buffer.number
             cmd = ("sign place 99999"
-                    " line=99999 name=LanguageClientDummy"
-                    " buffer={}").format(bufnumber)
+                   " line=99999 name=LanguageClientDummy"
+                   " buffer={}").format(bufnumber)
             self.asyncCommand(cmd)
 
         logger.info('textDocument/didOpen')
