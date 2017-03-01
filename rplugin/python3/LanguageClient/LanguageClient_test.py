@@ -66,7 +66,7 @@ def test_textDocument_rename_multiple_files(nvim):
 
 
 def test_textDocument_documentSymbol(nvim):
-    nvim.current.buffer.cursor = [1, 1]
+    nvim.current.window.cursor = [1, 1]
     nvim.call("LanguageClient_textDocument_documentSymbol")
     time.sleep(3)
     nvim.feedkeys("gr")
@@ -77,9 +77,20 @@ def test_textDocument_documentSymbol(nvim):
 
 
 def test_workspace_symbol(nvim):
-    nvim.current.buffer.cursor = [1, 1]
+    nvim.current.window.cursor = [1, 1]
     # rls does not support this method yet.
     nvim.call("LanguageClient_workspace_symbol")
+
+
+def test_textDocument_references(nvim):
+    nvim.current.window.cursor = [8, 4]
+    nvim.call("LanguageClient_textDocument_references")
+    time.sleep(3)
+    nvim.feedkeys("3")
+    time.sleep(1)
+    nvim.input("<CR>")
+    time.sleep(2)
+    assert nvim.current.window.cursor == [3, 19]
 
 
 def test_textDocument_didChange(nvim):
