@@ -110,17 +110,17 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_alive", sync=True)
     def alive(self, warn=False) -> bool:
-        ret = False
+        ret = True
         if self.server is None:
+            ret = False
             msg = "Language client is not running. Try :LanguageClientStart"
         elif self.server.poll() is not None:
+            ret = False
             msg = "Failed to start language server: {}".format(
                     self.server.stderr.readlines())
-        else:
-            ret = True
+            logger.error(msg)
 
         if ret is False and warn:
-            logger.warn(msg)
             self.asyncEcho(msg)
         return ret
 
