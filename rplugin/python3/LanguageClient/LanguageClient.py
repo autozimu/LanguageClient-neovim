@@ -536,7 +536,7 @@ call fzf#run(fzf#wrap({{
         if not sync and not cb:
             cb = partial(
                     self.handleTextDocumentReferencesResponse,
-                    self.getSelectionUI())
+                    selectionUI=self.getSelectionUI())
 
         return self.rpc.call('textDocument/references', {
             "textDocument": {
