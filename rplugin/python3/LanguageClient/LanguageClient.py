@@ -200,12 +200,7 @@ class LanguageClient:
 
             trigger_patterns = []
             try:
-                triggerCharacters = []
-                triggerCharacters = result['capabilities']['completionProvider']['triggerCharacters']
-                # in case it's null
-                if not triggerCharacters:
-                    triggerCharacters = []
-                for c in triggerCharacters:
+                for c in result['capabilities']['completionProvider']['triggerCharacters']:
                     trigger_patterns.append(re.escape(c)+'$')
             except:
                 pass
