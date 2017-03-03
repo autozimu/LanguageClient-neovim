@@ -78,7 +78,7 @@ class LanguageClient:
             elif k == "character":
                 v = args.get("character") or cursor[1]
             elif k == "cword":
-                v = args.get("cword") or self.nvim.call("expand", "<cword>")
+                v = args.get("cword") or self.nvim.funcs.expand("<cword>")
             elif k == "bufnames":
                 v = args.get("bufnames") or [b.name for b in self.nvim.buffers]
             elif k == "columns":
@@ -404,9 +404,9 @@ class LanguageClient:
             args, ["uri", "line", "character", "cword", "newName",
                    "bufnames", "cb"])
         if newName is None:
-            self.nvim.call("inputsave")
-            newName = self.nvim.call("input", "Rename to: ", cword)
-            self.nvim.call("inputrestore")
+            self.nvim.funcs.inputsave()
+            newName = self.nvim.funcs.input("Rename to: ", cword)
+            self.nvim.funcs.inputrestore()
         if cb is None:
             cb = partial(
                     self.handleTextDocumentRenameResponse,
@@ -795,7 +795,7 @@ call fzf#run(fzf#wrap({{
                 "text": entry["message"],
                 "type": qftype,
                   })
-        self.nvim.call("setqflist", qflist)
+        self.nvim.funcs.setqflist(qflist)
 
     @neovim.autocmd("CursorMoved", pattern="*")
     def handleCursorMoved(self):
