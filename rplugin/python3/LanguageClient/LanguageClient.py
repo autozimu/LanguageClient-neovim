@@ -190,19 +190,46 @@ class LanguageClient:
 
         self.defineSigns()
 
-        try:
-            self.nvim.call('cm#register_source', dict(
-                name='LanguageClient_%s' % languageId,
-                priority=9,
-                scopes=[languageId],
-                abbreviation='',
-                cm_refresh='LanguageClient_completionManager_refresh'))
-        except Exception as ex:
-            logger.warn("register completion manager source failed.")
-
         logger.info('End LanguageClientStart')
 
-        self.initialize([])
+        def cb(result: Dict):
+
+            # Note: place the callback here to capture the languageId, which is
+            # the `filetype`. Otherwise it will fail if the user change the
+            # buffer before this callback is called.
+
+            trigger_patterns = []
+            try:
+                triggerCharacters = []
+                triggerCharacters = result['capabilities']['completionProvider']['triggerCharacters']
+                # in case it's null
+                if not triggerCharacters:
+                    triggerCharacters = []
+                for c in triggerCharacters:
+                    trigger_patterns.append(re.escape(c)+'$')
+            except:
+                pass
+
+            try:
+                self.nvim.call('cm#register_source', dict(
+                    name='LanguageClient_%s' % languageId,
+                    priority=9,
+                    scopes=[languageId],
+                    cm_refresh_patterns=trigger_patterns,
+                    abbreviation='',
+                    cm_refresh='LanguageClient_completionManager_refresh'))
+                logger.info("register completion manager source ok.")
+            except Exception as ex:
+                logger.exception("register completion manager source failed.")
+
+            self.handleInitializeResponse(result)
+
+        # Note: If I don't use async_call here, I'll get exception when
+        # executing `languageId, = self.getArgs([], ["languageId"])`
+        def cb_wrap(result):
+            self.nvim.async_call(cb, result)
+
+        self.initialize([{'cb':cb_wrap}])
 
     @neovim.command("LanguageClientStop")
     def stop(self):
