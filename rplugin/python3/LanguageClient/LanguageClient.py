@@ -236,7 +236,7 @@ class LanguageClient:
     def registerCMSource(self, result: Dict) -> None:
         trigger_patterns = []
         try:
-            for c in result['capabilities']['completionProvider']['triggerCharacters']:
+            for c in result['capabilities']['completionProvider']['triggerCharacters']:  # noqa E501
                 trigger_patterns.append(re.escape(c)+'$')
         except:
             pass
@@ -682,7 +682,6 @@ call fzf#run(fzf#wrap({{
 
         if ctx["typed"] == "":
             return
-        col = ctx["col"]
 
         args = {}
         args["line"] = ctx["lnum"] - 1
