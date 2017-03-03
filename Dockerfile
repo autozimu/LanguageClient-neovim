@@ -13,7 +13,7 @@ RUN pacman -S --noconfirm rustup \
     && paccache -r -k0 \
     && rustup default nightly
 
-RUN git clone https://github.com/rust-lang-nursery/rls /opt/rls && cargo build --release --manifest-path=/opt/rls/Cargo.toml
+RUN git clone --branch alpha-2 --depth 1 https://github.com/rust-lang-nursery/rls /opt/rls && cargo build --release --manifest-path=/opt/rls/Cargo.toml
 
 RUN timeout 5 cargo run --release --manifest-path=/opt/rls/Cargo.toml
 
