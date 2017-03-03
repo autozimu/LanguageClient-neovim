@@ -170,6 +170,8 @@ class LanguageClient:
             logger.error(msg)
             self.asyncEcho(msg)
             return
+
+        self.languageId = languageId
         command = self.serverCommands[languageId]
 
         self.server = subprocess.Popen(
@@ -217,20 +219,21 @@ class LanguageClient:
         if cb is None:
             cb = self.handleInitializeResponse
 
-        self.languageId = languageId
-        def cb_wrap(result):
-            self.nvim.async_call(cb, result)
-
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
             "capabilities": {},
             "trace": "verbose"
-            }, cb_wrap)
+            }, cb)
 
     def handleInitializeResponse(self, result: Dict) -> None:
+        self.capabilities = result['capabilities']
+        self.nvim.async_call(self.textDocument_didOpen)
+        self.nvim.async_call(self.registerCMSource, result)
+        logger.info('End initialize')
 
+    def registerCMSource(self, result: Dict) -> None:
         trigger_patterns = []
         try:
             for c in result['capabilities']['completionProvider']['triggerCharacters']:
@@ -248,11 +251,7 @@ class LanguageClient:
                 cm_refresh='LanguageClient_completionManager_refresh'))
             logger.info("register completion manager source ok.")
         except Exception as ex:
-            logger.exception("register completion manager source failed.")
-
-        self.capabilities = result['capabilities']
-        logger.info('End initialize')
-        self.nvim.async_call(self.textDocument_didOpen)
+            logger.warn("register completion manager source failed.")
 
     @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self) -> None:
