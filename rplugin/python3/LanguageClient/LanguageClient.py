@@ -804,7 +804,7 @@ call fzf#run(fzf#wrap({{
             msg += "[{}]".format(severity)
         if "code" in entry:
             code = entry["code"]
-            msg += code
+            msg += str(code)
         msg += " " + entry["message"]
 
         self.asyncEchoEllipsis(msg, columns)
