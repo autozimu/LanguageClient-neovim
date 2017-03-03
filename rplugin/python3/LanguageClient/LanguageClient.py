@@ -192,37 +192,7 @@ class LanguageClient:
 
         logger.info('End LanguageClientStart')
 
-        def cb(result: Dict):
-
-            # Note: place the callback here to capture the languageId, which is
-            # the `filetype`. Otherwise it will fail if the user change the
-            # buffer before this callback is called.
-
-            trigger_patterns = []
-            try:
-                for c in result['capabilities']['completionProvider']['triggerCharacters']:
-                    trigger_patterns.append(re.escape(c)+'$')
-            except:
-                pass
-
-            try:
-                self.nvim.call('cm#register_source', dict(
-                    name='LanguageClient_%s' % languageId,
-                    priority=9,
-                    scopes=[languageId],
-                    cm_refresh_patterns=trigger_patterns,
-                    abbreviation='',
-                    cm_refresh='LanguageClient_completionManager_refresh'))
-                logger.info("register completion manager source ok.")
-            except Exception as ex:
-                logger.exception("register completion manager source failed.")
-
-            self.handleInitializeResponse(result)
-
-        def cb_wrap(result):
-            self.nvim.async_call(cb, result)
-
-        self.initialize([{'cb':cb_wrap}])
+        self.initialize([])
 
     @neovim.command("LanguageClientStop")
     def stop(self):
@@ -247,15 +217,39 @@ class LanguageClient:
         if cb is None:
             cb = self.handleInitializeResponse
 
+        self.languageId = languageId
+        def cb_wrap(result):
+            self.nvim.async_call(cb, result)
+
         self.rpc.call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
             "capabilities": {},
             "trace": "verbose"
-            }, cb)
+            }, cb_wrap)
 
     def handleInitializeResponse(self, result: Dict) -> None:
+
+        trigger_patterns = []
+        try:
+            for c in result['capabilities']['completionProvider']['triggerCharacters']:
+                trigger_patterns.append(re.escape(c)+'$')
+        except:
+            pass
+
+        try:
+            self.nvim.call('cm#register_source', dict(
+                name='LanguageClient_%s' % self.languageId,
+                priority=9,
+                scopes=[self.languageId],
+                cm_refresh_patterns=trigger_patterns,
+                abbreviation='',
+                cm_refresh='LanguageClient_completionManager_refresh'))
+            logger.info("register completion manager source ok.")
+        except Exception as ex:
+            logger.exception("register completion manager source failed.")
+
         self.capabilities = result['capabilities']
         logger.info('End initialize')
         self.nvim.async_call(self.textDocument_didOpen)
