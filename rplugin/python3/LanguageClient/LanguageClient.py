@@ -196,8 +196,6 @@ class LanguageClient:
                 priority=9,
                 scopes=[languageId],
                 abbreviation='',
-                # general pointer patterns
-                cm_refresh_patterns=[r'\.$',r'->$',r':'],
                 cm_refresh='LanguageClient_completionManager_refresh'))
         except Exception as ex:
             logger.warn("register completion manager source failed.")
@@ -669,16 +667,13 @@ call fzf#run(fzf#wrap({{
         info = args[0]
         ctx = args[1]
 
-        typed = ctx["typed"]
+        if ctx["typed"] == "":
+            return
         col = ctx["col"]
-        kwtyped = re.search(r'[0-9a-zA-Z_]*?$', typed).group(0)
-        startcol = col-len(kwtyped)
 
         args = {}
         args["line"] = ctx["lnum"] - 1
         args["character"] = ctx["col"] - 1
-        if typed == "":
-            return
 
         uri, line, character = self.getArgs(
                 [args], ["uri", "line", "character"])
@@ -708,7 +703,7 @@ call fzf#run(fzf#wrap({{
                 matches.append(e)
 
             self.nvim.call('cm#complete', info['name'], ctx,
-                           startcol, matches, isIncomplete, async=True)
+                           ctx['startcol'], matches, isIncomplete, async=True)
 
         # Make sure the changing is synced.  Since `TextChangedI` will not be
         # triggered when popup menu is visible and neovim python client use
