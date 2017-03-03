@@ -203,7 +203,6 @@ class LanguageClient:
         logger.info('End LanguageClientStart')
 
         self.initialize([])
-        self.textDocument_didOpen()
 
     @neovim.command("LanguageClientStop")
     def stop(self):
@@ -239,6 +238,7 @@ class LanguageClient:
     def handleInitializeResponse(self, result: Dict) -> None:
         self.capabilities = result['capabilities']
         logger.info('End initialize')
+        self.nvim.async_call(self.textDocument_didOpen)
 
     @neovim.autocmd('BufReadPost', pattern="*")
     def textDocument_didOpen(self) -> None:
