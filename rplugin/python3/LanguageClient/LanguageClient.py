@@ -234,12 +234,13 @@ class LanguageClient:
         logger.info('End initialize')
 
     def registerCMSource(self, result: Dict) -> None:
+        completionProvider = result["capabilities"].get("completionProvider")
+        if completionProvider is None:
+            return
+
         trigger_patterns = []
-        try:
-            for c in result['capabilities']['completionProvider']['triggerCharacters']:  # noqa E501
-                trigger_patterns.append(re.escape(c)+'$')
-        except:
-            pass
+        for c in completionProvider.get("triggerCharacters", []):
+            trigger_patterns.append(re.escape(c) + '$')
 
         try:
             self.nvim.call('cm#register_source', dict(
