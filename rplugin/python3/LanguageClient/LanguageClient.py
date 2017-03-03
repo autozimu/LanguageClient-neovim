@@ -705,6 +705,11 @@ call fzf#run(fzf#wrap({{
             self.nvim.call('cm#complete', info['name'], ctx,
                            startcol, matches, isIncomplete, async=True)
 
+        # Make sure the changing is synced.  Since `TextChangedI` will not be
+        # triggered when popup menu is visible and neovim python client use
+        # greenlet coroutine to handle rpc request/notification.
+        self.textDocument_didChange()
+
         self.rpc.call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
