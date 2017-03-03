@@ -808,6 +808,7 @@ call fzf#run(fzf#wrap({{
 
         entry = self.diagnostics.get(uri, {}).get(line)
         if not entry:
+            self.asyncEcho("")
             return
 
         msg = ""
