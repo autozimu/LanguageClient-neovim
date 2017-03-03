@@ -698,8 +698,11 @@ call fzf#run(fzf#wrap({{
             for item in items:
                 e = {}
                 e['icase'] = 1
-                e['word'] = item['label']
-                e['abbr'] = item.get('insertText', "")
+                # insertText:
+                # A string that should be inserted a document when selecting
+                # this completion. When `falsy` the label is used.
+                e['word'] = item.get('insertText', "") or item['label']
+                e['abbr'] = item['label']
                 e['dup'] = 1
                 e['info'] = item.get('documentation', "")
                 matches.append(e)
