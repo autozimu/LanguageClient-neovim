@@ -27,6 +27,10 @@ functional.)
 
 # Quick Start
 
+(LanguageClient-neovim depend on neovim python3 client support, if you don't
+have that installed or don't know what that is, see [install python3
+support](doc/install-python3-support.md).)
+
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
