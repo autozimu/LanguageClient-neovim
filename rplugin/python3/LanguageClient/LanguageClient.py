@@ -219,8 +219,6 @@ class LanguageClient:
 
             self.handleInitializeResponse(result)
 
-        # Note: If I don't use async_call here, I'll get exception when
-        # executing `languageId, = self.getArgs([], ["languageId"])`
         def cb_wrap(result):
             self.nvim.async_call(cb, result)
 
