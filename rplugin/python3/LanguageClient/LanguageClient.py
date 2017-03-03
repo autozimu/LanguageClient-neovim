@@ -196,6 +196,8 @@ class LanguageClient:
                 priority=9,
                 scopes=[languageId],
                 abbreviation='',
+                # general pointer patterns
+                cm_refresh_patterns=[r'\.$',r'->$',r':'],
                 cm_refresh='LanguageClient_completionManager_refresh'))
         except Exception as ex:
             logger.warn("register completion manager source failed.")
