@@ -68,26 +68,31 @@ class RPC:
 
     def serve(self):
         self.run = True
-
         contentLength = 0
-        content = None
         while not self.infile.closed:
-            try:
-                line = self.infile.readline().strip()
-                if line:
-                    header, value = line.split(":")
-                    if header == "Content-Length":
-                        contentLength = int(value)
-                else:
-                    content = self.infile.read(contentLength)
-                    logger.debug(' <= ' + content)
-                    self.handle(json.loads(content))
-            except Exception as ex:
-                if self.run:
-                    msg = "Error handling server output: " + content
+            line = self.infile.readline().strip()
+            if line:
+                header, value = line.split(":")
+                if header == "Content-Length":
+                    contentLength = int(value)
+            else:
+                content = self.infile.read(contentLength)
+                logger.debug(' <= ' + content)
+                try:
+                    msg = json.loads(content)
+                except Exception as ex:
+                    if not self.run:
+                        break
+                    msg = "Error deserializing server output: " + content
                     self.onError(msg)
                     logger.exception(msg)
-                break
+                    continue
+                try:
+                    self.handle(msg)
+                except Exception as ex:
+                    msg = "Error handling message: " + content
+                    self.onError(msg)
+                    logger.exception(msg)
 
     def handle(self, message: Dict[str, Any]):
         if "error" in message:  # error
