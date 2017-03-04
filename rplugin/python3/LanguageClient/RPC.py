@@ -93,7 +93,8 @@ class RPC:
         if "error" in message:  # error
             if "id" in message:
                 mid = message["id"]
-                del self.queue[mid]
+                if mid in self.queue:
+                    del self.queue[mid]
             self.onError(message["error"])
         elif "result" in message:  # result
             mid = message["id"]
