@@ -1,3 +1,4 @@
+from functools import partial
 from .base import Base
 from os import path
 import sys
@@ -18,6 +19,11 @@ class Source(Base):
         self.min_pattern_length = 1
         self.filetypes = LanguageClient._instance.serverCommands.keys()
 
+        self.__results = {}
+
+    def receiveCompletionResult(self, items, contextid):
+        self.__results[contextid] = items
+
     def convertToDeopleteCandidate(self, item):
         cand = {"word": item["label"]}
         if "kind" in item:
@@ -27,9 +33,25 @@ class Source(Base):
         return cand
 
     def gather_candidates(self, context):
-        args = {}
-        args["line"] = context["position"][1] - 1
-        args["character"] = context["position"][2] - 1
-        items = LanguageClient._instance.textDocument_completion([args])
-        return [self.convertToDeopleteCandidate(item)
-                for item in items]
+        contextid = id(context)
+        if contextid in self.__results:
+            items = self.__results[contextid]
+            if items is None:  # no response yet
+                return ["..."]
+            else:  # got result
+                context["is_async"] = False
+                del self.__results[contextid]
+                return [self.convertToDeopleteCandidate(item)
+                        for item in items]
+        else:  # send request
+            context["is_async"] = True
+            self.__results[contextid] = None
+
+            args = {}
+            args["line"] = context["position"][1] - 1
+            args["character"] = context["position"][2] - 1
+            args["cb"] = partial(
+                    self.receiveCompletionResult, contextid=contextid)
+            LanguageClient._instance.textDocument_completion([args])
+
+            return ["..."]  # workarond for deoplete, canot be empty

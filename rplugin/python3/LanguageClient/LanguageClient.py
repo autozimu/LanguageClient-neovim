@@ -650,7 +650,8 @@ call fzf#run(fzf#wrap({{
             return []
         logger.info("Begin textDocument/completion")
 
-        uri, line, character = self.getArgs(args, ["uri", "line", "character"])
+        uri, line, character, cb = self.getArgs(
+                args, ["uri", "line", "character", "cb"])
 
         items = self.rpc.call('textDocument/completion', {
             "textDocument": {
@@ -660,7 +661,7 @@ call fzf#run(fzf#wrap({{
                 "line": line,
                 "character": character
                 }
-            })
+            }, cb)
 
         if items is None:
             items = []   # timeout
