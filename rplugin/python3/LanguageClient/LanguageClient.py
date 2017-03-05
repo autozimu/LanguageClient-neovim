@@ -23,7 +23,8 @@ class LanguageClient:
     def __init__(self, nvim):
         logger.info('__init__')
         self.nvim = nvim
-        self.server = None
+        self.server = {}  # type: Dict[str, subprocess.Popen]
+        self.rpc = {}  # type: Dict[str, RPC]
         self.capabilities = {}
         self.rootUri = None
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
@@ -110,14 +111,16 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_alive", sync=True)
     def alive(self, warn=False) -> bool:
+        languageId, = self.getArgs([], ["languageId"])
+
         ret = True
-        if self.server is None:
+        if languageId not in self.server:
             ret = False
             msg = "Language client is not running. Try :LanguageClientStart"
-        elif self.server.poll() is not None:
+        elif self.server[languageId].poll() is not None:
             ret = False
             msg = "Failed to start language server: {}".format(
-                    self.server.stderr.readlines())
+                    self.server[languageId].stderr.readlines())
             logger.error(msg)
 
         if ret is False and warn:
@@ -174,7 +177,7 @@ class LanguageClient:
         self.languageId = languageId
         command = self.serverCommands[languageId]
 
-        self.server = subprocess.Popen(
+        self.server[languageId] = subprocess.Popen(
             # ["/bin/bash", "/tmp/wrapper.sh"],
             command,
             stdin=subprocess.PIPE,
@@ -182,12 +185,14 @@ class LanguageClient:
             stderr=subprocess.PIPE,
             universal_newlines=True)
 
-        self.rpc = RPC(
-            self.server.stdout, self.server.stdin,
+        self.rpc[languageId] = RPC(
+            self.server[languageId].stdout, self.server[languageId].stdin,
             self.handleRequestOrNotification,
             self.handleRequestOrNotification)
         threading.Thread(
-                target=self.rpc.serve, name="RPC Server", daemon=True).start()
+            target=self.rpc[languageId].serve,
+            name="RPC Server",
+            daemon=True).start()
 
         self.defineSigns()
 
@@ -197,9 +202,12 @@ class LanguageClient:
 
     @neovim.command("LanguageClientStop")
     def stop(self):
-        self.rpc.run = False
-        self.exit([])
-        self.server = None
+        languageId, = self.getArgs([], ["languageId"])
+        self.rpc[languageId].run = False
+        self.exit([{
+            "languageId": languageId
+            }])
+        del self.server[languageId]
 
     @neovim.function('LanguageClient_initialize')
     def initialize(self, args: List) -> None:
@@ -218,7 +226,7 @@ class LanguageClient:
         if cbs is None:
             cbs = [self.handleInitializeResponse, self.handleError]
 
-        self.rpc.call('initialize', {
+        self.rpc[languageId].call('initialize', {
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
@@ -276,7 +284,7 @@ class LanguageClient:
         textDocumentItem = TextDocumentItem(uri, languageId, text)
         self.textDocuments[uri] = textDocumentItem
 
-        self.rpc.notify('textDocument/didOpen', {
+        self.rpc[languageId].notify('textDocument/didOpen', {
             "textDocument": textDocumentItem.__dict__
             })
 
@@ -288,10 +296,10 @@ class LanguageClient:
 
         logger.info('textDocument/didClose')
 
-        uri, = self.getArgs(args, ["uri"])
+        uri, languageId = self.getArgs(args, ["uri", "languageId"])
         del self.textDocuments[uri]
 
-        self.rpc.notify('textDocument/didClose', {
+        self.rpc[languageId].notify('textDocument/didClose', {
             "textDocument": {
                 "uri": uri
                 }
@@ -305,12 +313,12 @@ class LanguageClient:
 
         logger.info('Begin textDocument/hover')
 
-        uri, line, character, cbs = self.getArgs(
-            args, ["uri", "line", "character", "cbs"])
+        uri, languageId, line, character, cbs = self.getArgs(
+            args, ["uri", "languageId", "line", "character", "cbs"])
         if cbs is None:
             cbs = [self.handleTextDocumentHoverResponse, self.handleError]
 
-        self.rpc.call('textDocument/hover', {
+        self.rpc[languageId].call('textDocument/hover', {
             "textDocument": {
                 "uri": uri
                 },
@@ -349,14 +357,15 @@ class LanguageClient:
 
         logger.info('Begin textDocument/definition')
 
-        uri, line, character, bufnames, cbs = self.getArgs(
-            args, ["uri", "line", "character", "bufnames", "cbs"])
+        uri, languageId, line, character, bufnames, cbs = self.getArgs(
+            args, ["uri", "languageId", "line", "character",
+                   "bufnames", "cbs"])
         if cbs is None:
             cbs = [partial(self.handleTextDocumentDefinitionResponse,
                            bufnames=bufnames),
                    self.handleError]
 
-        self.rpc.call('textDocument/definition', {
+        self.rpc[languageId].call('textDocument/definition', {
             "textDocument": {
                 "uri": uri
                 },
@@ -399,9 +408,10 @@ class LanguageClient:
 
         logger.info('Begin textDocument/rename')
 
-        uri, line, character, cword, newName, bufnames, cbs = self.getArgs(
-            args, ["uri", "line", "character", "cword", "newName",
-                   "bufnames", "cbs"])
+        uri, languageId, line, character, cword, newName, bufnames, cbs = \
+            self.getArgs(args,
+                         ["uri", "languageId", "line", "character",
+                          "cword", "newName", "bufnames", "cbs"])
         if newName is None:
             self.nvim.funcs.inputsave()
             newName = self.nvim.funcs.input("Rename to: ", cword)
@@ -415,7 +425,7 @@ class LanguageClient:
                            bufnames=bufnames),
                    self.handleError]
 
-        self.rpc.call('textDocument/rename', {
+        self.rpc[languageId].call('textDocument/rename', {
             "textDocument": {
                 "uri": uri
                 },
@@ -441,13 +451,14 @@ class LanguageClient:
 
         logger.info('Begin textDocument/documentSymbol')
 
-        uri, sync, cbs = self.getArgs(args, ["uri", "sync", "cbs"])
+        uri, languageId, sync, cbs = self.getArgs(
+                args, ["uri", "languageId", "sync", "cbs"])
         if not sync and not cbs:
             cbs = [partial(self.handleTextDocumentDocumentSymbolResponse,
                            selectionUI=self.getSelectionUI()),
                    self.handleError]
 
-        return self.rpc.call('textDocument/documentSymbol', {
+        return self.rpc[languageId].call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
                 }
@@ -500,7 +511,8 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("Begin workspace/symbol")
 
-        query, sync, cbs = self.getArgs(args, ["query", "sync", "cbs"])
+        languageId, query, sync, cbs = self.getArgs(
+                args, ["languageId", "query", "sync", "cbs"])
         if query is None:
             query = ""
         if not sync and not cbs:
@@ -508,7 +520,7 @@ call fzf#run(fzf#wrap({{
                            selectionUI=self.getSelectionUI()),
                    self.handleError]
 
-        return self.rpc.call('workspace/symbol', {
+        return self.rpc[languageId].call('workspace/symbol', {
             "query": query
             }, cbs)
 
@@ -551,15 +563,16 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("Begin textDocument/references")
 
-        uri, line, character, sync, cbs = self.getArgs(
-                args, ["uri", "line", "character", "sync", "cbs"])
+        uri, languageId, line, character, sync, cbs = self.getArgs(
+                args, ["uri", "languageId", "line", "character",
+                       "sync", "cbs"])
         if not sync and not cbs:
             cbs = [partial(
                     self.handleTextDocumentReferencesResponse,
                     selectionUI=self.getSelectionUI()),
                    self.handleError]
 
-        return self.rpc.call('textDocument/references', {
+        return self.rpc[languageId].call('textDocument/references', {
             "textDocument": {
                 "uri": uri,
                 },
@@ -624,7 +637,7 @@ call fzf#run(fzf#wrap({{
         newText = str.join("\n", self.nvim.current.buffer)
         version, changes = self.textDocuments[uri].change(newText)
 
-        self.rpc.notify("textDocument/didChange", {
+        self.rpc[languageId].notify("textDocument/didChange", {
             "textDocument": {
                 "uri": uri,
                 "version": version
@@ -642,7 +655,7 @@ call fzf#run(fzf#wrap({{
         if languageId not in self.serverCommands:
             return
 
-        self.rpc.notify("textDocument/didSave", {
+        self.rpc[languageId].notify("textDocument/didSave", {
             "textDocument": {
                 "uri": uri
                 }
@@ -654,10 +667,10 @@ call fzf#run(fzf#wrap({{
             return []
         logger.info("Begin textDocument/completion")
 
-        uri, line, character, cbs = self.getArgs(
-                args, ["uri", "line", "character", "cbs"])
+        uri, languageId, line, character, cbs = self.getArgs(
+                args, ["uri", "languageId", "line", "character", "cbs"])
 
-        items = self.rpc.call('textDocument/completion', {
+        items = self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
                 },
@@ -693,8 +706,8 @@ call fzf#run(fzf#wrap({{
         args["line"] = ctx["lnum"] - 1
         args["character"] = ctx["col"] - 1
 
-        uri, line, character = self.getArgs(
-                [args], ["uri", "line", "character"])
+        uri, languageId, line, character = self.getArgs(
+                [args], ["uri", "languageId", "line", "character"])
 
         logger.info("uri[%s] line[%s] character[%s]", uri, line, character)
 
@@ -730,7 +743,7 @@ call fzf#run(fzf#wrap({{
 
         cbs = [cb, self.handleError]
 
-        self.rpc.call('textDocument/completion', {
+        self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
                 },
@@ -747,7 +760,9 @@ call fzf#run(fzf#wrap({{
             return
         logger.info("exit")
 
-        self.rpc.notify("exit", {})
+        languageId, = self.getArgs([], ["languageId"])
+
+        self.rpc[languageId].notify("exit", {})
 
     def textDocument_publishDiagnostics(self, params) -> None:
         uri = params["uri"]
@@ -841,12 +856,14 @@ call fzf#run(fzf#wrap({{
             return
 
         logger.info("Begin completionItem/resolve")
-        completionItem, cbs = self.getArgs(args, ["completionItem", "cbs"])
+        completionItem, languageId, cbs = self.getArgs(
+                args, ["completionItem", "languageId", "cbs"])
         if cbs is None:
             cbs = [self.handleCompletionItemResolveResponse,
                    self.handleError]
 
-        self.rpc.call("completionItem/resolve", completionItem, cbs)
+        self.rpc[languageId].call(
+                "completionItem/resolve", completionItem, cbs)
 
     def handleCompletionItemResolveResponse(self, result):
         # TODO: proper integration.
@@ -859,14 +876,14 @@ call fzf#run(fzf#wrap({{
             return
 
         logger.info("Begin textDocument/signatureHelp")
-        uri, line, character, cbs = self.getArgs(
+        uri, languageId, line, character, cbs = self.getArgs(
                 args,
-                ["uri", "line", "character", "cbs"])
+                ["uri", "languageId", "line", "character", "cbs"])
         if cbs is None:
             cbs = [self.handleTextDocumentSignatureHelpResponse,
                    self.handleError]
 
-        self.rpc.call("textDocument/signatureHelp", {
+        self.rpc[languageId].call("textDocument/signatureHelp", {
             "textDocument": uri,
             "position": {
                 "line": line,
@@ -884,13 +901,13 @@ call fzf#run(fzf#wrap({{
             return
 
         logger.info("Begin textDocument/codeAction")
-        uri, range, context, cbs = self.getArgs(
-                args, ["uri", "range", "context", "cbs"])
+        uri, languageId, range, context, cbs = self.getArgs(
+                args, ["uri", "languageId", "range", "context", "cbs"])
         if cbs is None:
             cbs = [self.handleTextDocumentCodeActionResponse,
                    self.handleError]
 
-        self.rpc.call("textDocument/codeAction", {
+        self.rpc[languageId].call("textDocument/codeAction", {
             "textDocument": uri,
             "range": range,
             "context": context,
