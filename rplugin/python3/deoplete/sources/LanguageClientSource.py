@@ -53,6 +53,8 @@ class Source(Base):
             else:  # got result
                 items = self.__results[contextid]
                 del self.__results[contextid]
+                if isinstance(items, dict):
+                    items = items["items"]
                 context["is_async"] = False
                 return [self.convertToDeopleteCandidate(item)
                         for item in items]
