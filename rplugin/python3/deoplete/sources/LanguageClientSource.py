@@ -20,9 +20,13 @@ class Source(Base):
         self.filetypes = LanguageClient._instance.serverCommands.keys()
 
         self.__results = {}
+        self.__errors = {}
 
-    def receiveCompletionResult(self, items, contextid):
+    def handleCompletionResult(self, items, contextid):
         self.__results[contextid] = items
+
+    def handleCompletionError(self, error, contextid):
+        self.__errors[contextid] = error
 
     def convertToDeopleteCandidate(self, item):
         cand = {"word": item["label"]}
@@ -35,12 +39,16 @@ class Source(Base):
     def gather_candidates(self, context):
         contextid = id(context)
         if contextid in self.__results:
-            items = self.__results[contextid]
-            if items is None:  # no response yet
+            if contextid in self.__errors:  # got error
+                del self.__errors[contextid]
+                context["is_async"] = False
+                return []
+            elif self.__results[contextid] is None:  # no response yet
                 return ["..."]
             else:  # got result
-                context["is_async"] = False
+                items = self.__results[contextid]
                 del self.__results[contextid]
+                context["is_async"] = False
                 return [self.convertToDeopleteCandidate(item)
                         for item in items]
         else:  # send request
@@ -50,8 +58,9 @@ class Source(Base):
             args = {}
             args["line"] = context["position"][1] - 1
             args["character"] = context["position"][2] - 1
-            args["cb"] = partial(
-                    self.receiveCompletionResult, contextid=contextid)
+            args["cbs"] = [
+                    partial(self.handleCompletionResult, contextid=contextid),
+                    partial(self.handleCompletionError, contextid=contextid)]
             LanguageClient._instance.textDocument_completion([args])
 
             return ["..."]  # workarond for deoplete, canot be empty
