@@ -37,6 +37,9 @@ class Source(Base):
         return cand
 
     def gather_candidates(self, context):
+        if not LanguageClient._instance.alive():
+            return []
+
         contextid = id(context)
         if contextid in self.__results:
             if contextid in self.__errors:  # got error
