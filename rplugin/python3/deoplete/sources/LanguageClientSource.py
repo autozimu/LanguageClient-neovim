@@ -37,7 +37,9 @@ class Source(Base):
         return cand
 
     def gather_candidates(self, context):
-        if not LanguageClient._instance.alive():
+        languageId = context["filetypes"][0]
+        if not LanguageClient._instance.alive(
+                languageId=languageId, warn=False):
             return []
 
         contextid = id(context)
@@ -58,12 +60,13 @@ class Source(Base):
             context["is_async"] = True
             self.__results[contextid] = None
 
-            args = {}
-            args["line"] = context["position"][1] - 1
-            args["character"] = context["position"][2] - 1
-            args["cbs"] = [
+            line = context["position"][1] - 1
+            character = context["position"][2] - 1
+            cbs = [
                     partial(self.handleCompletionResult, contextid=contextid),
                     partial(self.handleCompletionError, contextid=contextid)]
-            LanguageClient._instance.textDocument_completion([args])
+            LanguageClient._instance.textDocument_completion(
+                    languageId=languageId, line=line, character=character,
+                    cbs=cbs)
 
             return ["..."]  # workarond for deoplete, canot be empty

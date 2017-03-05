@@ -16,10 +16,10 @@ def nvim() -> neovim.Nvim:
     time.sleep(0.5)
     nvim.command("edit! {}".format(MAINRS_PATH))
     time.sleep(0.5)
-    nvim.call("LanguageClient_setLoggingLevel", "INFO")
+    nvim.funcs.LanguageClient_setLoggingLevel("INFO")
     nvim.command("LanguageClientStart")
     time.sleep(15)
-    assert nvim.call("LanguageClient_alive")
+    assert nvim.funcs.LanguageClient_alive()
     return nvim
 
 
@@ -30,7 +30,7 @@ def test_fixture(nvim):
 def test_textDocument_hover(nvim):
     nvim.command("normal! 3G23|")
     nvim.command("redir => g:echo")
-    nvim.call("LanguageClient_textDocument_hover")
+    nvim.funcs.LanguageClient_textDocument_hover()
     time.sleep(2)
     nvim.command("redir END")
     assert nvim.eval("g:echo").strip() == "fn () -> i32"
@@ -38,7 +38,7 @@ def test_textDocument_hover(nvim):
 
 def test_textDocument_definition(nvim):
     nvim.command("normal! 3G23|")
-    nvim.call("LanguageClient_textDocument_definition")
+    nvim.funcs.LanguageClient_textDocument_definition()
     time.sleep(2)
     assert nvim.current.window.cursor == [8, 3]
 
@@ -46,7 +46,7 @@ def test_textDocument_definition(nvim):
 def test_textDocument_rename(nvim):
     bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 3G23|")
-    nvim.call("LanguageClient_textDocument_rename", {"newName": "hello"})
+    nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
     time.sleep(2)
     updatedBufferContent = str.join("\n", nvim.current.buffer)
     assert updatedBufferContent == bufferContent.replace("greet", "hello")
@@ -56,7 +56,7 @@ def test_textDocument_rename(nvim):
 def test_textDocument_rename_multiple_files(nvim):
     bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 17G6|")
-    nvim.call("LanguageClient_textDocument_rename", {"newName": "hello"})
+    nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
     time.sleep(2)
     updatedBufferContent = str.join("\n", nvim.current.buffer)
     assert updatedBufferContent == bufferContent.replace("yo", "hello")
@@ -67,7 +67,7 @@ def test_textDocument_rename_multiple_files(nvim):
 
 def test_textDocument_documentSymbol(nvim):
     nvim.current.window.cursor = [1, 1]
-    nvim.call("LanguageClient_textDocument_documentSymbol")
+    nvim.funcs.LanguageClient_textDocument_documentSymbol()
     time.sleep(3)
     nvim.feedkeys("gr")
     time.sleep(1)
@@ -79,12 +79,12 @@ def test_textDocument_documentSymbol(nvim):
 def test_workspace_symbol(nvim):
     nvim.current.window.cursor = [1, 1]
     # rls does not support this method yet.
-    nvim.call("LanguageClient_workspace_symbol")
+    nvim.funcs.LanguageClient_workspace_symbol()
 
 
 def test_textDocument_references(nvim):
     nvim.current.window.cursor = [8, 4]
-    nvim.call("LanguageClient_textDocument_references")
+    nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
     nvim.feedkeys("3")
     time.sleep(1)
@@ -94,15 +94,15 @@ def test_textDocument_references(nvim):
 
 
 def test_textDocument_didChange(nvim):
-    nvim.call("setline", 12, "fn greet_again() -> i64 { 7 }")
-    nvim.call("setline", 4, "    println!(\"{}\", greet_again());")
+    nvim.funcs.setline(12, "fn greet_again() -> i64 { 7 }")
+    nvim.funcs.setline(4, "    println!(\"{}\", greet_again());")
     time.sleep(10)
     nvim.command("normal! 4G23|")
-    nvim.call("LanguageClient_textDocument_definition")
+    nvim.funcs.LanguageClient_textDocument_definition()
     time.sleep(2)
     assert nvim.current.window.cursor == [12, 3]
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
 def test_textDocument_didClose(nvim):
-    nvim.call("LanguageClient_textDocument_didClose")
+    nvim.funcs.LanguageClient_textDocument_didClose()

@@ -35,9 +35,7 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        locations = LanguageClient._instance.textDocument_references([{
-            "sync": True,
-            }])
+        locations = LanguageClient._instance.textDocument_references(sync=True)
 
         if locations is None:
             return []
