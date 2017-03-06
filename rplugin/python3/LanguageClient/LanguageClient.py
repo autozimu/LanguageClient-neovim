@@ -59,6 +59,10 @@ class LanguageClient:
         message = escape(message)
         self.asyncCommand("echo '{}'".format(message))
 
+    def asyncEchomsg(self, message: str) -> None:
+        message = escape(message)
+        self.asyncCommand("echomsg '{}'".format(message))
+
     def asyncEchoEllipsis(self, msg: str, columns: int):
         """
         Print as much of msg as possible without trigging "Press Enter"
@@ -906,6 +910,10 @@ call fzf#run(fzf#wrap({{
         # TODO: proper integration.
         self.asyncEcho(json.dumps(result))
         logger.info("End textDocument/codeAction")
+
+    def telemetry_event(self, params):
+        if params.get("type") == "log":
+            self.asyncEchomsg(params.get("message"))
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')

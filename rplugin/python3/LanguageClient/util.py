@@ -30,6 +30,10 @@ def getRootPath(filepath: str, languageId: str) -> str:
                 filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "__init__.py"))
                 or os.path.exists(os.path.join(folder, "setup.py")))
+    elif languageId == "cs":
+        rootPath = traverseUp(
+                filepath, lambda folder:
+                os.path.exists(os.path.join(folder, "project.json")))
     # TODO: detect for other filetypes
     if not rootPath:
         rootPath = traverseUp(
