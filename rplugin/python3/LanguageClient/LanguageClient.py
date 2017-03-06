@@ -132,7 +132,6 @@ class LanguageClient:
     @neovim.function("LanguageClient_alive", sync=True)
     def alive_wrapper(self, args: List):
         languageId, = self.getArgs(["languageId"], [self, args], {})
-        logger.info(languageId)
         return self.alive(languageId, False)
 
     def alive(self, languageId, warn) -> bool:
