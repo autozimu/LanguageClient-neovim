@@ -910,9 +910,19 @@ call fzf#run(fzf#wrap({{
         self.asyncEcho(json.dumps(result))
         logger.info("End textDocument/codeAction")
 
-    def telemetry_event(self, params):
+    def telemetry_event(self, params: Dict) -> None:
         if params.get("type") == "log":
             self.asyncEchomsg(params.get("message"))
+
+    def window_logMessage(self, params: Dict) -> None:
+        msgType = {
+                1: "Error",
+                2: "Warning",
+                3: "Info",
+                4: "Log",
+                }[params["type"]]
+        msg = "[{}] {}".format(msgType, params["message"])
+        self.asyncEchomsg(msg)
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
