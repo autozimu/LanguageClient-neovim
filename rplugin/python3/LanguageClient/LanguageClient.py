@@ -90,12 +90,12 @@ class LanguageClient:
         for k in keys:
             if res[k] is not None:
                 continue
+            elif k == "languageId":
+                res[k] = self.nvim.current.buffer.options["filetype"]
             elif k == "self":
                 res[k] = self
             elif k == "uri":
                 res[k] = pathToURI(self.nvim.current.buffer.name)
-            elif k == "languageId":
-                res[k] = self.nvim.current.buffer.options['filetype']
             elif k == "line":
                 cursor = self.nvim.current.window.cursor
                 res[k] = cursor[0] - 1
@@ -814,18 +814,15 @@ call fzf#run(fzf#wrap({{
                   })
         self.nvim.funcs.setqflist(qflist)
 
-    @neovim.autocmd("CursorMoved", pattern="*")
-    @args(warn=False)
-    def handleCursorMoved(
-            self, uri: str = None,
-            line: int = None, columns: int = None) -> None:
-        self.nvim.async_call(self.showDiagnosticMessage, uri, line, columns)
-
-    def showDiagnosticMessage(self, uri: str, line: int, columns: int) -> None:
-        if not uri or line == self.lastLine:
+    @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
+    def handleCursorMoved(self, line) -> None:
+        if line == self.lastLine:
             return
         self.lastLine = line
+        self.showDiagnosticMessage()
 
+    @args(warn=False)
+    def showDiagnosticMessage(self, uri: str, line: int, columns: int) -> None:
         entry = self.diagnostics.get(uri, {}).get(line)
         if not entry:
             self.asyncEcho("")
