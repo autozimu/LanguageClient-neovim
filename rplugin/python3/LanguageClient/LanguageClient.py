@@ -921,6 +921,11 @@ call fzf#run(fzf#wrap({{
         msg = "[{}] {}".format(msgType, params["message"])  # noqa: F841
         # self.asyncEchomsg(msg)
 
+    # Extension in JDT language server.
+    def language_status(self, params: Dict) -> None:
+        msg = "{} {}".format(params["type"], params["message"])
+        self.asyncEchomsg(msg)
+
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
         if hasattr(self, method):
