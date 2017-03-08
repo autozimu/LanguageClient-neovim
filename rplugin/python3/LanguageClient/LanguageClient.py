@@ -918,8 +918,8 @@ call fzf#run(fzf#wrap({{
                 3: "Info",
                 4: "Log",
                 }[params["type"]]
-        msg = "[{}] {}".format(msgType, params["message"])
-        self.asyncEchomsg(msg)
+        msg = "[{}] {}".format(msgType, params["message"])  # noqa: F841
+        # self.asyncEchomsg(msg)
 
     def handleRequestOrNotification(self, message) -> None:
         method = message['method'].replace('/', '_')
