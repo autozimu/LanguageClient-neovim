@@ -49,7 +49,7 @@ class Source(Base):
                 context["is_async"] = False
                 return []
             elif self.__results[contextid] is None:  # no response yet
-                return ["..."]
+                return []
             else:  # got result
                 items = self.__results[contextid]
                 del self.__results[contextid]
@@ -71,4 +71,4 @@ class Source(Base):
                     languageId=languageId, line=line, character=character,
                     cbs=cbs)
 
-            return ["..."]  # workarond for deoplete, canot be empty
+            return []
