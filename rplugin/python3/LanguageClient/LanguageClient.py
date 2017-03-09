@@ -249,8 +249,7 @@ class LanguageClient:
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
-            "capabilities": {},
-            "trace": "verbose"
+            "capabilities": {}
             }, cbs)
 
     def handleInitializeResponse(self, result: Dict) -> None:
