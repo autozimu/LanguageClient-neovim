@@ -2,6 +2,7 @@ from functools import partial
 from .base import Base
 from os import path
 import sys
+import re
 LanguageClientPath = path.dirname(path.dirname(path.dirname(
     path.realpath(__file__))))
 # TODO: use relative path.
@@ -18,9 +19,17 @@ class Source(Base):
         self.rank = 1000
         self.min_pattern_length = 1
         self.filetypes = LanguageClient._instance.serverCommands.keys()
+        self.input_pattern = r'(\.|::)\w*'
 
         self.__results = {}
         self.__errors = {}
+
+    def get_complete_position(self, context):
+        m = re.search('\w*$', context['input'])
+        if m:
+            return m.start()
+        else:
+            return -1
 
     def handleCompletionResult(self, items, contextid):
         self.__results[contextid] = items
