@@ -7,7 +7,7 @@
 
 # If you are still seeing an error or other types of error, please create ticket with
 - Plugin version (git SHA)
-- Detailed error message.
+- Minimal vimrc.
 - Content of `~/.local/share/nvim/rplugin.vim`
 - Run `:call LanguageClient_setLoggingLevel('DEBUG')` and then
   `:LanguageClientStart`, reproduce the bug, attach content of
