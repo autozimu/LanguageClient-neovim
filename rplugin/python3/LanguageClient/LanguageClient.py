@@ -204,8 +204,7 @@ class LanguageClient:
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True)
+            stderr=subprocess.PIPE)
 
         self.rpc[languageId] = RPC(
             self.server[languageId].stdout, self.server[languageId].stdin,
