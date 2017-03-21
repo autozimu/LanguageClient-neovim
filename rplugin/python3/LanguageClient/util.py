@@ -33,6 +33,8 @@ def getRootPath(filepath: str, languageId: str) -> str:
                 or os.path.exists(os.path.join(folder, "setup.py")))
     elif languageId == "cs":
         rootPath = traverseUp(filepath, isDotnetRoot)
+    elif languageId == "java":
+        rootPath = traverseUp(filepath, isJavaRoot)
     # TODO: detect for other filetypes
     if not rootPath:
         rootPath = traverseUp(
@@ -62,6 +64,16 @@ def isDotnetRoot(folder: str) -> bool:
         return True
 
     if len(glob.glob(os.path.join(folder, "*.csproj"))) > 0:
+        return True
+
+    return False
+
+
+def isJavaRoot(folder: str) -> bool:
+    if os.path.exists(os.path.join(folder, ".project")):
+        return True
+
+    if os.path.exists(os.path.join(folder, "pom.xml")):
         return True
 
     return False
