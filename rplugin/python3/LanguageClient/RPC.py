@@ -25,10 +25,10 @@ class RPC:
         content = json.dumps(contentDict)
         message = (
                 "Content-Length: {}\r\n\r\n"
-                "{}".format(len(content), content)
+                "{}".format(len(content.encode('utf-8')), content)
                 )
         logger.debug(' => ' + content)
-        self.outfile.write(message)
+        self.outfile.write(message.encode('utf-8'))
         self.outfile.flush()
 
     def call(self, method: str, params: Dict[str, Any], cbs=None):
@@ -70,13 +70,13 @@ class RPC:
         self.run = True
         contentLength = 0
         while not self.infile.closed:
-            line = self.infile.readline().strip()
+            line = self.infile.readline().decode('utf-8').strip()
             if line:
                 header, value = line.split(":")
                 if header == "Content-Length":
                     contentLength = int(value)
             else:
-                content = self.infile.read(contentLength)
+                content = self.infile.read(contentLength).decode('utf-8')
                 logger.debug(' <= ' + content)
                 try:
                     msg = json.loads(content)
