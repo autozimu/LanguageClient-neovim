@@ -5,7 +5,7 @@
 
 ![rename](https://raw.github.com/autozimu/images/master/LanguageClient-neovim/rename.gif)
 
-More recordings at <https://github.com/autozimu/images/tree/master/LanguageClient-neovim>.
+More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/LanguageClient-neovim/issues/35).
 
 # Features
 
