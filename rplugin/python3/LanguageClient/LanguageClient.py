@@ -51,6 +51,7 @@ class LanguageClient:
         type(self)._instance = self
         self.serverCommands = self.nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
+        self.skip_threshold = 0.5
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -325,6 +326,7 @@ class LanguageClient:
             cbs: List = None) -> None:
         logger.info('Begin textDocument/hover')
 
+        self.sync_doc(uri)
         if cbs is None:
             cbs = [self.handleTextDocumentHoverResponse, self.handleError]
 
@@ -367,6 +369,7 @@ class LanguageClient:
             bufnames: str = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/definition')
 
+        self.sync_doc(uri)
         if cbs is None:
             cbs = [partial(self.handleTextDocumentDefinitionResponse,
                            bufnames=bufnames),
@@ -416,6 +419,7 @@ class LanguageClient:
             bufnames: List[str] = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/rename')
 
+        self.sync_doc(uri)
         if newName is None:
             self.nvim.funcs.inputsave()
             newName = self.nvim.funcs.input("Rename to: ", cword)
@@ -454,6 +458,7 @@ class LanguageClient:
             sync: bool = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/documentSymbol')
 
+        self.sync_doc(uri)
         if not sync and not cbs:
             cbs = [partial(self.handleTextDocumentDocumentSymbolResponse,
                            selectionUI=self.getSelectionUI()),
@@ -565,6 +570,7 @@ call fzf#run(fzf#wrap({{
             sync: bool = None, cbs: List = None) -> None:
         logger.info("Begin textDocument/references")
 
+        self.sync_doc(uri)
         if not sync and not cbs:
             cbs = [partial(
                     self.handleTextDocumentReferencesResponse,
@@ -617,10 +623,20 @@ call fzf#run(fzf#wrap({{
 
     @neovim.autocmd("TextChanged", pattern="*")
     def textDocument_autocmdTextChanged(self):
+        uri = pathToURI(self.nvim.current.buffer.name)
+        if uri and uri in self.textDocuments:
+            text_doc = self.textDocuments[uri]
+            if text_doc.skip_change(self.skip_threshold):
+                return
         self.textDocument_didChange()
 
     @neovim.autocmd("TextChangedI", pattern="*")
     def textDocument_autocmdTextChangedI(self):
+        uri = pathToURI(self.nvim.current.buffer.name)
+        if uri and uri in self.textDocuments:
+            text_doc = self.textDocuments[uri]
+            if text_doc.skip_change(self.skip_threshold):
+                return
         self.textDocument_didChange()
 
     @args(warn=False)
@@ -633,7 +649,8 @@ call fzf#run(fzf#wrap({{
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
         newText = str.join("\n", self.nvim.current.buffer)
-        version, changes = self.textDocuments[uri].change(newText)
+        text_doc = self.textDocuments[uri]
+        version, changes = text_doc.change(newText)
 
         self.rpc[languageId].notify("textDocument/didChange", {
             "textDocument": {
@@ -642,6 +659,12 @@ call fzf#run(fzf#wrap({{
                 },
             "contentChanges": changes
             })
+        text_doc.commit_change()
+
+    def sync_doc(self, uri):
+        text_doc = self.textDocuments[uri]
+        if text_doc.dirty:
+            self.textDocument_didChange()
 
     @neovim.autocmd("BufWritePost", pattern="*")
     @args(warn=False)
@@ -665,6 +688,8 @@ call fzf#run(fzf#wrap({{
             line: int = None, character: int = None,
             cbs: List = None) -> List:
         logger.info("Begin textDocument/completion")
+
+        self.sync_doc(uri)
 
         items = self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
@@ -867,6 +892,8 @@ call fzf#run(fzf#wrap({{
             line: int = None, character: int = None,
             cbs: List = None) -> None:
         logger.info("Begin textDocument/signatureHelp")
+
+        self.sync_doc(uri)
         if cbs is None:
             cbs = [self.handleTextDocumentSignatureHelpResponse,
                    self.handleError]
@@ -890,6 +917,8 @@ call fzf#run(fzf#wrap({{
             range: Dict = None, context: Dict = None,
             cbs: List = None) -> None:
         logger.info("Begin textDocument/codeAction")
+
+        # self.sync_doc(uri)
         if cbs is None:
             cbs = [self.handleTextDocumentCodeActionResponse,
                    self.handleError]
