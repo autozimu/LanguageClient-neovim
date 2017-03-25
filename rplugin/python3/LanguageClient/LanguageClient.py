@@ -51,7 +51,7 @@ class LanguageClient:
         type(self)._instance = self
         self.serverCommands = nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
-        self.skip_threshold = 0
+        self.changeThreshold = 0
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -184,7 +184,7 @@ class LanguageClient:
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         languageId, = self.getArgs(["languageId"], [], {})
-        self.skip_threshold = float(self.nvim.eval(
+        self.changeThreshold = float(self.nvim.eval(
                 "get(g:, 'LanguageClient_changeThreshold', 0)"))
         if self.alive(languageId, False):
             self.asyncEcho("Language client has already started.")
@@ -628,7 +628,7 @@ call fzf#run(fzf#wrap({{
         uri = pathToURI(self.nvim.current.buffer.name)
         if uri and uri in self.textDocuments:
             text_doc = self.textDocuments[uri]
-            if text_doc.skip_change(self.skip_threshold):
+            if text_doc.skip_change(self.changeThreshold):
                 return
         self.textDocument_didChange()
 
@@ -637,7 +637,7 @@ call fzf#run(fzf#wrap({{
         uri = pathToURI(self.nvim.current.buffer.name)
         if uri and uri in self.textDocuments:
             text_doc = self.textDocuments[uri]
-            if text_doc.skip_change(self.skip_threshold):
+            if text_doc.skip_change(self.changeThreshold):
                 return
         self.textDocument_didChange()
 
@@ -920,7 +920,7 @@ call fzf#run(fzf#wrap({{
             cbs: List = None) -> None:
         logger.info("Begin textDocument/codeAction")
 
-        # self.sync_doc(uri)
+        self.sync_doc(uri)
         if cbs is None:
             cbs = [self.handleTextDocumentCodeActionResponse,
                    self.handleError]
