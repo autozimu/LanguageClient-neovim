@@ -49,9 +49,9 @@ class LanguageClient:
         self.hlsid = None
         self.signid = 0
         type(self)._instance = self
-        self.serverCommands = self.nvim.eval(
+        self.serverCommands = nvim.eval(
                 "get(g:, 'LanguageClient_serverCommands', {})")
-        self.skip_threshold = 0.5
+        self.skip_threshold = 0
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -184,6 +184,8 @@ class LanguageClient:
     @neovim.command('LanguageClientStart')
     def start(self) -> None:
         languageId, = self.getArgs(["languageId"], [], {})
+        self.skip_threshold = float(self.nvim.eval(
+                "get(g:, 'LanguageClient_changeThreshold', 0)"))
         if self.alive(languageId, False):
             self.asyncEcho("Language client has already started.")
             return
