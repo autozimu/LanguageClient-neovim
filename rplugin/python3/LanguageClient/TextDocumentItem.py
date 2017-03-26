@@ -23,7 +23,7 @@ class TextDocumentItem:
         self.text = newText
         return (self.incVersion(), changes)
 
-    def skip_change(self, threshold: int = 0.5):
+    def skip_change(self, threshold: float = 0.5):
         if time.time() - self.last_update < threshold:
             self.dirty = True
             return True
