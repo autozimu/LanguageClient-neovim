@@ -1,15 +1,16 @@
-# neovim
+# 1. Install neovim
 
 Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package)!
 
-# python-neovim
+# 2. Install python-neovim
 
 Run following command to install neovim python plugin host:
 ```
 sudo pip3 install --upgrade neovim
 ```
 
-# LanguageClient-neovim
+# 3. Install this plugin
+Choose steps matching your plugin manager.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
@@ -35,7 +36,7 @@ Restart neovim and run `:call dein#install()`.
 ## Manual
 Clone this repo into some place and add the folder into neovim runtimepath.
 
-# Register this plugin
+# 4. Register this plugin
 
 Run `:UpdateRemotePlugins` in neovim and restart.
 
