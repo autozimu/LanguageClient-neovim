@@ -103,6 +103,8 @@ def test_textDocument_didChange(nvim):
     assert nvim.current.window.cursor == [12, 3]
     nvim.command("edit! {}".format(MAINRS_PATH))
 
+def test_textDocument_throttleChange(nvim):
+    pass
 
 def test_textDocument_didClose(nvim):
     nvim.funcs.LanguageClient_textDocument_didClose()

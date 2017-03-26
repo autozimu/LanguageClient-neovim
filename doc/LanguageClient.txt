@@ -90,6 +90,17 @@ Whether to keep sign column open even if there is no diagnostics.
 
 Default: 1
 
+2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
+
+Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
+
+    let g:LanguageClient_changeThrottle = 0.5
+
+This will make LanguageClient pause 0.5 second to send text changes to
+server after one textDocument_didChange is sent.
+
+Default: 0. No throttling.
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
