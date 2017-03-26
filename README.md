@@ -27,10 +27,6 @@ functional.)
 
 # Quick Start
 
-(LanguageClient-neovim depend on neovim python3 client support, if you don't
-have that installed or don't know what that is, see [install python3
-support](doc/install-python3-support.md).)
-
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
@@ -69,6 +65,8 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
 this plugin. Start neovim, run command `LanguageClientStart` and happy
 hacking!
+
+(See <INSTALL.md> for complete instructions.)
 
 # Language Servers
 

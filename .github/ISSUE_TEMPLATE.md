@@ -1,18 +1,17 @@
-> If you are reporting a bug, please see following FAQ first.
+> If you are reporting a bug, please read following FAQ first.
 
-# Not editor command: LanguageClientStart ?
-- Run `:CheckHealth` to see if there is issue with neovim python3 host.
-- Run `:UpdateRemotePlugins` and restart neovim to see if it helps.
-- Make sure your language server run properly when invoked manually.
-- Try backup your init.vim and use
-  [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim)
-  as your init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` in
-  shell, then start neovim normally.
+# Not editor command: LanguageClientStart?
+Have you followed the instructions at
+[INSTALL.md](https://github.com/autozimu/LanguageClient-neovim/blob/master/INSTALL.md)?
+
+If not, please try follow the instructions there first.
 
 # If you are still seeing an error or other types of error, please create ticket with
+- neovim version
 - Plugin version (git SHA)
 - Minimal vimrc.
-- Content of `~/.local/share/nvim/rplugin.vim`
+- Content of `:CheckHealth`.
+- Content of `~/.local/share/nvim/rplugin.vim`.
 - Run `:call LanguageClient_setLoggingLevel('DEBUG')` and then
   `:LanguageClientStart`, reproduce the bug, attach content of
   `/tmp/LanguageClient.log`.
