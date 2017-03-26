@@ -6,12 +6,11 @@ from . logger import logger
 
 
 class RPC:
-    def __init__(self, infile, outfile, onRequest, onNotification, onError):
+    def __init__(self, infile, outfile, onRequest, onNotification):
         self.infile = infile
         self.outfile = outfile
         self.onRequest = onRequest
         self.onNotification = onNotification
-        self.onError = onError
         self.mid = 0
         self.queue = {}
         self.cv = Condition()
@@ -26,19 +25,20 @@ class RPC:
         content = json.dumps(contentDict)
         message = (
                 "Content-Length: {}\r\n\r\n"
-                "{}".format(len(content), content)
+                "{}".format(len(content.encode('utf-8')), content)
                 )
         logger.debug(' => ' + content)
-        self.outfile.write(message)
+        self.outfile.write(message.encode('utf-8'))
         self.outfile.flush()
 
-    def call(self, method: str, params: Dict[str, Any], cb=None):
+    def call(self, method: str, params: Dict[str, Any], cbs=None):
         """
-        @param cb: func. Callback to handle result. If None, turn to sync call.
+        @param cbs: func list. Callbacks to handle result or error. If None,
+            turn to sync call.
         """
         mid = self.incMid()
-        if cb is not None:
-            self.queue[mid] = cb
+        if cbs is not None:
+            self.queue[mid] = cbs
 
         contentDict = {
                 "jsonrpc": "2.0",
@@ -48,7 +48,7 @@ class RPC:
                 }  # type: Dict[str, Any]
         self.message(contentDict)
 
-        if cb is not None:
+        if cbs is not None:
             return
 
         with self.cv:
@@ -70,13 +70,13 @@ class RPC:
         self.run = True
         contentLength = 0
         while not self.infile.closed:
-            line = self.infile.readline().strip()
+            line = self.infile.readline().decode('utf-8').strip()
             if line:
                 header, value = line.split(":")
                 if header == "Content-Length":
                     contentLength = int(value)
             else:
-                content = self.infile.read(contentLength)
+                content = self.infile.read(contentLength).decode('utf-8')
                 logger.debug(' <= ' + content)
                 try:
                     msg = json.loads(content)
@@ -95,27 +95,28 @@ class RPC:
                     logger.exception(msg)
 
     def handle(self, message: Dict[str, Any]):
-        if "error" in message:  # error
-            if "id" in message:
-                mid = message["id"]
-                if mid in self.queue:
-                    del self.queue[mid]
-            self.onError(message["error"])
-        elif "result" in message:  # result
+        if "result" in message or "error" in message:
             mid = message["id"]
             if isinstance(mid, str):
                 mid = int(mid)
-            result = message["result"]
             if mid in self.queue:  # async call
-                cb = self.queue[mid]
+                cbs = self.queue[mid]
                 del self.queue[mid]
-                cb(result)
+                if "result" in message:
+                    cbs[0](message["result"])
+                else:
+                    logger.error(json.dumps(message))
+                    cbs[1](message["error"])
             else:  # sync call
                 with self.cv:
-                    self.result = result
+                    if "result" in message:
+                        self.result = message["result"]
+                    else:
+                        logger.error(json.dumps(message))
+                        self.result = []
                     self.cv.notify()
-        elif "method" in message:  # request/notification
-            if "id" in message:  # request
+        elif "method" in message:  # request/notification from server
+            if "id" in message:
                 self.onRequest(message)
             else:
                 self.onNotification(message)

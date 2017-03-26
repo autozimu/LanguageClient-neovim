@@ -34,9 +34,8 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        symbols = LanguageClient._instance.textDocument_documentSymbol([{
-            "sync": True,
-            }])
+        symbols = LanguageClient._instance.textDocument_documentSymbol(
+                      sync=True)
 
         if symbols is None:
             return []

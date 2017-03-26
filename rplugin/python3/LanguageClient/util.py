@@ -1,5 +1,6 @@
 import os
 import time
+import glob
 from urllib import parse
 from pathlib import Path
 from . logger import logger
@@ -30,6 +31,10 @@ def getRootPath(filepath: str, languageId: str) -> str:
                 filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "__init__.py"))
                 or os.path.exists(os.path.join(folder, "setup.py")))
+    elif languageId == "cs":
+        rootPath = traverseUp(filepath, isDotnetRoot)
+    elif languageId == "java":
+        rootPath = traverseUp(filepath, isJavaRoot)
     # TODO: detect for other filetypes
     if not rootPath:
         rootPath = traverseUp(
@@ -52,6 +57,26 @@ def traverseUp(folder: str, stop) -> str:
         return None
     else:
         return traverseUp(os.path.dirname(folder), stop)
+
+
+def isDotnetRoot(folder: str) -> bool:
+    if os.path.exists(os.path.join(folder, "project.json")):
+        return True
+
+    if len(glob.glob(os.path.join(folder, "*.csproj"))) > 0:
+        return True
+
+    return False
+
+
+def isJavaRoot(folder: str) -> bool:
+    if os.path.exists(os.path.join(folder, ".project")):
+        return True
+
+    if os.path.exists(os.path.join(folder, "pom.xml")):
+        return True
+
+    return False
 
 
 def pathToURI(filepath: str) -> str:

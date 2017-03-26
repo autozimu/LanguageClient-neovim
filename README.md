@@ -3,9 +3,9 @@
 
 [Language Server Protocol](https://github.com/Microsoft/language-server-protocol) support for [neovim](https://github.com/neovim/neovim).
 
-![rename](https://raw.github.com/autozimu/images/master/LanguageClient-neovim/rename.gif)
+![rename](https://cloud.githubusercontent.com/assets/1453551/24251636/2e73a1cc-0fb1-11e7-8a5e-3332e6a5f424.gif)
 
-More recordings at <https://github.com/autozimu/images/tree/master/LanguageClient-neovim>.
+More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/LanguageClient-neovim/issues/35).
 
 # Features
 
@@ -26,10 +26,6 @@ language servers may implement only a subset of the features, see
 functional.)
 
 # Quick Start
-
-(LanguageClient-neovim depend on neovim python3 client support, if you don't
-have that installed or don't know what that is, see [install python3
-support](doc/install-python3-support.md).)
 
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
@@ -66,7 +62,11 @@ nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
-Run command `LanguageClientStart` inside neovim to get start.
+Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
+this plugin. Start neovim, run command `LanguageClientStart` and happy
+hacking!
+
+(See [INSTALL](INSTALL.md) for complete instructions.)
 
 # Language Servers
 

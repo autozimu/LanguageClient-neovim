@@ -37,9 +37,7 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        symbols = LanguageClient._instance.workspace_symbol([{
-            "sync": True,
-            }])
+        symbols = LanguageClient._instance.workspace_symbol(sync=True)
 
         if symbols is None:
             return []
