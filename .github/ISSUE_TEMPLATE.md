@@ -4,6 +4,10 @@
 - Run `:CheckHealth` to see if there is issue with neovim python3 host.
 - Run `:UpdateRemotePlugins` and restart neovim to see if it helps.
 - Make sure your language server run properly when invoked manually.
+- Try backup your init.vim and use
+  [min-vimrc](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-vimrc)
+  as your init.vim, run `neovim +PlugInstall +UpdateRemotePlugins +qa` in
+  shell, then start neovim normally.
 
 # If you are still seeing an error or other types of error, please create ticket with
 - Plugin version (git SHA)
