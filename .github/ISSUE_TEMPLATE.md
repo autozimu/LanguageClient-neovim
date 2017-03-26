@@ -6,7 +6,7 @@
 - Make sure your language server run properly when invoked manually.
 - Try backup your init.vim and use
   [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim)
-  as your init.vim, run `neovim +PlugInstall +UpdateRemotePlugins +qa` in
+  as your init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` in
   shell, then start neovim normally.
 
 # If you are still seeing an error or other types of error, please create ticket with
