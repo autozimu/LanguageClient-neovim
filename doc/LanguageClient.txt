@@ -101,6 +101,12 @@ server after one textDocument_didChange is sent.
 
 Default: 0. No throttling.
 
+2.5 g:LanguageClient_autoStart                  *g:LanguageClient_autoStart*
+
+Automatically start language servers.
+
+Default: 0.
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
