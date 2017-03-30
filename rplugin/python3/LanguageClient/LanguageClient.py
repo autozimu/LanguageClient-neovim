@@ -303,7 +303,12 @@ class LanguageClient:
         self.textDocuments[uri] = textDocumentItem
 
         self.rpc[languageId].notify('textDocument/didOpen', {
-            "textDocument": textDocumentItem.__dict__
+            "textDocument": {
+                "uri": textDocumentItem.uri,
+                "languageId": textDocumentItem.languageId,
+                "version": textDocumentItem.version,
+                "text": textDocumentItem.text,
+                }
             })
 
     @neovim.function('LanguageClient_textDocument_didClose')
