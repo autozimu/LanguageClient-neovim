@@ -49,9 +49,10 @@ class LanguageClient:
         self.hlsid = None
         self.signid = 0
         type(self)._instance = self
-        self.serverCommands = nvim.eval(
-                "get(g:, 'LanguageClient_serverCommands', {})")
+        self.serverCommands = self.nvim.vars.get(
+            "LanguageClient_serverCommands", {})
         self.changeThreshold = 0
+        self.autoStart = False
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -182,7 +183,7 @@ class LanguageClient:
         self.serverCommands.update(serverCommands)
 
     @neovim.command('LanguageClientStart')
-    def start(self) -> None:
+    def start(self, warn=True) -> None:
         languageId, = self.getArgs(["languageId"], [], {})
         self.changeThreshold = float(self.nvim.eval(
                 "get(g:, 'LanguageClient_changeThreshold', 0)"))
@@ -190,14 +191,16 @@ class LanguageClient:
             self.asyncEcho("Language client has already started.")
             return
 
-        logger.info('Begin LanguageClientStart')
-
         if languageId not in self.serverCommands:
+            if not warn:
+                return
             msg = "No language server commmand found for type: {}.".format(
                     languageId)
             logger.error(msg)
             self.asyncEcho(msg)
             return
+
+        logger.info('Begin LanguageClientStart')
 
         self.languageId = languageId
         command = self.serverCommands[languageId]
@@ -218,7 +221,8 @@ class LanguageClient:
             name="RPC Server",
             daemon=True).start()
 
-        self.defineSigns()
+        if len(self.server) == 1:
+            self.defineSigns()
 
         logger.info('End LanguageClientStart')
 
@@ -281,8 +285,22 @@ class LanguageClient:
         except Exception as ex:
             logger.warn("register completion manager source failed.")
 
-    @neovim.autocmd('BufReadPost', pattern="*")
-    @args(warn=False)
+    @neovim.autocmd("BufReadPost", pattern="*")
+    def handleBufReadPost(self):
+        uri, languageId = self.getArgs(["uri", "languageId"], [], {})
+        if not self.alive(languageId, warn=False):
+            if self.autoStart:
+                self.start(warn=False)
+        else:
+            self.textDocument_didOpen()
+
+    @neovim.autocmd("VimEnter", pattern="*")
+    def handleVimEnter(self):
+        self.autoStart = self.nvim.vars.get(
+            "LanguageClient_autoStart", False)
+        self.handleBufReadPost()
+
+    @args()
     def textDocument_didOpen(
             self, uri: str = None, languageId: str = None) -> None:
         # Keep sign column open.
@@ -295,8 +313,6 @@ class LanguageClient:
 
         logger.info('textDocument/didOpen')
 
-        if languageId not in self.serverCommands:
-            return
         text = str.join("\n", self.nvim.current.buffer)
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
