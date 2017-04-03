@@ -107,6 +107,15 @@ Automatically start language servers.
 
 Default: 0.
 
+2.6 g:LanguageClient_selectionUI                *g:LanguageClient_selectionUI*
+
+Selection UI used when there are multiple entries.
+
+Default: If fzf is loaded, use "fzf", otherwise use "location-list".
+Valid options:
+- "fzf"
+- "location-list"
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

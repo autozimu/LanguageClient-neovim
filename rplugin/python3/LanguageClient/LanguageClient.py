@@ -78,6 +78,10 @@ class LanguageClient:
 
         self.asyncEcho(msg)
 
+    def setloclist(self, loclist: list) -> None:
+        windownumber = self.nvim.current.window.number
+        self.nvim.funcs.setloclist(windownumber, loclist)
+
     def getArgs(self, keys: List, args: List, kwargs: Dict) -> List:
         res = {}  # type: Dict[str, Any]
         for k in keys:
@@ -184,9 +188,18 @@ class LanguageClient:
 
     @neovim.command('LanguageClientStart')
     def start(self, warn=True) -> None:
+        # Sync settings.
+        self.changeThreshold = self.nvim.vars.get(
+            "LanguageClient_changeThreshold", 0)
+        self.selectionUI = self.nvim.vars.get(
+            "LanguageClient_selectionUI")
+        if not self.selectionUI:
+            if self.nvim.vars.get('loaded_fzf') == 1:
+                self.selectionUI = "fzf"
+            else:
+                self.selectionUI = "location-list"
+
         languageId, = self.getArgs(["languageId"], [], {})
-        self.changeThreshold = float(self.nvim.eval(
-                "get(g:, 'LanguageClient_changeThreshold', 0)"))
         if self.alive(languageId, False):
             self.asyncEcho("Language client has already started.")
             return
@@ -298,6 +311,7 @@ class LanguageClient:
     def handleVimEnter(self):
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
+
         self.handleBufReadPost()
 
     @args()
@@ -484,7 +498,7 @@ class LanguageClient:
         self.sync_doc(uri)
         if not sync and not cbs:
             cbs = [partial(self.handleTextDocumentDocumentSymbolResponse,
-                           selectionUI=self.getSelectionUI()),
+                           uri=uri),
                    self.handleError]
 
         return self.rpc[languageId].call('textDocument/documentSymbol', {
@@ -492,11 +506,6 @@ class LanguageClient:
                 "uri": uri
                 }
             }, cbs)
-
-    def getSelectionUI(self) -> str:
-        if self.nvim.eval("get(g:, 'loaded_fzf', 0)") == 1:
-            return "fzf"
-        return ""
 
     def fzf(self, source: List, sink: str) -> None:
         self.asyncCommand("""
@@ -508,8 +517,8 @@ call fzf#run(fzf#wrap({{
         self.nvim.async_call(self.nvim.feedkeys, "i")
 
     def handleTextDocumentDocumentSymbolResponse(
-            self, symbols: List, selectionUI: str) -> None:
-        if selectionUI == "fzf":
+            self, symbols: List, uri: str) -> None:
+        if self.selectionUI == "fzf":
             source = []
             for sb in symbols:
                 name = sb["name"]
@@ -520,6 +529,22 @@ call fzf#run(fzf#wrap({{
                 source.append(entry)
             self.fzf(source,
                      "LanguageClient#FZFSinkTextDocumentDocumentSymbol")
+        elif self.selectionUI == "location-list":
+            loclist = []
+            path = uriToPath(uri)
+            for sb in symbols:
+                name = sb["name"]
+                start = sb["location"]["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                loclist.append({
+                    "filename": path,
+                    "lnum": line,
+                    "col": character,
+                    "text": name,
+                    })
+            self.nvim.async_call(self.setloclist, loclist)
+            self.asyncEcho("Document symbols populated to location list.")
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             self.asyncEcho(msg)
@@ -544,17 +569,15 @@ call fzf#run(fzf#wrap({{
         if query is None:
             query = ""
         if not sync and not cbs:
-            cbs = [partial(self.handleWorkspaceSymbolResponse,
-                           selectionUI=self.getSelectionUI()),
+            cbs = [self.handleWorkspaceSymbolResponse,
                    self.handleError]
 
         return self.rpc[languageId].call('workspace/symbol', {
             "query": query
             }, cbs)
 
-    def handleWorkspaceSymbolResponse(
-            self, symbols: list, selectionUI: str) -> None:
-        if selectionUI == "fzf":
+    def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
+        if self.selectionUI == "fzf":
             source = []
             for sb in symbols:
                 path = os.path.relpath(sb["location"]["uri"], self.rootUri)
@@ -565,6 +588,22 @@ call fzf#run(fzf#wrap({{
                 entry = "{}:{}:{}\t{}".format(path, line, character, name)
                 source.append(entry)
             self.fzf(source, "LanguageClient#FZFSinkWorkspaceSymbol")
+        elif self.selectionUI == "location-list":
+            loclist = []
+            for sb in symbols:
+                path = uriToPath(sb["location"]["uri"])
+                start = sb["location"]["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                name = sb["name"]
+                loclist.append({
+                    "filename": path,
+                    "lnum": line,
+                    "col": character,
+                    "text": name,
+                    })
+            self.nvim.async_call(self.setloclist, loclist)
+            self.asyncEcho("Workspace symbols populated to location list.")
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             self.asyncEcho(msg)
@@ -595,9 +634,7 @@ call fzf#run(fzf#wrap({{
 
         self.sync_doc(uri)
         if not sync and not cbs:
-            cbs = [partial(
-                    self.handleTextDocumentReferencesResponse,
-                    selectionUI=self.getSelectionUI()),
+            cbs = [self.handleTextDocumentReferencesResponse,
                    self.handleError]
 
         return self.rpc[languageId].call('textDocument/references', {
@@ -613,9 +650,8 @@ call fzf#run(fzf#wrap({{
                 },
             }, cbs)
 
-    def handleTextDocumentReferencesResponse(
-            self, locations: List, selectionUI: str) -> None:
-        if selectionUI == "fzf":
+    def handleTextDocumentReferencesResponse(self, locations: List) -> None:
+        if self.selectionUI == "fzf":
             source = []  # type: List[str]
             for loc in locations:
                 path = os.path.relpath(loc["uri"], self.rootUri)
@@ -625,6 +661,20 @@ call fzf#run(fzf#wrap({{
                 entry = "{}:{}:{}".format(path, line, character)
                 source.append(entry)
             self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+        elif self.selectionUI == "location-list":
+            loclist = []
+            for loc in locations:
+                path = uriToPath(loc["uri"])
+                start = loc["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                loclist.append({
+                    "filename": path,
+                    "lnum": line,
+                    "col": character
+                    })
+            self.nvim.async_call(self.setloclist, loclist)
+            self.asyncEcho("References populated to location list.")
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             self.asyncEcho(msg)
