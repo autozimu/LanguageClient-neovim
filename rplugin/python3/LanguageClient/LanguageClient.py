@@ -38,6 +38,7 @@ class LanguageClient:
 
     def __init__(self, nvim):
         logger.info('__init__')
+        type(self)._instance = self
         self.nvim = nvim
         self.server = {}  # type: Dict[str, subprocess.Popen]
         self.rpc = {}  # type: Dict[str, RPC]
@@ -48,11 +49,10 @@ class LanguageClient:
         self.lastLine = -1
         self.hlsid = None
         self.signid = 0
-        type(self)._instance = self
-        self.serverCommands = self.nvim.vars.get(
-            "LanguageClient_serverCommands", {})
+        self.serverCommands = {}
         self.changeThreshold = 0
-        self.autoStart = False
+        self.autoStart = self.nvim.vars.get(
+            "LanguageClient_autoStart", False)
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -189,6 +189,8 @@ class LanguageClient:
     @neovim.command('LanguageClientStart')
     def start(self, warn=True) -> None:
         # Sync settings.
+        self.serverCommands.update(self.nvim.vars.get(
+            "LanguageClient_serverCommands", {}))
         self.changeThreshold = self.nvim.vars.get(
             "LanguageClient_changeThreshold", 0)
         self.selectionUI = self.nvim.vars.get(
@@ -300,19 +302,16 @@ class LanguageClient:
 
     @neovim.autocmd("BufReadPost", pattern="*")
     def handleBufReadPost(self):
-        uri, languageId = self.getArgs(["uri", "languageId"], [], {})
-        if not self.alive(languageId, warn=False):
-            if self.autoStart:
-                self.start(warn=False)
-        else:
+        languageId, = self.getArgs(["languageId"], [], {})
+        if self.alive(languageId, warn=False):
             self.textDocument_didOpen()
+        elif self.autoStart:
+            self.start(warn=False)
 
     @neovim.autocmd("VimEnter", pattern="*")
     def handleVimEnter(self):
-        self.autoStart = self.nvim.vars.get(
-            "LanguageClient_autoStart", False)
-
-        self.handleBufReadPost()
+        # Fix the issue that BufReadPost is not trigged using `nvim myfile`.
+        self.nvim.async_call(self.handleBufReadPost)
 
     @args()
     def textDocument_didOpen(
