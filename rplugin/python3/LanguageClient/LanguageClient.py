@@ -362,7 +362,8 @@ class LanguageClient:
             cbs: List = None) -> None:
         logger.info('Begin textDocument/hover')
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if cbs is None:
             cbs = [self.handleTextDocumentHoverResponse, self.handleError]
 
@@ -405,7 +406,8 @@ class LanguageClient:
             bufnames: str = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/definition')
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if cbs is None:
             cbs = [partial(self.handleTextDocumentDefinitionResponse,
                            bufnames=bufnames),
@@ -455,7 +457,8 @@ class LanguageClient:
             bufnames: List[str] = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/rename')
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if newName is None:
             self.nvim.funcs.inputsave()
             newName = self.nvim.funcs.input("Rename to: ", cword)
@@ -494,7 +497,8 @@ class LanguageClient:
             sync: bool = None, cbs: List = None) -> None:
         logger.info('Begin textDocument/documentSymbol')
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if not sync and not cbs:
             cbs = [partial(self.handleTextDocumentDocumentSymbolResponse,
                            uri=uri),
@@ -631,7 +635,8 @@ call fzf#run(fzf#wrap({{
             sync: bool = None, cbs: List = None) -> None:
         logger.info("Begin textDocument/references")
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if not sync and not cbs:
             cbs = [self.handleTextDocumentReferencesResponse,
                    self.handleError]
@@ -736,11 +741,6 @@ call fzf#run(fzf#wrap({{
             })
         text_doc.commit_change()
 
-    def sync_doc(self, uri):
-        text_doc = self.textDocuments[uri]
-        if text_doc.dirty:
-            self.textDocument_didChange()
-
     @neovim.autocmd("BufWritePost", pattern="*")
     @args(warn=False)
     def textDocument_didSave(
@@ -764,7 +764,7 @@ call fzf#run(fzf#wrap({{
             cbs: List = None) -> List:
         logger.info("Begin textDocument/completion")
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
 
         items = self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
@@ -782,7 +782,6 @@ call fzf#run(fzf#wrap({{
         if isinstance(items, dict):  # CompletionList object
             items = items["items"]
 
-        logger.info("End textDocument/completion")
         return items
 
     # this method is called by nvim-completion-manager framework
@@ -968,7 +967,8 @@ call fzf#run(fzf#wrap({{
             cbs: List = None) -> None:
         logger.info("Begin textDocument/signatureHelp")
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if cbs is None:
             cbs = [self.handleTextDocumentSignatureHelpResponse,
                    self.handleError]
@@ -993,7 +993,8 @@ call fzf#run(fzf#wrap({{
             cbs: List = None) -> None:
         logger.info("Begin textDocument/codeAction")
 
-        self.sync_doc(uri)
+        self.textDocument_didChange()
+
         if cbs is None:
             cbs = [self.handleTextDocumentCodeActionResponse,
                    self.handleError]

@@ -8,6 +8,7 @@ LanguageClientPath = path.dirname(path.dirname(path.dirname(
 # TODO: use relative path.
 sys.path.append(LanguageClientPath)
 from LanguageClient import LanguageClient  # noqa: E402
+from LanguageClient import logger  # noqa: E402
 
 
 class Source(Base):
@@ -17,8 +18,8 @@ class Source(Base):
         self.name = 'LanguageClient'
         self.mark = '[LC]'
         self.rank = 1000
-        self.min_pattern_length = 1
         self.filetypes = LanguageClient._instance.serverCommands.keys()
+        self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
 
         self.__results = {}
@@ -54,17 +55,18 @@ class Source(Base):
         contextid = id(context)
         if contextid in self.__results:
             if contextid in self.__errors:  # got error
-                del self.__errors[contextid]
                 context["is_async"] = False
+                del self.__errors[contextid]
                 return []
             elif self.__results[contextid] is None:  # no response yet
+                context["is_async"] = True
                 return []
             else:  # got result
+                context["is_async"] = False
                 items = self.__results[contextid]
                 del self.__results[contextid]
                 if isinstance(items, dict):
                     items = items["items"]
-                context["is_async"] = False
                 return [self.convertToDeopleteCandidate(item)
                         for item in items]
         else:  # send request
@@ -73,9 +75,8 @@ class Source(Base):
 
             line = context["position"][1] - 1
             character = context["position"][2] - 1
-            cbs = [
-                    partial(self.handleCompletionResult, contextid=contextid),
-                    partial(self.handleCompletionError, contextid=contextid)]
+            cbs = [partial(self.handleCompletionResult, contextid=contextid),
+                   partial(self.handleCompletionError, contextid=contextid)]
             LanguageClient._instance.textDocument_completion(
                     languageId=languageId, line=line, character=character,
                     cbs=cbs)
