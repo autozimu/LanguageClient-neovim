@@ -723,6 +723,9 @@ call fzf#run(fzf#wrap({{
             self.textDocument_didOpen()
         newText = str.join("\n", self.nvim.current.buffer)
         text_doc = self.textDocuments[uri]
+        if newText == text_doc.text:
+            return
+
         version, changes = text_doc.change(newText)
 
         self.rpc[languageId].notify("textDocument/didChange", {
