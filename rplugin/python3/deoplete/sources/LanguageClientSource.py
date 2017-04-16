@@ -8,7 +8,7 @@ LanguageClientPath = path.dirname(path.dirname(path.dirname(
 # TODO: use relative path.
 sys.path.append(LanguageClientPath)
 from LanguageClient import LanguageClient  # noqa: E402
-from LanguageClient import logger  # noqa: E402
+from LanguageClient import logger  # noqa: F401
 
 
 class Source(Base):

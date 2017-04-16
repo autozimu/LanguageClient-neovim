@@ -112,9 +112,15 @@ Default: 0.
 Selection UI used when there are multiple entries.
 
 Default: If fzf is loaded, use "fzf", otherwise use "location-list".
-Valid options:
-- "fzf"
-- "location-list"
+Valid options: "fzf" | "location-list"
+
+2.7 g:LanguageClient_trace                           *g:LanguageClient_trace*
+
+trace setting passed to server.
+
+Default: "off"
+Valid options: "off" | "messages" | "verbose"
+
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*

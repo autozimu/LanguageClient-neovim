@@ -51,6 +51,7 @@ class LanguageClient:
         self.signid = 0
         self.serverCommands = {}
         self.changeThreshold = 0
+        self.trace = "off"  # trace settings passed to server
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
 
@@ -195,6 +196,8 @@ class LanguageClient:
             "LanguageClient_changeThreshold", 0)
         self.selectionUI = self.nvim.vars.get(
             "LanguageClient_selectionUI")
+        self.trace = self.nvim.vars.get(
+            "LanguageClient_trace", "off")
         if not self.selectionUI:
             if self.nvim.vars.get('loaded_fzf') == 1:
                 self.selectionUI = "fzf"
@@ -270,7 +273,8 @@ class LanguageClient:
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
-            "capabilities": {}
+            "capabilities": {},
+            "trace": self.trace,
             }, cbs)
 
     def handleInitializeResponse(self, result: Dict) -> None:
