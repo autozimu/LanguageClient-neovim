@@ -187,8 +187,8 @@ For Denite users, a source with name 'workspaceSymbol' is provided.
 Get a list of completion items at current editing location. Note, this is an
 synchronous call.
 
-When using a supported completion manager (currently only deoplete supported),
-completion should work out of the box.
+When using a supported completion manager (deoplete and
+nvim-completion-manager are supported), completion should work out of the box.
 
 4.8 LanguageClient_setLoggingLevel(level: str)
 *LanguageClient_setLoggingLevel*
