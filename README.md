@@ -53,7 +53,7 @@ Example configuration
 set hidden
 
 let g:LanguageClient_serverCommands = {
-    \ 'rust': [$HOME . '/.cargo/bin/rls'],
+    \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
     \ 'javascript': ['/opt/javascript-typescript-langserver/lib/language-server-stdio.js'],
     \ }
 
