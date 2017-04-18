@@ -66,7 +66,7 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
-this plugin. Start neovim, run command `LanguageClientStart` and happy
+this plugin. *Restart* neovim, run command `LanguageClientStart` and happy
 hacking!
 
 (See [INSTALL](INSTALL.md) for complete instructions.)
