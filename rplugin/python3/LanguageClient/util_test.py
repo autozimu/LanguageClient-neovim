@@ -4,8 +4,8 @@ from . util import (
 
 
 def test_getRootPath():
-    assert (getRootPath(joinPath("tests/sample-rs/src/main.rs"), "rust")
-            == joinPath("tests/sample-rs"))
+    assert (getRootPath(joinPath("tests/sample-rs/src/main.rs"), "rust") ==
+            joinPath("tests/sample-rs"))
 
 
 def test_pathToURI():

@@ -301,7 +301,7 @@ class LanguageClient:
                 abbreviation='',
                 cm_refresh='LanguageClient_completionManager_refresh'))
             logger.info("register completion manager source ok.")
-        except Exception as ex:
+        except Exception:
             logger.warn("register completion manager source failed.")
 
     @neovim.autocmd("BufReadPost", pattern="*")
@@ -1038,7 +1038,7 @@ call fzf#run(fzf#wrap({{
         if hasattr(self, method):
             try:
                 getattr(self, method)(message['params'])
-            except Exception as ex:
+            except Exception:
                 logger.exception("Exception in handle.")
         else:
             logger.warn('no handler implemented for ' + method)

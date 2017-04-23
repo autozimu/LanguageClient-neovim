@@ -28,9 +28,9 @@ def getRootPath(filepath: str, languageId: str) -> str:
                 os.path.exists(os.path.join(folder, "package.json")))
     elif languageId == "python":
         rootPath = traverseUp(
-                filepath, lambda folder:
-                os.path.exists(os.path.join(folder, "__init__.py"))
-                or os.path.exists(os.path.join(folder, "setup.py")))
+                filepath, lambda folder: (
+                    os.path.exists(os.path.join(folder, "__init__.py")) or
+                    os.path.exists(os.path.join(folder, "setup.py"))))
     elif languageId == "cs":
         rootPath = traverseUp(filepath, isDotnetRoot)
     elif languageId == "java":
@@ -40,9 +40,9 @@ def getRootPath(filepath: str, languageId: str) -> str:
         rootPath = traverseUp(
             filepath,
             lambda folder: (
-                os.path.exists(os.path.join(folder, ".git"))
-                or os.path.exists(os.path.join(folder, ".hg"))
-                or os.path.exists(os.path.join(folder, ".svn"))))
+                os.path.exists(os.path.join(folder, ".git")) or
+                os.path.exists(os.path.join(folder, ".hg")) or
+                os.path.exists(os.path.join(folder, ".svn"))))
     if not rootPath:
         msg = "Unknown project type. Fallback to use dir as project root."
         logger.warn(msg)

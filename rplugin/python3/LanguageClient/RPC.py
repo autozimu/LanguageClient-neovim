@@ -80,7 +80,7 @@ class RPC:
                 logger.debug(' <= ' + content)
                 try:
                     msg = json.loads(content)
-                except Exception as ex:
+                except Exception:
                     if not self.run:
                         break
                     msg = "Error deserializing server output: " + content
@@ -89,7 +89,7 @@ class RPC:
                     continue
                 try:
                     self.handle(msg)
-                except Exception as ex:
+                except Exception:
                     msg = "Error handling message: " + content
                     self.onError(msg)
                     logger.exception(msg)
