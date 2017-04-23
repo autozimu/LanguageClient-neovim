@@ -8,6 +8,7 @@ LanguageClientPath = path.dirname(path.dirname(path.dirname(
 # TODO: use relative path.
 sys.path.append(LanguageClientPath)
 from LanguageClient import LanguageClient  # noqa: E402
+from LanguageClient import CompletionItemKind  # noqa: E402
 from LanguageClient import logger  # noqa: F401
 
 
@@ -41,7 +42,7 @@ class Source(Base):
     def convertToDeopleteCandidate(self, item):
         cand = {"word": item["label"]}
         if "kind" in item:
-            cand["kind"] = item["kind"]
+            cand["kind"] = '[{}]'.format(CompletionItemKind[item["kind"]])
         if "detail" in item:
             cand["info"] = item["detail"]
         return cand
