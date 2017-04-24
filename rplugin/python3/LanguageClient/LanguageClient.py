@@ -301,8 +301,8 @@ class LanguageClient:
                 abbreviation='',
                 cm_refresh='LanguageClient_completionManager_refresh'))
             logger.info("register completion manager source ok.")
-        except Exception:
-            logger.warn("register completion manager source failed.")
+        except Exception as ex:
+            logger.warn("register completion manager source failed. Error: " + repr(ex))
 
     @neovim.autocmd("BufReadPost", pattern="*")
     def handleBufReadPost(self):
