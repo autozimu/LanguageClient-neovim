@@ -221,7 +221,8 @@ class LanguageClient:
         logger.info('Begin LanguageClientStart')
 
         self.languageId = languageId
-        command = self.serverCommands[languageId]
+        command = os.path.expandvars(
+                      os.path.expanduser(self.serverCommands[languageId]))
 
         self.server[languageId] = subprocess.Popen(
             # ["/bin/bash", "/tmp/wrapper.sh"],
