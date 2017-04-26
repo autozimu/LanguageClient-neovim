@@ -78,3 +78,7 @@ Please see <http://langserver.org>.
 # Documentation
 
 [LanguageClient.txt](https://github.com/autozimu/LanguageClient-neovim/blob/master/doc/LanguageClient.txt)
+
+# License
+
+The MIT License.
