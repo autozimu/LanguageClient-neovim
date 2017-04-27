@@ -32,6 +32,20 @@ def args(warn=True):
     return wrapper
 
 
+def convert_lsp_completion_item_to_vim_style(item):
+    e = {}
+    e['icase'] = 1
+    # insertText:
+    # A string that should be inserted a document when selecting
+    # this completion. When `falsy` the label is used.
+    e['word'] = item.get('insertText', "") or item['label']
+    e['abbr'] = item['label']
+    e['dup'] = 1
+    e['menu'] = item.get('detail', "")
+    e['info'] = item.get('documentation', "")
+    return e
+
+
 @neovim.plugin
 class LanguageClient:
     _instance = None  # type: LanguageClient
@@ -790,6 +804,37 @@ call fzf#run(fzf#wrap({{
 
         return items
 
+    @neovim.function("LanguageClient_textDocument_completionOmnifunc")
+    @args(warn=False)
+    def textDocument_completionOmnifunc(
+            self, uri: str = None, languageId: str = None,
+            line: int = None, character: int = None,
+            completeFromColumn: int = None,
+            cbs: List = None) -> List:
+        logger.info("Begin textDocument/completionOmnifunc")
+
+        self.textDocument_didChange()
+
+        items = self.rpc[languageId].call('textDocument/completion', {
+            "textDocument": {
+                "uri": uri
+                },
+            "position": {
+                "line": line,
+                "character": character
+                }
+            }, cbs)
+
+        if items is None:
+            items = []   # timeout
+
+        if isinstance(items, dict):  # CompletionList object
+            items = items["items"]
+
+        matches = [convert_lsp_completion_item_to_vim_style(item) for item in items]
+
+        self.nvim.call('complete', completeFromColumn, matches)
+
     # this method is called by nvim-completion-manager framework
     @neovim.function("LanguageClient_completionManager_refresh")
     def completionManager_refresh(self, args) -> None:
@@ -822,18 +867,7 @@ call fzf#run(fzf#wrap({{
                 isIncomplete = result.get('isIncomplete', False)
 
             # convert to vim style completion-items
-            matches = []
-            for item in items:
-                e = {}
-                e['icase'] = 1
-                # insertText:
-                # A string that should be inserted a document when selecting
-                # this completion. When `falsy` the label is used.
-                e['word'] = item.get('insertText', "") or item['label']
-                e['abbr'] = item['label']
-                e['dup'] = 1
-                e['info'] = item.get('documentation', "")
-                matches.append(e)
+            matches = [convert_lsp_completion_item_to_vim_style(item) for item in items]
 
             self.nvim.call('cm#complete', info['name'], ctx,
                            ctx['startcol'], matches, isIncomplete, async=True)

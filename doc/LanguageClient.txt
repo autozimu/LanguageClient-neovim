@@ -36,8 +36,12 @@ like to map these functions to some shortcuts, for example: >
     nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 
 If one is using deoplete/nvim-completion-manager at the same time, completion
-should work out of the box.
-
+should work out of the box. Otherwise, set 'omnifunc': >
+    set omnifunc=LanguageClient#complete
+>
+or 'completefunc': >
+    set completefunc=LanguageClient#complete
+>
 If the language server supports, diagnostic/lint information will be displayed
 via gutter and syntax highlighting along editing. At the same time, The
 information are populated into quickfix list, which can be accessed by regular

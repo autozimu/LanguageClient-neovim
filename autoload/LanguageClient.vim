@@ -11,3 +11,19 @@ endfunction
 function! LanguageClient#FZFSinkWorkspaceSymbol(line) abort
     call LanguageClient_FZFSinkWorkspaceSymbol(a:line)
 endfunction
+
+function! LanguageClient#complete(findstart, base) abort
+    if a:findstart
+        let l:line = getline('.')
+        let l:col = col('.')
+        if l:line[l:col - 2] =~ '\k'
+            " Identifier - find it's beginning
+            return matchend(l:line[:l:col - 1], '\v.*<')
+        else
+            " Not identifier - complete from here
+            return l:col
+        endif
+    else
+        call LanguageClient_textDocument_completionOmnifunc({'completeFromColumn': col('.')})
+    endif
+endfunction
