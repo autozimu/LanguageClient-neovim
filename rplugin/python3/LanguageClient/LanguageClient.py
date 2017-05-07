@@ -239,12 +239,18 @@ class LanguageClient:
         command = [os.path.expandvars(os.path.expanduser(cmd))
                    for cmd in command]
 
-        self.server[languageId] = subprocess.Popen(
-            # ["/bin/bash", "/tmp/wrapper.sh"],
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        try:
+            self.server[languageId] = subprocess.Popen(
+                # ["/bin/bash", "/tmp/wrapper.sh"],
+                command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+        except Exception as ex:
+            msg = "Failed to start language server: " + ex.args[1]
+            logger.exception(msg)
+            self.asyncEchomsg(msg)
+            return
 
         self.rpc[languageId] = RPC(
             self.server[languageId].stdout, self.server[languageId].stdin,
