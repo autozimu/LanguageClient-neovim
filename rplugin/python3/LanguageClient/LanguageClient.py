@@ -914,8 +914,9 @@ call fzf#run(fzf#wrap({{
         if not self.hlsid:
             self.hlsid = self.nvim.new_highlight_source()
         buf.clear_highlight(self.hlsid)
+        signcmds = "echo"
         while self.signid > 0:
-            self.nvim.command("sign unplace {}".format(self.signid))
+            signcmds += " | execute('sign unplace {}')".format(self.signid)
             self.signid -= 1
         qflist = []
         for entry in params["diagnostics"]:
@@ -930,10 +931,9 @@ call fzf#run(fzf#wrap({{
 
             signname = display["name"]
             self.signid += 1
-            self.nvim.command(
-                    "sign place {} line={}"
-                    " name=LanguageClient{} buffer={}".format(
-                        self.signid, startline + 1, signname, buf.number))
+            signcmds += (" | execute('sign place {} line={}"
+                   " name=LanguageClient{} buffer={}')").format(
+                    self.signid, startline + 1, signname, buf.number)
 
             qftype = {
                     1: "E",
@@ -949,6 +949,7 @@ call fzf#run(fzf#wrap({{
                 "text": entry["message"],
                 "type": qftype,
                   })
+        self.nvim.command(signcmds)
         self.nvim.funcs.setqflist(qflist)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
