@@ -24,9 +24,9 @@ class RPC:
     def message(self, contentDict: Dict[str, Any]) -> None:
         content = json.dumps(contentDict)
         message = (
-                "Content-Length: {}\r\n\r\n"
-                "{}".format(len(content.encode('utf-8')), content)
-                )
+            "Content-Length: {}\r\n\r\n"
+            "{}".format(len(content.encode('utf-8')), content)
+        )
         logger.debug(' => ' + content)
         self.outfile.write(message.encode('utf-8'))
         self.outfile.flush()
@@ -41,11 +41,11 @@ class RPC:
             self.queue[mid] = cbs
 
         contentDict = {
-                "jsonrpc": "2.0",
-                "method": method,
-                "params": params,
-                "id": mid,
-                }  # type: Dict[str, Any]
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": mid,
+        }  # type: Dict[str, Any]
         self.message(contentDict)
 
         if cbs is not None:
@@ -60,10 +60,10 @@ class RPC:
 
     def notify(self, method: str, params: Dict[str, Any]) -> None:
         contentDict = {
-                "jsonrpc": "2.0",
-                "method": method,
-                "params": params,
-                }  # type: Dict[str, Any]
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+        }  # type: Dict[str, Any]
         self.message(contentDict)
 
     def serve(self):

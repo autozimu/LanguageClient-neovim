@@ -19,7 +19,7 @@ class TextDocumentItem:
         changes = []  # type: List[Dict]
         changes.append({
             "text": newText
-            })
+        })
         self.text = newText
         return (self.incVersion(), changes)
 

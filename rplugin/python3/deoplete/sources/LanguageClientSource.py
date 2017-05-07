@@ -79,7 +79,7 @@ class Source(Base):
             cbs = [partial(self.handleCompletionResult, contextid=contextid),
                    partial(self.handleCompletionError, contextid=contextid)]
             LanguageClient._instance.textDocument_completion(
-                    languageId=languageId, line=line, character=character,
-                    cbs=cbs)
+                languageId=languageId, line=line, character=character,
+                cbs=cbs)
 
             return []

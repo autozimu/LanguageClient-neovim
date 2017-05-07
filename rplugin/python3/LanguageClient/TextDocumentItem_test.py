@@ -3,9 +3,9 @@ from . TextDocumentItem import TextDocumentItem
 
 def test_TextDocumentItem():
     textDocumentItem = TextDocumentItem(
-            "file:///tmp/sample.rs",
-            "rust",
-            """
+        "file:///tmp/sample.rs",
+        "rust",
+        """
 
 fn greet() -> i32 {
     42

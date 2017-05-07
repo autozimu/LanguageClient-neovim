@@ -8,8 +8,8 @@ from functools import partial
 from typing import List, Dict, Union, Any  # noqa: F401
 
 from . util import (
-        getRootPath, pathToURI, uriToPath, escape,
-        getGotoFileCommand)
+    getRootPath, pathToURI, uriToPath, escape,
+    getGotoFileCommand)
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -143,11 +143,11 @@ class LanguageClient:
                 character = edit['range']['start']['character'] + 1
                 newText = edit['newText']
                 cmd += "| execute 'normal! {}G{}|cw{}'".format(
-                        line, character, newText)
+                    line, character, newText)
         cmd += "| buffer {} | normal! {}G{}|".format(
-                    uriToPath(curPos["uri"]),
-                    curPos["line"] + 1,
-                    curPos["character"] + 1)
+            uriToPath(curPos["uri"]),
+            curPos["line"] + 1,
+            curPos["character"] + 1)
         self.asyncCommand(cmd)
 
     @neovim.function("LanguageClient_alive", sync=True)
@@ -163,7 +163,7 @@ class LanguageClient:
         elif self.server[languageId].poll() is not None:
             ret = False
             msg = "Failed to start language server: {}".format(
-                    self.server[languageId].stderr.readlines())
+                self.server[languageId].stderr.readlines())
             logger.error(msg)
 
         if ret is False and warn:
@@ -177,11 +177,11 @@ class LanguageClient:
             "WARNING": 30,
             "INFO": 20,
             "DEBUG": 10,
-            }[args[0]])
+        }[args[0]])
 
     def defineSigns(self) -> None:
         diagnosticsDisplay = self.nvim.eval(
-                "get(g:, 'LanguageClient_diagnosticsDisplay', {})")
+            "get(g:, 'LanguageClient_diagnosticsDisplay', {})")
         DiagnosticsDisplay.update(diagnosticsDisplay)
         cmd = "echo ''"
         for level in DiagnosticsDisplay.values():
@@ -227,7 +227,7 @@ class LanguageClient:
             if not warn:
                 return
             msg = "No language server commmand found for type: {}.".format(
-                    languageId)
+                languageId)
             logger.error(msg)
             self.asyncEcho(msg)
             return
@@ -268,7 +268,7 @@ class LanguageClient:
         self.rpc[languageId].run = False
         self.exit([{
             "languageId": languageId
-            }])
+        }])
         del self.server[languageId]
 
     @neovim.function('LanguageClient_initialize')
@@ -291,7 +291,7 @@ class LanguageClient:
             "rootUri": self.rootUri,
             "capabilities": {},
             "trace": self.trace,
-            }, cbs)
+        }, cbs)
 
     def handleInitializeResponse(self, result: Dict) -> None:
         self.capabilities = result['capabilities']
@@ -318,7 +318,8 @@ class LanguageClient:
                 cm_refresh='LanguageClient_completionManager_refresh'))
             logger.info("register completion manager source ok.")
         except Exception as ex:
-            logger.warn("register completion manager source failed. Error: " + repr(ex))
+            logger.warn("register completion manager source failed. Error: " +
+                        repr(ex))
 
     @neovim.autocmd("BufReadPost", pattern="*")
     def handleBufReadPost(self):
@@ -357,8 +358,8 @@ class LanguageClient:
                 "languageId": textDocumentItem.languageId,
                 "version": textDocumentItem.version,
                 "text": textDocumentItem.text,
-                }
-            })
+            }
+        })
 
     @neovim.function('LanguageClient_textDocument_didClose')
     @args(warn=False)
@@ -371,8 +372,8 @@ class LanguageClient:
         self.rpc[languageId].notify('textDocument/didClose', {
             "textDocument": {
                 "uri": uri
-                }
-            })
+            }
+        })
 
     @neovim.function('LanguageClient_textDocument_hover')
     @args()
@@ -390,12 +391,12 @@ class LanguageClient:
         self.rpc[languageId].call('textDocument/hover', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character
-                }
-            }, cbs)
+            }
+        }, cbs)
 
     def markedStringToString(self, s: Any) -> str:
         if isinstance(s, str):
@@ -436,12 +437,12 @@ class LanguageClient:
         self.rpc[languageId].call('textDocument/definition', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character
-                }
-            }, cbs)
+            }
+        }, cbs)
 
     def handleTextDocumentDefinitionResponse(
             self, result: List, bufnames: Union[List, Dict]) -> None:
@@ -495,13 +496,13 @@ class LanguageClient:
         self.rpc[languageId].call('textDocument/rename', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character,
-                },
+            },
             "newName": newName
-            }, cbs)
+        }, cbs)
 
     def handleTextDocumentRenameResponse(
             self, result: Dict,
@@ -527,8 +528,8 @@ class LanguageClient:
         return self.rpc[languageId].call('textDocument/documentSymbol', {
             "textDocument": {
                 "uri": uri
-                }
-            }, cbs)
+            }
+        }, cbs)
 
     def fzf(self, source: List, sink: str) -> None:
         self.asyncCommand("""
@@ -565,7 +566,7 @@ call fzf#run(fzf#wrap({{
                     "lnum": line,
                     "col": character,
                     "text": name,
-                    })
+                })
             self.nvim.async_call(self.setloclist, loclist)
             self.asyncEcho("Document symbols populated to location list.")
         else:
@@ -597,7 +598,7 @@ call fzf#run(fzf#wrap({{
 
         return self.rpc[languageId].call('workspace/symbol', {
             "query": query
-            }, cbs)
+        }, cbs)
 
     def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
         if self.selectionUI == "fzf":
@@ -624,7 +625,7 @@ call fzf#run(fzf#wrap({{
                     "lnum": line,
                     "col": character,
                     "text": name,
-                    })
+                })
             self.nvim.async_call(self.setloclist, loclist)
             self.asyncEcho("Workspace symbols populated to location list.")
         else:
@@ -664,15 +665,15 @@ call fzf#run(fzf#wrap({{
         return self.rpc[languageId].call('textDocument/references', {
             "textDocument": {
                 "uri": uri,
-                },
+            },
             "position": {
                 "line": line,
                 "character": character,
-                },
+            },
             "context": {
                 "includeDeclaration": True,
-                },
-            }, cbs)
+            },
+        }, cbs)
 
     def handleTextDocumentReferencesResponse(self, locations: List) -> None:
         if self.selectionUI == "fzf":
@@ -696,7 +697,7 @@ call fzf#run(fzf#wrap({{
                     "filename": path,
                     "lnum": line,
                     "col": character
-                    })
+                })
             self.nvim.async_call(self.setloclist, loclist)
             self.asyncEcho("References populated to location list.")
         else:
@@ -756,9 +757,9 @@ call fzf#run(fzf#wrap({{
             "textDocument": {
                 "uri": uri,
                 "version": version
-                },
+            },
             "contentChanges": changes
-            })
+        })
         text_doc.commit_change()
 
     @neovim.autocmd("BufWritePost", pattern="*")
@@ -773,8 +774,8 @@ call fzf#run(fzf#wrap({{
         self.rpc[languageId].notify("textDocument/didSave", {
             "textDocument": {
                 "uri": uri
-                }
-            })
+            }
+        })
 
     @neovim.function("LanguageClient_textDocument_completion")
     @args(warn=False)
@@ -789,12 +790,12 @@ call fzf#run(fzf#wrap({{
         items = self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character
-                }
-            }, cbs)
+            }
+        }, cbs)
 
         if items is None:
             items = []   # timeout
@@ -818,12 +819,12 @@ call fzf#run(fzf#wrap({{
         items = self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character
-                }
-            }, cbs)
+            }
+        }, cbs)
 
         if items is None:
             items = []   # timeout
@@ -831,7 +832,8 @@ call fzf#run(fzf#wrap({{
         if isinstance(items, dict):  # CompletionList object
             items = items["items"]
 
-        matches = [convert_lsp_completion_item_to_vim_style(item) for item in items]
+        matches = [convert_lsp_completion_item_to_vim_style(item)
+                   for item in items]
 
         self.nvim.call('complete', completeFromColumn, matches)
 
@@ -853,8 +855,8 @@ call fzf#run(fzf#wrap({{
         args["character"] = ctx["col"] - 1
 
         uri, languageId, line, character = self.getArgs(
-                ["uri", "languageId", "line", "character"],
-                [], {})
+            ["uri", "languageId", "line", "character"],
+            [], {})
 
         logger.info("uri[%s] line[%s] character[%s]", uri, line, character)
 
@@ -867,7 +869,8 @@ call fzf#run(fzf#wrap({{
                 isIncomplete = result.get('isIncomplete', False)
 
             # convert to vim style completion-items
-            matches = [convert_lsp_completion_item_to_vim_style(item) for item in items]
+            matches = [convert_lsp_completion_item_to_vim_style(item)
+                       for item in items]
 
             self.nvim.call('cm#complete', info['name'], ctx,
                            ctx['startcol'], matches, isIncomplete, async=True)
@@ -882,12 +885,12 @@ call fzf#run(fzf#wrap({{
         self.rpc[languageId].call('textDocument/completion', {
             "textDocument": {
                 "uri": uri
-                },
+            },
             "position": {
                 "line": line,
                 "character": character
-                }
-            }, cbs)
+            }
+        }, cbs)
 
     @neovim.function("LanguageClient_exit")
     @args()
@@ -932,15 +935,15 @@ call fzf#run(fzf#wrap({{
             signname = display["name"]
             self.signid += 1
             signcmds += (" | execute('sign place {} line={}"
-                   " name=LanguageClient{} buffer={}')").format(
-                    self.signid, startline + 1, signname, buf.number)
+                         " name=LanguageClient{} buffer={}')").format(
+                self.signid, startline + 1, signname, buf.number)
 
             qftype = {
-                    1: "E",
-                    2: "W",
-                    3: "I",
-                    4: "H",
-                    }[severity]
+                1: "E",
+                2: "W",
+                3: "I",
+                4: "H",
+            }[severity]
             qflist.append({
                 "filename": path,
                 "lnum": startline + 1,
@@ -948,7 +951,7 @@ call fzf#run(fzf#wrap({{
                 "nr": entry.get("code"),
                 "text": entry["message"],
                 "type": qftype,
-                  })
+            })
         self.nvim.command(signcmds)
         self.nvim.funcs.setqflist(qflist)
 
@@ -969,11 +972,11 @@ call fzf#run(fzf#wrap({{
         msg = ""
         if "severity" in entry:
             severity = {
-                    1: "E",
-                    2: "W",
-                    3: "I",
-                    4: "H",
-                    }[entry["severity"]]
+                1: "E",
+                2: "W",
+                3: "I",
+                4: "H",
+            }[entry["severity"]]
             msg += "[{}]".format(severity)
         if "code" in entry:
             code = entry["code"]
@@ -993,7 +996,7 @@ call fzf#run(fzf#wrap({{
                    self.handleError]
 
         self.rpc[languageId].call(
-                "completionItem/resolve", completionItem, cbs)
+            "completionItem/resolve", completionItem, cbs)
 
     def handleCompletionItemResolveResponse(self, result):
         # TODO: proper integration.
@@ -1019,8 +1022,8 @@ call fzf#run(fzf#wrap({{
             "position": {
                 "line": line,
                 "character": character,
-                }
-            }, cbs)
+            }
+        }, cbs)
 
     def handleTextDocumentSignatureHelpResponse(self, result):
         # TODO: proper integration.
@@ -1044,7 +1047,7 @@ call fzf#run(fzf#wrap({{
             "textDocument": uri,
             "range": range,
             "context": context,
-            }, cbs)
+        }, cbs)
 
     def handleTextDocumentCodeActionResponse(self, result):
         # TODO: proper integration.
@@ -1057,11 +1060,11 @@ call fzf#run(fzf#wrap({{
 
     def window_logMessage(self, params: Dict) -> None:
         msgType = {
-                1: "Error",
-                2: "Warning",
-                3: "Info",
-                4: "Log",
-                }[params["type"]]
+            1: "Error",
+            2: "Warning",
+            3: "Info",
+            4: "Log",
+        }[params["type"]]
         msg = "[{}] {}".format(msgType, params["message"])  # noqa: F841
         # self.asyncEchomsg(msg)
 

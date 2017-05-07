@@ -16,21 +16,21 @@ def getRootPath(filepath: str, languageId: str) -> str:
     rootPath = None
     if languageId == "rust":
         rootPath = traverseUp(
-                filepath, lambda folder:
+            filepath, lambda folder:
                 os.path.exists(os.path.join(folder, 'Cargo.toml')))
     elif languageId == "php":
         rootPath = traverseUp(
-                filepath, lambda folder:
+            filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "composer.json")))
     elif languageId.startswith("javascript") or languageId == "typescript":
         rootPath = traverseUp(
-                filepath, lambda folder:
+            filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "package.json")))
     elif languageId == "python":
         rootPath = traverseUp(
-                filepath, lambda folder: (
-                    os.path.exists(os.path.join(folder, "__init__.py")) or
-                    os.path.exists(os.path.join(folder, "setup.py"))))
+            filepath, lambda folder: (
+                os.path.exists(os.path.join(folder, "__init__.py")) or
+                os.path.exists(os.path.join(folder, "setup.py"))))
     elif languageId == "cs":
         rootPath = traverseUp(filepath, isDotnetRoot)
     elif languageId == "java":

@@ -32,7 +32,7 @@ class Source(Base):
                 "action__path": filepath,
                 "action__line": line,
                 "action__col": character,
-                })
+            })
 
         return candidates
 

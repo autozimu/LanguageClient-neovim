@@ -1,6 +1,6 @@
 from . util import (
-        joinPath, getRootPath, pathToURI, uriToPath, escape,
-        getGotoFileCommand)
+    joinPath, getRootPath, pathToURI, uriToPath, escape,
+    getGotoFileCommand)
 
 
 def test_getRootPath():
@@ -30,9 +30,9 @@ def test_getGotoFileCommand():
     assert getGotoFileCommand("/tmp/sample", [
         "/tmp/sample",
         "/tmp/somethingelse"
-        ]) == "buffer /tmp/sample"
+    ]) == "buffer /tmp/sample"
 
     assert getGotoFileCommand("/tmp/sample", [
         "/tmp/notsample",
         "/tmp/somethingelse"
-        ]) == "edit /tmp/sample"
+    ]) == "edit /tmp/sample"

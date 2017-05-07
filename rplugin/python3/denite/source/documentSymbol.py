@@ -29,13 +29,13 @@ class Source(Base):
                 "action__path": bufname,
                 "action__line": line,
                 "action__col": character,
-                })
+            })
 
         return candidates
 
     def gather_candidates(self, context):
         symbols = LanguageClient._instance.textDocument_documentSymbol(
-                      sync=True)
+            sync=True)
 
         if symbols is None:
             return []
