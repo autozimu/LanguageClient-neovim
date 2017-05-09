@@ -1,6 +1,8 @@
 from . util import (
     joinPath, getRootPath, pathToURI, uriToPath, escape,
-    getGotoFileCommand)
+    getGotoFileCommand,
+    getCommandAddSign, getCommandDeleteSign, getCommandUpdateSigns)
+from . Sign import Sign
 
 
 def test_getRootPath():
@@ -36,3 +38,30 @@ def test_getGotoFileCommand():
         "/tmp/notsample",
         "/tmp/somethingelse"
     ]) == "edit /tmp/sample"
+
+
+def test_getCommandDeleteSign():
+    sign = Sign(1, "Error", 1)
+    assert getCommandDeleteSign(sign) == " | execute('sign unplace 1')"
+
+
+def test_getCommandAddSign():
+    sign = Sign(1, "Error", 1)
+    assert (getCommandAddSign(sign) ==
+            " | execute('sign place 1 line=1"
+            " name=LanguageClientError buffer=1')")
+
+
+def test_getCommandUpdateSigns():
+    signs = [
+        Sign(1, "Error", 1),
+        Sign(3, "Error", 1),
+    ]
+    nextSigns = [
+        Sign(1, "Error", 1),
+        Sign(2, "Error", 1),
+        Sign(3, "Error", 1),
+    ]
+    assert (getCommandUpdateSigns(signs, nextSigns) ==
+            "echo | execute('sign place 2 line=2"
+            " name=LanguageClientError buffer=1')")

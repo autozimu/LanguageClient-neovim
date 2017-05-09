@@ -1,9 +1,12 @@
 import os
 import time
 import glob
+import difflib
 from urllib import parse
 from pathlib import Path
+from typing import List
 from . logger import logger
+from . Sign import Sign
 
 currPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -105,3 +108,37 @@ def getGotoFileCommand(path, bufnames) -> str:
         return "buffer {}".format(path)
     else:
         return "edit {}".format(path)
+
+
+def getCommandDeleteSign(sign: Sign) -> str:
+    return " | execute('sign unplace {}')".format(sign.line)
+
+
+def getCommandAddSign(sign: Sign) -> str:
+    return (" | execute('sign place {} line={} "
+            "name=LanguageClient{} buffer={}')").format(
+                sign.line, sign.line, sign.signname, sign.bufnumber)
+
+
+def getCommandUpdateSigns(signs: List[Sign], nextSigns: List[Sign]) -> str:
+    cmd = "echo"
+    diff = difflib.SequenceMatcher(None, signs, nextSigns)
+    for op, i1, i2, j1, j2 in diff.get_opcodes():
+        if op == "replace":
+            for i in range(i1, i2):
+                cmd += getCommandDeleteSign(signs[i])
+            for i in range(j1, j2):
+                cmd += getCommandAddSign(nextSigns[i])
+        elif op == "delete":
+            for i in range(i1, i2):
+                cmd += getCommandDeleteSign(signs[i])
+        elif op == "insert":
+            for i in range(j1, j2):
+                cmd += getCommandAddSign(nextSigns[i])
+        elif op == "equal":
+            pass
+        else:
+            msg = "Unknown diff op: " + op
+            logger.error(msg)
+
+    return cmd

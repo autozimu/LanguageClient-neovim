@@ -9,11 +9,12 @@ from typing import List, Dict, Union, Any  # noqa: F401
 
 from . util import (
     getRootPath, pathToURI, uriToPath, escape,
-    getGotoFileCommand)
+    getGotoFileCommand, getCommandUpdateSigns)
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
 from . DiagnosticsDisplay import DiagnosticsDisplay
+from . Sign import Sign
 import re
 
 
@@ -62,7 +63,7 @@ class LanguageClient:
         self.diagnostics = {}
         self.lastLine = -1
         self.hlsid = None
-        self.signid = 0
+        self.signs = []
         self.serverCommands = {}
         self.changeThreshold = 0
         self.trace = "off"  # trace settings passed to server
@@ -923,10 +924,8 @@ call fzf#run(fzf#wrap({{
         if not self.hlsid:
             self.hlsid = self.nvim.new_highlight_source()
         buf.clear_highlight(self.hlsid)
-        signcmds = "echo"
-        while self.signid > 0:
-            signcmds += " | execute('sign unplace {}')".format(self.signid)
-            self.signid -= 1
+        bufnumber = buf.number
+        signs = []
         qflist = []
         for entry in params["diagnostics"]:
             startline = entry["range"]["start"]["line"]
@@ -939,10 +938,8 @@ call fzf#run(fzf#wrap({{
                               startcharacter, endcharacter, self.hlsid)
 
             signname = display["name"]
-            self.signid += 1
-            signcmds += (" | execute('sign place {} line={}"
-                         " name=LanguageClient{} buffer={}')").format(
-                self.signid, startline + 1, signname, buf.number)
+
+            signs.append(Sign(startline + 1, signname, bufnumber))
 
             qftype = {
                 1: "E",
@@ -958,7 +955,11 @@ call fzf#run(fzf#wrap({{
                 "text": entry["message"],
                 "type": qftype,
             })
-        self.nvim.command(signcmds)
+
+        cmd = getCommandUpdateSigns(self.signs, signs)
+        self.signs = signs
+        self.asyncCommand(cmd)
+
         self.nvim.funcs.setqflist(qflist)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
