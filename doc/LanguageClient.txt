@@ -223,7 +223,7 @@ narrow down where the error happens, which will reduce bug fix time/effort
 tremendously.
 
 Try increasing logging level to 'INFO' or 'DEBUG' using the
-*LanguageClient_setLoggingLevel* function, and check the log file.
+|LanguageClient_setLoggingLevel| function, and check the log file.
 
 There is also an utility script in: >
 
