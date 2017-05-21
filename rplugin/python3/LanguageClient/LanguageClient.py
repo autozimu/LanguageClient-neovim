@@ -213,6 +213,8 @@ class LanguageClient:
             "LanguageClient_selectionUI")
         self.trace = self.nvim.vars.get(
             "LanguageClient_trace", "off")
+        self.diagnosticsList = self.nvim.vars.get(
+                "LanguageClient_diagnosticsList", "quickfix")
         if not self.selectionUI:
             if self.nvim.vars.get('loaded_fzf') == 1:
                 self.selectionUI = "fzf"
@@ -960,7 +962,12 @@ call fzf#run(fzf#wrap({{
         self.signs = signs
         self.asyncCommand(cmd)
 
-        self.nvim.funcs.setqflist(qflist)
+        if self.diagnosticsList == "quickfix":
+            self.nvim.funcs.setqflist(
+                qflist, "r", "LanguageClient-diagnostics")
+        elif self.diagnosticsList == "location":
+            self.nvim.funcs.setloclist(
+                bufnumber, qflist, "r", "LanguageClient-diagnostics")
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
     def handleCursorMoved(self, line) -> None:

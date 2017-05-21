@@ -131,6 +131,12 @@ trace setting passed to server.
 Default: "off"
 Valid options: "off" | "messages" | "verbose"
 
+2.8 g:LanguageClient_diagnosticsList        *g:LanguageClient_diagnosticsList*
+
+List used to fill diagnostic messages.
+
+Default: "quickfix"
+Valid options: "quickfix" | "location" | ""
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
