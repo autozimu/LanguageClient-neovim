@@ -820,7 +820,7 @@ call fzf#run(fzf#wrap({{
             self, uri: str = None, languageId: str = None,
             line: int = None, character: int = None,
             completeFromColumn: int = None,
-            cbs: List = None) -> List:
+            cbs: List = None):
         logger.info("Begin textDocument/completionOmnifunc")
 
         self.textDocument_didChange()
