@@ -138,6 +138,15 @@ List used to fill diagnostic messages.
 Default: "quickfix"
 Valid options: "quickfix" | "location" | ""
 
+2.9 g:LanguageClient_diagnosticsHandler     *g:LanguageClient_diagnosticsHandler*
+
+A handler that is called when the rustDocument/diagnosticsBegin and
+rustDocument/diagnosticsEnd handler is called. The handler will be passed a
+single boolean indicating whether diagnostics are running.
+
+Default: none
+Valid options: Funcref
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
