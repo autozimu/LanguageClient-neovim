@@ -409,7 +409,8 @@ class LanguageClient:
 
     def markedStringToString(self, s: Any) -> str:
         if isinstance(s, str):
-            return s
+            # rougly convert markdown to plain text
+            return re.sub(r'\\([\\`*_{}[\]()#+\-.!])', r'\1', s)
         else:
             return s["value"]
 
