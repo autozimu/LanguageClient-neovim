@@ -415,6 +415,9 @@ class LanguageClient:
             return s["value"]
 
     def handleTextDocumentHoverResponse(self, result: Dict) -> None:
+        if result is None:
+            return
+
         contents = result.get("contents")
         if contents is None:
             contents = ""
