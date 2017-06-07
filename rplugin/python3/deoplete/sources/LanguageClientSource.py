@@ -40,11 +40,13 @@ class Source(Base):
         self.__errors[contextid] = error
 
     def convertToDeopleteCandidate(self, item):
-        cand = {"word": item["label"]}
+        cand = {"word": item.get("insertText", item["label"]), "abbr": item["label"]}
         if "kind" in item:
             cand["kind"] = '[{}]'.format(CompletionItemKind[item["kind"]])
+        if "documentation" in item:
+            cand["info"] = item["documentation"]
         if "detail" in item:
-            cand["info"] = item["detail"]
+            cand["menu"] = item["detail"]
         return cand
 
     def gather_candidates(self, context):
