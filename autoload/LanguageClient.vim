@@ -12,6 +12,13 @@ function! LanguageClient#FZFSinkWorkspaceSymbol(line) abort
     call LanguageClient_FZFSinkWorkspaceSymbol(a:line)
 endfunction
 
+function! LanguageClient#InsertUse(line) abort
+    let save_cursor = getcurpos()
+    let l:lnumber = search("namespace")
+    call append(l:lnumber + 1, "use " . a:line . ";")
+    call setpos('.', save_cursor)
+endfunction
+
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')

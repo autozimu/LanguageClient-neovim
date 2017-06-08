@@ -63,6 +63,7 @@ class LanguageClient:
         self.diagnostics = {}
         self.lastLine = -1
         self.hlsid = None
+        self.insertUseName = ""
         self.signs = []
         self.serverCommands = {}
         self.changeThreshold = 0
@@ -595,6 +596,30 @@ call fzf#run(fzf#wrap({{
         line = splitted[0]
         character = splitted[1]
         self.asyncCommand("normal! {}G{}|".format(line, character))
+
+    @neovim.function('LanguageClient_insert_use')
+    @args()
+    def insert_use(self, languageId: str = None, name: str = None) -> None:
+        if not name:
+            name = ""
+
+        self.insertUseName = name;
+
+        cbs = [self.handleInsertUseResponse,
+               self.handleError]
+
+        return self.rpc[languageId].call('workspace/symbol', {
+            "query": name
+        }, cbs)
+
+    def handleInsertUseResponse(self, symbols: list) -> None:
+        symbols = [symbol for symbol in symbols if symbol["kind"] == 5]
+        symbols = [symbol for symbol in symbols if symbol["name"] == self.insertUseName]
+        source = []
+        for sb in symbols:
+            name = sb["containerName"] + "\\" + sb["name"]
+            source.append(name)
+        self.fzf(source, "LanguageClient#InsertUse")
 
     @neovim.function('LanguageClient_workspace_symbol')
     @args()
