@@ -22,7 +22,7 @@ def args(warn=True):
     def wrapper(f):
         def wrappedf(*args, **kwargs):
             self = args[0]
-            languageId, = self.getArgs(["languageId"], [], {})
+            languageId, = self.getArgs(["languageId"])
             if not self.alive(languageId, warn):
                 return
 
@@ -52,7 +52,7 @@ class LanguageClient:
     _instance = None  # type: LanguageClient
 
     def __init__(self, nvim):
-        logger.info('__init__')
+        logger.info("__init__")
         type(self)._instance = self
         self.nvim = nvim
         self.server = {}  # type: Dict[str, subprocess.Popen]
@@ -98,7 +98,7 @@ class LanguageClient:
         windownumber = self.nvim.current.window.number
         self.nvim.funcs.setloclist(windownumber, loclist)
 
-    def getArgs(self, keys: List, args: List, kwargs: Dict) -> List:
+    def getArgs(self, keys: List, args: List = [], kwargs: Dict = {}) -> List:
         res = {}  # type: Dict[str, Any]
         for k in keys:
             res[k] = None
@@ -140,9 +140,9 @@ class LanguageClient:
             path = uriToPath(uri)
             cmd += "| " + getGotoFileCommand(path, bufnames)
             for edit in edits:
-                line = edit['range']['start']['line'] + 1
-                character = edit['range']['start']['character'] + 1
-                newText = edit['newText']
+                line = edit["range"]["start"]["line"] + 1
+                character = edit["range"]["start"]["character"] + 1
+                newText = edit["newText"]
                 cmd += "| execute 'normal! {}G{}|cw{}'".format(
                     line, character, newText)
         cmd += "| buffer {} | normal! {}G{}|".format(
@@ -202,7 +202,7 @@ class LanguageClient:
         serverCommands = args[0]  # Dict[str, str]
         self.serverCommands.update(serverCommands)
 
-    @neovim.command('LanguageClientStart')
+    @neovim.command("LanguageClientStart")
     def start(self, warn=True) -> None:
         # Sync settings.
         self.serverCommands.update(self.nvim.vars.get(
@@ -216,12 +216,12 @@ class LanguageClient:
         self.diagnosticsList = self.nvim.vars.get(
                 "LanguageClient_diagnosticsList", "quickfix")
         if not self.selectionUI:
-            if self.nvim.vars.get('loaded_fzf') == 1:
+            if self.nvim.vars.get("loaded_fzf") == 1:
                 self.selectionUI = "fzf"
             else:
                 self.selectionUI = "location-list"
 
-        languageId, = self.getArgs(["languageId"], [], {})
+        languageId, = self.getArgs(["languageId"])
         if self.alive(languageId, False):
             self.asyncEcho("Language client has already started.")
             return
@@ -235,7 +235,7 @@ class LanguageClient:
             self.asyncEcho(msg)
             return
 
-        logger.info('Begin LanguageClientStart')
+        logger.info("Begin LanguageClientStart")
 
         self.languageId = languageId
         command = self.serverCommands[languageId]
@@ -267,25 +267,21 @@ class LanguageClient:
         if len(self.server) == 1:
             self.defineSigns()
 
-        logger.info('End LanguageClientStart')
+        logger.info("End LanguageClientStart")
 
         self.initialize(languageId=languageId)
 
     @neovim.command("LanguageClientStop")
     @args()
-    def stop(self, languageId: str = None) -> None:
+    def stop(self, languageId: str) -> None:
         self.rpc[languageId].run = False
-        self.exit([{
-            "languageId": languageId
-        }])
+        self.exit(languageId)
         del self.server[languageId]
 
-    @neovim.function('LanguageClient_initialize')
+    @neovim.function("LanguageClient_initialize")
     @args()
-    def initialize(
-            self, rootPath: str = None, languageId: str = None,
-            cbs: List = None) -> None:
-        logger.info('Begin initialize')
+    def initialize(self, rootPath: str, languageId: str, cbs: List) -> None:
+        logger.info("Begin initialize")
 
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name, languageId)
@@ -294,7 +290,7 @@ class LanguageClient:
         if cbs is None:
             cbs = [self.handleInitializeResponse, self.handleError]
 
-        self.rpc[languageId].call('initialize', {
+        self.rpc[languageId].call("initialize", {
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": self.rootUri,
@@ -303,10 +299,10 @@ class LanguageClient:
         }, cbs)
 
     def handleInitializeResponse(self, result: Dict) -> None:
-        self.capabilities = result['capabilities']
+        self.capabilities = result["capabilities"]
         self.nvim.async_call(self.textDocument_didOpen)
         self.nvim.async_call(self.registerCMSource, result)
-        logger.info('End initialize')
+        logger.info("End initialize")
 
     def registerCMSource(self, result: Dict) -> None:
         completionProvider = result["capabilities"].get("completionProvider")
@@ -332,7 +328,7 @@ class LanguageClient:
 
     @neovim.autocmd("BufReadPost", pattern="*")
     def handleBufReadPost(self):
-        languageId, = self.getArgs(["languageId"], [], {})
+        languageId, = self.getArgs(["languageId"])
         if self.alive(languageId, warn=False):
             self.textDocument_didOpen()
         elif self.autoStart:
@@ -344,8 +340,7 @@ class LanguageClient:
         self.nvim.async_call(self.handleBufReadPost)
 
     @args()
-    def textDocument_didOpen(
-            self, uri: str = None, languageId: str = None) -> None:
+    def textDocument_didOpen(self, uri: str, languageId: str) -> None:
         # Keep sign column open.
         if self.nvim.vars.get("LanguageClient_signColumnAlwaysOn", True):
             bufnumber = self.nvim.current.buffer.number
@@ -354,14 +349,14 @@ class LanguageClient:
                    " buffer={}").format(bufnumber)
             self.asyncCommand(cmd)
 
-        logger.info('textDocument/didOpen')
+        logger.info("textDocument/didOpen")
 
         text = str.join("\n", self.nvim.current.buffer)
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
         self.textDocuments[uri] = textDocumentItem
 
-        self.rpc[languageId].notify('textDocument/didOpen', {
+        self.rpc[languageId].notify("textDocument/didOpen", {
             "textDocument": {
                 "uri": textDocumentItem.uri,
                 "languageId": textDocumentItem.languageId,
@@ -370,34 +365,31 @@ class LanguageClient:
             }
         })
 
-    @neovim.function('LanguageClient_textDocument_didClose')
+    @neovim.function("LanguageClient_textDocument_didClose")
     @args(warn=False)
-    def textDocument_didClose(
-            self, uri: str = None, languageId: str = None) -> None:
-        logger.info('textDocument/didClose')
+    def textDocument_didClose(self, uri: str, languageId: str) -> None:
+        logger.info("textDocument/didClose")
 
         del self.textDocuments[uri]
 
-        self.rpc[languageId].notify('textDocument/didClose', {
+        self.rpc[languageId].notify("textDocument/didClose", {
             "textDocument": {
                 "uri": uri
             }
         })
 
-    @neovim.function('LanguageClient_textDocument_hover')
+    @neovim.function("LanguageClient_textDocument_hover")
     @args()
-    def textDocument_hover(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            cbs: List = None) -> None:
-        logger.info('Begin textDocument/hover')
+    def textDocument_hover(self, uri: str, languageId: str,
+                           line: int, character: int, cbs: List) -> None:
+        logger.info("Begin textDocument/hover")
 
         self.textDocument_didChange()
 
         if cbs is None:
             cbs = [self.handleTextDocumentHoverResponse, self.handleError]
 
-        self.rpc[languageId].call('textDocument/hover', {
+        self.rpc[languageId].call("textDocument/hover", {
             "textDocument": {
                 "uri": uri
             },
@@ -424,21 +416,20 @@ class LanguageClient:
 
         value = ""
         if isinstance(contents, list):
-            for markedString in result['contents']:
+            for markedString in contents:
                 value += self.markedStringToString(markedString)
         else:
             value += self.markedStringToString(contents)
         self.asyncEcho(value)
 
-        logger.info('End textDocument/hover')
+        logger.info("End textDocument/hover")
 
-    @neovim.function('LanguageClient_textDocument_definition')
+    @neovim.function("LanguageClient_textDocument_definition")
     @args()
     def textDocument_definition(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            bufnames: str = None, cbs: List = None) -> None:
-        logger.info('Begin textDocument/definition')
+            self, uri: str, languageId: str, line: int, character: int,
+            bufnames: str, cbs: List) -> None:
+        logger.info("Begin textDocument/definition")
 
         self.textDocument_didChange()
 
@@ -447,7 +438,7 @@ class LanguageClient:
                            bufnames=bufnames),
                    self.handleError]
 
-        self.rpc[languageId].call('textDocument/definition', {
+        self.rpc[languageId].call("textDocument/definition", {
             "textDocument": {
                 "uri": uri
             },
@@ -475,21 +466,19 @@ class LanguageClient:
             defn = result
         path = uriToPath(defn["uri"])
         cmd = getGotoFileCommand(path, bufnames)
-        line = defn['range']['start']['line'] + 1
-        character = defn['range']['start']['character'] + 1
+        line = defn["range"]["start"]["line"] + 1
+        character = defn["range"]["start"]["character"] + 1
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 
-        logger.info('End textDocument/definition')
+        logger.info("End textDocument/definition")
 
-    @neovim.function('LanguageClient_textDocument_rename')
+    @neovim.function("LanguageClient_textDocument_rename")
     @args()
     def textDocument_rename(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            cword: str = None, newName: str = None,
-            bufnames: List[str] = None, cbs: List = None) -> None:
-        logger.info('Begin textDocument/rename')
+            self, uri: str, languageId: str, line: int, character: int,
+            cword: str, newName: str, bufnames: List[str], cbs: List) -> None:
+        logger.info("Begin textDocument/rename")
 
         self.textDocument_didChange()
 
@@ -506,7 +495,7 @@ class LanguageClient:
                            bufnames=bufnames),
                    self.handleError]
 
-        self.rpc[languageId].call('textDocument/rename', {
+        self.rpc[languageId].call("textDocument/rename", {
             "textDocument": {
                 "uri": uri
             },
@@ -520,16 +509,15 @@ class LanguageClient:
     def handleTextDocumentRenameResponse(
             self, result: Dict,
             curPos: Dict, bufnames: List) -> None:
-        changes = result['changes']
+        changes = result["changes"]
         self.applyChanges(changes, curPos, bufnames)
-        logger.info('End textDocument/rename')
+        logger.info("End textDocument/rename")
 
-    @neovim.function('LanguageClient_textDocument_documentSymbol')
+    @neovim.function("LanguageClient_textDocument_documentSymbol")
     @args()
     def textDocument_documentSymbol(
-            self, uri: str = None, languageId: str = None,
-            sync: bool = None, cbs: List = None) -> None:
-        logger.info('Begin textDocument/documentSymbol')
+            self, uri: str, languageId: str, sync: bool, cbs: List) -> None:
+        logger.info("Begin textDocument/documentSymbol")
 
         self.textDocument_didChange()
 
@@ -538,7 +526,7 @@ class LanguageClient:
                            uri=uri),
                    self.handleError]
 
-        return self.rpc[languageId].call('textDocument/documentSymbol', {
+        return self.rpc[languageId].call("textDocument/documentSymbol", {
             "textDocument": {
                 "uri": uri
             }
@@ -587,20 +575,19 @@ call fzf#run(fzf#wrap({{
             self.asyncEcho(msg)
             logger.warn(msg)
 
-        logger.info('End textDocument/documentSymbol')
+        logger.info("End textDocument/documentSymbol")
 
-    @neovim.function('LanguageClient_FZFSinkTextDocumentDocumentSymbol')
+    @neovim.function("LanguageClient_FZFSinkTextDocumentDocumentSymbol")
     def fzfSinkTextDocumentDocumentSymbol(self, args: List) -> None:
         splitted = args[0].split(":")
         line = splitted[0]
         character = splitted[1]
         self.asyncCommand("normal! {}G{}|".format(line, character))
 
-    @neovim.function('LanguageClient_workspace_symbol')
+    @neovim.function("LanguageClient_workspace_symbol")
     @args()
-    def workspace_symbol(
-            self, languageId: str = None, query: str = None,
-            sync: bool = None, cbs: List = None) -> None:
+    def workspace_symbol(self, languageId: str, query: str,
+                         sync: bool, cbs: List) -> None:
         logger.info("Begin workspace/symbol")
 
         if query is None:
@@ -609,7 +596,7 @@ call fzf#run(fzf#wrap({{
             cbs = [self.handleWorkspaceSymbolResponse,
                    self.handleError]
 
-        return self.rpc[languageId].call('workspace/symbol', {
+        return self.rpc[languageId].call("workspace/symbol", {
             "query": query
         }, cbs)
 
@@ -650,7 +637,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_FZFSinkWorkspaceSymbol")
     def fzfSinkWorkspaceSymbol(self, args: List):
-        bufnames, = self.getArgs(["bufnames"], [], {})
+        bufnames, = self.getArgs(["bufnames"])
 
         splitted = args[0].split(":")
         path = uriToPath(os.path.join(self.rootUri, splitted[0]))
@@ -661,12 +648,11 @@ call fzf#run(fzf#wrap({{
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 
-    @neovim.function('LanguageClient_textDocument_references')
+    @neovim.function("LanguageClient_textDocument_references")
     @args()
     def textDocument_references(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            sync: bool = None, cbs: List = None) -> None:
+            self, uri: str, languageId: str, line: int, character: int,
+            sync: bool, cbs: List) -> None:
         logger.info("Begin textDocument/references")
 
         self.textDocument_didChange()
@@ -675,7 +661,7 @@ call fzf#run(fzf#wrap({{
             cbs = [self.handleTextDocumentReferencesResponse,
                    self.handleError]
 
-        return self.rpc[languageId].call('textDocument/references', {
+        return self.rpc[languageId].call("textDocument/references", {
             "textDocument": {
                 "uri": uri,
             },
@@ -721,7 +707,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")
     def fzfSinkTextDocumentReferences(self, args: List) -> None:
-        bufnames, = self.getArgs(["bufnames"], [], {})
+        bufnames, = self.getArgs(["bufnames"])
 
         splitted = args[0].split(":")
         path = uriToPath(os.path.join(self.rootUri, splitted[0]))
@@ -751,8 +737,7 @@ call fzf#run(fzf#wrap({{
         self.textDocument_didChange()
 
     @args(warn=False)
-    def textDocument_didChange(
-            self, uri: str = None, languageId: str = None) -> None:
+    def textDocument_didChange(self, uri: str, languageId: str) -> None:
         logger.info("textDocument/didChange")
 
         if not uri or languageId not in self.serverCommands:
@@ -777,8 +762,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.autocmd("BufWritePost", pattern="*")
     @args(warn=False)
-    def textDocument_didSave(
-            self, uri: str = None, languageId: str = None) -> None:
+    def textDocument_didSave(self, uri: str, languageId: str) -> None:
         logger.info("textDocument/didSave")
 
         if languageId not in self.serverCommands:
@@ -793,14 +777,13 @@ call fzf#run(fzf#wrap({{
     @neovim.function("LanguageClient_textDocument_completion")
     @args(warn=False)
     def textDocument_completion(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            cbs: List = None) -> List:
+            self, uri: str, languageId: str, line: int, character: int,
+            cbs: List) -> List:
         logger.info("Begin textDocument/completion")
 
         self.textDocument_didChange()
 
-        items = self.rpc[languageId].call('textDocument/completion', {
+        items = self.rpc[languageId].call("textDocument/completion", {
             "textDocument": {
                 "uri": uri
             },
@@ -819,41 +802,17 @@ call fzf#run(fzf#wrap({{
         return items
 
     @neovim.function("LanguageClient_textDocument_completionOmnifunc")
-    @args(warn=False)
-    def textDocument_completionOmnifunc(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            completeFromColumn: int = None,
-            cbs: List = None):
-        logger.info("Begin textDocument/completionOmnifunc")
-
-        self.textDocument_didChange()
-
-        items = self.rpc[languageId].call('textDocument/completion', {
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            }
-        }, cbs)
-
-        if items is None:
-            items = []   # timeout
-
-        if isinstance(items, dict):  # CompletionList object
-            items = items["items"]
-
+    @args()
+    def textDocument_completionOmnifunc(self, completeFromColumn: int) -> None:
+        items = self.textDocument_completion()
         matches = [convert_lsp_completion_item_to_vim_style(item)
                    for item in items]
-
-        self.nvim.call('complete', completeFromColumn, matches)
+        self.nvim.funcs.complete(completeFromColumn, matches)
 
     # this method is called by nvim-completion-manager framework
     @neovim.function("LanguageClient_completionManager_refresh")
     def completionManager_refresh(self, args) -> None:
-        languageId, = self.getArgs(["languageId"], [], {})
+        languageId, = self.getArgs(["languageId"])
         if not self.alive(languageId, False):
             return
         logger.info("completionManager_refresh: %s", args)
@@ -867,9 +826,7 @@ call fzf#run(fzf#wrap({{
         args["line"] = ctx["lnum"] - 1
         args["character"] = ctx["col"] - 1
 
-        uri, languageId, line, character = self.getArgs(
-            ["uri", "languageId", "line", "character"],
-            [], {})
+        uri, line, character = self.getArgs(["uri", "line", "character"])
 
         logger.info("uri[%s] line[%s] character[%s]", uri, line, character)
 
@@ -907,7 +864,7 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_exit")
     @args()
-    def exit(self, languageId: str = None) -> None:
+    def exit(self, languageId: str) -> None:
         logger.info("exit")
 
         self.rpc[languageId].notify("exit", {})
@@ -915,7 +872,7 @@ call fzf#run(fzf#wrap({{
     def textDocument_publishDiagnostics(self, params) -> None:
         uri = params["uri"]
         diagnostics = {}
-        for entry in params['diagnostics']:
+        for entry in params["diagnostics"]:
             line = entry["range"]["start"]["line"]
             diagnostics[line] = entry
         self.diagnostics[uri] = diagnostics
@@ -1006,8 +963,7 @@ call fzf#run(fzf#wrap({{
     @neovim.function("LanguageClient_completionItem/resolve")
     @args()
     def completionItem_resolve(
-            self, completionItem: Dict = None,
-            languageId: str = None, cbs: List = None) -> None:
+            self, completionItem: Dict, languageId: str, cbs: List) -> None:
         logger.info("Begin completionItem/resolve")
         if cbs is None:
             cbs = [self.handleCompletionItemResolveResponse,
@@ -1024,9 +980,8 @@ call fzf#run(fzf#wrap({{
     @neovim.function("LanguageClient_textDocument_signatureHelp")
     @args()
     def textDocument_signatureHelp(
-            self, uri: str = None, languageId: str = None,
-            line: int = None, character: int = None,
-            cbs: List = None) -> None:
+            self, uri: str, languageId: str, line: int, character: int,
+            cbs: List) -> None:
         logger.info("Begin textDocument/signatureHelp")
 
         self.textDocument_didChange()
@@ -1050,9 +1005,8 @@ call fzf#run(fzf#wrap({{
 
     @args()
     def textDocument_codeAction(
-            self, uri: str = None, languageId: str = None,
-            range: Dict = None, context: Dict = None,
-            cbs: List = None) -> None:
+            self, uri: str, languageId: str, range: Dict, context: Dict,
+            cbs: List) -> None:
         logger.info("Begin textDocument/codeAction")
 
         self.textDocument_didChange()
@@ -1092,14 +1046,14 @@ call fzf#run(fzf#wrap({{
         self.asyncEchomsg(msg)
 
     def handleRequestOrNotification(self, message) -> None:
-        method = message['method'].replace('/', '_')
+        method = message["method"].replace("/", "_")
         if hasattr(self, method):
             try:
-                getattr(self, method)(message['params'])
+                getattr(self, method)(message["params"])
             except Exception:
                 logger.exception("Exception in handle.")
         else:
-            logger.warn('no handler implemented for ' + method)
+            logger.warn("no handler implemented for " + method)
 
     def handleError(self, message) -> None:
         self.asyncEcho(json.dumps(message))
