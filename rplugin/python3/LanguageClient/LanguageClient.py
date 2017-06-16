@@ -70,6 +70,12 @@ class LanguageClient:
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
 
+    def currentBufferText(self) -> str:
+        text = str.join("\n", self.nvim.current.buffer)
+        if self.nvim.current.buffer.options['endofline']:
+            text += "\n"
+        return text
+
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
 
@@ -351,7 +357,7 @@ class LanguageClient:
 
         logger.info("textDocument/didOpen")
 
-        text = str.join("\n", self.nvim.current.buffer)
+        text = self.currentBufferText()
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
         self.textDocuments[uri] = textDocumentItem
@@ -744,7 +750,7 @@ call fzf#run(fzf#wrap({{
             return
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
-        newText = str.join("\n", self.nvim.current.buffer)
+        newText = self.currentBufferText()
         text_doc = self.textDocuments[uri]
         if newText == text_doc.text:
             return
