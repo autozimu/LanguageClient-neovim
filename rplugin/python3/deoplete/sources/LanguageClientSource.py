@@ -12,6 +12,9 @@ from LanguageClient import CompletionItemKind  # noqa: E402
 from LanguageClient import logger  # noqa: F401
 
 
+def simplify_snippet(snip: str) -> str:
+    return re.sub(r'(?<!\\)\$\d+', '', snip)
+
 class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
@@ -40,7 +43,12 @@ class Source(Base):
         self.__errors[contextid] = error
 
     def convertToDeopleteCandidate(self, item):
-        cand = {"word": item.get("insertText", item["label"]), "abbr": item["label"]}
+        word = item.get("insertText", item["label"])
+        if "textEdit" in item:
+            word = item["textEdit"].get("newText", word)
+        if item.get("insertTextFormat", 0) == 2: # snippet
+            word = simplify_snippet(word)
+        cand = {"word": word, "abbr": item["label"]}
         if "kind" in item:
             cand["kind"] = '[{}]'.format(CompletionItemKind[item["kind"]])
         if "documentation" in item:
