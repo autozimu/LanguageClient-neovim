@@ -1051,6 +1051,22 @@ call fzf#run(fzf#wrap({{
         msg = "{} {}".format(params["type"], params["message"])
         self.asyncEchomsg(msg)
 
+    # Extension in Rust language server.
+    def rustDocument_diagnosticsBegin(self, params: Dict) -> None:
+        self.asyncCommand("""
+            if exists('g:LanguageClient_diagnosticsHandler')
+                call g:LanguageClient_diagnosticsHandler(v:true)
+            endif
+        """)
+
+    # Extension in Rust language server.
+    def rustDocument_diagnosticsEnd(self, params: Dict) -> None:
+        self.asyncCommand("""
+            if exists('g:LanguageClient_diagnosticsHandler')
+                call g:LanguageClient_diagnosticsHandler(v:false)
+            endif
+        """)
+
     def handleRequestOrNotification(self, message) -> None:
         method = message["method"].replace("/", "_")
         if hasattr(self, method):
