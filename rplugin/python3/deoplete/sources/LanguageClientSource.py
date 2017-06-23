@@ -29,13 +29,6 @@ class Source(Base):
         self.__results = {}
         self.__errors = {}
 
-    def get_complete_position(self, context):
-        m = re.search('\w*$', context['input'])
-        if m:
-            return m.start()
-        else:
-            return -1
-
     def handleCompletionResult(self, items, contextid):
         self.__results[contextid] = items
 
