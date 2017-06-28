@@ -219,6 +219,8 @@ class LanguageClient:
             "LanguageClient_selectionUI")
         self.trace = self.nvim.vars.get(
             "LanguageClient_trace", "off")
+        self.diagnosticsEnable = self.nvim.vars.get(
+            "LanguageClient_diagnosticsEnable", True)
         self.diagnosticsList = self.nvim.vars.get(
                 "LanguageClient_diagnosticsList", "quickfix")
         if not self.selectionUI:
@@ -876,6 +878,9 @@ call fzf#run(fzf#wrap({{
         self.rpc[languageId].notify("exit", {})
 
     def textDocument_publishDiagnostics(self, params) -> None:
+        if not self.diagnosticsEnable:
+            return
+
         uri = params["uri"]
         diagnostics = {}
         for entry in params["diagnostics"]:

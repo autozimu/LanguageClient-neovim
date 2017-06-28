@@ -138,6 +138,13 @@ List used to fill diagnostic messages.
 Default: "quickfix"
 Valid options: "quickfix" | "location" | ""
 
+2.9 g:LanguageClient_diagnosticsEnable    *g:LanguageClient_diagnosticsEnable*
+
+Set if diagnostics integration is enabled.
+
+Default: 1
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
