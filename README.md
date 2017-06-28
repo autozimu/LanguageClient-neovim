@@ -10,15 +10,15 @@ More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/Lan
 # Features
 
 - Non-blocking asynchronous calls.
-- [Sensible completion](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#completion).
+- [Sensible completion](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731936).
   Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim) 
   or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager).
-- [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#diagnostics)
-- [Rename.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#rename)
-- [Get identifer info.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#hover)
-- [Goto definition.](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#goto-definition)
+- [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288732042)
+- [Rename.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731403)
+- [Get identifer info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)
+- [Goto definition.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731744)
 - Goto reference locations.
-- [Workspace/Document symbols query](https://github.com/autozimu/images/tree/master/LanguageClient-neovim#symbols).
+- [Workspace/Document symbols query](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731839).
 
 (Note: Most of the functionality are provided by language servers. Specific
 language servers may implement only a subset of the features, see
