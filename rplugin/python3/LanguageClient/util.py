@@ -49,7 +49,7 @@ def getRootPath(filepath: str, languageId: str) -> str:
     if not rootPath:
         msg = "Unknown project type. Fallback to use dir as project root."
         logger.warn(msg)
-        rootPath = os.path.dirname(filepath)
+        rootPath = os.getcwd()
     return rootPath
 
 
