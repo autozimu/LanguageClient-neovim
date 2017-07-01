@@ -141,6 +141,9 @@ class LanguageClient:
     def applyChanges(
             self, changes: Dict,
             curPos: Dict, bufnames: List) -> None:
+        """
+        Only suitable for changes of word. Not for paragraph etc.
+        """
         cmd = "echo ''"
         for uri, edits in changes.items():
             path = uriToPath(uri)
@@ -155,6 +158,7 @@ class LanguageClient:
             uriToPath(curPos["uri"]),
             curPos["line"] + 1,
             curPos["character"] + 1)
+        # logger.info(cmd)
         self.asyncCommand(cmd)
 
     @neovim.function("LanguageClient_alive", sync=True)
@@ -1036,6 +1040,48 @@ call fzf#run(fzf#wrap({{
         # TODO: proper integration.
         self.asyncEcho(json.dumps(result))
         logger.info("End textDocument/codeAction")
+
+    @neovim.function("LanguageClient_textDocument_formatting")
+    @args()
+    def textDocument_formatting(
+            self, languageId: str, uri: str, line: int, character: int,
+            bufnames: List[str], cbs: List) -> None:
+        logger.info("Begin textDocument/formatting")
+
+        self.textDocument_didChange()
+
+        if cbs is None:
+            cbs = [partial(self.handleTextDocumentFormatting,
+                           curPos={
+                               "line": line,
+                               "character": character,
+                               "uri": uri,
+                           },
+                           bufnames=bufnames),
+                   self.handleError]
+
+        options = {
+            "tabSize": self.nvim.options["tabstop"],
+            "insertSpaces": self.nvim.options["expandtab"],
+        }
+
+        self.rpc[languageId].call("textDocument/formatting", {
+            "textDocument": {
+                "uri": uri,
+            },
+            "options": options,
+        }, cbs)
+
+    def handleTextDocumentFormatting(
+            self, textEdits: List, curPos: Dict, bufnames: List[str]) -> None:
+        assert len(textEdits) == 1
+        newText = textEdits[0]["newText"]
+
+        def setBufferContent(newText):
+            self.nvim.current.buffer[:] = newText.split("\n")
+
+        self.nvim.async_call(setBufferContent, newText)
+        logger.info("End textDocument/formatting")
 
     def telemetry_event(self, params: Dict) -> None:
         if params.get("type") == "log":
