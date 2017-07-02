@@ -221,6 +221,11 @@ Set the plugin logging level. By default, only errors are logged into
 
 Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
 
+4.9 LanguageClient_textDocument_formatting()
+*LanguageClient_textDocument_formatting*
+
+Format current document.
+
 ==============================================================================
 5. License                                             *LanguageClientLicense*
 
