@@ -15,6 +15,7 @@ from LanguageClient import logger  # noqa: F401
 def simplify_snippet(snip: str) -> str:
     return re.sub(r'(?<!\\)\$\d+', '', snip)
 
+
 class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
@@ -39,7 +40,7 @@ class Source(Base):
         word = item.get("insertText", item["label"])
         if "textEdit" in item:
             word = item["textEdit"].get("newText", word)
-        if item.get("insertTextFormat", 0) == 2: # snippet
+        if item.get("insertTextFormat", 0) == 2:  # snippet
             word = simplify_snippet(word)
         cand = {"word": word, "abbr": item["label"]}
         if "kind" in item:
