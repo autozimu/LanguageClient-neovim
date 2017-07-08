@@ -2,11 +2,19 @@
 
 Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package)!
 
-# 2. Install python-neovim
-
+# 2. Install python modules
+## python-neovim
 Run following command to install neovim python plugin host:
 ```
 sudo pip3 install --upgrade neovim
+```
+
+## typing
+_Note: Already included in Python version 3.6.0 and later_.
+
+Run following command to install `typing` module:
+```
+sudo pip3 install --upgrade typing
 ```
 
 # 3. Install this plugin
