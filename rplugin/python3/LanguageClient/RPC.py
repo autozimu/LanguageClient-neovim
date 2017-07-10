@@ -22,7 +22,7 @@ class RPC:
         return mid
 
     def message(self, contentDict: Dict[str, Any]) -> None:
-        content = json.dumps(contentDict)
+        content = json.dumps(contentDict, separators=(',', ':'))
         message = (
             "Content-Length: {}\r\n\r\n"
             "{}".format(len(content.encode('utf-8')), content)
@@ -42,9 +42,9 @@ class RPC:
 
         contentDict = {
             "jsonrpc": "2.0",
+            "id": mid,
             "method": method,
             "params": params,
-            "id": mid,
         }  # type: Dict[str, Any]
         self.message(contentDict)
 
