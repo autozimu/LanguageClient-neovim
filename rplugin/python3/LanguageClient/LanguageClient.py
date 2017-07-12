@@ -226,7 +226,7 @@ class LanguageClient:
         self.diagnosticsEnable = self.nvim.vars.get(
             "LanguageClient_diagnosticsEnable", True)
         self.diagnosticsList = self.nvim.vars.get(
-                "LanguageClient_diagnosticsList", "quickfix")
+            "LanguageClient_diagnosticsList", "quickfix")
         if not self.selectionUI:
             if self.nvim.vars.get("loaded_fzf") == 1:
                 self.selectionUI = "fzf"
