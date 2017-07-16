@@ -9,7 +9,8 @@ from typing import List, Dict, Union, Any  # noqa: F401
 
 from . util import (
     getRootPath, pathToURI, uriToPath, escape,
-    getGotoFileCommand, getCommandUpdateSigns)
+    getGotoFileCommand, getCommandUpdateSigns,
+    convertVimCommandArgsToKwargs)
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -212,8 +213,8 @@ class LanguageClient:
         serverCommands = args[0]  # Dict[str, str]
         self.serverCommands.update(serverCommands)
 
-    @neovim.command("LanguageClientStart")
-    def start(self, warn=True) -> None:
+    @neovim.command("LanguageClientStart", nargs="*", range="")
+    def start(self, args=None, range=None, warn=True) -> None:
         # Sync settings.
         self.serverCommands.update(self.nvim.vars.get(
             "LanguageClient_serverCommands", {}))
@@ -279,9 +280,13 @@ class LanguageClient:
         if len(self.server) == 1:
             self.defineSigns()
 
+        kwargs = convertVimCommandArgsToKwargs(args)
+        rootPath = kwargs.get("rootPath")
+        # TODO: possibly expand special variables like '%:h'
+
         logger.info("End LanguageClientStart")
 
-        self.initialize(languageId=languageId)
+        self.initialize(rootPath=rootPath, languageId=languageId)
 
     @neovim.command("LanguageClientStop")
     @args()

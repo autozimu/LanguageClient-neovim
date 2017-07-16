@@ -1,7 +1,8 @@
 from . util import (
     joinPath, getRootPath, pathToURI, uriToPath, escape,
     getGotoFileCommand,
-    getCommandAddSign, getCommandDeleteSign, getCommandUpdateSigns)
+    getCommandAddSign, getCommandDeleteSign, getCommandUpdateSigns,
+    convertVimCommandArgsToKwargs)
 from . Sign import Sign
 
 
@@ -65,3 +66,9 @@ def test_getCommandUpdateSigns():
     assert (getCommandUpdateSigns(signs, nextSigns) ==
             "echo | execute('sign place 2 line=2"
             " name=LanguageClientError buffer=1')")
+
+
+def test_convertVimCommandArgsToKwargs():
+    assert convertVimCommandArgsToKwargs(["rootPath=/tmp"]) == {
+        "rootPath": "/tmp"
+    }

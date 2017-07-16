@@ -4,7 +4,7 @@ import glob
 import difflib
 from urllib import parse
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from . logger import logger
 from . Sign import Sign
 
@@ -142,3 +142,14 @@ def getCommandUpdateSigns(signs: List[Sign], nextSigns: List[Sign]) -> str:
             logger.error(msg)
 
     return cmd
+
+
+def convertVimCommandArgsToKwargs(args: List[str]) -> Dict:
+    kwargs = {}
+    for arg in args:
+        argarr = arg.split("=")
+        if len(argarr) != 2:
+            logger.warn("Parse vim command arg failed: " + arg)
+            continue
+        kwargs[argarr[0]] = argarr[1]
+    return kwargs
