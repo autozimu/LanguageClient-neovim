@@ -146,10 +146,11 @@ def getCommandUpdateSigns(signs: List[Sign], nextSigns: List[Sign]) -> str:
 
 def convertVimCommandArgsToKwargs(args: List[str]) -> Dict:
     kwargs = {}
-    for arg in args:
-        argarr = arg.split("=")
-        if len(argarr) != 2:
-            logger.warn("Parse vim command arg failed: " + arg)
-            continue
-        kwargs[argarr[0]] = argarr[1]
+    if args:
+      for arg in args:
+          argarr = arg.split("=")
+          if len(argarr) != 2:
+              logger.warn("Parse vim command arg failed: " + arg)
+              continue
+          kwargs[argarr[0]] = argarr[1]
     return kwargs
