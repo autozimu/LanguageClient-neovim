@@ -345,11 +345,18 @@ class LanguageClient:
 
     @neovim.autocmd("BufReadPost", pattern="*")
     def handleBufReadPost(self):
-        languageId, = self.getArgs(["languageId"])
+        logger.info("Begin handleBufReadPost")
+
+        languageId, uri = self.getArgs(["languageId", "uri"])
+        if uri in self.textDocuments:
+            return
+
         if self.alive(languageId, warn=False):
             self.textDocument_didOpen()
         elif self.autoStart:
             self.start(warn=False)
+
+        logger.info("End handleBufReadPost")
 
     @neovim.autocmd("VimEnter", pattern="*")
     def handleVimEnter(self):
@@ -366,7 +373,7 @@ class LanguageClient:
                    " buffer={}").format(bufnumber)
             self.asyncCommand(cmd)
 
-        logger.info("textDocument/didOpen")
+        logger.info("Begin textDocument/didOpen")
 
         text = self.currentBufferText()
 
@@ -381,6 +388,8 @@ class LanguageClient:
                 "text": textDocumentItem.text,
             }
         })
+
+        logger.info("End textDocument/didOpen")
 
     @neovim.function("LanguageClient_textDocument_didClose")
     @args(warn=False)
