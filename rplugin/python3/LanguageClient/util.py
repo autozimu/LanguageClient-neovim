@@ -56,7 +56,7 @@ def getRootPath(filepath: str, languageId: str) -> str:
 def traverseUp(folder: str, stop) -> str:
     if stop(folder):
         return folder
-    elif folder == "/":
+    elif folder == "/" or folder == "":
         return None
     else:
         return traverseUp(os.path.dirname(folder), stop)
