@@ -9,6 +9,7 @@ from . Sign import Sign
 def test_getRootPath():
     assert (getRootPath(joinPath("tests/sample-rs/src/main.rs"), "rust") ==
             joinPath("tests/sample-rs"))
+    assert (getRootPath("does/not/exists", "") == "does/not")
 
 
 def test_pathToURI():
