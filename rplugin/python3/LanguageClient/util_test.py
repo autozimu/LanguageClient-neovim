@@ -73,3 +73,7 @@ def test_convertVimCommandArgsToKwargs():
     assert convertVimCommandArgsToKwargs(["rootPath=/tmp"]) == {
         "rootPath": "/tmp"
     }
+
+    assert convertVimCommandArgsToKwargs([]) == {}
+
+    assert convertVimCommandArgsToKwargs(None) == {}
