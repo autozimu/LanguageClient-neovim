@@ -744,23 +744,21 @@ call fzf#run(fzf#wrap({{
         cmd += "| normal! {}G{}|".format(line, character)
         self.asyncCommand(cmd)
 
-    @neovim.autocmd("TextChanged", pattern="*")
-    def textDocument_autocmdTextChanged(self):
-        uri = pathToURI(self.nvim.current.buffer.name)
-        if uri and uri in self.textDocuments:
-            text_doc = self.textDocuments[uri]
-            if text_doc.skip_change(self.changeThreshold):
-                return
+    @neovim.autocmd("TextChanged", pattern="*",
+                    eval='fnamemodify(expand("<afile>"), ":p")')
+    def handleTextChanged(self, filename) -> None:
+        uri = pathToURI(filename)
+        if not uri or uri not in self.textDocuments:
+            return
+        text_doc = self.textDocuments[uri]
+        if text_doc.skip_change(self.changeThreshold):
+            return
         self.textDocument_didChange()
 
-    @neovim.autocmd("TextChangedI", pattern="*")
-    def textDocument_autocmdTextChangedI(self):
-        uri = pathToURI(self.nvim.current.buffer.name)
-        if uri and uri in self.textDocuments:
-            text_doc = self.textDocuments[uri]
-            if text_doc.skip_change(self.changeThreshold):
-                return
-        self.textDocument_didChange()
+    @neovim.autocmd("TextChangedI", pattern="*",
+                    eval='fnamemodify(expand("<afile>"), ":p")')
+    def handleTextChangedI(self, filename):
+        self.handleTextChanged(filename)
 
     @args(warn=False)
     def textDocument_didChange(self, uri: str, languageId: str) -> None:
