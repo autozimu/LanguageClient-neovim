@@ -328,7 +328,7 @@ class LanguageClient:
 
         trigger_patterns = []
         for c in completionProvider.get("triggerCharacters", []):
-            trigger_patterns.append(re.escape(c) + '$')
+            trigger_patterns.append(re.escape(c))
 
         try:
             self.nvim.call('cm#register_source', dict(
