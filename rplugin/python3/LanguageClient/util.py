@@ -89,7 +89,7 @@ def pathToURI(filepath: str) -> str:
 
 
 def uriToPath(uri: str) -> str:
-    return parse.urlparse(uri).path
+    return parse.unquote(parse.urlparse(uri).path)
 
 
 def escape(string: str) -> str:
