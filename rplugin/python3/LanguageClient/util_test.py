@@ -21,9 +21,14 @@ def test_pathToURIRelative():
     assert pathToURI(".") is None
 
 
-def testUriToPath():
+def test_uriToPath():
     assert (uriToPath("file:///tmp/sample-rs/src/main.rs") ==
             "/tmp/sample-rs/src/main.rs")
+
+
+def test_uriToPath_quoted():
+    assert (uriToPath("file:///tmp/node_modules/%40types/node/index.d.ts") ==
+            "/tmp/node_modules/@types/node/index.d.ts")
 
 
 def test_escape():
