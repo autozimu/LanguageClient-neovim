@@ -36,15 +36,15 @@ def test_escape():
 
 
 def test_getGotoFileCommand():
-    assert getGotoFileCommand("/tmp/sample", [
-        "/tmp/sample",
+    assert getGotoFileCommand("/tmp/+some str%nge|name", [
+        "/tmp/+some str%nge|name",
         "/tmp/somethingelse"
-    ]) == "buffer /tmp/sample"
+    ]) == "exe 'buffer ' . fnameescape('/tmp/+some str%nge|name')"
 
-    assert getGotoFileCommand("/tmp/sample", [
+    assert getGotoFileCommand("/tmp/+some str%nge|name", [
         "/tmp/notsample",
         "/tmp/somethingelse"
-    ]) == "edit /tmp/sample"
+    ]) == "exe 'edit ' . fnameescape('/tmp/+some str%nge|name')"
 
 
 def test_getCommandDeleteSign():
