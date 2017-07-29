@@ -105,9 +105,9 @@ def retry(span, count, condition):
 
 def getGotoFileCommand(path, bufnames) -> str:
     if path in bufnames:
-        return "buffer {}".format(path)
+        return "exe 'buffer ' . fnameescape('{}')".format(path)
     else:
-        return "edit {}".format(path)
+        return "exe 'edit ' . fnameescape('{}')".format(path)
 
 
 def getCommandDeleteSign(sign: Sign) -> str:
