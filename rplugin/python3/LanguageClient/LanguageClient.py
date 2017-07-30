@@ -4,6 +4,7 @@ import subprocess
 import json
 import inspect
 import threading
+import linecache
 from functools import partial
 from typing import List, Dict, Union, Any  # noqa: F401
 
@@ -76,6 +77,16 @@ class LanguageClient:
         if self.nvim.current.buffer.options['endofline']:
             text += "\n"
         return text
+
+    def getFileLine(self, filepath: str, line: int) -> str:
+        modifiedBuffers = (buffer for buffer in self.nvim.buffers if buffer.options["mod"])
+        modifiedBuffer = next((buffer for buffer in modifiedBuffers if buffer.name == filepath), None)
+        if modifiedBuffer != None:
+            lineContent = modifiedBuffer[line - 1]
+            if not(line == len(modifiedBuffer) and not modifiedBuffer.options['endofline']):
+                lineContent += "\n"
+            return lineContent
+        return linecache.getline(filepath, line)
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -702,29 +713,36 @@ call fzf#run(fzf#wrap({{
 
     def handleTextDocumentReferencesResponse(self, locations: List) -> None:
         if self.selectionUI == "fzf":
-            source = []  # type: List[str]
-            for loc in locations:
-                path = os.path.relpath(loc["uri"], self.rootUri)
-                start = loc["range"]["start"]
-                line = start["line"] + 1
-                character = start["character"] + 1
-                entry = "{}:{}:{}".format(path, line, character)
-                source.append(entry)
-            self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+            def setLocationsList():
+                source = []  # type: List[str]
+                for loc in locations:
+                    path = os.path.relpath(loc["uri"], self.rootUri)
+                    start = loc["range"]["start"]
+                    line = start["line"] + 1
+                    character = start["character"] + 1
+                    text = self.getFileLine(uriToPath(loc["uri"]), line).strip()
+                    entry = "{}:{}:{}: {}".format(path, line, character, text)
+                    source.append(entry)
+                self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+            self.nvim.async_call(setLocationsList)
         elif self.selectionUI == "location-list":
-            loclist = []
-            for loc in locations:
-                path = uriToPath(loc["uri"])
-                start = loc["range"]["start"]
-                line = start["line"] + 1
-                character = start["character"] + 1
-                loclist.append({
-                    "filename": path,
-                    "lnum": line,
-                    "col": character
-                })
-            self.nvim.async_call(self.setloclist, loclist)
-            self.asyncEcho("References populated to location list.")
+            def setLocationsList():
+                loclist = []
+                for loc in locations:
+                    path = uriToPath(loc["uri"])
+                    start = loc["range"]["start"]
+                    line = start["line"] + 1
+                    character = start["character"] + 1
+                    text = self.getFileLine(path, line)
+                    loclist.append({
+                        "filename": path,
+                        "lnum": line,
+                        "col": character,
+                        "text": text
+                    })
+                self.nvim.async_call(self.setloclist, loclist)
+                self.asyncEcho("References populated to location list.")
+            self.nvim.async_call(setLocationsList)
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             self.asyncEcho(msg)

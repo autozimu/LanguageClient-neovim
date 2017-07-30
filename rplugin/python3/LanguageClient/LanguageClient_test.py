@@ -1,6 +1,7 @@
 import time
 import neovim
 import pytest
+from collections import Counter
 
 from . util import joinPath
 
@@ -91,6 +92,31 @@ def test_textDocument_references(nvim):
     nvim.input("<CR>")
     time.sleep(2)
     assert nvim.current.window.cursor == [3, 19]
+
+
+def test_textDocument_references_locationListContent(nvim):
+    nvim.command("let g:LanguageClient_selectionUI=\"location-list\"")
+    nvim.command("LanguageClientStart")
+    nvim.current.window.cursor = [8, 3]
+    nvim.funcs.LanguageClient_textDocument_references()
+    time.sleep(3)
+    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn greet() -> i32 {\n", "    println!(\"{}\", greet());\n"]
+    assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
+
+
+def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
+    nvim.command("let g:LanguageClient_selectionUI=\"location-list\"")
+    nvim.command("LanguageClientStart")
+    nvim.current.window.cursor = [8, 3]
+    nvim.input('iabc')
+    time.sleep(0.5)
+    nvim.funcs.LanguageClient_textDocument_references()
+    time.sleep(3)
+    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn abcgreet() -> i32 {\n"]
+    assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
+    nvim.command("edit! {}".format(MAINRS_PATH))
 
 
 def test_textDocument_didChange(nvim):
