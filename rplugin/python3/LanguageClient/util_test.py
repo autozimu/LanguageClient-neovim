@@ -2,7 +2,7 @@ from . util import (
     joinPath, getRootPath, pathToURI, uriToPath, escape,
     getGotoFileCommand,
     getCommandAddSign, getCommandDeleteSign, getCommandUpdateSigns,
-    convertVimCommandArgsToKwargs)
+    convertVimCommandArgsToKwargs, apply_TextEdit)
 from . Sign import Sign
 
 
@@ -82,3 +82,32 @@ def test_convertVimCommandArgsToKwargs():
     assert convertVimCommandArgsToKwargs([]) == {}
 
     assert convertVimCommandArgsToKwargs(None) == {}
+
+
+def test_apply_TextEdit():
+    text = """fn main() {
+0;
+}
+""".split("\n")
+    expectedText = """fn main() {
+    0;
+}
+""".split("\n")
+    newText = """fn main() {
+    0;
+}
+"""
+    textEdit = {
+        "range": {
+            "start": {
+                "line": 0,
+                "character": 0,
+            },
+            "end": {
+                "line": 3,
+                "character": 0,
+            },
+        },
+        "newText": newText,
+    }
+    assert apply_TextEdit(text, textEdit) == expectedText

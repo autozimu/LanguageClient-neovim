@@ -10,7 +10,7 @@ from typing import List, Dict, Union, Any  # noqa: F401
 from . util import (
     getRootPath, pathToURI, uriToPath, escape,
     getGotoFileCommand, getCommandUpdateSigns,
-    convertVimCommandArgsToKwargs)
+    convertVimCommandArgsToKwargs, apply_TextEdit)
 from . logger import logger
 from . RPC import RPC
 from . TextDocumentItem import TextDocumentItem
@@ -1086,13 +1086,14 @@ call fzf#run(fzf#wrap({{
 
     def handleTextDocumentFormatting(
             self, textEdits: List, curPos: Dict, bufnames: List[str]) -> None:
-        assert len(textEdits) == 1
-        newText = textEdits[0]["newText"]
 
-        def setBufferContent(newText):
-            self.nvim.current.buffer[:] = newText.split("\n")
+        def updateBufferContent():
+            text = self.nvim.current.buffer[:]
+            for textEdit in textEdits:
+                text = apply_TextEdit(text, textEdit)
+            self.nvim.current.buffer[:] = text
 
-        self.nvim.async_call(setBufferContent, newText)
+        self.nvim.async_call(updateBufferContent)
         logger.info("End textDocument/formatting")
 
     def telemetry_event(self, params: Dict) -> None:

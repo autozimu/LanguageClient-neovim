@@ -154,3 +154,18 @@ def convertVimCommandArgsToKwargs(args: List[str]) -> Dict:
                 continue
             kwargs[argarr[0]] = argarr[1]
     return kwargs
+
+
+def apply_TextEdit(textList: List[str], textEdit) -> List[str]:
+    startLine = textEdit["range"]["start"]["line"]
+    startCharacter = textEdit["range"]["start"]["character"]
+    endLine = textEdit["range"]["end"]["line"]
+    endCharacter = textEdit["range"]["end"]["character"]
+    newText = textEdit["newText"]
+
+    text = "".join(textList)
+    startIndex = (sum(map(len, textList[:startLine])) + startLine +
+                  startCharacter)
+    endIndex = sum(map(len, textList[:endLine])) + endLine + endCharacter
+    text = text[:startIndex] + newText + text[endIndex + 1:]
+    return text.split("\n")
