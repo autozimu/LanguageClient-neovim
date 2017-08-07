@@ -60,7 +60,7 @@ class LanguageClient:
         self.server = {}  # type: Dict[str, subprocess.Popen]
         self.rpc = {}  # type: Dict[str, RPC]
         self.capabilities = {}
-        self.rootUri = None
+        self.rootUri = {}
         self.textDocuments = {}  # type: Dict[str, TextDocumentItem]
         self.diagnostics = {}
         self.lastLine = -1
@@ -314,14 +314,14 @@ class LanguageClient:
         if rootPath is None:
             rootPath = getRootPath(self.nvim.current.buffer.name, languageId)
         logger.info("rootPath: " + rootPath)
-        self.rootUri = pathToURI(rootPath)
+        self.rootUri[languageId] = pathToURI(rootPath)
         if cbs is None:
             cbs = [self.handleInitializeResponse, self.handleError]
 
         self.rpc[languageId].call("initialize", {
             "processId": os.getpid(),
             "rootPath": rootPath,
-            "rootUri": self.rootUri,
+            "rootUri": self.rootUri[languageId],
             "capabilities": {},
             "trace": self.trace,
         }, cbs)
@@ -359,6 +359,11 @@ class LanguageClient:
         logger.info("Begin handleBufReadPost")
 
         languageId, uri = self.getArgs(["languageId", "uri"])
+        if not uri:
+            return
+        if (self.rootUri.get(languageId)
+                and not uri.startswith(self.rootUri[languageId])):
+            return
         if uri in self.textDocuments:
             return
 
@@ -630,18 +635,19 @@ call fzf#run(fzf#wrap({{
         if query is None:
             query = ""
         if not sync and not cbs:
-            cbs = [self.handleWorkspaceSymbolResponse,
+            cbs = [partial(self.handleWorkspaceSymbolResponse,
+                           languageId=languageId),
                    self.handleError]
 
         return self.rpc[languageId].call("workspace/symbol", {
             "query": query
         }, cbs)
 
-    def handleWorkspaceSymbolResponse(self, symbols: list) -> None:
+    def handleWorkspaceSymbolResponse(self, symbols: list, languageId: str) -> None:
         if self.selectionUI == "fzf":
             source = []
             for sb in symbols:
-                path = os.path.relpath(sb["location"]["uri"], self.rootUri)
+                path = os.path.relpath(sb["location"]["uri"], self.rootUri[languageId])
                 start = sb["location"]["range"]["start"]
                 line = start["line"] + 1
                 character = start["character"] + 1
@@ -674,10 +680,10 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_FZFSinkWorkspaceSymbol")
     def fzfSinkWorkspaceSymbol(self, args: List):
-        bufnames, = self.getArgs(["bufnames"])
+        bufnames, languageId = self.getArgs(["bufnames", "languageId"])
 
         splitted = args[0].split(":")
-        path = uriToPath(os.path.join(self.rootUri, splitted[0]))
+        path = uriToPath(os.path.join(self.rootUri[languageId], splitted[0]))
         line = splitted[1]
         character = splitted[2]
 
@@ -695,7 +701,8 @@ call fzf#run(fzf#wrap({{
         self.textDocument_didChange()
 
         if not sync and not cbs:
-            cbs = [self.handleTextDocumentReferencesResponse,
+            cbs = [partial(self.handleTextDocumentReferencesResponse,
+                           languageId=languageId),
                    self.handleError]
 
         return self.rpc[languageId].call("textDocument/references", {
@@ -711,12 +718,13 @@ call fzf#run(fzf#wrap({{
             },
         }, cbs)
 
-    def handleTextDocumentReferencesResponse(self, locations: List) -> None:
+    def handleTextDocumentReferencesResponse(self, locations: List, languageId: str) -> None:
+        logger.error("Handling response")
         if self.selectionUI == "fzf":
             def setLocationsList():
                 source = []  # type: List[str]
                 for loc in locations:
-                    path = os.path.relpath(loc["uri"], self.rootUri)
+                    path = os.path.relpath(loc["uri"], self.rootUri[languageId])
                     start = loc["range"]["start"]
                     line = start["line"] + 1
                     character = start["character"] + 1
@@ -751,10 +759,10 @@ call fzf#run(fzf#wrap({{
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")
     def fzfSinkTextDocumentReferences(self, args: List) -> None:
-        bufnames, = self.getArgs(["bufnames"])
+        bufnames, languageId = self.getArgs(["bufnames", "languageId"])
 
         splitted = args[0].split(":")
-        path = uriToPath(os.path.join(self.rootUri, splitted[0]))
+        path = uriToPath(os.path.join(self.rootUri[languageId], splitted[0]))
         line = splitted[1]
         character = splitted[2]
 
