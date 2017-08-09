@@ -506,6 +506,10 @@ class LanguageClient:
             defn = result[0]
         else:
             defn = result
+        if not defn["uri"].startswith("file:///"):
+            self.asyncEcho(
+                "{}:{}".format(defn["uri"], defn["range"]["start"]["line"]))
+            return
         path = uriToPath(defn["uri"])
         cmd = getGotoFileCommand(path, bufnames)
         line = defn["range"]["start"]["line"] + 1
