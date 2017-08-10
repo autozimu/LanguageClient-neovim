@@ -1,6 +1,10 @@
 #!/bin/sh
 # Tee server stdio into log file.
 
+if test -z "$TMP"; then
+    TMP=/tmp
+fi
+
 LOG="$TMP/LanguageClient.log"
 
 # tee -a $LOG | RUST_LOG=rls rustup run nightly rls 2>>$LOG | tee -a $LOG

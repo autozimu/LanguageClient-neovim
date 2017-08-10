@@ -2,7 +2,7 @@ import logging
 import os
 
 logger = logging.getLogger("LanguageClient")
-filename = os.environ['TMP'] + "/LanguageClient.log"
+filename = os.getenv('TMP', '/tmp') + "/LanguageClient.log"
 fileHandler = logging.FileHandler(filename)
 fileHandler.setFormatter(
     logging.Formatter(
