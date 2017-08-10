@@ -217,7 +217,7 @@ nvim-completion-manager are supported), completion should work out of the box.
 *LanguageClient_setLoggingLevel*
 
 Set the plugin logging level. By default, only errors are logged into
-/tmp/LanguageClient.log.
+/tmp/LanguageClient.log (%TMP%/LanguageClient.log for Windows).
 
 Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
 

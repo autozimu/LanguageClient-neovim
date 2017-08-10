@@ -2,8 +2,13 @@
 
 set -o verbose
 
+if [[ -z "$TMP" ]]; then
+    TMP=/tmp
+fi
+LOG="$TMP"/LanguageClient.log
+
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
-cat /dev/null > /tmp/LanguageClient.log
+cat /dev/null > $LOG
 rm -rf LanguageClient/__pycache__
 
 nvim +UpdateRemotePlugins +qall
@@ -13,7 +18,7 @@ sleep 1s
 
 py.test-3 --capture=no --exitfirst $@
 ret=$?
-cat /tmp/LanguageClient.log
+cat $LOG
 
 kill $PID
 exit $ret
