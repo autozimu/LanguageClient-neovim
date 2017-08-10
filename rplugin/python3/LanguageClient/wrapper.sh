@@ -1,7 +1,7 @@
 #!/bin/sh
 # Tee server stdio into log file.
 
-LOG=/tmp/LanguageClient.log
+LOG="$TMP/LanguageClient.log"
 
 # tee -a $LOG | RUST_LOG=rls rustup run nightly rls 2>>$LOG | tee -a $LOG
 

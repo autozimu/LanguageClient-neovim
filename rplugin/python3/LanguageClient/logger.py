@@ -1,7 +1,9 @@
 import logging
+import os
 
 logger = logging.getLogger("LanguageClient")
-fileHandler = logging.FileHandler(filename="/tmp/LanguageClient.log")
+filename = os.environ['TMP'] + "/LanguageClient.log"
+fileHandler = logging.FileHandler(filename)
 fileHandler.setFormatter(
     logging.Formatter(
         "%(asctime)s %(levelname)-8s %(message)s",
