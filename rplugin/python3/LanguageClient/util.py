@@ -38,6 +38,16 @@ def getRootPath(filepath: str, languageId: str) -> str:
         rootPath = traverseUp(filepath, isDotnetRoot)
     elif languageId == "java":
         rootPath = traverseUp(filepath, isJavaRoot)
+    elif languageId == "haskell":
+        rootPath = (traverseUp(
+                        filepath,
+                        lambda folder: 
+                            os.path.exists(os.path.join(folder, "stack.yaml"))) or 
+                    traverseUp( 
+                        filepath,
+                        lambda folder: 
+                            os.path.exists(os.path.join(folder, ".cabal"))))
+
     # TODO: detect for other filetypes
     if not rootPath:
         rootPath = traverseUp(
@@ -80,7 +90,6 @@ def isJavaRoot(folder: str) -> bool:
         return True
 
     return False
-
 
 def pathToURI(filepath: str) -> str:
     if not os.path.isabs(filepath):
