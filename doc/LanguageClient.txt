@@ -38,15 +38,19 @@ like to map these functions to some shortcuts, for example: >
 If one is using deoplete/nvim-completion-manager at the same time, completion
 should work out of the box. Otherwise, set 'omnifunc': >
     set omnifunc=LanguageClient#complete
->
+<
 or 'completefunc': >
     set completefunc=LanguageClient#complete
->
+<
 If the language server supports, diagnostic/lint information will be displayed
 via gutter and syntax highlighting along editing. At the same time, The
 information are populated into quickfix list, which can be accessed by regular
 quickfix operations. See also |g:LanguageClient_diagnosticsDisplay| to
 customize how the information are displayed.
+
+To use the language server with Vim's formatting operator |gq|, set 'formatexpr': >
+    set formatexpr=LanguageClient_textDocument_rangeFormatting()
+<
 
 ==============================================================================
 2. Configuration                                 *LanguageClientConfiguration*
@@ -225,6 +229,11 @@ Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
 *LanguageClient_textDocument_formatting*
 
 Format current document.
+
+4.10 LanguageClient_textDocument_rangeFormatting()
+*LanguageClient_textDocument_rangeFormatting*
+
+Format selected lines.
 
 ==============================================================================
 5. License                                             *LanguageClientLicense*

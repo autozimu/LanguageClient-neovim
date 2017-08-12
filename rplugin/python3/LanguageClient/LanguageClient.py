@@ -1126,6 +1126,47 @@ call fzf#run(fzf#wrap({{
         self.nvim.async_call(updateBufferContent)
         logger.info("End textDocument/formatting")
 
+    @neovim.function("LanguageClient_textDocument_rangeFormatting")
+    @args()
+    def textDocument_rangeFormatting(
+            self, languageId: str, uri: str, line: int, character: int,
+            bufnames: List[str], cbs: List) -> None:
+        logger.info("Begin textDocument/rangeFormatting")
+
+        self.textDocument_didChange()
+
+        if cbs is None:
+            cbs = [partial(self.handleTextDocumentFormatting,
+                           curPos={
+                               "line": line,
+                               "character": character,
+                               "uri": uri,
+                           },
+                           bufnames=bufnames),
+                   self.handleError]
+
+        options = {
+            "tabSize": self.nvim.options["tabstop"],
+            "insertSpaces": self.nvim.options["expandtab"],
+        }
+
+        start_line = self.nvim.eval('v:lnum') - 1
+        end_line = start_line + self.nvim.eval('v:count')
+        end_char = len(self.nvim.current.buffer[end_line]) - 1
+        textRange = {
+            "start": {"line": start_line, "character": 0},
+            "end": {"line": end_line, "character": end_char},
+        }
+
+        self.asyncEchomsg('range be %s' % textRange)
+        self.rpc[languageId].call("textDocument/rangeFormatting", {
+            "textDocument": {
+                "uri": uri,
+            },
+            "range": textRange,
+            "options": options,
+        }, cbs)
+
     def telemetry_event(self, params: Dict) -> None:
         if params.get("type") == "log":
             self.asyncEchomsg(params.get("message"))
@@ -1157,3 +1198,4 @@ call fzf#run(fzf#wrap({{
 
     def handleError(self, message) -> None:
         self.asyncEcho(json.dumps(message))
+
