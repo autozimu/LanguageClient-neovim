@@ -1158,7 +1158,6 @@ call fzf#run(fzf#wrap({{
             "end": {"line": end_line, "character": end_char},
         }
 
-        self.asyncEchomsg('range be %s' % textRange)
         self.rpc[languageId].call("textDocument/rangeFormatting", {
             "textDocument": {
                 "uri": uri,
