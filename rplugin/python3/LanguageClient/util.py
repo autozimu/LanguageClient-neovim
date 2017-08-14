@@ -4,7 +4,7 @@ import glob
 import difflib
 from urllib import parse
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Callable
 from . logger import logger
 from . Sign import Sign
 
@@ -63,13 +63,15 @@ def getRootPath(filepath: str, languageId: str) -> str:
     return rootPath
 
 
-def traverseUp(folder: str, stop) -> str:
-    if stop(folder):
+def traverseUp(folder: str, predicate: Callable[[str], str]) -> str:
+    if predicate(folder):
         return folder
-    elif folder == "/" or folder == "":
+
+    next_folder = os.path.dirname(folder)
+    if next_folder == folder:  # Prevent infinite loop.
         return None
     else:
-        return traverseUp(os.path.dirname(folder), stop)
+        return traverseUp(next_folder, predicate)
 
 
 def isDotnetRoot(folder: str) -> bool:
