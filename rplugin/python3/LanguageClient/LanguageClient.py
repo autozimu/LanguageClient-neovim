@@ -303,7 +303,7 @@ class LanguageClient:
     @args()
     def stop(self, languageId: str) -> None:
         self.rpc[languageId].run = False
-        self.exit(languageId)
+        self.exit(languageId=languageId)
         del self.server[languageId]
 
     @neovim.function("LanguageClient_initialize")
