@@ -381,14 +381,6 @@ class LanguageClient:
 
     @args()
     def textDocument_didOpen(self, uri: str, languageId: str) -> None:
-        # Keep sign column open.
-        if self.nvim.vars.get("LanguageClient_signColumnAlwaysOn", True):
-            bufnumber = self.nvim.current.buffer.number
-            cmd = ("sign place 99999"
-                   " line=99999 name=LanguageClientDummy"
-                   " buffer={}").format(bufnumber)
-            self.asyncCommand(cmd)
-
         logger.info("Begin textDocument/didOpen")
 
         text = self.currentBufferText()

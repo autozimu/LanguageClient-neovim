@@ -98,12 +98,6 @@ Default: >
         }
     }
 
-2.3 LanguageClient_signColumnAlwaysOn    *g:LanguageClient_signColumnAlwaysOn*
-
-Whether to keep sign column open even if there is no diagnostics.
-
-Default: 1
-
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
 Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
