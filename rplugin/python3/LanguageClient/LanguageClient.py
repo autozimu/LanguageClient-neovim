@@ -973,11 +973,9 @@ call fzf#run(fzf#wrap({{
         self.asyncCommand(cmd)
 
         if self.diagnosticsList == "quickfix":
-            self.nvim.funcs.setqflist(
-                qflist, "r", "LanguageClient-diagnostics")
+            self.nvim.funcs.setqflist(qflist, "r")
         elif self.diagnosticsList == "location":
-            self.nvim.funcs.setloclist(
-                0, qflist, "r", "LanguageClient-diagnostics")
+            self.nvim.funcs.setloclist(0, qflist, "r")
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
     def handleCursorMoved(self, line) -> None:
