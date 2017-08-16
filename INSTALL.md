@@ -35,6 +35,9 @@ Plugin 'autozimu/LanguageClient-neovim'
 ```
 Restart neovim and run `:PluginInstall`.
 
+When using Vundle you need to run `:UpdateRemotePlugins` command manually 
+after you install/update the plugin. 
+
 ## [dein.vim](https://github.com/Shougo/dein.vim) user
 ```
 call dein#add('autozimu/LanguageClient-neovim')
@@ -49,9 +52,9 @@ Clone this repo into some place and add the folder into neovim runtimepath.
 Run `:UpdateRemotePlugins` in neovim and restart.
 
 At this point, your `~/.local/share/nvim/rplugin.vim` should contains
-information about this plugin. If not, see following trouble shooting.
+information about this plugin. If not, see following troubleshooting.
 
-# Trouble Shooting
+# Troubleshooting
 
 - Run `:CheckHealth` to see if there is issue with neovim python3 host.
 - Try backup your init.vim and use
