@@ -69,7 +69,9 @@ Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
 this plugin. *Restart* neovim, run command `LanguageClientStart` and happy
 hacking!
 
-(See [INSTALL](INSTALL.md) for complete instructions.)
+See [INSTALL](INSTALL.md) for complete instructions, including instructions 
+for Vundle and dein.vim plugin managers.
+
 
 # Language Servers
 
