@@ -1156,6 +1156,12 @@ call fzf#run(fzf#wrap({{
             "options": options,
         }, cbs)
 
+    @neovim.function("LanguageClient_notify")
+    def notify(self, args: List) -> None:
+        languageId, = self.getArgs(["languageId"])
+
+        self.rpc[languageId].notify(args[0], args[1])
+
     def telemetry_event(self, params: Dict) -> None:
         if params.get("type") == "log":
             self.asyncEchomsg(params.get("message"))
