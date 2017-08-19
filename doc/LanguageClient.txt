@@ -8,9 +8,10 @@ CONTENTS                                               *LanguageClientContents*
 2. Configuration ............... |LanguageClientConfiguration|
 3. Commands .................... |LanguageClientCommands|
 4. Functions ................... |LanguageClientFunctions|
-5. License ..................... |LanguageClientLicense|
-6. Bugs ........................ |LanguageClientBugs|
-7. Contributing ................ |LanguageClientContributing|
+5. Events ...................... |LanguageClientEvents|
+6. License ..................... |LanguageClientLicense|
+7. Bugs ........................ |LanguageClientBugs|
+8. Contributing ................ |LanguageClientContributing|
 
 ==============================================================================
 1. Usage                                                 *LanguageClientUsage*
@@ -235,12 +236,34 @@ Format selected lines.
 Send a notification to the current language server.
 
 ==============================================================================
-5. License                                             *LanguageClientLicense*
+5. Events                                               *LanguageClientEvents*
+
+LanguageClient provides two events for use with |User| |autocmd|s.
+
+5.1 LanguageClientStarted
+*LanguageClientStarted*
+
+This event is triggered after LanguageClient has successfully started.
+
+5.2 LanguageClientStopped
+*LanguageClientStopped*
+
+This event is triggered after LanguageClient has stopped.
+
+Example: >
+  augroup LanguageClient_config
+    autocmd!
+    autocmd User LanguageClientStarted setlocal signcolumn=yes
+    autocmd User LanguageClientStopped setlocal signcolumn=auto
+  augroup END
+
+==============================================================================
+6. License                                             *LanguageClientLicense*
 
 The MIT License.
 
 ==============================================================================
-6. Bugs                                                   *LanguageClientBugs*
+7. Bugs                                                   *LanguageClientBugs*
 
 Please report all bugs at https://github.com/autozimu/LanguageClient-neovim/issues
 
@@ -259,7 +282,7 @@ which can work like a proxy and logs all stdin  and stdout of the language
 server into a log file.
 
 ==============================================================================
-7. Contributing                                   *LanguageClientContributing*
+8. Contributing                                   *LanguageClientContributing*
 
 https://github.com/autozimu/LanguageClient-neovim
 
