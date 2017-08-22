@@ -185,9 +185,8 @@ class LanguageClient:
             msg = "Language client is not running. Try :LanguageClientStart"
         elif self.server[languageId].poll() is not None:
             ret = False
-            msg = "Failed to start language server: {}".format(
-                self.server[languageId].stderr.readlines())
-            logger.error(msg)
+            logger.error("Failed to start language server see {}/LanguageServer.log"
+                    .format(os.getenv('TMP', '/tmp')))
 
         if ret is False and warn:
             self.asyncEcho(msg)
@@ -272,7 +271,8 @@ class LanguageClient:
                 command,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=open(os.getenv('TMP', '/tmp') + "/LanguageServer.log",
+                    'wb'))
         except Exception as ex:
             msg = "Failed to start language server: " + ex.args[1]
             logger.exception(msg)
