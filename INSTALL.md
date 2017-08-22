@@ -56,10 +56,10 @@ information about this plugin. If not, see following troubleshooting.
 
 # Troubleshooting
 
+- Begin with something small.
+    - Backup your init.vim and use [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim) as init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` command in shell.
+    - Try with [sample projects](https://github.com/autozimu/LanguageClient-neovim/tree/master/rplugin/python3/tests).
 - Run `:CheckHealth` to see if there is issue with neovim python3 host.
-- Try backup your init.vim and use
-  [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim)
-  as your init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell,
   then start neovim normally.
 - Run `:echo &runtimepath` and make sure the plugin path is in the list.
 - Make sure your language server run properly when invoked manually from
