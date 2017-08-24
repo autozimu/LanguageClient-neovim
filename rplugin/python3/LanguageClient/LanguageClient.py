@@ -79,17 +79,14 @@ class LanguageClient:
         return text
 
     def getFileLine(self, filepath: str, line: int) -> str:
-        modifiedBuffers = (buffer for buffer in self.nvim.buffers
-                           if buffer.options["mod"])
-        modifiedBuffer = next((buffer for buffer in modifiedBuffers
-                               if buffer.name == filepath), None)
-        if modifiedBuffer is not None:
-            lineContent = modifiedBuffer[line - 1]
-            if (line != len(modifiedBuffer) and
-                    not modifiedBuffer.options["endofline"]):
-                lineContent += "\n"
-            return lineContent
-        return linecache.getline(filepath, line)
+        modifiedBuffers = [buffer for buffer in self.nvim.buffers
+                           if buffer.name == filepath
+                           and buffer.options["mod"]]
+
+        if len(modifiedBuffers) == 0:
+            return linecache.getline(filepath, line).strip()
+        else:
+            return modifiedBuffers[0][line - 1]
 
     def asyncCommand(self, cmds: str) -> None:
         self.nvim.async_call(self.nvim.command, cmds)
@@ -737,8 +734,7 @@ call fzf#run(fzf#wrap({{
                     start = loc["range"]["start"]
                     line = start["line"] + 1
                     character = start["character"] + 1
-                    text = self.getFileLine(uriToPath(loc["uri"]),
-                                            line).strip()
+                    text = self.getFileLine(uriToPath(loc["uri"]), line)
                     entry = "{}:{}:{}: {}".format(path, line, character, text)
                     source.append(entry)
                 self.fzf(source,

@@ -102,8 +102,8 @@ def test_textDocument_references_locationListContent(nvim):
     time.sleep(3)
     actualLocationTexts = [location["text"] for location
                            in nvim.call("getloclist", "0")]
-    expectedLocationTexts = ["fn greet() -> i32 {\n",
-                             "    println!(\"{}\", greet());\n"]
+    expectedLocationTexts = ["fn greet() -> i32 {",
+                             "println!(\"{}\", greet());"]
     assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
 
 
