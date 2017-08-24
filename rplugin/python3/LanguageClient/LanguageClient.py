@@ -185,8 +185,9 @@ class LanguageClient:
             msg = "Language client is not running. Try :LanguageClientStart"
         elif self.server[languageId].poll() is not None:
             ret = False
-            logger.error("Failed to start language server see {}/LanguageServer.log"
-                    .format(os.getenv('TMP', '/tmp')))
+            msg = "Failed to start language server see {}/LanguageServer.log".format(
+                    os.getenv('TMP', '/tmp'))
+            logger.error(msg)
 
         if ret is False and warn:
             self.asyncEcho(msg)
@@ -215,18 +216,25 @@ class LanguageClient:
         cmd += ("| execute 'sign define LanguageClientDummy'")
         self.asyncCommand(cmd)
 
+    def add_serverCommands(self, commands):
+        for key, command in commands.items():
+            if type(command) is dict:
+                self.serverCommands[key] = command;
+            elif type(command) is list:
+                self.serverCommands[key] = {'command': command }
+
     @neovim.function("LanguageClient_registerServerCommands")
     def registerServerCommands(self, args: List) -> None:
         """
         Add or update serverCommands.
         """
-        serverCommands = args[0]  # Dict[str, str]
-        self.serverCommands.update(serverCommands)
+        serverCommands = args[0]  # Dict[str, list] or Dict[str, Dict]
+        self.add_serverCommands(serverCommands)
 
     @neovim.command("LanguageClientStart", nargs="*", range="")
     def start(self, args=None, range=None, warn=True) -> None:
         # Sync settings.
-        self.serverCommands.update(self.nvim.vars.get(
+        self.add_serverCommands(self.nvim.vars.get(
             "LanguageClient_serverCommands", {}))
         self.changeThreshold = self.nvim.vars.get(
             "LanguageClient_changeThreshold", 0)
@@ -261,14 +269,19 @@ class LanguageClient:
         logger.info("Begin LanguageClientStart")
 
         self.languageId = languageId
-        command = self.serverCommands[languageId]
-        command = [os.path.expandvars(os.path.expanduser(cmd))
-                   for cmd in command]
 
+        command = self.serverCommands[languageId]
+        args = [os.path.expandvars(os.path.expanduser(cmd))
+                   for cmd in command["command"]]
+
+        env = os.environ.copy();
+        if "env" in command:
+            env.update(command["env"])
         try:
             self.server[languageId] = subprocess.Popen(
                 # ["/bin/bash", "/tmp/wrapper.sh"],
-                command,
+                args,
+                env=env,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=open(os.getenv('TMP', '/tmp') + "/LanguageServer.log",

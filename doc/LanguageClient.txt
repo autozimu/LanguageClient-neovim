@@ -20,9 +20,18 @@ Before using of LanguageClient, it is necessary to specify commands that are
 going to be used to start language server. See |LanguageClient_serverCommands|
 for detail. Here is a simple example config: >
 
-    let g:LanguageClient_serverCommands = {
-        \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
-        \ }
+ let g:LanguageClient_serverCommands = {
+    \ 'rust': {
+    \   'command': ['rustup', 'run', 'nightly', 'rls'],
+    \   'env': { 'RUST_SRC_PATH': 
+    \      systemlist('rustc --print sysroot')[0] . '/lib/rustlib/src/rust/src'
+    \    }
+    \  }
+    \ }
+or >
+ let g:LanguageClient_serverCommands = {
+    \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
+    \ }
 
 After that, open a file with one of the above filetypes, then run
 :LanguageClientStart to get start, which will start language server in
