@@ -8,7 +8,7 @@ RUN apt-get install --yes software-properties-common && \
     apt-get update && \
     apt-get install --yes neovim && \
     apt-get install --yes python3-dev python3-pip && \
-    pip3 install neovim
+    pip3 install neovim mypy flake8
 
 RUN apt-get install --yes python3-pytest
 
