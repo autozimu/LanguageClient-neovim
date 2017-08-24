@@ -3,6 +3,7 @@ import time
 import glob
 import difflib
 from urllib import parse
+from urllib import request
 from pathlib import Path
 from typing import List, Dict, Callable
 from . logger import logger
@@ -100,7 +101,7 @@ def pathToURI(filepath: str) -> str:
 
 
 def uriToPath(uri: str) -> str:
-    return parse.unquote(parse.urlparse(uri).path)
+    return request.url2pathname(parse.urlparse(uri).path)
 
 
 def escape(string: str) -> str:
