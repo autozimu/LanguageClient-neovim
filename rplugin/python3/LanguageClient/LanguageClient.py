@@ -79,11 +79,14 @@ class LanguageClient:
         return text
 
     def getFileLine(self, filepath: str, line: int) -> str:
-        modifiedBuffers = (buffer for buffer in self.nvim.buffers if buffer.options["mod"])
-        modifiedBuffer = next((buffer for buffer in modifiedBuffers if buffer.name == filepath), None)
-        if modifiedBuffer != None:
+        modifiedBuffers = (buffer for buffer in self.nvim.buffers
+                           if buffer.options["mod"])
+        modifiedBuffer = next((buffer for buffer in modifiedBuffers
+                               if buffer.name == filepath), None)
+        if modifiedBuffer is not None:
             lineContent = modifiedBuffer[line - 1]
-            if not(line == len(modifiedBuffer) and not modifiedBuffer.options['endofline']):
+            if (line != len(modifiedBuffer) and
+                    not modifiedBuffer.options["endofline"]):
                 lineContent += "\n"
             return lineContent
         return linecache.getline(filepath, line)
@@ -185,8 +188,9 @@ class LanguageClient:
             msg = "Language client is not running. Try :LanguageClientStart"
         elif self.server[languageId].poll() is not None:
             ret = False
-            logger.error("Failed to start language server see {}/LanguageServer.log"
-                    .format(os.getenv('TMP', '/tmp')))
+            logger.error("Failed to start language server."
+                         " See {}/LanguageServer.log"
+                         .format(os.getenv('TMP', '/tmp')))
 
         if ret is False and warn:
             self.asyncEcho(msg)
@@ -272,7 +276,7 @@ class LanguageClient:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=open(os.getenv('TMP', '/tmp') + "/LanguageServer.log",
-                    'wb'))
+                            'wb'))
         except Exception as ex:
             msg = "Failed to start language server: " + ex.args[1]
             logger.exception(msg)
@@ -644,11 +648,13 @@ call fzf#run(fzf#wrap({{
             "query": query
         }, cbs)
 
-    def handleWorkspaceSymbolResponse(self, symbols: list, languageId: str) -> None:
+    def handleWorkspaceSymbolResponse(
+            self, symbols: list, languageId: str) -> None:
         if self.selectionUI == "fzf":
             source = []
             for sb in symbols:
-                path = os.path.relpath(sb["location"]["uri"], self.rootUri[languageId])
+                path = os.path.relpath(sb["location"]["uri"],
+                                       self.rootUri[languageId])
                 start = sb["location"]["range"]["start"]
                 line = start["line"] + 1
                 character = start["character"] + 1
@@ -719,20 +725,24 @@ call fzf#run(fzf#wrap({{
             },
         }, cbs)
 
-    def handleTextDocumentReferencesResponse(self, locations: List, languageId: str) -> None:
+    def handleTextDocumentReferencesResponse(
+            self, locations: List, languageId: str) -> None:
         logger.error("Handling response")
         if self.selectionUI == "fzf":
             def setLocationsList():
                 source = []  # type: List[str]
                 for loc in locations:
-                    path = os.path.relpath(loc["uri"], self.rootUri[languageId])
+                    path = os.path.relpath(loc["uri"],
+                                           self.rootUri[languageId])
                     start = loc["range"]["start"]
                     line = start["line"] + 1
                     character = start["character"] + 1
-                    text = self.getFileLine(uriToPath(loc["uri"]), line).strip()
+                    text = self.getFileLine(uriToPath(loc["uri"]),
+                                            line).strip()
                     entry = "{}:{}:{}: {}".format(path, line, character, text)
                     source.append(entry)
-                self.fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+                self.fzf(source,
+                         "LanguageClient#FZFSinkTextDocumentReferences")
             self.nvim.async_call(setLocationsList)
         elif self.selectionUI == "location-list":
             def setLocationsList():
@@ -1198,4 +1208,3 @@ call fzf#run(fzf#wrap({{
 
     def handleError(self, message) -> None:
         self.asyncEcho(json.dumps(message))
-

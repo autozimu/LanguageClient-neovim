@@ -1,4 +1,5 @@
 all: test
+	-make lint
 
 install:
 	pip3 install neovim mypy flake8 --upgrade

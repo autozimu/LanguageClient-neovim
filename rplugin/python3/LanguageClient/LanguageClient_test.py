@@ -100,8 +100,10 @@ def test_textDocument_references_locationListContent(nvim):
     nvim.current.window.cursor = [8, 3]
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
-    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
-    expectedLocationTexts = ["fn greet() -> i32 {\n", "    println!(\"{}\", greet());\n"]
+    actualLocationTexts = [location["text"] for location
+                           in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn greet() -> i32 {\n",
+                             "    println!(\"{}\", greet());\n"]
     assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
 
 
@@ -113,8 +115,9 @@ def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
     time.sleep(0.5)
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
-    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
-    expectedLocationTexts = ["fn abcgreet() -> i32 {\n"]
+    actualLocationTexts = [location["text"] for location
+                           in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn abcgreet() -> i32 {"]
     assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
     nvim.command("edit! {}".format(MAINRS_PATH))
 
