@@ -69,6 +69,8 @@ class LanguageClient:
         self.serverCommands = {}
         self.changeThreshold = 0
         self.trace = "off"  # trace settings passed to server
+        self.languageServerLogFilePath = os.path.join(
+                os.getenv("TMP", "/tmp"), "LanguageServer.log")
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
 
@@ -185,9 +187,9 @@ class LanguageClient:
             msg = "Language client is not running. Try :LanguageClientStart"
         elif self.server[languageId].poll() is not None:
             ret = False
-            logger.error("Failed to start language server."
-                         " See {}/LanguageServer.log"
-                         .format(os.getenv('TMP', '/tmp')))
+            msg = ("Failed to start language server."
+                   " See {}").format(self.languageServerLogFilePath)
+            logger.error(msg)
 
         if ret is False and warn:
             self.asyncEcho(msg)
@@ -272,8 +274,7 @@ class LanguageClient:
                 command,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=open(os.getenv('TMP', '/tmp') + "/LanguageServer.log",
-                            'wb'))
+                stderr=open(self.languageServerLogFilePath, "wb"))
         except Exception as ex:
             msg = "Failed to start language server: " + ex.args[1]
             logger.exception(msg)
