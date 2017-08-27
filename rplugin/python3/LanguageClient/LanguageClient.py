@@ -457,7 +457,7 @@ class LanguageClient:
         value = ""
         if isinstance(contents, list):
             for markedString in contents:
-                value += self.markedStringToString(markedString)
+                value += self.markedStringToString(markedString) + "\n"
         else:
             value += self.markedStringToString(contents)
         self.asyncEcho(value)
