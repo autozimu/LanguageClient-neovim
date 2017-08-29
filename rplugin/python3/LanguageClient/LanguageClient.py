@@ -71,7 +71,8 @@ class LanguageClient:
         self.changeThreshold = 0
         self.trace = "off"  # trace settings passed to server
         self.languageServerLogFilePath = os.path.join(
-                os.getenv("TMP", "/tmp"), "LanguageServer.log")
+            os.getenv("TMP", "/tmp"), "LanguageServer.log"
+        )
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
         self.open = False
@@ -251,9 +252,10 @@ class LanguageClient:
                 self.selectionUI = "fzf"
             else:
                 self.selectionUI = "location-list"
-        
+
         if self.diagnosticsList == 'quickfix':
             self.get_errorlist = self.nvim.funcs.getqflist
+
             def set_errorlist(errors):
                 self.nvim.funcs.setqflist(errors, 'r')
             self.set_errorlist = set_errorlist
@@ -264,9 +266,10 @@ class LanguageClient:
             self.get_errorlist = self.nvim.funcs.getloclist
             self.set_errorlist = set_errorlist
             close_cmd, open_cmd = 'lclose', 'lopen'
-        
+
         def open_errorlist(height=None):
-            self.nvim.command((open_cmd + ' ' + str(height)) if height else open_cmd)
+            cmd = (open_cmd + ' ' + str(height)) if height else open_cmd
+            self.nvim.command(cmd)
 
         def close_errorlist():
             self.nvim.command(close_cmd)
@@ -1018,7 +1021,7 @@ call fzf#run(fzf#wrap({{
                 self.open = True
             else:
                 self.open_or_close_errors(from_autocmd=False)
-    
+
     @neovim.autocmd('InsertLeave', pattern='*')
     def open_or_close_errors(self, from_autocmd=True):
         if from_autocmd and not self.open:
@@ -1026,7 +1029,10 @@ call fzf#run(fzf#wrap({{
         self.open = False
         prev_winnr = self.nvim.funcs.winnr()
         messages_nr = len(self.get_errorlist())
-        self.open_errorlist(messages_nr) if messages_nr else self.close_errorlist()
+        if messages_nr:
+            self.open_errorlist(messages_nr)
+        else:
+            self.close_errorlist()
         if prev_winnr != self.nvim.funcs.winnr():
             self.nvim.command(str(prev_winnr) + ' wincmd w')
 
