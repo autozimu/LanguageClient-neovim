@@ -167,7 +167,8 @@ class LanguageClient:
                        if buffer.name == filename), None)
         # Open file if needed.
         if buffer is None:
-            self.nvim.command("exe 'edit ' . fnameescape('{}')".format(filename))
+            self.nvim.command(
+                "exe 'edit ' . fnameescape('{}')".format(filename))
             buffer = next((buffer for buffer in self.nvim.buffers
                            if buffer.name == filename), None)
         text = buffer[:]
@@ -479,12 +480,11 @@ class LanguageClient:
         if contents is None:
             contents = ""
 
-        value = ""
         if isinstance(contents, list):
-            for markedString in contents:
-                value += self.markedStringToString(markedString) + "\n"
+            value = str.join("\n", [self.markedStringToString(s)
+                                    for s in contents])
         else:
-            value += self.markedStringToString(contents)
+            value = self.markedStringToString(contents)
         self.asyncEcho(value)
 
         logger.info("End textDocument/hover")
@@ -576,11 +576,12 @@ class LanguageClient:
 
     def handleTextDocumentRenameResponse(
             self, workspaceEdit: Dict, curPos: Dict) -> None:
-        self.nvim.async_call(lambda: (
+        def apply():
             self.apply_WorkspaceEdit(workspaceEdit),
             self.restore_cursor(curPos),
             logger.info("End textDocument/rename"),
-        ))
+
+        self.nvim.async_call(apply)
 
     @neovim.function("LanguageClient_textDocument_documentSymbol")
     @args()
@@ -1149,11 +1150,12 @@ call fzf#run(fzf#wrap({{
             "edits": textEdits,
         }
 
-        self.nvim.async_call(lambda: (
+        def apply():
             self.apply_TextDocumentEdit(textDocumentEdit),
             self.restore_cursor(curPos),
             logger.info("End textDocument/formatting"),
-        ))
+
+        self.nvim.async_call(apply)
 
     @neovim.function("LanguageClient_textDocument_rangeFormatting")
     @args()
