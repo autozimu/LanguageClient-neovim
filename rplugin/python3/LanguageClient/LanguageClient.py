@@ -827,6 +827,7 @@ call fzf#run(fzf#wrap({{
             return
         if uri not in self.textDocuments:
             self.textDocument_didOpen()
+            return
         newText = self.currentBufferText()
         text_doc = self.textDocuments[uri]
         if newText == text_doc.text:
