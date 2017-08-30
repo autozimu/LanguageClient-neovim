@@ -3,6 +3,7 @@ import time
 import glob
 import difflib
 from urllib import parse
+from urllib import request
 from pathlib import Path
 from typing import List, Dict, Callable
 from . logger import logger
@@ -40,13 +41,13 @@ def getRootPath(filepath: str, languageId: str) -> str:
         rootPath = traverseUp(filepath, isJavaRoot)
     elif languageId == "haskell":
         rootPath = (traverseUp(
-                        filepath,
-                        lambda folder: 
-                            os.path.exists(os.path.join(folder, "stack.yaml"))) or 
-                    traverseUp( 
-                        filepath,
-                        lambda folder: 
-                            os.path.exists(os.path.join(folder, ".cabal"))))
+            filepath,
+            lambda folder:
+                os.path.exists(os.path.join(folder, "stack.yaml"))) or
+                    traverseUp(
+            filepath,
+            lambda folder:
+                os.path.exists(os.path.join(folder, ".cabal"))))
 
     # TODO: detect for other filetypes
     if not rootPath:
@@ -63,7 +64,7 @@ def getRootPath(filepath: str, languageId: str) -> str:
     return rootPath
 
 
-def traverseUp(folder: str, predicate: Callable[[str], str]) -> str:
+def traverseUp(folder: str, predicate: Callable[[str], bool]) -> str:
     if predicate(folder):
         return folder
 
@@ -93,6 +94,7 @@ def isJavaRoot(folder: str) -> bool:
 
     return False
 
+
 def pathToURI(filepath: str) -> str:
     if not os.path.isabs(filepath):
         return None
@@ -100,7 +102,7 @@ def pathToURI(filepath: str) -> str:
 
 
 def uriToPath(uri: str) -> str:
-    return parse.unquote(parse.urlparse(uri).path)
+    return request.url2pathname(parse.urlparse(uri).path)
 
 
 def escape(string: str) -> str:
@@ -174,9 +176,9 @@ def apply_TextEdit(textList: List[str], textEdit) -> List[str]:
     endCharacter = textEdit["range"]["end"]["character"]
     newText = textEdit["newText"]
 
-    text = "".join(textList)
+    text = str.join("\n", textList)
     startIndex = (sum(map(len, textList[:startLine])) + startLine +
                   startCharacter)
     endIndex = sum(map(len, textList[:endLine])) + endLine + endCharacter
-    text = text[:startIndex] + newText + text[endIndex + 1:]
+    text = text[:startIndex] + newText + text[endIndex:]
     return text.split("\n")

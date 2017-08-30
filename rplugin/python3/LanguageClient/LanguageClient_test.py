@@ -1,7 +1,6 @@
 import time
 import neovim
 import pytest
-from collections import Counter
 
 from . util import joinPath
 
@@ -17,7 +16,7 @@ def nvim() -> neovim.Nvim:
     time.sleep(0.5)
     nvim.command("edit! {}".format(MAINRS_PATH))
     time.sleep(0.5)
-    nvim.funcs.LanguageClient_setLoggingLevel("INFO")
+    nvim.funcs.LanguageClient_setLoggingLevel("DEBUG")
     nvim.command("LanguageClientStart")
     time.sleep(15)
     assert nvim.funcs.LanguageClient_alive()
@@ -54,7 +53,21 @@ def test_textDocument_rename(nvim):
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
+def test_textDocument_rename_multiple_oneline(nvim):
+    nvim.command("edit! {}".format(LIBRS_PATH))
+    bufferContent = str.join("\n", nvim.current.buffer[:])
+    nvim.command("normal! 4G13|")
+    nvim.funcs.LanguageClient_textDocument_rename({"newName": "abc"})
+    time.sleep(2)
+    updatedBufferContent = str.join("\n", nvim.current.buffer)
+    assert updatedBufferContent == bufferContent.replace("a", "abc")
+    nvim.command("bd!")
+    nvim.command("edit! {}".format(MAINRS_PATH))
+    time.sleep(1)
+
+
 def test_textDocument_rename_multiple_files(nvim):
+    nvim.command("edit! {}".format(MAINRS_PATH))
     bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 17G6|")
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
@@ -70,10 +83,7 @@ def test_textDocument_documentSymbol(nvim):
     nvim.current.window.cursor = [1, 1]
     nvim.funcs.LanguageClient_textDocument_documentSymbol()
     time.sleep(3)
-    nvim.feedkeys("gr")
-    time.sleep(1)
-    nvim.input("<CR>")
-    time.sleep(2)
+    nvim.command("3lnext")
     assert nvim.current.window.cursor == [8, 3]
 
 
@@ -87,35 +97,31 @@ def test_textDocument_references(nvim):
     nvim.current.window.cursor = [8, 4]
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
-    nvim.feedkeys("3")
-    time.sleep(1)
-    nvim.input("<CR>")
-    time.sleep(2)
+    nvim.command("lnext")
     assert nvim.current.window.cursor == [3, 19]
 
 
 def test_textDocument_references_locationListContent(nvim):
-    nvim.command("let g:LanguageClient_selectionUI=\"location-list\"")
-    nvim.command("LanguageClientStart")
     nvim.current.window.cursor = [8, 3]
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
-    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
-    expectedLocationTexts = ["fn greet() -> i32 {\n", "    println!(\"{}\", greet());\n"]
-    assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
+    actualLocationTexts = [location["text"] for location
+                           in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn greet() -> i32 {",
+                             "println!(\"{}\", greet());"]
+    assert actualLocationTexts == expectedLocationTexts
 
 
 def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
-    nvim.command("let g:LanguageClient_selectionUI=\"location-list\"")
-    nvim.command("LanguageClientStart")
     nvim.current.window.cursor = [8, 3]
-    nvim.input('iabc')
+    nvim.input("iabc")
     time.sleep(0.5)
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
-    actualLocationTexts = [location["text"] for location in nvim.call("getloclist", "0")]
-    expectedLocationTexts = ["fn abcgreet() -> i32 {\n"]
-    assert Counter(actualLocationTexts) == Counter(expectedLocationTexts)
+    actualLocationTexts = [location["text"] for location
+                           in nvim.call("getloclist", "0")]
+    expectedLocationTexts = ["fn abcgreet() -> i32 {"]
+    assert actualLocationTexts == expectedLocationTexts
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
