@@ -53,7 +53,21 @@ def test_textDocument_rename(nvim):
     nvim.command("edit! {}".format(MAINRS_PATH))
 
 
+def test_textDocument_rename_multiple_oneline(nvim):
+    nvim.command("edit! {}".format(LIBRS_PATH))
+    bufferContent = str.join("\n", nvim.current.buffer[:])
+    nvim.command("normal! 4G13|")
+    nvim.funcs.LanguageClient_textDocument_rename({"newName": "abc"})
+    time.sleep(2)
+    updatedBufferContent = str.join("\n", nvim.current.buffer)
+    assert updatedBufferContent == bufferContent.replace("a", "abc")
+    nvim.command("bd!")
+    nvim.command("edit! {}".format(MAINRS_PATH))
+    time.sleep(1)
+
+
 def test_textDocument_rename_multiple_files(nvim):
+    nvim.command("edit! {}".format(MAINRS_PATH))
     bufferContent = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 17G6|")
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})

@@ -159,7 +159,7 @@ class LanguageClient:
         filename = uriToPath(textDocumentEdit["textDocument"]["uri"])
         edits = textDocumentEdit["edits"]
         # Sort edits. Make edits from right to left, bottom to top.
-        sorted(edits, key=lambda edit: (
+        edits = sorted(edits, key=lambda edit: (
             -1 * edit["range"]["start"]["character"],
             -1 * edit["range"]["start"]["line"],
         ))
