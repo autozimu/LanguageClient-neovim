@@ -176,9 +176,9 @@ def apply_TextEdit(textList: List[str], textEdit) -> List[str]:
     endCharacter = textEdit["range"]["end"]["character"]
     newText = textEdit["newText"]
 
-    text = "".join(textList)
+    text = str.join("\n", textList)
     startIndex = (sum(map(len, textList[:startLine])) + startLine +
                   startCharacter)
     endIndex = sum(map(len, textList[:endLine])) + endLine + endCharacter
-    text = text[:startIndex] + newText + text[endIndex + 1:]
+    text = text[:startIndex] + newText + text[endIndex:]
     return text.split("\n")

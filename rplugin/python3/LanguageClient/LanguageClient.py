@@ -152,27 +152,51 @@ class LanguageClient:
 
         return [res[k] for k in keys]
 
-    def applyChanges(
-            self, changes: Dict,
-            curPos: Dict, bufnames: List) -> None:
+    def apply_TextDocumentEdit(self, textDocumentEdit: Dict) -> None:
         """
-        Only suitable for changes of word. Not for paragraph etc.
+        Apply a TextDocumentEdit.
         """
-        cmd = "echo ''"
-        for uri, edits in changes.items():
-            path = uriToPath(uri)
-            cmd += "| " + getGotoFileCommand(path, bufnames)
-            for edit in edits:
-                line = edit["range"]["start"]["line"] + 1
-                character = edit["range"]["start"]["character"] + 1
-                newText = edit["newText"]
-                cmd += "| execute 'normal! {}G{}|cw{}'".format(
-                    line, character, newText)
-        cmd += "| buffer {} | normal! {}G{}|".format(
+        filename = uriToPath(textDocumentEdit["textDocument"]["uri"])
+        edits = textDocumentEdit["edits"]
+        # Sort edits. Make edits from right to left, bottom to top.
+        sorted(edits, key=lambda edit: (
+            -1 * edit["range"]["start"]["character"],
+            -1 * edit["range"]["start"]["line"],
+        ))
+        buffer = next((buffer for buffer in self.nvim.buffers
+                       if buffer.name == filename), None)
+        # Open file if needed.
+        if buffer is None:
+            self.nvim.command("exe 'edit ' . fnameescape('{}')".format(filename))
+            buffer = next((buffer for buffer in self.nvim.buffers
+                           if buffer.name == filename), None)
+        text = buffer[:]
+        for edit in edits:
+            text = apply_TextEdit(text, edit)
+        buffer[:] = text
+
+    def apply_WorkspaceEdit(self, workspaceEdit: Dict) -> None:
+        """
+        Apply a WorkspaceEdit.
+        """
+        if workspaceEdit.get("documentChanges") is not None:
+            for textDocumentEdit in workspaceEdit.get("documentChanges"):
+                self.apply_TextDocumentEdit(textDocumentEdit)
+        else:
+            for (uri, edits) in workspaceEdit["changes"].items():
+                textDocumentEdit = {
+                    "textDocument": {
+                        "uri": uri,
+                    },
+                    "edits": edits,
+                }
+                self.apply_TextDocumentEdit(textDocumentEdit)
+
+    def restore_cursor(self, curPos: Dict) -> None:
+        cmd = "buffer {} | normal! {}G{}|".format(
             uriToPath(curPos["uri"]),
             curPos["line"] + 1,
             curPos["character"] + 1)
-        # logger.info(cmd)
         self.asyncCommand(cmd)
 
     @neovim.function("LanguageClient_alive", sync=True)
@@ -522,7 +546,7 @@ class LanguageClient:
     @args()
     def textDocument_rename(
             self, uri: str, languageId: str, line: int, character: int,
-            cword: str, newName: str, bufnames: List[str], cbs: List) -> None:
+            cword: str, newName: str, cbs: List) -> None:
         logger.info("Begin textDocument/rename")
 
         self.textDocument_didChange()
@@ -536,8 +560,7 @@ class LanguageClient:
                            curPos={
                                "line": line,
                                "character": character,
-                               "uri": uri},
-                           bufnames=bufnames),
+                               "uri": uri}),
                    self.handleError]
 
         self.rpc[languageId].call("textDocument/rename", {
@@ -552,11 +575,12 @@ class LanguageClient:
         }, cbs)
 
     def handleTextDocumentRenameResponse(
-            self, result: Dict,
-            curPos: Dict, bufnames: List) -> None:
-        changes = result["changes"]
-        self.applyChanges(changes, curPos, bufnames)
-        logger.info("End textDocument/rename")
+            self, workspaceEdit: Dict, curPos: Dict) -> None:
+        self.nvim.async_call(lambda: (
+            self.apply_WorkspaceEdit(workspaceEdit),
+            self.restore_cursor(curPos),
+            logger.info("End textDocument/rename"),
+        ))
 
     @neovim.function("LanguageClient_textDocument_documentSymbol")
     @args()
@@ -1118,15 +1142,18 @@ call fzf#run(fzf#wrap({{
 
     def handleTextDocumentFormatting(
             self, textEdits: List, curPos: Dict, bufnames: List[str]) -> None:
+        textDocumentEdit = {
+            "textDocument": {
+                "uri": curPos["uri"],
+            },
+            "edits": textEdits,
+        }
 
-        def updateBufferContent():
-            text = self.nvim.current.buffer[:]
-            for textEdit in textEdits:
-                text = apply_TextEdit(text, textEdit)
-            self.nvim.current.buffer[:] = text
-
-        self.nvim.async_call(updateBufferContent)
-        logger.info("End textDocument/formatting")
+        self.nvim.async_call(lambda: (
+            self.apply_TextDocumentEdit(textDocumentEdit),
+            self.restore_cursor(curPos),
+            logger.info("End textDocument/formatting"),
+        ))
 
     @neovim.function("LanguageClient_textDocument_rangeFormatting")
     @args()
