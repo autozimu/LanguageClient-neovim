@@ -77,7 +77,7 @@ class Source(Base):
                 del self.__results[contextid]
                 if isinstance(items, dict):
                     items = items["items"]
-                items = sorted(items, key=lambda x: x.get("sortText"))
+                items = sorted(items, key=lambda x: x.get("sortText", x["label"]))
                 return [self.convertToDeopleteCandidate(item)
                         for item in items]
         else:  # send request
