@@ -240,7 +240,6 @@ class LanguageClient:
             signTexthl = level["signTexthl"]
             cmd += ("| execute 'sign define LanguageClient{}"
                     " text={} texthl={}'").format(name, signText, signTexthl)
-        cmd += ("| execute 'sign define LanguageClientDummy'")
         self.asyncCommand(cmd)
 
     @neovim.function("LanguageClient_registerServerCommands")

@@ -1,26 +1,26 @@
 DiagnosticsDisplay = {
     1: {
         "name": "Error",
-        "texthl": "SyntasticError",
-        "signText": "x",
-        "signTexthl": "Error",
+        "texthl": "ALEError",
+        "signText": "✖",
+        "signTexthl": "ALEErrorSign",
     },
     2: {
         "name": "Warning",
-        "texthl": "SyntasticWarning",
-        "signText": "!",
-        "signTexthl": "SignWarning",
+        "texthl": "ALEWarning",
+        "signText": "⚠",
+        "signTexthl": "ALEWarningSign",
     },
     3: {
         "name": "Information",
-        "texthl": "LanguageClientInformation",
-        "signText": "i",
-        "signTexthl": "SignInformation",
+        "texthl": "ALEInfo",
+        "signText": "ℹ",
+        "signTexthl": "ALEInfoSign",
     },
     4: {
         "name": "Hint",
-        "texthl": "LanguageClientHint",
-        "signText": ".",
-        "signTexthl": "SignHint",
+        "texthl": "ALEInfo",
+        "signText": "➤",
+        "signTexthl": "ALEInfoSign",
     },
 }
