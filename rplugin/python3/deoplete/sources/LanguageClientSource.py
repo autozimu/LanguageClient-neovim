@@ -1,8 +1,11 @@
-from functools import partial
-from .base import Base
-from os import path
-import sys
 import re
+import sys
+from functools import partial
+from os import path
+from typing import Dict
+
+from .base import Base
+
 LanguageClientPath = path.dirname(path.dirname(path.dirname(
     path.realpath(__file__))))
 # TODO: use relative path.
@@ -30,6 +33,8 @@ class Source(Base):
         self.__results = {}
         self.__errors = {}
 
+        logger.info("deoplete LanguageClientSource initialized.")
+
     def get_complete_position(self, context):
         m = re.search('(?:' + context['keyword_patterns'] + ')*$',
                       context['input'])
@@ -41,10 +46,10 @@ class Source(Base):
     def handleCompletionError(self, error, contextid):
         self.__errors[contextid] = error
 
-    def convertToDeopleteCandidate(self, item):
-        word = item.get("insertText", item["label"])
-        if "textEdit" in item:
-            word = item["textEdit"].get("newText", word)
+    def convertToDeopleteCandidate(self, item) -> Dict:
+        word = (item.get("textEdit", {}).get("newText") or
+                item.get("insertText") or
+                item.get("label"))
         if item.get("insertTextFormat", 0) == 2:  # snippet
             word = simplify_snippet(word)
         cand = {"word": word, "abbr": item["label"]}
