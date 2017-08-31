@@ -47,17 +47,22 @@ class Source(Base):
         self.__errors[contextid] = error
 
     def convertToDeopleteCandidate(self, item) -> Dict:
-        word = (item.get("textEdit", {}).get("newText") or
-                item.get("insertText") or
-                item.get("label"))
+        word = None
+        if item.get("textEdit") is not None:
+            word = item.get("textEdit").get("newText")
+        if word is None:
+            word = item.get("insertText")
+        if word is None:
+            word = item.get("label")
+
         if item.get("insertTextFormat", 0) == 2:  # snippet
             word = simplify_snippet(word)
         cand = {"word": word, "abbr": item["label"]}
-        if "kind" in item:
+        if item.get("kind") is not None:
             cand["kind"] = '[{}]'.format(CompletionItemKind[item["kind"]])
-        if "documentation" in item:
+        if item.get("documentation") is not None:
             cand["info"] = item["documentation"]
-        if "detail" in item:
+        if item.get("detail") is not None:
             cand["menu"] = item["detail"]
         return cand
 

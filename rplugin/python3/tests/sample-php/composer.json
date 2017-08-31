@@ -1,0 +1,10 @@
+{
+    "name": "lijunfen/tests",
+    "authors": [
+        {
+            "name": "Junfeng Li",
+            "email": "lijunfen@amazon.com"
+        }
+    ],
+    "require": {}
+}
