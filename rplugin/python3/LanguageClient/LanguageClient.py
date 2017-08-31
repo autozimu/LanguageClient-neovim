@@ -61,6 +61,7 @@ def convert_lsp_completion_item_to_vim_style(item):
 
 @neovim.plugin
 class LanguageClient:
+
     _instance = None  # type: LanguageClient
 
     def __init__(self, nvim):
@@ -80,9 +81,14 @@ class LanguageClient:
         self.changeThreshold = 0
         self.trace = "off"  # trace settings passed to server
         self.languageServerLogFilePath = os.path.join(
-                os.getenv("TMP", "/tmp"), "LanguageServer.log")
+            os.getenv("TMP", "/tmp"), "LanguageServer.log"
+        )
         self.autoStart = self.nvim.vars.get(
             "LanguageClient_autoStart", False)
+        self.open = False
+        self.diagnosticsList = None
+        self.get_errorlist = None
+        self.set_errorlist = None
 
     def currentBufferText(self) -> str:
         text = str.join("\n", self.nvim.current.buffer)
@@ -280,6 +286,30 @@ class LanguageClient:
                 self.selectionUI = "fzf"
             else:
                 self.selectionUI = "location-list"
+
+        if self.diagnosticsList == 'quickfix':
+            self.get_errorlist = self.nvim.funcs.getqflist
+
+            def set_errorlist(errors):
+                self.nvim.funcs.setqflist(errors, 'r')
+            self.set_errorlist = set_errorlist
+            close_cmd, open_cmd = 'cclose', 'copen'
+        elif self.diagnosticsList == 'location':
+            def set_errorlist(errors):
+                self.nvim.funcs.setloclist(0, errors, 'r')
+            self.get_errorlist = self.nvim.funcs.getloclist
+            self.set_errorlist = set_errorlist
+            close_cmd, open_cmd = 'lclose', 'lopen'
+
+        def open_errorlist(height=None):
+            cmd = (open_cmd + ' ' + str(height)) if height else open_cmd
+            self.nvim.command(cmd)
+
+        def close_errorlist():
+            self.nvim.command(close_cmd)
+
+        self.close_errorlist = close_errorlist
+        self.open_errorlist = open_errorlist
 
         languageId, = self.getArgs(["languageId"])
         if self.alive(languageId, False):
@@ -1018,14 +1048,33 @@ call fzf#run(fzf#wrap({{
         cmd = getCommandUpdateSigns(self.signs, signs)
         self.signs = signs
         self.asyncCommand(cmd)
+        old_list = {frozenset(item.items()) for item in self.get_errorlist()}
+        new_list = {frozenset(item.items()) for item in qflist}
+        if not old_list or old_list != new_list:
+            self.set_errorlist(qflist)
+            if self.nvim.funcs.mode() == 'i':
+                self.open = True
+            else:
+                self.open_or_close_errors(from_autocmd=False)
 
-        if self.diagnosticsList == "quickfix":
-            self.nvim.funcs.setqflist(qflist, "r")
-        elif self.diagnosticsList == "location":
-            self.nvim.funcs.setloclist(0, qflist, "r")
+    @neovim.autocmd('InsertLeave', pattern='*')
+    def open_or_close_errors(self, from_autocmd=True):
+        if from_autocmd and not self.open:
+            return
+        self.open = False
+        prev_winnr = self.nvim.funcs.winnr()
+        messages_nr = len(self.get_errorlist())
+        if messages_nr:
+            self.open_errorlist(messages_nr)
+        else:
+            self.close_errorlist()
+        if prev_winnr != self.nvim.funcs.winnr():
+            self.nvim.command(str(prev_winnr) + ' wincmd w')
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="line('.')")
     def handleCursorMoved(self, line) -> None:
+        if self.nvim.current.buffer.options['buftype']:
+            return
         if line == self.lastLine:
             return
         self.lastLine = line
