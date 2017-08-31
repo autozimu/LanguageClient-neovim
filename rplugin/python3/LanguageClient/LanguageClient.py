@@ -53,8 +53,7 @@ def convert_lsp_completion_item_to_vim_style(item):
 
     # snippet injection is supported by nvim-completion-manager
     if insertTextFormat == 2:
-        # some snippet engine may not support multi word expansion
-        e['word'] = label.split(' ')[0]
+        e['word'] = label
         e['snippet'] = insertText
 
     return e
