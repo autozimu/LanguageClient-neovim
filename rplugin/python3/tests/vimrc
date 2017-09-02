@@ -9,6 +9,6 @@ set hidden
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['~/.cargo/bin/rustup', 'run', 'nightly', 'rls'],
     \ }
-let g:LanguageClient_selectionUI="location-list"
+let g:LanguageClient_selectionUI = "location-list"
 
 autocmd BufReadPost *.rs setlocal filetype=rust

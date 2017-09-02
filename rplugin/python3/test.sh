@@ -16,7 +16,7 @@ NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/vi
 PID=$!
 sleep 1s
 
-py.test-3 --capture=no --exitfirst $@
+py.test-3 --capture=no --exitfirst -v $@
 ret=$?
 cat $LOG
 

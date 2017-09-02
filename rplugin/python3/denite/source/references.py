@@ -1,13 +1,14 @@
+import sys
+from os import path
 from typing import List, Dict
 
 from .base import Base
-from os import path
-import sys
+
 LanguageClientPath = path.dirname(path.dirname(path.dirname(
     path.realpath(__file__))))
 # TODO: use relative path.
 sys.path.append(LanguageClientPath)
-from LanguageClient import LanguageClient, pathToURI  # noqa: E402
+from LanguageClient import LanguageClient, path_to_uri  # noqa: E402
 
 
 class Source(Base):
@@ -18,9 +19,9 @@ class Source(Base):
         self.name = 'references'
         self.kind = 'file'
 
-    def convertToCandidate(self, locations) -> List[Dict]:
+    def convert_to_candidates(self, locations: List[Dict]) -> List[Dict]:
         candidates = []
-        pwd = pathToURI(self.vim.funcs.getcwd())
+        pwd = path_to_uri(self.vim.funcs.getcwd())
         for loc in locations:
             uri = loc["uri"]
             filepath = path.relpath(uri, pwd)
@@ -37,9 +38,9 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        locations = LanguageClient._instance.textDocument_references(sync=True)
+        locations = LanguageClient._instance.textDocument_references(handle=False)
 
         if locations is None:
             return []
 
-        return self.convertToCandidate(locations)
+        return self.convert_to_candidates(locations)

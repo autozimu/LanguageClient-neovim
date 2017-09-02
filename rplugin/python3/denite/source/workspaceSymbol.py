@@ -1,13 +1,14 @@
+import sys
+from os import path
 from typing import List, Dict
 
 from .base import Base
-from os import path
-import sys
+
 LanguageClientPath = path.dirname(path.dirname(path.dirname(
     path.realpath(__file__))))
 # TODO: use relative path.
 sys.path.append(LanguageClientPath)
-from LanguageClient import LanguageClient, pathToURI  # noqa: E402
+from LanguageClient import LanguageClient, path_to_uri  # noqa: E402
 
 
 class Source(Base):
@@ -18,9 +19,9 @@ class Source(Base):
         self.name = 'workspaceSymbol'
         self.kind = 'file'
 
-    def convertToCandidate(self, symbols) -> List[Dict]:
+    def convert_to_candidates(self, symbols: List[Dict]) -> List[Dict]:
         candidates = []
-        pwd = pathToURI(self.vim.funcs.getcwd())
+        pwd = path_to_uri(self.vim.funcs.getcwd())
         for sb in symbols:
             name = sb["name"]
             uri = sb["location"]["uri"]
@@ -39,9 +40,9 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        symbols = LanguageClient._instance.workspace_symbol(sync=True)
+        symbols = LanguageClient._instance.workspace_symbol(handle=False)
 
         if symbols is None:
             return []
 
-        return self.convertToCandidate(symbols)
+        return self.convert_to_candidates(symbols)

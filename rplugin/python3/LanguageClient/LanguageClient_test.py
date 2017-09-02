@@ -1,30 +1,46 @@
+import json
 import time
+import threading
+
 import neovim
 import pytest
 
-from . util import joinPath
+from .util import join_path
+from .state import state, update_state
+from .LanguageClient import (get_selectionUI)
+
+threading.current_thread().name = "Test"
 
 NVIM_LISTEN_ADDRESS = "/tmp/nvim-LanguageClient-IntegrationTest"
-PROJECT_ROOT_PATH = joinPath("tests/sample-rs")
-MAINRS_PATH = joinPath("tests/sample-rs/src/main.rs")
-LIBRS_PATH = joinPath("tests/sample-rs/src/lib.rs")
+PATH_MAINRS = join_path("tests/sample-rs/src/main.rs")
+PATH_LIBRS = join_path("tests/sample-rs/src/lib.rs")
 
 
 @pytest.fixture(scope="module")
 def nvim() -> neovim.Nvim:
-    nvim = neovim.attach('socket', path=NVIM_LISTEN_ADDRESS)
+    nvim = neovim.attach("socket", path=NVIM_LISTEN_ADDRESS)
     time.sleep(0.5)
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    update_state({
+        "nvim": nvim,
+    })
+    nvim.command("edit! {}".format(PATH_MAINRS))
     time.sleep(0.5)
     nvim.funcs.LanguageClient_setLoggingLevel("DEBUG")
     nvim.command("LanguageClientStart")
     time.sleep(15)
     assert nvim.funcs.LanguageClient_alive()
+    # Sync with plugin host state.
+    update_state(json.loads(nvim.funcs.LanguageClient_getState()))
     return nvim
 
 
 def test_fixture(nvim):
     pass
+
+
+def test_get_selectionUI(nvim):
+    assert get_selectionUI() == "fzf"
+    assert state["selectionUI"] == "location-list"
 
 
 def test_textDocument_hover(nvim):
@@ -44,39 +60,39 @@ def test_textDocument_definition(nvim):
 
 
 def test_textDocument_rename(nvim):
-    bufferContent = str.join("\n", nvim.current.buffer)
+    buffer_content = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 3G23|")
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
-    time.sleep(2)
-    updatedBufferContent = str.join("\n", nvim.current.buffer)
-    assert updatedBufferContent == bufferContent.replace("greet", "hello")
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    time.sleep(3)
+    updated_buffer_content = str.join("\n", nvim.current.buffer)
+    assert updated_buffer_content == buffer_content.replace("greet", "hello")
+    nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_rename_multiple_oneline(nvim):
-    nvim.command("edit! {}".format(LIBRS_PATH))
-    bufferContent = str.join("\n", nvim.current.buffer[:])
+    nvim.command("edit! {}".format(PATH_LIBRS))
+    buffer_content = str.join("\n", nvim.current.buffer[:])
     nvim.command("normal! 4G13|")
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "abc"})
     time.sleep(2)
-    updatedBufferContent = str.join("\n", nvim.current.buffer)
-    assert updatedBufferContent == bufferContent.replace("a", "abc")
+    updated_buffer_content = str.join("\n", nvim.current.buffer)
+    assert updated_buffer_content == buffer_content.replace("a", "abc")
     nvim.command("bd!")
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    nvim.command("edit! {}".format(PATH_MAINRS))
     time.sleep(1)
 
 
 def test_textDocument_rename_multiple_files(nvim):
-    nvim.command("edit! {}".format(MAINRS_PATH))
-    bufferContent = str.join("\n", nvim.current.buffer)
+    nvim.command("edit! {}".format(PATH_MAINRS))
+    buffer_content = str.join("\n", nvim.current.buffer)
     nvim.command("normal! 17G6|")
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
     time.sleep(2)
-    updatedBufferContent = str.join("\n", nvim.current.buffer)
-    assert updatedBufferContent == bufferContent.replace("yo", "hello")
+    updated_buffer_content = str.join("\n", nvim.current.buffer)
+    assert updated_buffer_content == buffer_content.replace("yo", "hello")
     nvim.command("bd!")
     nvim.command("bd!")
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_documentSymbol(nvim):
@@ -122,7 +138,7 @@ def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
                            in nvim.call("getloclist", "0")]
     expectedLocationTexts = ["fn abcgreet() -> i32 {"]
     assert actualLocationTexts == expectedLocationTexts
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_didChange(nvim):
@@ -131,9 +147,9 @@ def test_textDocument_didChange(nvim):
     time.sleep(10)
     nvim.command("normal! 4G23|")
     nvim.funcs.LanguageClient_textDocument_definition()
-    time.sleep(2)
+    time.sleep(3)
     assert nvim.current.window.cursor == [12, 3]
-    nvim.command("edit! {}".format(MAINRS_PATH))
+    nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_throttleChange(nvim):

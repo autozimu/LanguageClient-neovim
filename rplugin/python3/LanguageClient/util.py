@@ -5,53 +5,55 @@ import difflib
 from urllib import parse
 from urllib import request
 from pathlib import Path
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Any
+
+import re
+
 from . logger import logger
 from . Sign import Sign
 
-currPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def joinPath(part):
-    return os.path.join(currPath, part)
+def join_path(path: str) -> str:
+    """
+    Join path to this project root (rplugin/python3).
+    """
+    return os.path.join(project_root, path)
 
 
-def getRootPath(filepath: str, languageId: str) -> str:
+def get_rootPath(filepath: str, languageId: str) -> str:
     rootPath = None
     if languageId == "rust":
-        rootPath = traverseUp(
+        rootPath = traverse_up(
             filepath, lambda folder:
                 os.path.exists(os.path.join(folder, 'Cargo.toml')))
     elif languageId == "php":
-        rootPath = traverseUp(
+        rootPath = traverse_up(
             filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "composer.json")))
     elif languageId.startswith("javascript") or languageId == "typescript":
-        rootPath = traverseUp(
+        rootPath = traverse_up(
             filepath, lambda folder:
                 os.path.exists(os.path.join(folder, "package.json")))
     elif languageId == "python":
-        rootPath = traverseUp(
+        rootPath = traverse_up(
             filepath, lambda folder: (
                 os.path.exists(os.path.join(folder, "__init__.py")) or
                 os.path.exists(os.path.join(folder, "setup.py"))))
     elif languageId == "cs":
-        rootPath = traverseUp(filepath, isDotnetRoot)
+        rootPath = traverse_up(filepath, is_dotnet_root)
     elif languageId == "java":
-        rootPath = traverseUp(filepath, isJavaRoot)
+        rootPath = traverse_up(filepath, is_java_root)
     elif languageId == "haskell":
-        rootPath = (traverseUp(
-            filepath,
-            lambda folder:
-                os.path.exists(os.path.join(folder, "stack.yaml"))) or
-                    traverseUp(
-            filepath,
-            lambda folder:
-                os.path.exists(os.path.join(folder, ".cabal"))))
+        rootPath = (traverse_up(filepath,
+                                lambda folder: os.path.exists(os.path.join(folder, "stack.yaml"))) or
+                    traverse_up(filepath,
+                                lambda folder: os.path.exists(os.path.join(folder, ".cabal"))))
 
     # TODO: detect for other filetypes
     if not rootPath:
-        rootPath = traverseUp(
+        rootPath = traverse_up(
             filepath,
             lambda folder: (
                 os.path.exists(os.path.join(folder, ".git")) or
@@ -64,7 +66,7 @@ def getRootPath(filepath: str, languageId: str) -> str:
     return rootPath
 
 
-def traverseUp(folder: str, predicate: Callable[[str], bool]) -> str:
+def traverse_up(folder: str, predicate: Callable[[str], bool]) -> str:
     if predicate(folder):
         return folder
 
@@ -72,10 +74,10 @@ def traverseUp(folder: str, predicate: Callable[[str], bool]) -> str:
     if next_folder == folder:  # Prevent infinite loop.
         return None
     else:
-        return traverseUp(next_folder, predicate)
+        return traverse_up(next_folder, predicate)
 
 
-def isDotnetRoot(folder: str) -> bool:
+def is_dotnet_root(folder: str) -> bool:
     if os.path.exists(os.path.join(folder, "project.json")):
         return True
 
@@ -85,7 +87,7 @@ def isDotnetRoot(folder: str) -> bool:
     return False
 
 
-def isJavaRoot(folder: str) -> bool:
+def is_java_root(folder: str) -> bool:
     if os.path.exists(os.path.join(folder, ".project")):
         return True
 
@@ -95,13 +97,13 @@ def isJavaRoot(folder: str) -> bool:
     return False
 
 
-def pathToURI(filepath: str) -> str:
+def path_to_uri(filepath: str) -> str:
     if not os.path.isabs(filepath):
         return None
     return Path(filepath).as_uri()
 
 
-def uriToPath(uri: str) -> str:
+def uri_to_path(uri: str) -> str:
     return request.url2pathname(parse.urlparse(uri).path)
 
 
@@ -116,38 +118,38 @@ def retry(span, count, condition):
         count -= 1
 
 
-def getGotoFileCommand(path, bufnames) -> str:
+def get_command_goto_file(path, bufnames) -> str:
     if path in bufnames:
         return "exe 'buffer ' . fnameescape('{}')".format(path)
     else:
         return "exe 'edit ' . fnameescape('{}')".format(path)
 
 
-def getCommandDeleteSign(sign: Sign) -> str:
+def get_command_delete_sign(sign: Sign) -> str:
     return " | execute('sign unplace {}')".format(sign.line)
 
 
-def getCommandAddSign(sign: Sign) -> str:
+def get_command_add_sign(sign: Sign) -> str:
     return (" | execute('sign place {} line={} "
             "name=LanguageClient{} buffer={}')").format(
                 sign.line, sign.line, sign.signname, sign.bufnumber)
 
 
-def getCommandUpdateSigns(signs: List[Sign], nextSigns: List[Sign]) -> str:
+def get_command_update_signs(signs: List[Sign], next_signs: List[Sign]) -> str:
     cmd = "echo"
-    diff = difflib.SequenceMatcher(None, signs, nextSigns)
+    diff = difflib.SequenceMatcher(None, signs, next_signs)
     for op, i1, i2, j1, j2 in diff.get_opcodes():
         if op == "replace":
             for i in range(i1, i2):
-                cmd += getCommandDeleteSign(signs[i])
+                cmd += get_command_delete_sign(signs[i])
             for i in range(j1, j2):
-                cmd += getCommandAddSign(nextSigns[i])
+                cmd += get_command_add_sign(next_signs[i])
         elif op == "delete":
             for i in range(i1, i2):
-                cmd += getCommandDeleteSign(signs[i])
+                cmd += get_command_delete_sign(signs[i])
         elif op == "insert":
             for i in range(j1, j2):
-                cmd += getCommandAddSign(nextSigns[i])
+                cmd += get_command_add_sign(next_signs[i])
         elif op == "equal":
             pass
         else:
@@ -157,28 +159,49 @@ def getCommandUpdateSigns(signs: List[Sign], nextSigns: List[Sign]) -> str:
     return cmd
 
 
-def convertVimCommandArgsToKwargs(args: List[str]) -> Dict:
+def convert_vim_command_args_to_kwargs(args: List[str]) -> Dict:
     kwargs = {}
     if args:
         for arg in args:
-            argarr = arg.split("=")
-            if len(argarr) != 2:
+            arr = arg.split("=")
+            if len(arr) != 2:
                 logger.warn("Parse vim command arg failed: " + arg)
                 continue
-            kwargs[argarr[0]] = argarr[1]
+            kwargs[arr[0]] = arr[1]
     return kwargs
 
 
-def apply_TextEdit(textList: List[str], textEdit) -> List[str]:
-    startLine = textEdit["range"]["start"]["line"]
-    startCharacter = textEdit["range"]["start"]["character"]
-    endLine = textEdit["range"]["end"]["line"]
-    endCharacter = textEdit["range"]["end"]["character"]
+def apply_TextEdit(text_list: List[str], textEdit: Dict) -> List[str]:
+    start_line = textEdit["range"]["start"]["line"]
+    start_character = textEdit["range"]["start"]["character"]
+    end_line = textEdit["range"]["end"]["line"]
+    end_character = textEdit["range"]["end"]["character"]
     newText = textEdit["newText"]
 
-    text = str.join("\n", textList)
-    startIndex = (sum(map(len, textList[:startLine])) + startLine +
-                  startCharacter)
-    endIndex = sum(map(len, textList[:endLine])) + endLine + endCharacter
-    text = text[:startIndex] + newText + text[endIndex:]
+    text = str.join("\n", text_list)
+    start_index = (sum(map(len, text_list[:start_line])) + start_line + start_character)
+    end_index = sum(map(len, text_list[:end_line])) + end_line + end_character
+    text = text[:start_index] + newText + text[end_index:]
     return text.split("\n")
+
+
+def markedString_to_str(s: Any) -> str:
+    if isinstance(s, str):
+        # Roughly convert markdown to plain text.
+        return re.sub(r'\\([\\`*_{}[\]()#+\-.!])', r'\1', s)
+    else:
+        return s["value"]
+
+
+def convert_lsp_completion_item_to_vim_style(item):
+    e = {}
+    e['icase'] = 1
+    # insertText:
+    # A string that should be inserted a document when selecting
+    # this completion. When `falsy` the label is used.
+    e['word'] = item.get('insertText', "") or item['label']
+    e['abbr'] = item['label']
+    e['dup'] = 1
+    e['menu'] = item.get('detail', "")
+    e['info'] = item.get('documentation', "")
+    return e
