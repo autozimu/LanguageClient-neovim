@@ -36,27 +36,16 @@ def args(warn=True):
 
 
 def convert_lsp_completion_item_to_vim_style(item):
-    insertText = item.get('insertText', "") or ""
-    label = item['label']
-    insertTextFormat = item.get('insertTextFormat', 1)
-
     e = {}
     e['icase'] = 1
     # insertText:
     # A string that should be inserted a document when selecting
     # this completion. When `falsy` the label is used.
-    e['word'] = insertText or label
-    e['abbr'] = label
+    e['word'] = item.get('insertText', "") or item['label']
+    e['abbr'] = item['label']
     e['dup'] = 1
     e['menu'] = item.get('detail', "")
     e['info'] = item.get('documentation', "")
-
-    # snippet injection is supported by nvim-completion-manager
-    if insertTextFormat == 2:
-        # some snippet engine may not support multi word expansion
-        e['word'] = label.split(' ')[0]
-        e['snippet'] = insertText
-
     return e
 
 
