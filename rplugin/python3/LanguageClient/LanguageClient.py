@@ -1216,7 +1216,7 @@ class LanguageClient:
         method = message["method"].replace("/", "_")
         if hasattr(self, method):
             try:
-                getattr(self, method)(message.get("params"))
+                state["nvim"].async_call(getattr(self, method), message.get("params"))
             except Exception:
                 logger.exception("Exception in handle request and notify.")
         else:
