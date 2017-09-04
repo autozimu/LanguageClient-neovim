@@ -196,7 +196,6 @@ def markedString_to_str(s: Any) -> str:
 def convert_lsp_completion_item_to_vim_style(item):
     insertText = item.get('insertText', "") or ""
     label = item['label']
-    insertTextFormat = item.get('insertTextFormat', 1)
 
     e = {}
     e['icase'] = 1
@@ -208,10 +207,5 @@ def convert_lsp_completion_item_to_vim_style(item):
     e['dup'] = 1
     e['menu'] = item.get('detail', "")
     e['info'] = item.get('documentation', "")
-
-    # snippet injection is supported by nvim-completion-manager
-    if insertTextFormat == 2:
-        e['word'] = label
-        e['snippet'] = insertText
 
     return e
