@@ -962,9 +962,32 @@ class LanguageClient:
             items = result["items"]
             isIncomplete = result.get('isIncomplete', False)
 
-        # convert to vim style completion-items
-        matches = [convert_lsp_completion_item_to_vim_style(item)
-                   for item in items]
+        matches = []
+        for item in items:
+            match = convert_lsp_completion_item_to_vim_style(item)
+
+            # snippet & textEdit support
+            match['textEdits'] = []
+            if item.get('additionalTextEdits', None):
+                match['textEdits'] = item['additionalTextEdits']
+
+            insertText = item.get('insertText', "") or ""
+            label = item['label']
+            insertTextFormat = item.get('insertTextFormat', 1)
+
+            if insertTextFormat == 2:
+                match['word'] = label
+                match['snippet'] = insertText
+                # When an edit is provided the value of `insertText` is
+                # ignored.
+                if item.get('textEdit'):
+                    # TODO: Not fully conforming to LSP
+                    match['snippet'] = item['textEdit']['newText'] + '$0'
+            elif item.get('textEdit', None):
+                # ignore insertText
+                match['word'] = ''
+                match['textEdits'].append(item['textEdit'])
+            matches.append(match)
 
         state["nvim"].call('cm#complete', info['name'], ctx,
                            ctx['startcol'], matches, isIncomplete, async=True)
