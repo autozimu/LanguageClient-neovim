@@ -39,12 +39,12 @@ def test_getGotoFileCommand():
     assert get_command_goto_file("/tmp/+some str%nge|name", [
         "/tmp/+some str%nge|name",
         "/tmp/somethingelse"
-    ]) == "exe 'buffer ' . fnameescape('/tmp/+some str%nge|name')"
+    ], 1, 2) == "exe 'buffer +:call\\ cursor(1,2) ' . fnameescape('/tmp/+some str%nge|name')"
 
     assert get_command_goto_file("/tmp/+some str%nge|name", [
         "/tmp/notsample",
         "/tmp/somethingelse"
-    ]) == "exe 'edit ' . fnameescape('/tmp/+some str%nge|name')"
+    ], 3, 4) == "exe 'edit +:call\\ cursor(3,4) ' . fnameescape('/tmp/+some str%nge|name')"
 
 
 def test_getCommandDeleteSign():
