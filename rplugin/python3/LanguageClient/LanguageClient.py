@@ -605,10 +605,10 @@ class LanguageClient:
             echo("{}:{}".format(defn["uri"], defn["range"]["start"]["line"]))
             return result
         path = uri_to_path(defn["uri"])
-        cmd = get_command_goto_file(path, bufnames)
         line = defn["range"]["start"]["line"] + 1
         character = defn["range"]["start"]["character"] + 1
-        cmd += "| normal! {}G{}|".format(line, character)
+        cmd = get_command_goto_file(path, bufnames, line, character)
+
         execute_command(cmd)
 
         logger.info("End textDocument/definition")
@@ -764,8 +764,7 @@ class LanguageClient:
         line = splitted[1]
         character = splitted[2]
 
-        cmd = get_command_goto_file(path, bufnames)
-        cmd += "| normal! {}G{}|".format(line, character)
+        cmd = get_command_goto_file(path, bufnames, line, character)
         execute_command(cmd)
 
     @neovim.function("LanguageClient_textDocument_references")
@@ -838,8 +837,7 @@ class LanguageClient:
         line = splitted[1]
         character = splitted[2]
 
-        cmd = get_command_goto_file(path, bufnames)
-        cmd += "| normal! {}G{}|".format(line, character)
+        cmd = get_command_goto_file(path, bufnames, line, character)
         execute_command(cmd)
 
     @neovim.autocmd("TextChanged", pattern="*", eval='fnamemodify(expand("<afile>"), ":p")')
