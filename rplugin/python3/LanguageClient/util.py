@@ -118,11 +118,11 @@ def retry(span, count, condition):
         count -= 1
 
 
-def get_command_goto_file(path, bufnames) -> str:
+def get_command_goto_file(path, bufnames, l, c) -> str:
     if path in bufnames:
-        return "exe 'buffer ' . fnameescape('{}')".format(path)
+        return "exe 'buffer +:call\\ cursor({},{}) ' . fnameescape('{}')".format(l, c, path)
     else:
-        return "exe 'edit ' . fnameescape('{}')".format(path)
+        return "exe 'edit +:call\\ cursor({},{}) ' . fnameescape('{}')".format(l, c, path)
 
 
 def get_command_delete_sign(sign: Sign) -> str:
