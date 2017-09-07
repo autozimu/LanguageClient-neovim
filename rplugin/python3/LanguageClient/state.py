@@ -1,6 +1,6 @@
 import greenlet
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from .DiagnosticsDisplay import DiagnosticsDisplay
 from .logger import logger
@@ -32,20 +32,43 @@ state = {
 
 
 def update_state(u):
+    """
+    Merge state with partial state.
+    """
     global state
-    state = _update_helper(state, u, "state")
+    state = _update_state_helper(state, u, "state")
 
 
-def _update_helper(d: Dict, u: Dict, path: str) -> Dict:
+def _update_state_helper(d: Dict, u: Dict, path: str) -> Dict:
+    """
+    Merge dicts.
+    """
     for key, value in u.items():
         next_path = path + "." + str(key)
         if isinstance(value, dict):
-            d[key] = _update_helper(d.get(key, {}), value, next_path)
+            d[key] = _update_state_helper(d.get(key, {}), value, next_path)
         else:
             if d.get(key) != value:
-                logger.debug("{}: {} -> {}".format(next_path, d.get(key), value))
+                logger.debug("{}: {} => {}".format(next_path, d.get(key), value))
             d[key] = value
     return d
+
+
+def set_state(path: List[str], v: Any) -> None:
+    """
+    Set part of state.
+    """
+    global state
+    node = state
+    for (i, key) in enumerate(path):
+        if i < len(path) - 1:
+            if key not in node:
+                node[key] = {}
+            node = node[key]
+        else:
+            logger.debug("state.{}: {} => {}".format(
+                str.join(".", path), node.get(key), v))
+            node[key] = v
 
 
 def make_serializable(d: Any) -> Any:

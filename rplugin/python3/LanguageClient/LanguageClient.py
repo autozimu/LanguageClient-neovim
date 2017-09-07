@@ -13,7 +13,7 @@ from .RPC import RPC
 from .Sign import Sign
 from .TextDocumentItem import TextDocumentItem
 from .logger import logger, logpath_server, setLoggingLevel
-from .state import state, update_state, execute_command, echo, echomsg, echo_ellipsis, make_serializable
+from .state import state, update_state, execute_command, echo, echomsg, echo_ellipsis, make_serializable, set_state
 from .util import (
     get_rootPath, path_to_uri, uri_to_path, get_command_goto_file, get_command_update_signs,
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
@@ -259,9 +259,7 @@ def show_diagnostics(diagnostics_params):
         })
 
     cmd = get_command_update_signs(state["signs"], signs)
-    update_state({
-        "signs": signs,
-    })
+    set_state(["signs"], signs)
     execute_command(cmd)
 
     if state["diagnosticsList"] == "quickfix":
@@ -488,11 +486,6 @@ class LanguageClient:
             self.start(warn=False)
 
         logger.info("End handleBufReadPost")
-
-    @neovim.autocmd("VimEnter", pattern="*")
-    def handle_VimEnter(self):
-        # Fix the issue that BufReadPost is not triggered using `nvim file`.
-        self.handle_BufReadPost()
 
     @deco_args(warn=False)
     def textDocument_didOpen(self, uri: str, languageId: str) -> None:
@@ -1006,10 +999,7 @@ class LanguageClient:
         for entry in diagnostics_params["diagnostics"]:
             line = entry["range"]["start"]["line"]
             line_diagnostics[line] = entry
-        update_state({
-            "line_diagnostics": {
-                uri: line_diagnostics,
-            }})
+        set_state(["line_diagnostics", uri], line_diagnostics)
         state["nvim"].async_call(show_diagnostics, diagnostics_params)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="[&buftype, line('.')]")
