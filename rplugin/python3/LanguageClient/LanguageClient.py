@@ -947,6 +947,9 @@ class LanguageClient:
         result = self.textDocument_completion()
         logger.debug("result: %s", result)
 
+        if result is None:
+            return
+
         items = result
         isIncomplete = False
         if isinstance(result, dict):
