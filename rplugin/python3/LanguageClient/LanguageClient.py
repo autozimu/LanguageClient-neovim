@@ -13,7 +13,9 @@ from .RPC import RPC
 from .Sign import Sign
 from .TextDocumentItem import TextDocumentItem
 from .logger import logger, logpath_server, setLoggingLevel
-from .state import state, update_state, execute_command, echo, echomsg, echo_ellipsis, make_serializable, set_state
+from .state import (
+    state, update_state, execute_command, echo, echomsg, echoerr,
+    echo_ellipsis, make_serializable, set_state)
 from .util import (
     get_rootPath, path_to_uri, uri_to_path, get_command_goto_file, get_command_update_signs,
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
@@ -112,7 +114,7 @@ def alive(languageId: str, warn: bool) -> bool:
         msg = "Failed to start language server. See {}.".format(logpath_server)
     if msg and warn:
         logger.warn(msg)
-        echomsg(msg)
+        echoerr(msg)
     return msg is None
 
 
@@ -349,7 +351,7 @@ class LanguageClient:
                 return
             msg = "No language server command found for type: {}.".format(languageId)
             logger.error(msg)
-            echomsg(msg)
+            echoerr(msg)
             return
 
         logger.info("Begin LanguageClientStart")
@@ -368,7 +370,7 @@ class LanguageClient:
         except Exception as ex:
             msg = "Failed to start language server: " + ex.args[1]
             logger.exception(msg)
-            echomsg(msg)
+            echoerr(msg)
             return
 
         rpc = RPC(proc.stdout, proc.stdin, self.handle_request_and_notify)
@@ -586,7 +588,7 @@ class LanguageClient:
             msg = ("Handling multiple definitions is not implemented yet."
                    " Jumping to first.")
             logger.error(msg)
-            echomsg(msg)
+            echoerr(msg)
 
         if isinstance(result, list):
             if len(result) == 0:
@@ -687,7 +689,7 @@ class LanguageClient:
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             logger.warn(msg)
-            echomsg(msg)
+            echoerr(msg)
 
         logger.info("End textDocument/documentSymbol")
         return symbols
@@ -744,7 +746,7 @@ class LanguageClient:
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             logger.warn(msg)
-            echomsg(msg)
+            echoerr(msg)
 
         logger.info("End workspace/symbol")
         return symbols
@@ -817,7 +819,7 @@ class LanguageClient:
         else:
             msg = "No selection UI found. Consider install fzf or denite.vim."
             logger.warn(msg)
-            echomsg(msg)
+            echoerr(msg)
 
         logger.info("End textDocument/references")
         return locations

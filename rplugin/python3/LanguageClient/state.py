@@ -121,7 +121,7 @@ def wake_up(mid: int, result: Any) -> None:
 def handle_error(response: Dict) -> bool:
     if "error" in response:
         logger.error(str(response))
-        echomsg(json.dumps(response))
+        echoerr(json.dumps(response))
         return True
     else:
         return False
@@ -139,9 +139,15 @@ def echo(message: str) -> None:
 
 
 def echomsg(message: str) -> None:
-    """Echomsg message"""
+    """Echo message"""
     message = escape(message)
     execute_command("echomsg '{}'".format(message))
+
+
+def echoerr(message: str) -> None:
+    """Echo message as error."""
+    message = escape(message)
+    execute_command("echohl Error | echomsg '{}' | echohl None".format(message))
 
 
 def echo_ellipsis(msg: str, columns: int) -> None:
