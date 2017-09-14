@@ -61,7 +61,8 @@ def gather_args(keys: List, args: List = [], kwargs: Dict = {}) -> List:
         elif k == "buftype":
             res[k] = state["nvim"].current.buffer.options["buftype"]
         elif k == "uri":
-            res[k] = path_to_uri(state["nvim"].current.buffer.name)
+            filename = kwargs.get("filename") or state["nvim"].current.buffer.name
+            res[k] = path_to_uri(filename)
         elif k == "line":
             cursor = state["nvim"].current.window.cursor
             res[k] = cursor[0] - 1
@@ -465,11 +466,11 @@ class LanguageClient:
             logger.warn("register completion manager source failed. Error: " +
                         repr(ex))
 
-    @neovim.autocmd("BufReadPost", pattern="*")
-    def handle_BufReadPost(self):
+    @neovim.autocmd("BufReadPost", pattern="*", eval="{'languageId': &filetype, 'filename': expand('%:p')}")
+    def handle_BufReadPost(self, kwargs):
         logger.info("Begin handleBufReadPost")
 
-        languageId, uri = gather_args(["languageId", "uri"])
+        languageId, uri = gather_args(["languageId", "uri"], kwargs=kwargs)
         if not uri:
             return
         # Language server is running but file is not within rootUri.
@@ -481,7 +482,7 @@ class LanguageClient:
             return
 
         if alive(languageId, warn=False):
-            self.textDocument_didOpen(uri=uri)
+            self.textDocument_didOpen(uri=uri, languageId=languageId)
         elif state["autoStart"]:
             self.start(warn=False)
 
@@ -873,8 +874,9 @@ class LanguageClient:
 
         doc.commit_change()
 
-    @neovim.autocmd("BufWritePost", pattern="*")
-    def handle_BufWritePost(self):
+    @neovim.autocmd("BufWritePost", pattern="*", eval="{'languageId': &filetype, 'filename': expand('%:p')}")
+    def handle_BufWritePost(self, kwargs):
+        uri, languageId = gather_args(["uri", "languageId"], kwargs=kwargs)
         self.textDocument_didSave()
 
     @deco_args(warn=False)
@@ -1003,7 +1005,7 @@ class LanguageClient:
             line = entry["range"]["start"]["line"]
             line_diagnostics[line] = entry
         set_state(["line_diagnostics", uri], line_diagnostics)
-        state["nvim"].async_call(show_diagnostics, diagnostics_params)
+        show_diagnostics(diagnostics_params)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="[&buftype, line('.')]")
     def handle_CursorMoved(self, args: List) -> None:
@@ -1196,7 +1198,7 @@ class LanguageClient:
             4: "Log",
         }[params["type"]]
         msg = "[{}] {}".format(msgType, params["message"])  # noqa: F841
-        # echomsg(msg)
+        echomsg(msg)
 
     # Extension by JDT language server.
     def language_status(self, params: Dict) -> None:
