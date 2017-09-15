@@ -824,6 +824,64 @@ class LanguageClient:
         logger.info("End textDocument/references")
         return locations
 
+    @neovim.function("LanguageClient_rustDocument_implementations")
+    @deco_args()
+    def rustDocument_implementations(
+            self, uri: str, languageId: str, line: int, character: int,
+            handle=True) -> List:
+        logger.info("Begin rustDocument/implementations")
+
+        self.textDocument_didChange()
+
+        locations = state["rpcs"][languageId].call("rustDocument/implementations", {
+            "textDocument": {
+                "uri": uri,
+            },
+            "position": {
+                "line": line,
+                "character": character,
+            }
+        })
+
+        if locations is None or not handle:
+            return locations
+
+        if state["selectionUI"] == "fzf":
+            source = []  # type: List[str]
+            for loc in locations:
+                path = os.path.relpath(loc["uri"],
+                                       state["rootUris"][languageId])
+                start = loc["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                text = get_file_line(uri_to_path(loc["uri"]), line)
+                entry = "{}:{}:{}: {}".format(path, line, character, text)
+                source.append(entry)
+            fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
+        elif state["selectionUI"] == "location-list":
+            loclist = []
+            for loc in locations:
+                path = uri_to_path(loc["uri"])
+                start = loc["range"]["start"]
+                line = start["line"] + 1
+                character = start["character"] + 1
+                text = get_file_line(path, line)
+                loclist.append({
+                    "filename": path,
+                    "lnum": line,
+                    "col": character,
+                    "text": text
+                })
+            state["nvim"].funcs.setloclist(0, loclist)
+            echo("References populated to location list.")
+        else:
+            msg = "No selection UI found. Consider install fzf or denite.vim."
+            logger.warn(msg)
+            echoerr(msg)
+
+        logger.info("End rustDocument/implementations")
+        return locations
+
     @neovim.function("LanguageClient_FZFSinkTextDocumentReferences")
     def fzfSinkTextDocumentReferences(self, args: List) -> None:
         bufnames, languageId = gather_args(["bufnames", "languageId"])
@@ -1205,6 +1263,18 @@ class LanguageClient:
     # Extension by JDT language server.
     def language_status(self, params: Dict) -> None:
         msg = "{} {}".format(params["type"], params["message"])
+        echomsg(msg)
+
+    def rustDocument_beginBuild(self, params: Dict) -> None:
+        msg = "rustDocument/beginBuild"
+        echomsg(msg)
+
+    def rustDocument_diagnosticsBegin(self, params: Dict) -> None:
+        msg = "rustDocument/diagnosticsBegin"
+        echomsg(msg)
+
+    def rustDocument_diagnosticsEnd(self, params: Dict) -> None:
+        msg = "rustDocument/diagnosticsEnd"
         echomsg(msg)
 
     def handle_request_and_notify(self, message: Dict) -> None:
