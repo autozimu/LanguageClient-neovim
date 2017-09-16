@@ -215,23 +215,26 @@ call fzf#run(fzf#wrap({{
     state["nvim"].feedkeys("i")
 
 
-def show_diagnostics(diagnostics_params):
+def show_diagnostics(uri: str, diagnostics: List) -> None:
     """
     Show diagnostics.
     """
-    path = uri_to_path(diagnostics_params["uri"])
+    path = uri_to_path(uri)
     buffer = state["nvim"].current.buffer
     if path != buffer.name:
         return
 
-    if not state["highlight_source_id"]:
+    if state.get(uri, {}).get("highlight_source_id") is None:
         update_state({
-            "highlight_source_id": state["nvim"].new_highlight_source(),
+            uri: {
+                "highlight_source_id": state["nvim"].new_highlight_source(),
+            }
         })
-    buffer.clear_highlight(state["highlight_source_id"])
+    highlight_source_id = state[uri]["highlight_source_id"]
+    buffer.clear_highlight(highlight_source_id)
     signs = []
     qflist = []
-    for entry in diagnostics_params["diagnostics"]:
+    for entry in diagnostics:
         start_line = entry["range"]["start"]["line"]
         start_character = entry["range"]["start"]["character"]
         end_character = entry["range"]["end"]["character"]
@@ -240,7 +243,7 @@ def show_diagnostics(diagnostics_params):
         text_highlight = display["texthl"]
         buffer.add_highlight(text_highlight, start_line,
                              start_character, end_character,
-                             state["highlight_source_id"])
+                             highlight_source_id)
 
         sign_name = display["name"]
 
@@ -261,9 +264,9 @@ def show_diagnostics(diagnostics_params):
             "type": qftype,
         })
 
-    cmd = get_command_update_signs(state["signs"], signs)
-    set_state(["signs"], signs)
+    cmd = get_command_update_signs(state[uri].get("signs", []), signs)
     execute_command(cmd)
+    set_state([uri, "signs"], signs)
 
     if state["diagnosticsList"] == "quickfix":
         state["nvim"].funcs.setqflist(qflist)
@@ -272,26 +275,8 @@ def show_diagnostics(diagnostics_params):
 
 
 def show_line_diagnostic(uri: str, line: int, columns: int) -> None:
-    entry = state["line_diagnostics"].get(uri, {}).get(line)
-    if entry is None:
-        echo("")
-        return
-
-    msg = ""
-    if "severity" in entry:
-        severity = {
-            1: "E",
-            2: "W",
-            3: "I",
-            4: "H",
-        }[entry["severity"]]
-        msg += "[{}]".format(severity)
-    if "code" in entry:
-        code = entry["code"]
-        msg += str(code)
-    msg += " " + entry["message"]
-
-    echo_ellipsis(msg, columns)
+    entry = state.get(uri, {}).get("line_diagnostics", {}).get(line, "")
+    echo_ellipsis(entry, columns)
 
 
 @neovim.plugin
@@ -485,6 +470,7 @@ class LanguageClient:
 
         if alive(languageId, warn=False):
             self.textDocument_didOpen(uri=uri, languageId=languageId)
+            show_diagnostics(uri, state.get(uri, {}).get("diagnostics", []))
         elif state["autoStart"]:
             self.start(warn=False)
 
@@ -1060,12 +1046,33 @@ class LanguageClient:
             return
 
         uri = diagnostics_params["uri"]
+        diagnostics = diagnostics_params["diagnostics"]
+        set_state([uri, "diagnostics"], diagnostics)
+
         line_diagnostics = {}
-        for entry in diagnostics_params["diagnostics"]:
+        for entry in diagnostics:
             line = entry["range"]["start"]["line"]
-            line_diagnostics[line] = entry
-        set_state(["line_diagnostics", uri], line_diagnostics)
-        show_diagnostics(diagnostics_params)
+            msg = ""
+            if "severity" in entry:
+                severity = {
+                    1: "E",
+                    2: "W",
+                    3: "I",
+                    4: "H",
+                }[entry["severity"]]
+                msg += "[{}]".format(severity)
+            if "code" in entry:
+                code = entry["code"]
+                msg += str(code)
+            msg += " " + entry["message"]
+            line_diagnostics[line] = msg
+
+        set_state([uri, "line_diagnostics"], line_diagnostics)
+
+        line, columns = gather_args(["line", "columns"])
+        show_line_diagnostic(uri, line, columns)
+
+        show_diagnostics(uri, diagnostics)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="[&buftype, line('.')]")
     def handle_CursorMoved(self, args: List) -> None:
@@ -1270,12 +1277,12 @@ class LanguageClient:
         echomsg(msg)
 
     def rustDocument_diagnosticsBegin(self, params: Dict) -> None:
-        msg = "rustDocument/diagnosticsBegin"
-        echomsg(msg)
+        msg = "rustDocument/diagnosticsBegin"  # noqa: F841
+        # echomsg(msg)
 
     def rustDocument_diagnosticsEnd(self, params: Dict) -> None:
-        msg = "rustDocument/diagnosticsEnd"
-        echomsg(msg)
+        msg = "rustDocument/diagnosticsEnd"  # noqa: F841
+        # echomsg(msg)
 
     def handle_request_and_notify(self, message: Dict) -> None:
         method = message["method"].replace("/", "_")

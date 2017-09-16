@@ -13,11 +13,9 @@ state = {
     "handlers": {},  # Dict[int, PyGreenlet]. message id to greenlet.
     "capabilities": {},  # Dict[str, Dict]. language id to capabilities.
     "rootUris": {},  # Dict[str, str]. language id to rootUri.
+
     "textDocuments": {},  # Dict[str, TextDocumentItem]. uri to TextDocumentItem.
-    "line_diagnostics": {},  # Dict[str, Dict[int, Dict]]. uri to line number to diagnostic message.
     "last_cursor_line": -1,
-    "highlight_source_id": None,
-    "signs": [],  # diagnostic signs
 
     # Settings
     "serverCommands": {},  # Dict[str, List[str]]. language id to server command.
