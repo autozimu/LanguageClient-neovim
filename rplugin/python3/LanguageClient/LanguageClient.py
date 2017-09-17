@@ -108,7 +108,7 @@ def sync_settings() -> None:
 def alive(languageId: str, warn: bool) -> bool:
     """Check if language server for language id is alive."""
     msg = None
-    if languageId not in state["servers"]:
+    if state["servers"].get(languageId) is None:
         msg = "Language client is not running. Try :LanguageClientStart"
     elif state["servers"][languageId].poll() is not None:
         msg = "Failed to start language server. See {}.".format(logpath_server)
@@ -221,8 +221,6 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
     """
     path = uri_to_path(uri)
     buffer = state["nvim"].current.buffer
-    if path != buffer.name:
-        return
 
     if state.get(uri, {}).get("highlight_source_id") is None:
         update_state({
@@ -390,7 +388,11 @@ class LanguageClient:
     def stop(self, languageId: str) -> None:
         state["rpcs"][languageId].run = False
         self.exit(languageId=languageId)
-        del state["servers"][languageId]
+        update_state({
+            "servers": {
+                languageId: None
+            }
+        })
 
         if state["nvim"].call("exists", "#User#LanguageClientStopped") == 1:
             state["nvim"].command("doautocmd User LanguageClientStopped")
@@ -465,12 +467,14 @@ class LanguageClient:
                 not uri.startswith(state["rootUris"][languageId])):
             return
         # Opened before.
-        if uri in state["textDocuments"]:
+        if state.get(uri, {}).get("textDocument") is not None:
             return
 
         if alive(languageId, warn=False):
             self.textDocument_didOpen(uri=uri, languageId=languageId)
             show_diagnostics(uri, state.get(uri, {}).get("diagnostics", []))
+            line, columns = gather_args(["line", "columns"])
+            show_line_diagnostic(uri, line, columns)
         elif state["autoStart"]:
             self.start(warn=False)
 
@@ -483,11 +487,7 @@ class LanguageClient:
         text = get_current_buffer_text()
 
         textDocumentItem = TextDocumentItem(uri, languageId, text)
-        update_state({
-            "textDocuments": {
-                uri: textDocumentItem
-            }
-        })
+        set_state([uri, "textDocument"], textDocumentItem)
 
         state["rpcs"][languageId].notify("textDocument/didOpen", {
             "textDocument": {
@@ -511,7 +511,7 @@ class LanguageClient:
             }
         })
 
-        del state["textDocuments"][uri]
+        set_state([uri, "textDocument"], None)
 
     @neovim.function("LanguageClient_textDocument_hover")
     @deco_args()
@@ -880,29 +880,29 @@ class LanguageClient:
         cmd = get_command_goto_file(path, bufnames, line, character)
         execute_command(cmd)
 
-    @neovim.autocmd("TextChanged", pattern="*", eval='fnamemodify(expand("<afile>"), ":p")')
-    def handle_TextChanged(self, filename) -> None:
-        uri = path_to_uri(filename)
-        if not uri or uri not in state["textDocuments"]:
+    @neovim.autocmd("TextChanged", pattern="*", eval="{'filename': expand('%:p'), 'buftype': &buftype}")
+    def handle_TextChanged(self, kwargs) -> None:
+        uri, buftype = gather_args(["uri", "buftype"], kwargs=kwargs)
+        if buftype != "" or state.get(uri, {}).get("textDocument") is None:
             return
-        text_doc = state["textDocuments"][uri]
+        text_doc = state[uri]["textDocument"]
         if text_doc.skip_change(state["changeThreshold"]):
             return
         self.textDocument_didChange()
 
-    @neovim.autocmd("TextChangedI", pattern="*", eval='fnamemodify(expand("<afile>"), ":p")')
-    def handle_TextChangedI(self, filename):
-        self.handle_TextChanged(filename)
+    @neovim.autocmd("TextChangedI", pattern="*", eval="{'filename': expand('%:p'), 'buftype': &buftype}")
+    def handle_TextChangedI(self, kwargs):
+        self.handle_TextChanged(kwargs)
 
     @deco_args(warn=False)
     def textDocument_didChange(self, uri: str, languageId: str) -> None:
         if not uri or languageId not in state["serverCommands"]:
             return
-        if uri not in state["textDocuments"]:
+        if state.get(uri, {}).get("textDocument") is None:
             self.textDocument_didOpen()
             return
         new_text = get_current_buffer_text()
-        doc = state["textDocuments"][uri]
+        doc = state[uri]["textDocument"]
         if new_text == doc.text:
             return
 
@@ -1069,10 +1069,13 @@ class LanguageClient:
 
         set_state([uri, "line_diagnostics"], line_diagnostics)
 
-        line, columns = gather_args(["line", "columns"])
-        show_line_diagnostic(uri, line, columns)
+        if path_to_uri(state["nvim"].current.buffer.name) != uri:
+            return
 
         show_diagnostics(uri, diagnostics)
+
+        line, columns = gather_args(["line", "columns"])
+        show_line_diagnostic(uri, line, columns)
 
     @neovim.autocmd("CursorMoved", pattern="*", eval="[&buftype, line('.')]")
     def handle_CursorMoved(self, args: List) -> None:

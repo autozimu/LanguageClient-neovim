@@ -14,7 +14,6 @@ state = {
     "capabilities": {},  # Dict[str, Dict]. language id to capabilities.
     "rootUris": {},  # Dict[str, str]. language id to rootUri.
 
-    "textDocuments": {},  # Dict[str, TextDocumentItem]. uri to TextDocumentItem.
     "last_cursor_line": -1,
 
     # Settings
