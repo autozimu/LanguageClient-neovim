@@ -273,7 +273,10 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
 
 
 def show_line_diagnostic(uri: str, line: int, columns: int) -> None:
-    entry = state.get(uri, {}).get("line_diagnostics", {}).get(line, "")
+    entry = state.get(uri, {}).get("line_diagnostics", {}).get(line)
+    if entry is None:
+        return
+
     echo_ellipsis(entry, columns)
 
 
