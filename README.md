@@ -76,7 +76,7 @@ for Vundle and dein.vim plugin managers.
 
 # Language Servers
 
-Please see <http://langserver.org>.
+Please see <http://langserver.org> and/or <https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>.
 
 # Documentation
 
