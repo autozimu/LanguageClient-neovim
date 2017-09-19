@@ -9,4 +9,4 @@ test:
 lint:
 	mypy .
 	-mypy denite/source deoplete/sources
-	flake8 . --ignore=E501
+	flake8 .

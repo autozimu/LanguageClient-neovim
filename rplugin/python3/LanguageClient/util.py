@@ -46,10 +46,11 @@ def get_rootPath(filepath: str, languageId: str) -> str:
     elif languageId == "java":
         rootPath = traverse_up(filepath, is_java_root)
     elif languageId == "haskell":
-        rootPath = (traverse_up(filepath,
-                                lambda folder: os.path.exists(os.path.join(folder, "stack.yaml"))) or
-                    traverse_up(filepath,
-                                lambda folder: os.path.exists(os.path.join(folder, ".cabal"))))
+        rootPath = (
+            traverse_up(
+                filepath, lambda folder: os.path.exists(os.path.join(folder, "stack.yaml"))) or
+            traverse_up(
+                filepath, lambda folder: os.path.exists(os.path.join(folder, ".cabal"))))
 
     # TODO: detect for other filetypes
     if not rootPath:

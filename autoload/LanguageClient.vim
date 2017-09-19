@@ -12,6 +12,10 @@ function! LanguageClient#FZFSinkWorkspaceSymbol(line) abort
     call LanguageClient_FZFSinkWorkspaceSymbol(a:line)
 endfunction
 
+function! LanguageClient#FZFSinkTextDocumentCodeAction(line) abort
+    call LanguageClient_FZFSinkTextDocumentCodeAction(a:line)
+endfunction
+
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
