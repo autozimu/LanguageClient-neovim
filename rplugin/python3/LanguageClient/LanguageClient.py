@@ -15,7 +15,7 @@ from .TextDocumentItem import TextDocumentItem
 from .logger import logger, logpath_server, setLoggingLevel
 from .state import (
     state, update_state, execute_command, echo, echomsg, echoerr,
-    echo_ellipsis, make_serializable, set_state)
+    echo_ellipsis, make_serializable, set_state, alive)
 from .util import (
     get_rootPath, path_to_uri, uri_to_path, get_command_goto_file, get_command_update_signs,
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
@@ -103,19 +103,6 @@ def sync_settings() -> None:
         "autoStart": state["nvim"].vars.get("LanguageClient_autoStart", False),
         "diagnosticsDisplay": state["nvim"].vars.get("LanguageClient_diagnosticsDisplay", {}),
     })
-
-
-def alive(languageId: str, warn: bool) -> bool:
-    """Check if language server for language id is alive."""
-    msg = None
-    if state["servers"].get(languageId) is None:
-        msg = "Language client is not running. Try :LanguageClientStart"
-    elif state["servers"][languageId].poll() is not None:
-        msg = "Failed to start language server. See {}.".format(logpath_server)
-    if msg and warn:
-        logger.warn(msg)
-        echoerr(msg)
-    return msg is None
 
 
 def get_current_buffer_text() -> str:
@@ -359,7 +346,7 @@ class LanguageClient:
             echoerr(msg)
             return
 
-        rpc = RPC(proc.stdout, proc.stdin, self.handle_request_and_notify)
+        rpc = RPC(proc.stdout, proc.stdin, self.handle_request_and_notify, languageId)
         thread = threading.Thread(target=rpc.serve, name="RPC-" + languageId, daemon=True)
         thread.start()
 
@@ -389,8 +376,8 @@ class LanguageClient:
     @neovim.command("LanguageClientStop")
     @deco_args()
     def stop(self, languageId: str) -> None:
-        state["rpcs"][languageId].run = False
         self.exit(languageId=languageId)
+        state["rpcs"][languageId].run = False
         update_state({
             "servers": {
                 languageId: None

@@ -1,18 +1,19 @@
 import json
+import time
 from typing import Dict, Any
 
 from . logger import logger
 
-from .state import state, suspend, wake_up
+from .state import state, suspend, wake_up, alive
 
 
 class RPC:
-    def __init__(self, infile, outfile, on_call):
+    def __init__(self, infile, outfile, on_call, languageId: str) -> None:
         self.infile = infile
         self.outfile = outfile
-        self.mid = 0
         self.on_call = on_call
-        self.run = True
+        self.languageId = languageId
+        self.mid = 0
 
     def inc_mid(self) -> int:
         mid = self.mid
@@ -68,11 +69,14 @@ class RPC:
                 try:
                     msg = json.loads(content)
                 except Exception:
-                    if not self.run:
-                        break
                     msg = "Error deserializing server output: " + content
                     logger.exception(msg)
-                    continue
+                    isAlive = alive(self.languageId, warn=False)
+                    if isAlive:
+                        time.sleep(1.0)
+                        continue
+                    else:
+                        break
                 try:
                     self.handle(msg)
                 except Exception:
