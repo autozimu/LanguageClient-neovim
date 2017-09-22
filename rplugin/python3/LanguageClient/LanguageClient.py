@@ -377,7 +377,6 @@ class LanguageClient:
     @deco_args()
     def stop(self, languageId: str) -> None:
         self.exit(languageId=languageId)
-        state["rpcs"][languageId].run = False
         update_state({
             "servers": {
                 languageId: None

@@ -76,6 +76,8 @@ class RPC:
                         time.sleep(1.0)
                         continue
                     else:
+                        msg = "Server process exited. Stopping RPC thread."
+                        logger.info(msg)
                         break
                 try:
                     self.handle(msg)
