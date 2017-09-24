@@ -30,6 +30,7 @@ GREP_LINE_HIGHLIGHT = 'highlight default link deniteSource_grepLineNR LineNR'
 
 GREP_PATTERNS_HIGHLIGHT = 'highlight default link deniteGrepPatterns Function'
 
+
 class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
