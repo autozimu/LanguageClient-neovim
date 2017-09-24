@@ -761,7 +761,19 @@ class LanguageClient:
             },
         })
 
-        if locations is None or not handle:
+        if locations is None:
+            return locations
+
+        # enhance with the line's contents for Denite
+        for loc in locations:
+            path = uri_to_path(loc["uri"])
+            start = loc["range"]["start"]
+            line = start["line"] + 1
+            character = start["character"] + 1
+            text = get_file_line(path, line)
+            loc['text'] = text
+
+        if not handle:
             return locations
 
         if state["selectionUI"] == "fzf":
