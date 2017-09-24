@@ -784,7 +784,7 @@ class LanguageClient:
                 start = loc["range"]["start"]
                 line = start["line"] + 1
                 character = start["character"] + 1
-                text = get_file_line(uri_to_path(loc["uri"]), line)
+                text = loc["text"]
                 entry = "{}:{}:{}: {}".format(path, line, character, text)
                 source.append(entry)
             fzf(source, "LanguageClient#FZFSinkTextDocumentReferences")
@@ -795,7 +795,7 @@ class LanguageClient:
                 start = loc["range"]["start"]
                 line = start["line"] + 1
                 character = start["character"] + 1
-                text = get_file_line(path, line)
+                text = loc["text"]
                 loclist.append({
                     "filename": path,
                     "lnum": line,
