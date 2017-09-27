@@ -131,11 +131,11 @@ def test_textDocument_references_locationListContent(nvim):
 def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
     nvim.current.window.cursor = [8, 3]
     nvim.input("iabc")
-    time.sleep(0.5)
+    time.sleep(2)
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
     actualLocationTexts = [location["text"] for location
-                           in nvim.call("getloclist", "0")]
+                           in nvim.funcs.getloclist(0)]
     expectedLocationTexts = ["fn abcgreet() -> i32 {"]
     assert actualLocationTexts == expectedLocationTexts
     nvim.command("edit! {}".format(PATH_MAINRS))
