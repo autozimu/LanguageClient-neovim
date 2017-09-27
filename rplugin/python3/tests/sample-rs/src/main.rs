@@ -11,8 +11,8 @@ fn greet() -> i32 {
 
 // place holder for didChange test.
 
-mod lib;
-use lib::yo;
+mod libs;
+use libs::yo;
 fn ref_in_main() -> i32 {
     yo() + 1
 }
