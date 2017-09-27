@@ -131,7 +131,7 @@ def test_textDocument_references_locationListContent(nvim):
 def test_textDocument_references_locationListContent_modifiedBuffer(nvim):
     nvim.current.window.cursor = [8, 3]
     nvim.input("iabc")
-    time.sleep(2)
+    time.sleep(5)
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(3)
     actualLocationTexts = [location["text"] for location
