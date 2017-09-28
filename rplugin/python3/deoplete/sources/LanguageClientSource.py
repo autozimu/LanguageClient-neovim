@@ -36,6 +36,8 @@ def convert_to_deoplete_candidate(item: Dict) -> Dict:
         cand["info"] = item["documentation"]
     if item.get("detail") is not None:
         cand["menu"] = item["detail"]
+    if item.get("additionalTextEdits") is not None:
+        cand["additionalTextEdits"] = item["additionalTextEdits"]
     return cand
 
 

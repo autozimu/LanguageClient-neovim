@@ -11,6 +11,7 @@ import re
 
 from . logger import logger
 from . Sign import Sign
+from .CompletionItemKind import convert_CompletionItemKind_to_vim_kind
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -194,19 +195,20 @@ def markedString_to_str(s: Any) -> str:
         return s["value"]
 
 
-def convert_lsp_completion_item_to_vim_style(item):
-    insertText = item.get('insertText', "") or ""
-    label = item['label']
+def convert_lsp_completion_item_to_vim_style(item: Dict) -> Dict:
+    insertText = item.get("insertText")
+    label = item["label"]
 
-    e = {}
-    e['icase'] = 1
+    e = {}  # type: Dict[str, Any]
+    e["icase"] = 1
     # insertText:
     # A string that should be inserted a document when selecting
     # this completion. When `falsy` the label is used.
-    e['word'] = insertText or label
-    e['abbr'] = label
-    e['dup'] = 1
-    e['menu'] = item.get('detail', "")
-    e['info'] = item.get('documentation', "")
+    e["word"] = insertText or label
+    e["abbr"] = label
+    e["dup"] = 1
+    e["menu"] = item.get("detail", "")
+    e["info"] = item.get("documentation", "")
+    e["kind"] = convert_CompletionItemKind_to_vim_kind(item.get("kind"))
 
     return e

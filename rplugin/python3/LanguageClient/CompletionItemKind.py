@@ -18,3 +18,16 @@ CompletionItemKind = {
     17: 'File',
     18: 'Reference',
 }
+
+
+def convert_CompletionItemKind_to_vim_kind(k: int) -> str:
+    if k in [6]:
+        return "v"
+    elif k in [2, 3, 4]:
+        return "f"
+    elif k in [5, 10]:
+        return "m"
+    elif k in [7, 8, 9, 13]:
+        return "t"
+    else:
+        return ""
