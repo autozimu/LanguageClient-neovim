@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import json
 import time
 from typing import Dict, Any
@@ -35,23 +36,24 @@ class RPC:
         """
         mid = self.inc_mid()
 
-        message = {
-            "jsonrpc": "2.0",
-            "id": mid,
-            "method": method,
-            "params": params,
-        }  # type: Dict[str, Any]
+        message = OrderedDict([
+            ("jsonrpc", "2.0"),
+            ("id",      mid),
+            ("method",  method),
+            ("params",  params)
+        ])  # type: Dict[str, Any]
 
         self.send_message(message)
 
         return suspend(mid)
 
     def notify(self, method: str, params: Dict[str, Any]) -> None:
-        message = {
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-        }  # type: Dict[str, Any]
+
+        message = OrderedDict([
+            ("jsonrpc", "2.0"),
+            ("method",  method),
+            ("params",  params)
+        ])  # type: Dict[str, Any]
 
         self.send_message(message)
 
