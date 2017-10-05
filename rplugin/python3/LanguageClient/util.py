@@ -119,7 +119,6 @@ def retry(span, count, condition):
         time.sleep(span)
         count -= 1
 
-
 def get_command_goto_file(path, bufnames, l, c) -> str:
     if path in bufnames:
         return "exe 'buffer +:call\\ cursor({},{}) ' . fnameescape('{}')".format(l, c, path)
@@ -139,19 +138,21 @@ def get_command_add_sign(sign: Sign) -> str:
 
 def get_command_update_signs(signs: List[Sign], next_signs: List[Sign]) -> str:
     cmd = "echo"
-    diff = difflib.SequenceMatcher(None, signs, next_signs)
+    signs_uniq = list(set(signs))
+    next_signs_uniq = list(set(next_signs))
+    diff = difflib.SequenceMatcher(None, signs_uniq, next_signs_uniq)
     for op, i1, i2, j1, j2 in diff.get_opcodes():
         if op == "replace":
             for i in range(i1, i2):
-                cmd += get_command_delete_sign(signs[i])
+                cmd += get_command_delete_sign(signs_uniq[i])
             for i in range(j1, j2):
-                cmd += get_command_add_sign(next_signs[i])
+                cmd += get_command_add_sign(next_signs_uniq[i])
         elif op == "delete":
             for i in range(i1, i2):
-                cmd += get_command_delete_sign(signs[i])
+                cmd += get_command_delete_sign(signs_uniq[i])
         elif op == "insert":
             for i in range(j1, j2):
-                cmd += get_command_add_sign(next_signs[i])
+                cmd += get_command_add_sign(next_signs_uniq[i])
         elif op == "equal":
             pass
         else:
