@@ -119,6 +119,7 @@ def retry(span, count, condition):
         time.sleep(span)
         count -= 1
 
+
 def get_command_goto_file(path, bufnames, l, c) -> str:
     if path in bufnames:
         return "exe 'buffer +:call\\ cursor({},{}) ' . fnameescape('{}')".format(l, c, path)
