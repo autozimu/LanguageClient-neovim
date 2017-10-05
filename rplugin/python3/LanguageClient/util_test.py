@@ -73,6 +73,7 @@ def test_getCommandUpdateSigns_unique():
             "echo | execute('sign place 2 line=2"
             " name=LanguageClientError buffer=1')")
 
+
 def test_getCommandUpdateSigns_withDuplicates():
     signs = [
         Sign(1, "Error", 1),
@@ -84,10 +85,10 @@ def test_getCommandUpdateSigns_withDuplicates():
 
     nextSigns = [
         Sign(1, "Error", 1),
-        Sign(1, "Error", 1), # A duplicate value (1) has been added
-        Sign(2, "Error", 1), # A unique value (2) has been added
-                             # A unique value (3) has been removed
-        Sign(4, "Error", 1), # A duplicate value (4) has been removed
+        Sign(1, "Error", 1),  # A duplicate value (1) has been added
+        Sign(2, "Error", 1),  # A unique value (2) has been added
+                              # A unique value (3) has been removed
+        Sign(4, "Error", 1),  # A duplicate value (4) has been removed
     ]
 
     cmd = get_command_update_signs(signs, nextSigns)
@@ -95,6 +96,7 @@ def test_getCommandUpdateSigns_withDuplicates():
     assert "execute('sign place 2 line=2 name=LanguageClientError buffer=1')" in cmd
     assert "execute('sign unplace 3')" in cmd
     assert "execute('sign unplace 4')" not in cmd
+
 
 def test_convertVimCommandArgsToKwargs():
     assert convert_vim_command_args_to_kwargs(["rootPath=/tmp"]) == {
