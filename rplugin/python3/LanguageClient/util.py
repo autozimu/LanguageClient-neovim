@@ -120,9 +120,9 @@ def convert_Sign_to_vim_sign_id(sign: Sign) -> int:
     base_id = 75000
 
     diagnostic_offset = 0
-    for offset, diagnostic in enumerate(DiagnosticsDisplay.values()):
+    for offset, diagnostic in DiagnosticsDisplay.items():
         if diagnostic["name"] == sign.signname:
-            diagnostic_offset = offset
+            diagnostic_offset = offset - 1
             break
     line_multi = len(DiagnosticsDisplay)
     return base_id + ((sign.line - 1) * line_multi) + diagnostic_offset
