@@ -51,13 +51,13 @@ def test_getCommandDeleteSign():
     sign = Sign(1, "Error", 1)
     assert get_command_delete_sign(sign) == " | execute('sign unplace 75000 buffer=1')"
 
-    sign = Sign(1, "Warning", 2)
+    sign = Sign(1, "Hint", 2)
     assert get_command_delete_sign(sign) == " | execute('sign unplace 75001 buffer=2')"
 
     sign = Sign(1, "Information", 3)
     assert get_command_delete_sign(sign) == " | execute('sign unplace 75002 buffer=3')"
 
-    sign = Sign(1, "Hint", 4)
+    sign = Sign(1, "Warning", 4)
     assert get_command_delete_sign(sign) == " | execute('sign unplace 75003 buffer=4')"
 
 
@@ -67,20 +67,20 @@ def test_getCommandAddSign():
             " | execute('sign place 75024 line=7"
             " name=LanguageClientError buffer=4')")
 
-    sign = Sign(7, "Warning", 3)
+    sign = Sign(7, "Hint", 3)
     assert (get_command_add_sign(sign) ==
             " | execute('sign place 75025 line=7"
-            " name=LanguageClientWarning buffer=3')")
+            " name=LanguageClientHint buffer=3')")
 
     sign = Sign(7, "Information", 2)
     assert (get_command_add_sign(sign) ==
             " | execute('sign place 75026 line=7"
             " name=LanguageClientInformation buffer=2')")
 
-    sign = Sign(7, "Hint", 1)
+    sign = Sign(7, "Warning", 1)
     assert (get_command_add_sign(sign) ==
             " | execute('sign place 75027 line=7"
-            " name=LanguageClientHint buffer=1')")
+            " name=LanguageClientWarning buffer=1')")
 
 
 def test_getCommandUpdateSigns_unique():

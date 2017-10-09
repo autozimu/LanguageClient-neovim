@@ -119,12 +119,13 @@ def convert_Sign_to_vim_sign_id(sign: Sign) -> int:
     # As a polite attempt to avoid collisions with other plugins, we begin numbering far from 0
     base_id = 75000
 
+    diagnostic_names = sorted(set(map(lambda diag: diag["name"], DiagnosticsDisplay.values())))
     diagnostic_offset = 0
-    for offset, diagnostic in DiagnosticsDisplay.items():
-        if diagnostic["name"] == sign.signname:
-            diagnostic_offset = int(offset) - 1
+    for offset, name in enumerate(diagnostic_names):
+        if name == sign.signname:
+            diagnostic_offset = offset
             break
-    line_multi = len(DiagnosticsDisplay)
+    line_multi = len(diagnostic_names)
     return base_id + ((sign.line - 1) * line_multi) + diagnostic_offset
 
 
