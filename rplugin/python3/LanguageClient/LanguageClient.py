@@ -21,6 +21,7 @@ from .util import (
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
     convert_lsp_completion_item_to_vim_style)
 from .MessageType import MessageType
+from .DiagnosticSeverity import DiagnosticSeverity
 
 
 def deco_args(warn=True):
@@ -240,19 +241,13 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
 
         signs.append(Sign(start_line + 1, sign_name, buffer.number))
 
-        qftype = {
-            1: "E",
-            2: "W",
-            3: "I",
-            4: "H",
-        }[severity]
         qflist.append({
             "filename": path,
             "lnum": start_line + 1,
             "col": start_character + 1,
             "nr": entry.get("code"),
             "text": entry["message"],
-            "type": qftype,
+            "type": DiagnosticSeverity(severity).name,
         })
 
     cmd = get_command_update_signs(state[uri].get("signs", []), signs)
@@ -1063,13 +1058,7 @@ class LanguageClient:
             line = entry["range"]["start"]["line"]
             msg = ""
             if "severity" in entry:
-                severity = {
-                    1: "E",
-                    2: "W",
-                    3: "I",
-                    4: "H",
-                }[entry["severity"]]
-                msg += "[{}]".format(severity)
+                msg += "[{}]".format(DiagnosticSeverity(entry["severity"]).name)
             if "code" in entry:
                 code = entry["code"]
                 msg += str(code)
@@ -1355,11 +1344,11 @@ class LanguageClient:
 
     def rustDocument_diagnosticsBegin(self, params: Dict) -> None:
         msg = "rustDocument/diagnosticsBegin"  # noqa: F841
-        # echomsg(msg)
+        logger.info(msg)
 
     def rustDocument_diagnosticsEnd(self, params: Dict) -> None:
         msg = "rustDocument/diagnosticsEnd"  # noqa: F841
-        # echomsg(msg)
+        logger.info(msg)
 
     def workspace_applyEdit(self, params: Dict) -> None:
         apply_WorkspaceEdit(params["edit"])
