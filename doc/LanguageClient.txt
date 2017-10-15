@@ -144,6 +144,33 @@ Set if diagnostics integration is enabled.
 Default: 1
 Valid options: 1 | 0
 
+2.10 g:LanguageClient_windowLogMessageLevel  *g:LanguageClient_windowLogMessageLevel*
+
+Maximum MessageType to echoshow messages from window/logMessage.
+
+MessageType >
+    export namespace MessageType {
+        /**
+         * An error message.
+         */
+        export const Error = 1;
+        /**
+         * A warning message.
+         */
+        export const Warning = 2;
+        /**
+         * An information message.
+         */
+        export const Info = 3;
+        /**
+         * A log message.
+         */
+        export const Log = 4;
+    }
+
+Default: "Warning"
+Valid options: "Error" | "Warning" | "Info" | "Log"
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

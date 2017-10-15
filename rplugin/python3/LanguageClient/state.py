@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from .DiagnosticsDisplay import DiagnosticsDisplay
 from .logger import logger, logpath_server
 from .util import escape
+from .MessageType import MessageType
 
 state = {
     "nvim": None,
@@ -26,6 +27,8 @@ state = {
     "diagnosticsEnable": True,  # whether to show diagnostics.
     "diagnosticsList": "quickfix",  # location to store error list.
     "diagnosticsDisplay": DiagnosticsDisplay,  # how to display diagnostics.
+    # Maximum MessageType to echoshow messages from window/logMessage.
+    "windowLogMessageLevel": MessageType.Warning,
 }  # type: Dict[str, Any]
 
 

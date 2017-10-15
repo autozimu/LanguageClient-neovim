@@ -20,6 +20,7 @@ from .util import (
     get_rootPath, path_to_uri, uri_to_path, get_command_goto_file, get_command_update_signs,
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
     convert_lsp_completion_item_to_vim_style)
+from .MessageType import MessageType
 
 
 def deco_args(warn=True):
@@ -103,6 +104,11 @@ def sync_settings() -> None:
         "autoStart": state["nvim"].vars.get("LanguageClient_autoStart", False),
         "diagnosticsDisplay": state["nvim"].vars.get("LanguageClient_diagnosticsDisplay", {}),
     })
+    windowLogMessageLevel = state["nvim"].vars.get("LanguageClient_windowLogMessageLevel")
+    if windowLogMessageLevel is not None:
+        update_state({
+            "windowLogMessageLevel": MessageType[windowLogMessageLevel],
+        })
 
 
 def get_current_buffer_text() -> str:
@@ -1332,13 +1338,10 @@ class LanguageClient:
             echomsg(params.get("message"))
 
     def window_logMessage(self, params: Dict) -> None:
-        msgType = {
-            1: "Error",
-            2: "Warning",
-            3: "Info",
-            4: "Log",
-        }[params["type"]]
-        msg = "[{}] {}".format(msgType, params["message"])  # noqa: F841
+        msgType = params["type"]
+        if msgType > state["windowLogMessageLevel"].value:
+            return
+        msg = "[{}] {}".format(MessageType(msgType).name, params["message"])  # noqa: F841
         echomsg(msg)
 
     # Extension by JDT language server.
