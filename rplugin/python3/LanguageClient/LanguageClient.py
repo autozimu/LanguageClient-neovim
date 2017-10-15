@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import threading
+from functools import wraps, partial
 from typing import List, Dict, Any, Union  # noqa: F401
 
 import neovim
@@ -24,23 +25,38 @@ from .MessageType import MessageType
 from .DiagnosticSeverity import DiagnosticSeverity
 
 
-def deco_args(warn=True):
-    def wrapper(f):
-        def wrappedf(*args, **kwargs):
-            languageId, = gather_args(["languageId"])
-            if not alive(languageId, warn):
-                return None
+def deco_args(f=None, warn=True):
+    """
+    Decorate an LSP function such that
+    - check if server is alive
+    - unify function calls from python and vimscript
+    - gather declared parameters
 
-            arg_spec = inspect.getfullargspec(f)
-            kwargs_with_defaults = dict(zip(reversed(arg_spec.args), arg_spec.defaults or ()))
-            kwargs_with_defaults.update({
-                "self": args[0],
-                "languageId": languageId,
-            })
-            kwargs_with_defaults.update(kwargs)
-            final_args = gather_args(arg_spec.args, args, kwargs_with_defaults)
-            return f(*final_args)
-        return wrappedf
+    Decorator pattern of optioanl arguments copied from
+    <https://blogs.it.ox.ac.uk/inapickle/2012/01/05/python-decorators-with-optional-arguments/>.
+    """
+    if f is None:
+        # If called without method, we've been called with optional arguments.
+        # We return a decorator with the optional arguments filled in.
+        # Next time round we'll be decorating method.
+        return partial(deco_args, warn=warn)
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        languageId, = gather_args(["languageId"])
+        if not alive(languageId, warn):
+            return None
+
+        arg_spec = inspect.getfullargspec(f)
+        kwargs_with_defaults = dict(zip(reversed(arg_spec.args),
+                                        arg_spec.defaults or ()))
+        kwargs_with_defaults.update({
+            "self": args[0],
+            "languageId": languageId,
+        })
+        kwargs_with_defaults.update(kwargs)
+        final_args = gather_args(arg_spec.args, args, kwargs_with_defaults)
+        return f(*final_args)
     return wrapper
 
 
@@ -373,7 +389,7 @@ class LanguageClient:
             state["nvim"].command("doautocmd User LanguageClientStarted")
 
     @neovim.command("LanguageClientStop")
-    @deco_args()
+    @deco_args
     def stop(self, languageId: str) -> None:
         self.exit(languageId=languageId)
         update_state({
@@ -386,7 +402,7 @@ class LanguageClient:
             state["nvim"].command("doautocmd User LanguageClientStopped")
 
     @neovim.function("LanguageClient_initialize")
-    @deco_args()
+    @deco_args
     def initialize(self, rootPath: str, languageId: str, handle=True) -> Dict:
         logger.info("Begin initialize")
 
@@ -503,7 +519,7 @@ class LanguageClient:
         set_state([uri, "textDocument"], None)
 
     @neovim.function("LanguageClient_textDocument_hover")
-    @deco_args()
+    @deco_args
     def textDocument_hover(self, uri: str, languageId: str,
                            line: int, character: int, handle=True) -> Dict:
         logger.info("Begin textDocument/hover")
@@ -537,7 +553,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_definition")
-    @deco_args()
+    @deco_args
     def textDocument_definition(
             self, uri: str, languageId: str, line: int, character: int,
             bufnames: List[str], handle=True) -> Union[Dict, List]:
@@ -586,7 +602,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_rename")
-    @deco_args()
+    @deco_args
     def textDocument_rename(
             self, uri: str, languageId: str, line: int, character: int,
             cword: str, newName: str, handle=True) -> Dict:
@@ -620,7 +636,7 @@ class LanguageClient:
         return workspaceEdit
 
     @neovim.function("LanguageClient_textDocument_documentSymbol")
-    @deco_args()
+    @deco_args
     def textDocument_documentSymbol(self, uri: str, languageId: str, handle=True) -> List:
         logger.info("Begin textDocument/documentSymbol")
 
@@ -677,7 +693,7 @@ class LanguageClient:
         execute_command("normal! {}G{}|".format(line, character))
 
     @neovim.function("LanguageClient_workspace_symbol")
-    @deco_args()
+    @deco_args
     def workspace_symbol(self, languageId: str, query: str, handle=True) -> List:
         logger.info("Begin workspace/symbol")
 
@@ -739,7 +755,7 @@ class LanguageClient:
         execute_command(cmd)
 
     @neovim.function("LanguageClient_textDocument_references")
-    @deco_args()
+    @deco_args
     def textDocument_references(
             self, uri: str, languageId: str, line: int, character: int,
             includeDeclaration: bool = True, handle=True) -> List:
@@ -812,7 +828,7 @@ class LanguageClient:
         return locations
 
     @neovim.function("LanguageClient_rustDocument_implementations")
-    @deco_args()
+    @deco_args
     def rustDocument_implementations(
             self, uri: str, languageId: str, line: int, character: int,
             handle=True) -> List:
@@ -963,7 +979,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_completionOmnifunc")
-    @deco_args()
+    @deco_args
     def textDocument_completionOmnifunc(self, completeFromColumn: int) -> None:
         result = self.textDocument_completion()
         if result is None:
@@ -1039,7 +1055,7 @@ class LanguageClient:
                            ctx['startcol'], matches, isIncomplete, async=True)
 
     @neovim.function("LanguageClient_exit")
-    @deco_args()
+    @deco_args
     def exit(self, languageId: str) -> None:
         logger.info("exit")
 
@@ -1090,7 +1106,7 @@ class LanguageClient:
         show_line_diagnostic(uri, line, columns)
 
     @neovim.function("LanguageClient_completionItem/resolve")
-    @deco_args()
+    @deco_args
     def completionItem_resolve(
             self, completionItem: Dict, languageId: str, handle=True) -> Dict:
         logger.info("Begin completionItem/resolve")
@@ -1109,7 +1125,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_signatureHelp")
-    @deco_args()
+    @deco_args
     def textDocument_signatureHelp(
             self, uri: str, languageId: str, line: int, character: int,
             handle=True) -> Dict:
@@ -1137,7 +1153,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_codeAction")
-    @deco_args()
+    @deco_args
     def textDocument_codeAction(
             self, uri: str, languageId: str, line: int, character: int, handle=True) -> Dict:
         logger.info("Begin textDocument/codeAction")
@@ -1212,7 +1228,7 @@ class LanguageClient:
         })
 
     @neovim.function("LanguageClient_workspace_executeCommand")
-    @deco_args()
+    @deco_args
     def workspace_executeCommand(self, languageId: str, command: str,
                                  arguments, handle=True):
         logger.info("Begin workspace/executeCommand")
@@ -1226,7 +1242,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_formatting")
-    @deco_args()
+    @deco_args
     def textDocument_formatting(
             self, languageId: str, uri: str, line: int, character: int,
             handle=True) -> Dict:
@@ -1261,7 +1277,7 @@ class LanguageClient:
         return textEdits
 
     @neovim.function("LanguageClient_textDocument_rangeFormatting")
-    @deco_args()
+    @deco_args
     def textDocument_rangeFormatting(
             self, languageId: str, uri: str, line: int, character: int,
             handle=True) -> Dict:
