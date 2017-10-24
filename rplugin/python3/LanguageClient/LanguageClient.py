@@ -97,7 +97,9 @@ def gather_args(keys: List, args: List = [], kwargs: Dict = {}) -> List:
         else:
             logger.warn("Unknown parameter key: " + k)
 
-    return [res[k] for k in keys]
+    result = [res[k] for k in keys]
+    logger.debug("Gathered arguments: {} = {}".format(keys, result))
+    return result
 
 
 def get_selectionUI() -> str:
