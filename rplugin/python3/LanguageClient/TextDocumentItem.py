@@ -1,5 +1,6 @@
-from typing import List, Dict, Tuple  # noqa: F401
 import time
+import json
+from typing import List, Dict, Tuple  # noqa: F401
 
 
 class TextDocumentItem:
@@ -32,3 +33,6 @@ class TextDocumentItem:
 
     def commit_change(self):
         self.dirty = False
+
+    def __str__(self) -> str:
+        return json.dumps(self.__dict__)
