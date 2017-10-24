@@ -304,6 +304,9 @@ class LanguageClient:
     def getState_vim(self, args: List) -> str:
         """
         Return state object. Skip unserializable parts.
+
+        Note: this function serves only cases that state is needed from
+        vimscript. For uses inside python, import state directly.
         """
         state_copy = make_serializable(state)
         return json.dumps(state_copy)
@@ -915,6 +918,7 @@ class LanguageClient:
     def handle_TextChangedI(self, kwargs):
         self.handle_TextChanged(kwargs)
 
+    @neovim.function("textDocument_didChange")
     @deco_args(warn=False)
     def textDocument_didChange(self, uri: str, languageId: str) -> None:
         if not uri or languageId not in state["serverCommands"]:
@@ -947,6 +951,7 @@ class LanguageClient:
         uri, languageId = gather_args(["uri", "languageId"], kwargs=kwargs)
         self.textDocument_didSave()
 
+    @neovim.function("textDocument_didSave")
     @deco_args(warn=False)
     def textDocument_didSave(self, uri: str, languageId: str) -> None:
         if languageId not in state["serverCommands"]:
@@ -960,7 +965,7 @@ class LanguageClient:
             }
         })
 
-    @neovim.function("LanguageClient_textDocument_completion")
+    @neovim.function("LanguageClient_textDocument_completion", sync=True)
     @deco_args(warn=False)
     def textDocument_completion(
             self, uri: str, languageId: str, line: int, character: int) -> Union[List, Dict]:
@@ -1325,7 +1330,7 @@ class LanguageClient:
     @neovim.function("LanguageClient_call")
     def call_vim(self, args: List) -> Any:
         """
-        Expose call() to vimscript.
+        Expose RPC call() to vimscript.
         """
         languageId, = gather_args(["languageId"])
 
@@ -1334,7 +1339,7 @@ class LanguageClient:
     @neovim.function("LanguageClient_notify")
     def notify_vim(self, args: List) -> None:
         """
-        Expose notify() to vimscript.
+        Expose RPC notify() to vimscript.
         """
         languageId, = gather_args(["languageId"])
 
