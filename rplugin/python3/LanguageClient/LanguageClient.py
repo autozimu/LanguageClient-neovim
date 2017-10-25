@@ -1364,7 +1364,7 @@ class LanguageClient:
 
     def rustDocument_beginBuild(self, params: Dict) -> None:
         msg = "rustDocument/beginBuild"
-        echomsg(msg)
+        logger.info(msg)
 
     def rustDocument_diagnosticsBegin(self, params: Dict) -> None:
         msg = "rustDocument/diagnosticsBegin"  # noqa: F841
