@@ -132,3 +132,7 @@ endfunction
 function! LanguageClient_notify()
     return s:lc.call('notify_vim')
 endfunction
+
+function! LanguageClient_completionManager_refresh(...)
+    return call(s:lc.notify,['completionManager_refresh'] + a:000, s:lc)
+endfunction
