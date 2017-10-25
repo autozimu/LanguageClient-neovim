@@ -1,6 +1,6 @@
-# 1. Install neovim
+# 1. Install neovim or vim
 
-Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package)!
+Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package) or [vim](http://www.vim.org/)!
 
 # 2. Install python modules
 ## python-neovim
@@ -16,6 +16,16 @@ Run following command to install `typing` module:
 ```
 sudo pip3 install --upgrade typing
 ```
+
+# 3.0 (Vim only)
+
+For vim, two other plugins are necessary to make this one work (I'm sorry,
+but vim support is a second thought.)
+
+- [vim-hug-neovim-rpc](https://github.com/roxma/vim-hug-neovim-rpc)
+- [nvim-yarp](https://github.com/roxma/nvim-yarp)
+
+Also, following `:UpdateRemotePlugins` commands is not needed for vim users.
 
 # 3. Install this plugin
 Choose steps matching your plugin manager.
