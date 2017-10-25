@@ -1049,8 +1049,8 @@ class LanguageClient:
                     match['snippet'] = item['textEdit']['newText'] + '$0'
             elif item.get('textEdit', None):
                 # ignore insertText
-                match['word'] = ''
-                match['textEdits'].append(item['textEdit'])
+                # TODO: Not fully conforming to LSP
+                match['word'] = item['textEdit']['newText']
             matches.append(match)
 
         state["nvim"].call('cm#complete', info['name'], ctx,
