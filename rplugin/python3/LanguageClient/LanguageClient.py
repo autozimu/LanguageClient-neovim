@@ -1030,10 +1030,10 @@ class LanguageClient:
         for item in items:
             match = convert_lsp_completion_item_to_vim_style(item)
 
-            # snippet & textEdit support
-            match['textEdits'] = []
             if item.get('additionalTextEdits', None):
-                match['textEdits'] = item['additionalTextEdits']
+                match['additionalTextEdits'] = item['additionalTextEdits']
+            if item.get('textEdit'):
+                match['textEdit'] = item['textEdit']
 
             insertText = item.get('insertText', "") or ""
             label = item['label']
