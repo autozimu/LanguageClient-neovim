@@ -2,6 +2,9 @@ if has('nvim')
     finish
 endif
 
+command LanguageClientStart call LanguageClient_start()
+command LanguageClientStop call LanguageClient_stop()
+
 let s:lc = yarp#py3('LanguageClient_wrapper')
 
 function! LanguageClient_getState()
