@@ -35,7 +35,14 @@ function! LanguageClient_initialize()
     return s:lc.call('initialize')
 endfunction
 
-" handle_BufReadPost
+function! HandleBufReadPost()
+    return s:lc.notify('handle_BufWritePost', {
+                \ 'languageId': &filetype,
+                \ 'filename': expand('%:p'),
+                \ })
+endfunction
+
+autocmd BufReadPost * call HandleBufReadPost()
 
 function! LanguageClient_textDocument_didOpen()
     return s:lc.call('textDocument_didOpen')
@@ -73,14 +80,28 @@ function! LanguageClient_rustDocument_implementations()
     return s:lc.call('rustDocument_implementations')
 endfunction
 
-" handle_TextChanged
-" handle_TextChangedI
+function! HandleTextChanged()
+    return s:lc.notify('handle_TextChanged', {
+                \ 'filename': expand('%:p'),
+                \ 'buftype': &buftype,
+                \ })
+endfunction
+
+autocmd TextChanged * call HandleTextChanged()
+autocmd TextChangedI * call HandleTextChanged()
 
 function! LanguageClient_textDocument_didChange()
     return s:lc.call('textDocument_didChange')
 endfunction
 
-" handle_BufWritePost
+function! HandleBufWritePost()
+    return s:lc.notify('handle_BufWritePost', {
+                \ 'languageId': &filetype,
+                \ 'filename': expand('%:p'),
+                \ })
+endfunction
+
+autocmd BufWritePost * call HandleBufWritePost()
 
 function! LanguageClient_textDocument_didSave()
     return s:lc.call('textDocument_didSave')
@@ -102,7 +123,14 @@ function! LanguageClient_exit()
     return s:lc.call('exit')
 endfunction
 
-" handle_CursorMoved
+function! HandleCursorMoved()
+    return s:lc.notify('handle_CursorMoved', {
+                \ 'buftype': &buftype,
+                \ 'line': line('.'),
+                \ })
+endfunction
+
+autocmd CursorMoved * call HandleCursorMoved()
 
 function! LanguageClient_completionItem_resolve()
     return s:lc.call('completionItem_resolve')

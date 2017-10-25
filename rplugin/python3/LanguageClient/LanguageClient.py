@@ -465,11 +465,11 @@ class LanguageClient:
                         repr(ex))
 
     @neovim.autocmd("BufReadPost", pattern="*",
-                    eval="{'languageId': &filetype, 'filename': expand('%:p')}")
-    def handle_BufReadPost(self, kwargs):
+                    eval="[{'languageId': &filetype, 'filename': expand('%:p')}]")
+    def handle_BufReadPost(self, args: List) -> None:
         logger.info("Begin handleBufReadPost")
 
-        languageId, uri = gather_args(["languageId", "uri"], kwargs=kwargs)
+        languageId, uri = gather_args(["languageId", "uri"], args=args)
         if not uri:
             return
         # Language server is running but file is not within rootUri.
@@ -903,9 +903,9 @@ class LanguageClient:
         execute_command(cmd)
 
     @neovim.autocmd("TextChanged", pattern="*",
-                    eval="{'filename': expand('%:p'), 'buftype': &buftype}")
-    def handle_TextChanged(self, kwargs) -> None:
-        uri, buftype = gather_args(["uri", "buftype"], kwargs=kwargs)
+                    eval="[{'filename': expand('%:p'), 'buftype': &buftype}]")
+    def handle_TextChanged(self, args: List) -> None:
+        uri, buftype = gather_args(["uri", "buftype"], args=args)
         if buftype != "" or state.get(uri, {}).get("textDocument") is None:
             return
         text_doc = state[uri]["textDocument"]
@@ -914,9 +914,9 @@ class LanguageClient:
         self.textDocument_didChange()
 
     @neovim.autocmd("TextChangedI", pattern="*",
-                    eval="{'filename': expand('%:p'), 'buftype': &buftype}")
-    def handle_TextChangedI(self, kwargs):
-        self.handle_TextChanged(kwargs)
+                    eval="[{'filename': expand('%:p'), 'buftype': &buftype}]")
+    def handle_TextChangedI(self, args: List) -> None:
+        self.handle_TextChanged(args)
 
     @neovim.function("textDocument_didChange")
     @deco_args(warn=False)
@@ -946,9 +946,9 @@ class LanguageClient:
         doc.commit_change()
 
     @neovim.autocmd("BufWritePost", pattern="*",
-                    eval="{'languageId': &filetype, 'filename': expand('%:p')}")
-    def handle_BufWritePost(self, kwargs):
-        uri, languageId = gather_args(["uri", "languageId"], kwargs=kwargs)
+                    eval="[{'languageId': &filetype, 'filename': expand('%:p')}]")
+    def handle_BufWritePost(self, args: List) -> None:
+        uri, languageId = gather_args(["uri", "languageId"], args=args)
         self.textDocument_didSave()
 
     @neovim.function("textDocument_didSave")
@@ -1098,9 +1098,10 @@ class LanguageClient:
         line, columns = gather_args(["line", "columns"])
         show_line_diagnostic(uri, line, columns)
 
-    @neovim.autocmd("CursorMoved", pattern="*", eval="[&buftype, line('.')]")
+    @neovim.autocmd("CursorMoved", pattern="*",
+                    eval="[{'buftype': &buftype, 'line': line('.')}]")
     def handle_CursorMoved(self, args: List) -> None:
-        buftype, line = args
+        buftype, line = gather_args(["buftype", "line"], args=args)
         # Regular file buftype is "".
         if buftype != "" or line == state["last_cursor_line"]:
             return
