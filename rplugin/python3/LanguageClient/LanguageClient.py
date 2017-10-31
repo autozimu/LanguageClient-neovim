@@ -1142,7 +1142,7 @@ class LanguageClient:
         self.textDocument_didChange()
         result = state["rpcs"][languageId].call("textDocument/signatureHelp", {
             "textDocument": {
-                uri: uri,
+                "uri": uri,
             },
             "position": {
                 "line": line,
