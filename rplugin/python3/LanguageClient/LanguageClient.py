@@ -279,8 +279,14 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
 
 
 def show_line_diagnostic(uri: str, line: int, columns: int) -> None:
+    logger.info("Begin show_line_diagnostic")
     entry = state.get(uri, {}).get("line_diagnostics", {}).get(line, "")
+    if entry == state["last_line_diagnostic"]:
+        return
 
+    update_state({
+        "last_line_diagnostic": entry,
+    })
     echo_ellipsis(entry, columns)
 
 

@@ -16,6 +16,7 @@ state = {
     "rootUris": {},  # Dict[str, str]. language id to rootUri.
 
     "last_cursor_line": -1,
+    "last_line_diagnostic": "",
     "codeActionCommands": [],  # List[Command]. Stashed codeAction commands.
 
     # Settings
