@@ -1,7 +1,11 @@
 # LanguageClient-neovim
 [![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=master)](https://travis-ci.org/autozimu/LanguageClient-neovim)
 
-[Language Server Protocol](https://github.com/Microsoft/language-server-protocol) support for [neovim](https://github.com/neovim/neovim) and [vim](http://www.vim.org/).
+[Language Server Protocol] support for [neovim] and [vim].
+
+[Language Server Protocol]: https://github.com/Microsoft/language-server-protocol
+[neovim]: https://neovim.io/
+[vim]: http://www.vim.org/
 
 ![rename](https://cloud.githubusercontent.com/assets/1453551/24251636/2e73a1cc-0fb1-11e7-8a5e-3332e6a5f424.gif)
 
@@ -68,12 +72,15 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
-this plugin. *Restart* neovim, run command `LanguageClientStart` and happy
-hacking!
+this plugin. Install corresponding language servers. Start neovim and language
+services will be available right away if things go well. Happy hacking!
 
-See [INSTALL](INSTALL.md) for complete instructions, including instructions 
-for Vundle and dein.vim plugin managers.
+Please see [INSTALL](INSTALL.md) for complete installation and configuration
+instructions.
 
+# Troubleshooting
+
+[Troubleshooting](https://github.com/autozimu/LanguageClient-neovim/blob/master/INSTALL.md#7-troubleshooting)
 
 # Language Servers
 
@@ -81,7 +88,14 @@ Please see <http://langserver.org> and/or <https://github.com/Microsoft/language
 
 # Documentation
 
-[LanguageClient.txt](https://github.com/autozimu/LanguageClient-neovim/blob/master/doc/LanguageClient.txt)
+See [LanguageClient.txt] for full list of configurations, commands and
+functions.
+
+[LanguageClient.txt]: https://github.com/autozimu/LanguageClient-neovim/blob/master/doc/LanguageClient.txt
+
+# Development
+
+[DEVELOPMENT](https://github.com/autozimu/LanguageClient-neovim/blob/master/DEVELOPMENT.md)
 
 # License
 

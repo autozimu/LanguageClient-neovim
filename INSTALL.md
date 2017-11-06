@@ -64,13 +64,37 @@ Run `:UpdateRemotePlugins` in neovim and restart.
 At this point, your `~/.local/share/nvim/rplugin.vim` should contains
 information about this plugin. If not, see following troubleshooting.
 
-# Troubleshooting
+# 5. Install language servers
+Install language servers if corresponding language servers are not available
+yet on your system. Please see <http://langserver.org> and/or
+<https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>
+for list of language servers.
 
-- Begin with something small.
+# 6. Configure this plugin
+Example configuration
+```vim
+" Required for operations modifying multiple buffers like rename.
+set hidden
+
+let g:LanguageClient_serverCommands = {
+    \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
+    \ 'javascript': ['/opt/javascript-typescript-langserver/lib/language-server-stdio.js'],
+    \ }
+
+" Automatically start language servers.
+let g:LanguageClient_autoStart = 1
+
+nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
+nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
+```
+
+# 7. Troubleshooting
+
+1. Begin with something small.
     - Backup your init.vim and use [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim) as init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` command in shell.
     - Try with [sample projects](https://github.com/autozimu/LanguageClient-neovim/tree/master/rplugin/python3/tests).
-- Run `:CheckHealth` to see if there is issue with neovim python3 host.
-  then start neovim normally.
-- Run `:echo &runtimepath` and make sure the plugin path is in the list.
-- Make sure your language server run properly when invoked manually from
-  shell.
+1. Run `:CheckHealth` to see if there is issue with neovim python3 host.  then
+   start neovim normally.
+1. Run `:echo &runtimepath` and make sure the plugin path is in the list.
+1. Make sure language server run properly when invoked manually from shell.
