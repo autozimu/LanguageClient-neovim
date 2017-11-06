@@ -155,10 +155,10 @@ def apply_TextDocumentEdit(textDocumentEdit: Dict) -> None:
     """
     filename = uri_to_path(textDocumentEdit["textDocument"]["uri"])
     edits = textDocumentEdit["edits"]
-    # Sort edits. Make edits from right to left, bottom to top.
+    # Sort editse. From bottom to top, right to left.
     edits = sorted(edits, key=lambda edit: (
-        -1 * edit["range"]["start"]["character"],
         -1 * edit["range"]["start"]["line"],
+        -1 * edit["range"]["start"]["character"],
     ))
     buffer = next((buffer for buffer in state["nvim"].buffers
                    if buffer.name == filename), None)
@@ -1249,12 +1249,13 @@ class LanguageClient:
         Try handle a Command by client itself.
         """
         try:
-            command = CommandsClient[entry["command"]]
+            command = CommandsClient(entry["command"])
         except KeyError:
             return False
 
         if command == CommandsClient.JavaApplyWorkspaceEdit:
-            apply_WorkspaceEdit(entry["arguments"])
+            for edit in entry["arguments"]:
+                apply_WorkspaceEdit(edit)
         else:
             return False
 
