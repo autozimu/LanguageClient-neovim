@@ -155,8 +155,8 @@ def apply_TextDocumentEdit(textDocumentEdit: Dict) -> None:
     """
     filename = uri_to_path(textDocumentEdit["textDocument"]["uri"])
     edits = textDocumentEdit["edits"]
-    # Sort editse. From bottom to top, right to left.
-    edits = sorted(edits, key=lambda edit: (
+    # Sort edits. From bottom to top, right to left.
+    edits = sorted(reversed(edits), key=lambda edit: (
         -1 * edit["range"]["start"]["line"],
         -1 * edit["range"]["start"]["character"],
     ))
