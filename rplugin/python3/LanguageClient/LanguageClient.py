@@ -23,6 +23,7 @@ from .util import (
     convert_lsp_completion_item_to_vim_style)
 from .MessageType import MessageType
 from .DiagnosticSeverity import DiagnosticSeverity
+from .CommandsClient import CommandsClient
 
 
 def deco_args(f=None, warn=True):
@@ -1226,20 +1227,38 @@ class LanguageClient:
     @neovim.function("LanguageClient_FZFSinkTextDocumentCodeAction")
     def fzfSinkTextDocumentCodeAction(self, lines: str) -> None:
         command, _ = lines[0].split(":")
-        entries = [entry for entry in state["codeActionCommands"]
-                   if entry["command"] == command]
+        entry = next((entry for entry in state["codeActionCommands"]
+                      if entry["command"] == command), None)
 
-        if len(entries) is None:
+        if entry is None:
             msg = "Failed to find command: {}".format(command)
             logger.error(msg)
             echoerr(msg)
             return
 
-        entry = entries[0]
+        if self.try_handle_command_by_client(entry):
+            return
+
         self.workspace_executeCommand(command=command, arguments=entry.get("arguments"))
         update_state({
             "codeActionCommands": [],
         })
+
+    def try_handle_command_by_client(self, entry: Dict) -> bool:
+        """
+        Try handle a Command by client itself.
+        """
+        try:
+            command = CommandsClient[entry["command"]]
+        except KeyError:
+            return False
+
+        if command == CommandsClient.JavaApplyWorkspaceEdit:
+            apply_WorkspaceEdit(entry["arguments"])
+        else:
+            return False
+
+        return True
 
     @neovim.function("LanguageClient_workspace_executeCommand")
     @deco_args
