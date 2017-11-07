@@ -37,6 +37,7 @@ endfunction
 
 function! HandleBufReadPost()
     return s:lc.notify('handle_BufWritePost', {
+                \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': expand('%:p'),
                 \ })

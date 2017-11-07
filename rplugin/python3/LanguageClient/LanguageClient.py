@@ -471,13 +471,14 @@ class LanguageClient:
             logger.warn("register completion manager source failed. Error: " +
                         repr(ex))
 
-    @neovim.autocmd("BufReadPost", pattern="*",
-                    eval="[{'languageId': &filetype, 'filename': expand('%:p')}]")
+    @neovim.autocmd(
+        "BufReadPost", pattern="*",
+        eval="[{'buftype': &buftype, 'languageId': &filetype, 'filename': expand('%:p')}]")
     def handle_BufReadPost(self, args: List) -> None:
         logger.info("Begin handleBufReadPost")
 
-        languageId, uri = gather_args(["languageId", "uri"], args=args)
-        if not uri:
+        buftype, languageId, uri = gather_args(["buftype", "languageId", "uri"], args=args)
+        if buftype != "" or not uri:
             return
         # Language server is running but file is not within rootUri.
         if (state["rootUris"].get(languageId) and
