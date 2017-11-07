@@ -475,7 +475,7 @@ class LanguageClient:
         "BufReadPost", pattern="*",
         eval="[{'buftype': &buftype, 'languageId': &filetype, 'filename': expand('%:p')}]")
     def handle_BufReadPost(self, args: List) -> None:
-        logger.info("Begin handleBufReadPost")
+        logger.info("Begin handle BufReadPost")
 
         buftype, languageId, uri = gather_args(["buftype", "languageId", "uri"], args=args)
         if buftype != "" or not uri:
@@ -913,6 +913,7 @@ class LanguageClient:
     @neovim.autocmd("TextChanged", pattern="*",
                     eval="[{'filename': expand('%:p'), 'buftype': &buftype}]")
     def handle_TextChanged(self, args: List) -> None:
+        logger.info("Begin handle TextChanged")
         uri, buftype = gather_args(["uri", "buftype"], args=args)
         if buftype != "" or state.get(uri, {}).get("textDocument") is None:
             return
@@ -924,6 +925,7 @@ class LanguageClient:
     @neovim.autocmd("TextChangedI", pattern="*",
                     eval="[{'filename': expand('%:p'), 'buftype': &buftype}]")
     def handle_TextChangedI(self, args: List) -> None:
+        logger.info("Begin handle TextChangedI")
         self.handle_TextChanged(args)
 
     @neovim.function("textDocument_didChange")
@@ -956,6 +958,7 @@ class LanguageClient:
     @neovim.autocmd("BufWritePost", pattern="*",
                     eval="[{'languageId': &filetype, 'filename': expand('%:p')}]")
     def handle_BufWritePost(self, args: List) -> None:
+        logger.info("Begin handle BufWritePost")
         uri, languageId = gather_args(["uri", "languageId"], args=args)
         self.textDocument_didSave()
 
@@ -1109,6 +1112,7 @@ class LanguageClient:
     @neovim.autocmd("CursorMoved", pattern="*",
                     eval="[{'buftype': &buftype, 'line': line('.')}]")
     def handle_CursorMoved(self, args: List) -> None:
+        logger.info("Begin handle CursorMoved")
         buftype, line = gather_args(["buftype", "line"], args=args)
         # Regular file buftype is "".
         if buftype != "" or line == state["last_cursor_line"]:

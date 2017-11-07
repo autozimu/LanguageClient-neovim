@@ -36,7 +36,7 @@ function! LanguageClient_initialize()
 endfunction
 
 function! HandleBufReadPost()
-    return s:lc.notify('handle_BufWritePost', {
+    return s:lc.notify('handle_BufReadPost', {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': expand('%:p'),
