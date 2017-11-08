@@ -516,6 +516,8 @@ class LanguageClient:
             }
         })
 
+        state["nvim"].current.buffer.options["omnifunc"] = "LanguageClient#complete"
+
         logger.info("End textDocument/didOpen")
 
     @neovim.function("LanguageClient_textDocument_didClose")
@@ -997,7 +999,7 @@ class LanguageClient:
         return result
 
     @neovim.function("LanguageClient_textDocument_completionOmnifunc")
-    @deco_args
+    @deco_args(warn=False)
     def textDocument_completionOmnifunc(self, completeFromColumn: int) -> None:
         result = self.textDocument_completion()
         if result is None:
