@@ -16,7 +16,7 @@ from .TextDocumentItem import TextDocumentItem
 from .logger import logger, logpath_server, setLoggingLevel
 from .state import (
     state, update_state, execute_command, echo, echomsg, echoerr,
-    echo_ellipsis, make_serializable, set_state, alive)
+    echo_ellipsis, echo_signature, make_serializable, set_state, alive)
 from .util import (
     get_rootPath, path_to_uri, uri_to_path, get_command_goto_file, get_command_update_signs,
     convert_vim_command_args_to_kwargs, apply_TextEdit, markedString_to_str,
@@ -1167,10 +1167,25 @@ class LanguageClient:
         if result is None or not handle:
             return result
 
-        # TODO: proper integration.
-        logger.warn(result)
-        echomsg(json.dumps(result))
+        signatures = result['signatures']
+        if len(signatures) == 0:
+            return result
+        if 'activeSignature' not in result:
+            echoerr('No active signature found')
+            return result
 
+        activeSignature = signatures[result['activeSignature']]
+        if ('activeParameter' not in result or 'parameters' not in activeSignature):
+            echo_signature(activeSignature['label'])
+            return result
+
+        parameters = activeSignature['parameters']
+        activeParamterIdx = result['activeParameter']
+        if activeParamterIdx >= len(parameters):
+            echo_signature(activeSignature['label'])
+            return result
+        activeParameter = parameters[activeParamterIdx]
+        echo_signature(activeSignature['label'], activeParameter['label'])
         logger.info("End textDocument/signatureHelp")
         return result
 
