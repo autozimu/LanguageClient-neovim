@@ -170,7 +170,10 @@ def apply_TextDocumentEdit(textDocumentEdit: Dict) -> None:
     text = buffer[:]
     for edit in edits:
         text = apply_TextEdit(text, edit)
-    buffer[:] = text
+    if buffer.options["fixendofline"] and text[-1] == "":
+        buffer[:] = text[:-1]
+    else:
+        buffer[:] = text
 
 
 def apply_WorkspaceEdit(workspaceEdit: Dict) -> None:
