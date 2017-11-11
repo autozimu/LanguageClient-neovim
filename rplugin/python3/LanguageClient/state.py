@@ -166,6 +166,23 @@ def echo_ellipsis(msg: str, columns: int) -> None:
     echo(msg)
 
 
+def echo_signature(signature: str, activeParameter: str = None) -> None:
+    """
+    Prints signature help, highlighting the active paramter
+    """
+    if activeParameter is None:
+        echo(signature)
+    parts = signature.split(activeParameter, 1)
+    if (len(parts) != 2):
+        # active paramter is not part of a signature
+        echo(signature)
+        return
+    [begin, end] = parts
+    execute_command("echon '{}' | echohl Bold | echon '{}' | echohl None | echon '{}'".format(
+        begin, activeParameter, end
+    ))
+
+
 def alive(languageId: str, warn: bool) -> bool:
     """Check if language server for language id is alive."""
     msg = None
