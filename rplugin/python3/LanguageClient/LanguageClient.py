@@ -1306,8 +1306,8 @@ class LanguageClient:
 
         self.textDocument_didChange()
         options = {
-            "tabSize": state["nvim"].options["tabstop"],
-            "insertSpaces": state["nvim"].options["expandtab"],
+            "tabSize": state["nvim"].current.buffer.options["tabstop"],
+            "insertSpaces": state["nvim"].current.buffer.options["expandtab"],
         }
         textEdits = state["rpcs"][languageId].call("textDocument/formatting", {
             "textDocument": {
@@ -1341,8 +1341,8 @@ class LanguageClient:
 
         self.textDocument_didChange()
         options = {
-            "tabSize": state["nvim"].options["tabstop"],
-            "insertSpaces": state["nvim"].options["expandtab"],
+            "tabSize": state["nvim"].current.buffer.options["tabstop"],
+            "insertSpaces": state["nvim"].current.buffer.options["expandtab"],
         }
         start_line = state["nvim"].eval("v:lnum") - 1
         end_line = start_line + state["nvim"].eval("v:count")
