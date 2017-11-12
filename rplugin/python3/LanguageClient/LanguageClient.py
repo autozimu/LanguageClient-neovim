@@ -1251,12 +1251,18 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentCodeAction")
     def fzfSinkTextDocumentCodeAction(self, lines: str) -> None:
-        command, _ = lines[0].split(":")
+        command, title = lines[0].split(":")
+        command = command.strip()
+        title = title.strip()
+        logger.info("Selected action with command {} title {}".format(
+            json.dumps(command), json.dumps(title)))
         entry = next((entry for entry in state["codeActionCommands"]
-                      if entry["command"] == command), None)
+                      if entry["command"] == command and entry["title"] == title),
+                     None)
 
         if entry is None:
-            msg = "Failed to find command: {}".format(command)
+            msg = "Failed to find action entry. Command: {}. Title: {}.".format(
+                json.dumps(command), json.dumps(title))
             logger.error(msg)
             echoerr(msg)
             return
@@ -1264,7 +1270,8 @@ class LanguageClient:
         if self.try_handle_command_by_client(entry):
             return
 
-        self.workspace_executeCommand(command=command, arguments=entry.get("arguments"))
+        self.workspace_executeCommand(command=command,
+                                      arguments=entry.get("arguments"))
         update_state({
             "codeActionCommands": [],
         })
@@ -1276,6 +1283,8 @@ class LanguageClient:
         try:
             command = CommandsClient(entry["command"])
         except KeyError:
+            return False
+        except ValueError:
             return False
 
         if command == CommandsClient.JavaApplyWorkspaceEdit:
