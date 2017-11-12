@@ -1251,7 +1251,7 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_FZFSinkTextDocumentCodeAction")
     def fzfSinkTextDocumentCodeAction(self, lines: str) -> None:
-        command, title = lines[0].split(":")
+        command, title = lines[0].split(": ")
         command = command.strip()
         title = title.strip()
         logger.info("Selected action with command {} title {}".format(
