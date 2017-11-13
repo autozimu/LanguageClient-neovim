@@ -12,7 +12,8 @@ If not, please try follow the instructions there first.
 - Minimal vimrc (e.g. <https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim>).
 - Content of `:CheckHealth`.
 - Content of `~/.local/share/nvim/rplugin.vim`.
-- Reproduction steps.
+- Language server name and version.
+- Reproduction steps (from clean state).
 - Run `:call LanguageClient_setLoggingLevel('DEBUG')` and then
   `:LanguageClientStart`, reproduce the bug, attach contents of
   `/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
