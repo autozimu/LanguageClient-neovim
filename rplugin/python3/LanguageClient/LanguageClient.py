@@ -434,7 +434,18 @@ class LanguageClient:
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": state["rootUris"][languageId],
-            "capabilities": {},
+            "capabilities": {
+                "workspace": {
+                    "applyEdit": True
+                },
+                "textDocument": {
+                    "completion": {
+                        "completionItem": {
+                            "snippetSupport": True
+                        }
+                    }
+                }
+            },
             "trace": state["trace"],
         })
 
