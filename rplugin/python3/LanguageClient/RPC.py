@@ -62,9 +62,13 @@ class RPC:
         while not self.infile.closed:
             line = self.infile.readline().decode("UTF-8").strip()
             if line:
-                header, value = line.split(":")
-                if header == "Content-Length":
-                    content_length = int(value)
+                try:
+                    header, value = line.split(":")
+                    if header == "Content-Length":
+                        content_length = int(value)
+                except Exception:
+                    logger.error("Error while parsing header:" + header)
+
             else:
                 content = self.infile.read(content_length).decode("UTF-8")
                 logger.debug("<= " + content)
