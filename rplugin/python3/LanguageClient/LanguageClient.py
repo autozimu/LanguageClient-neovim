@@ -617,6 +617,8 @@ class LanguageClient:
             defn = result[0]
         else:
             defn = result
+        if not defn.get("uri"):
+            return None
         if not defn["uri"].startswith("file:///"):
             echo("{}:{}".format(defn["uri"], defn["range"]["start"]["line"]))
             return result
