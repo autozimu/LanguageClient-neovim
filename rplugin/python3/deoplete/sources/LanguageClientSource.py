@@ -66,8 +66,12 @@ class Source(Base):
         line = context["position"][1] - 1
         character = context["position"][2] - 1
 
-        result = LanguageClient._instance.textDocument_completion(
-            languageId=languageId, line=line, character=character)
+        try:
+            result = LanguageClient._instance.textDocument_completion(
+                languageId=languageId, line=line, character=character)
+        except Exception:
+            result = []
+            logger.error("Failed to get completion")
 
         if result is None:
             return []
