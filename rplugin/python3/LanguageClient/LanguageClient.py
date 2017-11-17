@@ -252,16 +252,14 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
         start_line = entry["range"]["start"]["line"]
         start_character = entry["range"]["start"]["character"]
         end_character = entry["range"]["end"]["character"]
-        severity = entry.get("severity", 3)
-        display = state["diagnosticsDisplay"][severity]
+        severity = DiagnosticSeverity(entry.get("severity", 3))
+        display = state["diagnosticsDisplay"][severity.value]
         text_highlight = display["texthl"]
         buffer.add_highlight(text_highlight, start_line,
                              start_character, end_character,
                              highlight_source_id)
 
-        sign_name = display["name"]
-
-        signs.append(Sign(start_line + 1, sign_name, buffer.number))
+        signs.append(Sign(start_line + 1, severity))
 
         qflist.append({
             "filename": path,
@@ -269,10 +267,11 @@ def show_diagnostics(uri: str, diagnostics: List) -> None:
             "col": start_character + 1,
             "nr": entry.get("code"),
             "text": entry["message"],
-            "type": DiagnosticSeverity(severity).name,
+            "type": DiagnosticSeverity(severity.value).name,
         })
 
-    cmd = get_command_update_signs(state[uri].get("signs", []), signs)
+    signs = sorted(set(signs))
+    cmd = get_command_update_signs(state[uri].get("signs", []), signs, path)
     execute_command(cmd)
     set_state([uri, "signs"], signs)
 
@@ -1109,11 +1108,10 @@ class LanguageClient:
         for entry in diagnostics:
             line = entry["range"]["start"]["line"]
             msg = ""
-            if "severity" in entry:
+            if entry.get("severity"):
                 msg += "[{}]".format(DiagnosticSeverity(entry["severity"]).name)
-            if "code" in entry:
-                code = entry["code"]
-                msg += str(code)
+            if entry.get("code"):
+                msg += "[]".format(entry["code"])
             msg += " " + entry["message"]
             line_diagnostics[line] = msg
 
