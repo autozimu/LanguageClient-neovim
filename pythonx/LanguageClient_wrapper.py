@@ -44,6 +44,10 @@ def textDocument_didClose(*args):
     return lc.textDocument_didClose(args)
 
 
+def workspace_didChangeConfiguration(self, *args):
+    return lc.workspace_didChangeConfiguration_vim(args)
+
+
 def textDocument_hover(*args):
     return lc.textDocument_hover(args)
 

@@ -53,6 +53,10 @@ function! LanguageClient_textDocument_didClose()
     return s:lc.call('textDocument_didClose')
 endfunction
 
+function! LanguageClient_workspace_didChangeConfiguration()
+    return s:lc.call('workspace_didChangeConfiguration')
+endfunction
+
 function! LanguageClient_textDocument_hover()
     return s:lc.call('textDocument_hover')
 endfunction
