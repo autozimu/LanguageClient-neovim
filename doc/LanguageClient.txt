@@ -171,6 +171,19 @@ MessageType >
 Default: "Warning"
 Valid options: "Error" | "Warning" | "Info" | "Log"
 
+2.11 g:LanguageClient_settingsPath   *g:LanguageClient_settingsPath*
+
+Default path for language server settings
+
+Default: .vim/settings.json
+
+2.12 g:LanguageClient_loadSettings         *g:LanguageClient_loadSettings*
+
+Set if settings loading is enabled.
+
+Default: 0
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

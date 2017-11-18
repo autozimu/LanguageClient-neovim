@@ -123,6 +123,11 @@ def sync_settings() -> None:
         "diagnosticsList": state["nvim"].vars.get("LanguageClient_diagnosticsList", "quickfix"),
         "autoStart": state["nvim"].vars.get("LanguageClient_autoStart", False),
         "diagnosticsDisplay": state["nvim"].vars.get("LanguageClient_diagnosticsDisplay", {}),
+        "settingsPath": state["nvim"].vars.get(
+            "LanguageClient_settingsPath",
+            os.path.join(".vim", "settings.json")
+        ),
+        "loadSettings": state["nvim"].vars.get("LanguageClient_loadSettings", False),
     })
     windowLogMessageLevel = state["nvim"].vars.get("LanguageClient_windowLogMessageLevel")
     if windowLogMessageLevel is not None:
@@ -417,7 +422,7 @@ class LanguageClient:
 
     @neovim.function("LanguageClient_initialize")
     @deco_args
-    def initialize(self, rootPath: str, languageId: str, handle=True) -> Dict:
+    def initialize(self, rootPath: str, settingsPath: str, languageId: str, handle=True) -> Dict:
         logger.info("Begin initialize")
 
         if rootPath is None:
@@ -429,10 +434,23 @@ class LanguageClient:
             }
         })
 
+        if settingsPath is None:
+            settingsPath = os.path.join(rootPath, state["settingsPath"])
+        logger.info("settingsPath: " + settingsPath)
+
+        settings = {}  # type: Dict
+
+        if state["loadSettings"]:
+            if os.path.isfile(settingsPath):
+                settings = json.load(open(settingsPath))
+            else:
+                logger.info("settingsPath is not a file")
+
         result = state["rpcs"][languageId].call("initialize", {
             "processId": os.getpid(),
             "rootPath": rootPath,
             "rootUri": state["rootUris"][languageId],
+            "initializationOptions": settings.get("initializationOptions"),
             "capabilities": {
                 "workspace": {
                     "applyEdit": True
@@ -456,6 +474,10 @@ class LanguageClient:
                 languageId: result["capabilities"]
             }
         })
+
+        if "initializationOptions" in settings:
+            del settings["initializationOptions"]
+        self.workspace_didChangeConfiguration(settings=settings, languageId=languageId)
         self.textDocument_didOpen()
         self.registerCMSource(languageId, result)
         logger.info("End initialize")
@@ -545,6 +567,18 @@ class LanguageClient:
         })
 
         set_state([uri, "textDocument"], None)
+
+    @deco_args(warn=False)
+    def workspace_didChangeConfiguration(self, settings: Dict, languageId: str) -> None:
+        logger.info("workspace/didChangeConfiguration")
+
+        state["rpcs"][languageId].notify("workspace/didChangeConfiguration", {
+            "settings": settings
+        })
+
+    @neovim.function("LanguageClient_workspace_didChangeConfiguration")
+    def workspace_didChangeConfiguration_vim(self, args: List) -> None:
+        self.workspace_didChangeConfiguration(settings=args[0])
 
     @neovim.function("LanguageClient_textDocument_hover")
     @deco_args
