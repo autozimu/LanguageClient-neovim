@@ -403,6 +403,8 @@ class LanguageClient:
         logger.info("End LanguageClientStart")
 
         self.initialize(rootPath=rootPath, languageId=languageId)
+        self.textDocument_didOpen(languageId=languageId)
+        self.textDocument_didChange(languageId=languageId)
 
         if state["nvim"].call("exists", "#User#LanguageClientStarted") == 1:
             state["nvim"].command("doautocmd User LanguageClientStarted")
@@ -478,7 +480,6 @@ class LanguageClient:
         if "initializationOptions" in settings:
             del settings["initializationOptions"]
         self.workspace_didChangeConfiguration(settings=settings, languageId=languageId)
-        self.textDocument_didOpen()
         self.registerCMSource(languageId, result)
         logger.info("End initialize")
 
