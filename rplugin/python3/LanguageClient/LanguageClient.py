@@ -56,7 +56,11 @@ def deco_args(f=None, warn=True):
             "languageId": languageId,
         })
         kwargs_with_defaults.update(kwargs)
-        final_args = gather_args(arg_spec.args, args, kwargs_with_defaults)
+        try:
+            final_args = gather_args(arg_spec.args, args, kwargs_with_defaults)
+        except Exception:
+            logger.error("Failed to gather_args")
+            return None
         return f(*final_args)
     return wrapper
 
