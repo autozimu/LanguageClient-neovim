@@ -58,6 +58,7 @@ def get_rootPath(filepath: str, languageId: str) -> str:
         rootPath = traverse_up(
             filepath,
             lambda folder: (
+                os.path.exists(os.path.join(folder, ".vim")) or
                 os.path.exists(os.path.join(folder, ".git")) or
                 os.path.exists(os.path.join(folder, ".hg")) or
                 os.path.exists(os.path.join(folder, ".svn"))))
