@@ -1,0 +1,28 @@
+[package]
+name = "languageclient"
+version = "0.1.0"
+authors = ["Junfeng Li <autozimu@gmail.com>"]
+
+[dependencies]
+failure = "*"
+failure_derive = "*"
+log = "*"
+env_logger = "*"
+chrono = "*"
+colored = "*"
+
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
+
+jsonrpc-core = "*"
+languageserver-types = "*"
+url = "*"
+pathdiff = "*"
+diff = "*"
+regex = "*"
+
+clippy = {version = "*", optional = true}
+
+[features]
+default = []

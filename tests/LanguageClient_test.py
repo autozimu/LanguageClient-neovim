@@ -1,20 +1,27 @@
-import json
+import os
 import time
 import threading
-from typing import Callable
-
 import neovim
 import pytest
+from typing import Callable
 
-from .util import join_path
-from .state import state, update_state
-from .LanguageClient import get_selectionUI
 
 threading.current_thread().name = "Test"
 
+
 NVIM_LISTEN_ADDRESS = "/tmp/nvim-LanguageClient-IntegrationTest"
-PATH_MAINRS = join_path("tests/sample-rs/src/main.rs")
-PATH_LIBSRS = join_path("tests/sample-rs/src/libs.rs")
+
+
+project_root = os.path.dirname(os.path.abspath(__file__))
+
+
+def join_path(path: str) -> str:
+    """Join path to this project tests root."""
+    return os.path.join(project_root, path)
+
+
+PATH_MAINRS = join_path("data/sample-rs/src/main.rs")
+PATH_LIBSRS = join_path("data/sample-rs/src/libs.rs")
 
 
 def retry(predicate: Callable[[], bool],
@@ -35,27 +42,13 @@ def retry(predicate: Callable[[], bool],
 def nvim() -> neovim.Nvim:
     nvim = neovim.attach("socket", path=NVIM_LISTEN_ADDRESS)
     time.sleep(0.5)
-    update_state({
-        "nvim": nvim,
-    })
     nvim.command("edit! {}".format(PATH_MAINRS))
-    time.sleep(0.5)
-    nvim.funcs.LanguageClient_setLoggingLevel("DEBUG")
-    nvim.command("LanguageClientStart")
     time.sleep(5)
-    assert nvim.funcs.LanguageClient_alive()
-    # Sync with plugin host state.
-    update_state(json.loads(nvim.funcs.LanguageClient_getState()))
     return nvim
 
 
 def test_fixture(nvim):
     pass
-
-
-def test_get_selectionUI(nvim):
-    assert get_selectionUI() == "fzf"
-    assert state["selectionUI"] == "location-list"
 
 
 def test_textDocument_hover(nvim):
@@ -147,41 +140,41 @@ def test_workspace_symbol(nvim):
     nvim.funcs.LanguageClient_workspace_symbol()
 
 
-def test_textDocument_references(nvim):
-    nvim.funcs.cursor(8, 4)
-    nvim.funcs.LanguageClient_textDocument_references()
-    time.sleep(1)
-    expect = ["fn greet() -> i32 {",
-              """println!("{}", greet());"""]
+# def test_textDocument_references(nvim):
+#     nvim.funcs.cursor(8, 4)
+#     nvim.funcs.LanguageClient_textDocument_references()
+#     time.sleep(1)
+#     expect = ["fn greet() -> i32 {",
+#               """println!("{}", greet());"""]
 
-    def predicate():
-        return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     def predicate():
+#         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     retry(predicate)
+#     assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    nvim.command("lnext")
+#     nvim.command("lnext")
 
-    def predicate():
-        return nvim.current.window.cursor == [3, 19]
+#     def predicate():
+#         return nvim.current.window.cursor == [3, 19]
 
-    retry(predicate)
-    assert nvim.current.window.cursor == [3, 19]
+#     retry(predicate)
+#     assert nvim.current.window.cursor == [3, 19]
 
 
-def test_textDocument_references_modified_buffer(nvim):
-    nvim.funcs.cursor(8, 4)
-    nvim.input("iabc")
-    time.sleep(2)
-    nvim.funcs.LanguageClient_textDocument_references()
-    expect = ["fn abcgreet() -> i32 {"]
+# def test_textDocument_references_modified_buffer(nvim):
+#     nvim.funcs.cursor(8, 4)
+#     nvim.input("iabc")
+#     time.sleep(2)
+#     nvim.funcs.LanguageClient_textDocument_references()
+#     expect = ["fn abcgreet() -> i32 {"]
 
-    def predicate():
-        return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     def predicate():
+#         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
-    nvim.command("edit! {}".format(PATH_MAINRS))
+#     retry(predicate)
+#     assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_didChange(nvim):

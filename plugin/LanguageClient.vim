@@ -1,174 +1,469 @@
-if has('nvim')
-    finish
+if has('job') && $LANGUAGECLIENT_DEBUG
+    call ch_logfile('/tmp/vim.log')
 endif
 
-command LanguageClientStart call LanguageClient_start()
-command LanguageClientStop call LanguageClient_stop()
+let s:id = 1
+let s:handlers = {}
 
-let s:lc = yarp#py3('LanguageClient_wrapper')
-
-function! LanguageClient_getState()
-    return s:lc.call('getState')
+" When editing a [No Name] file, neovim reports filename as "", while vim reports null.
+function! s:Expand(exp) abort
+    let l:result = expand(a:exp)
+    return l:result ==# '' ? '' : l:result
 endfunction
 
-function! LanguageClient_registerServerCommands(serverCommands)
-    return s:lc.call('registerServerCommands', a:serverCommands)
+function! s:getInput(prompt, default) abort
+    call inputsave()
+    let l:input = input(a:prompt, a:default)
+    call inputrestore()
+    return l:input
 endfunction
 
-function! LanguageClient_alive()
-    return s:lc.call('alive_vim')
+function! s:FZF(source, sink) abort
+    call fzf#run(fzf#wrap({
+                \ 'source': a:source,
+                \ 'sink': function(a:sink),
+                \ }))
+    if has('nvim')
+        call feedkeys('i')
+    endif
 endfunction
 
-function! LanguageClient_setLoggingLevel(level)
-    return s:lc.call('setLoggingLevel', a:level)
+let s:line = ''
+function! s:HandleMessage(job, lines, event) abort
+    if a:event == 'stdout'
+        while len(a:lines) > 0
+            let s:line = s:line . remove(a:lines, 0)
+            let l:len = len(s:line)
+            if !l:len || s:line[l:len - 1] !=# '}'
+                continue
+            endif
+
+            let l:message = json_decode(s:line)
+            let s:line = ''
+            if has_key(l:message, 'method')
+                let l:id = get(l:message, 'id', v:null)
+                let l:method = get(l:message, 'method')
+                let l:params = get(l:message, 'params')
+                if l:method ==# 'execute'
+                    for l:cmd in l:params
+                        execute l:cmd
+                    endfor
+                else
+                    let l:result = call(l:method, l:params)
+                endif
+                if l:id != v:null
+                    call LanguageClient#Write(json_encode({
+                                \ "jsonrpc": "2.0",
+                                \ "id": l:id,
+                                \ "result": l:result,
+                                \ }))
+                endif
+            elseif has_key(l:message, 'result')
+                let l:id = get(l:message, 'id')
+                let l:result = get(l:message, 'result')
+                let Handle = get(s:handlers, l:id)
+                unlet s:handlers[l:id]
+                call call(Handle, [l:result, {}])
+            elseif has_key(l:message, 'error')
+                let l:id = get(l:message, 'id')
+                let l:error = get(l:message, 'error')
+                let Handle = get(s:handlers, l:id)
+                unlet s:handlers[l:id]
+                call call(Handle, [{}, l:error])
+            else
+                call s:Echoerr('Unknown message: ' . string(l:message))
+            endif
+        endwhile
+    elseif a:event == 'stderr'
+        call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
+    elseif a:event == 'exit'
+        if a:lines !=# '0'
+            echomsg 'LanguageClient exited with: ' . string(a:lines)
+        endif
+    else
+        call s:Echoerr('Unknown event: ' . a:event)
+    endif
 endfunction
 
-function! LanguageClient_start()
-    return s:lc.call('start')
+function! s:HandleStdoutVim(job, data) abort
+    return s:HandleMessage(a:job, [a:data], 'stdout')
 endfunction
 
-function! LanguageClient_stop()
-    return s:lc.call('stop')
+function! s:HandleStderrVim(job, data) abort
+    return s:HandleMessage(a:job, [a:data], 'stderr')
 endfunction
 
-function! LanguageClient_initialize()
-    return s:lc.call('initialize')
+function! s:HandleExitVim(job, data) abort
+    return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
-function! HandleBufReadPost()
-    return s:lc.notify('handle_BufReadPost', {
+if $LANGUAGECLIENT_DEBUG
+    let s:command = ['bash', expand('<sfile>:p:h:h') . '/wrapper.sh']
+else
+    let s:command = [expand('<sfile>:p:h:h') . '/bin/languageclient']
+endif
+
+if has('nvim')
+    let s:job = jobstart(s:command, {
+                \ 'on_stdout': function('s:HandleMessage'),
+                \ 'on_stderr': function('s:HandleMessage'),
+                \ 'on_exit': function('s:HandleMessage'),
+                \ })
+elseif has('job')
+    let s:job = job_start(s:command, {
+                \ 'out_cb': function('s:HandleStdoutVim'),
+                \ 'err_cb': function('s:HandleStderrVim'),
+                \ 'exit_cb': function('s:HandleExitVim'),
+                \ })
+else
+    echoerr 'Not supported: not nvim nor vim with +job.'
+endif
+
+function! LanguageClient#Write(message) abort
+    let l:message = a:message . "\n"
+    if has('nvim')
+        return jobsend(s:job, l:message)
+    elseif has('channel')
+        return ch_sendraw(s:job, l:message)
+    else
+        echoerr 'Not supported: not nvim nor vim with +channel.'
+    endif
+endfunction
+
+function! LanguageClient#Call(method, params, callback) abort
+    let l:id = s:id
+    let s:id = s:id + 1
+    if a:callback == v:null
+        let s:handlers[l:id] = function('HandleOutput')
+    else
+        let s:handlers[l:id] = a:callback
+    endif
+    return LanguageClient#Write(json_encode({
+                \ 'jsonrpc': '2.0',
+                \ 'id': l:id,
+                \ 'method': a:method,
+                \ 'params': a:params,
+                \ }))
+endfunction
+
+function! LanguageClient#Notify(method, params) abort
+    return LanguageClient#Write(json_encode({
+                \ 'jsonrpc': '2.0',
+                \ 'method': a:method,
+                \ 'params': a:params,
+                \ }))
+endfunction
+
+function! HandleOutput(result, error) abort
+    if len(a:error) > 0
+        call s:Echoerr(get(a:error, 'message'))
+    else
+        let l:result = string(a:result)
+        if l:result !=# "v:null"
+            " echomsg l:result
+        endif
+    endif
+endfunction
+
+function! s:Echoerr(message) abort
+    echohl Error | echomsg a:message | echohl None
+endfunction
+
+function! Hello() abort
+    return LanguageClient#Call('hello', {}, v:null)
+endfunction
+
+function! LanguageClient_textDocument_hover() abort
+    return LanguageClient#Call('textDocument/hover', {
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_textDocument_definition() abort
+    return LanguageClient#Call('textDocument/definition', {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
-                \ 'filename': expand('%:p'),
-                \ })
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }, v:null)
 endfunction
 
-autocmd BufReadPost * call HandleBufReadPost()
-
-function! LanguageClient_textDocument_didOpen()
-    return s:lc.call('textDocument_didOpen')
-endfunction
-
-function! LanguageClient_textDocument_didClose()
-    return s:lc.call('textDocument_didClose')
-endfunction
-
-function! LanguageClient_workspace_didChangeConfiguration()
-    return s:lc.call('workspace_didChangeConfiguration')
-endfunction
-
-function! LanguageClient_textDocument_hover()
-    return s:lc.call('textDocument_hover')
-endfunction
-
-function! LanguageClient_textDocument_definition()
-    return s:lc.call('textDocument_definition')
-endfunction
-
-function! LanguageClient_textDocument_rename()
-    return s:lc.call('textDocument_rename')
-endfunction
-
-function! LanguageClient_textDocument_documentSymbol()
-    return s:lc.call('textDocument_documentSymbol')
-endfunction
-
-function! LanguageClient_workspace_symbol()
-    return s:lc.call('workspace_symbol')
-endfunction
-
-function! LanguageClient_textDocument_references()
-    return s:lc.call('textDocument_references')
-endfunction
-
-function! LanguageClient_rustDocument_implementations()
-    return s:lc.call('rustDocument_implementations')
-endfunction
-
-function! HandleTextChanged()
-    return s:lc.notify('handle_TextChanged', {
-                \ 'filename': expand('%:p'),
+function! LanguageClient_textDocument_rename(...) abort
+    let l:params = {
                 \ 'buftype': &buftype,
-                \ })
-endfunction
-
-autocmd TextChanged * call HandleTextChanged()
-autocmd TextChangedI * call HandleTextChanged()
-
-function! LanguageClient_textDocument_didChange()
-    return s:lc.call('textDocument_didChange')
-endfunction
-
-function! HandleBufWritePost()
-    return s:lc.notify('handle_BufWritePost', {
                 \ 'languageId': &filetype,
-                \ 'filename': expand('%:p'),
-                \ })
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'cword': expand('<cword>'),
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    return LanguageClient#Call('textDocument/rename', l:params, v:null)
 endfunction
 
-autocmd BufWritePost * call HandleBufWritePost()
-
-function! LanguageClient_textDocument_didSave()
-    return s:lc.call('textDocument_didSave')
-endfunction
-
-function! LanguageClient_textDocument_completion()
-    return s:lc.call('textDocument_completion')
-endfunction
-
-function! LanguageClient_textDocument_completionOmnifunc()
-    return s:lc.call('textDocument_completionOmnifunc')
-endfunction
-
-" function! completionManager_refresh()
-"     return s:lc.call('completionManager_refresh')
-" endfunction
-
-function! LanguageClient_exit()
-    return s:lc.call('exit')
-endfunction
-
-function! HandleCursorMoved()
-    return s:lc.notify('handle_CursorMoved', {
+function! LanguageClient_textDocument_documentSymbol() abort
+    return LanguageClient#Call('textDocument/documentSymbol', {
                 \ 'buftype': &buftype,
-                \ 'line': line('.'),
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_workspace_symbol() abort
+    return LanguageClient#Call('workspace/symbol', {
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_textDocument_codeAction() abort
+    return LanguageClient#Call('textDocument/codeAction', {
+                \ 'buftype': &buftype,
+                \ 'langugeId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_textDocument_completion() abort
+    return LanguageClient#Call('textDocument/completion', {
+                \ 'buftype': &buftype,
+                \ 'langugeId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_textDocument_references() abort
+    return LanguageClient#Call('textDocument/references', {
+                \ 'buftype': &buftype,
+                \ 'langugeId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }, v:null)
+endfunction
+
+function! LanguageClient_textDocument_didOpen() abort
+    return LanguageClient#Notify('textDocument/didOpen', {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
                 \ })
 endfunction
 
-autocmd CursorMoved * call HandleCursorMoved()
-
-function! LanguageClient_completionItem_resolve()
-    return s:lc.call('completionItem_resolve')
+function! LanguageClient_textDocument_didChange() abort
+    return LanguageClient#Notify('textDocument/didChange', {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \})
 endfunction
 
-function! LanguageClient_textDocument_signatureHelp()
-    return s:lc.call('textDocument_signatureHelp')
+function! LanguageClient_textDocument_didSave() abort
+    return LanguageClient#Notify('textDocument/didSave', {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ })
 endfunction
 
-function! LanguageClient_codeAction()
-    return s:lc.call('textDocument_codeAction')
+function! LanguageClient_textDocument_didClose() abort
+    return LanguageClient#Notify('textDocument/didClose', {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ })
 endfunction
 
-function! LanguageClient_workspace_executeCommand()
-    return s:lc.call('workspace_executeCommand')
+function! LanguageClient_getState(callback) abort
+    return LanguageClient#Call('languageClient/getState', {}, a:callback)
 endfunction
 
-function! LanguageClient_textDocument_formatting()
-    return s:lc.call('textDocument_formatting')
+function! LanguageClient_alive(callback) abort
+    return LanguageClient#Call('languageClient/isAlive', {}, a:callback)
 endfunction
 
-function! LanguageClient_textDocument_rangeFormatting()
-    return s:lc.call('textDocument_rangeFormatting')
+function! LanguageClient_startServer() abort
+    return LanguageClient#Call('languageClient/startServer', {}, v:null)
 endfunction
 
-function! LanguageClient_call()
-    return s:lc.call('call_vim')
+command! LanguageClientStart :call LanguageClient_startServer()
+
+function! LanguageClient_registerServerCommands(cmds) abort
+    return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null)
 endfunction
 
-function! LanguageClient_notify()
-    return s:lc.call('notify_vim')
+function! LanguageClient_handleBufReadPost() abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    try
+        call LanguageClient#Notify('languageClient/handleBufReadPost', {
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ })
+    catch /.*/
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr("Caught " . string(v:exception))
+        endif
+    endtry
 endfunction
 
-function! LanguageClient_completionManager_refresh(...)
-    return call(s:lc.notify,['completionManager_refresh'] + a:000, s:lc)
+function! LanguageClient_handleTextChanged() abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    try
+        call LanguageClient#Notify('languageClient/handleTextChanged', {
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ })
+    catch /.*/
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr("Caught " . string(v:exception))
+        endif
+    endtry
 endfunction
+
+function! LanguageClient_handleBufWritePost() abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    try
+        call LanguageClient#Notify('languageClient/handleBufWritePost', {
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ })
+    catch /.*/
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr("Caught " . string(v:exception))
+        endif
+    endtry
+endfunction
+
+function! LanguageClient_handleBufDelete() abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    try
+        call LanguageClient#Notify('languageClient/handleBufDelete', {
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ })
+    catch /.*/
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr("Caught " . string(v:exception))
+        endif
+    endtry
+endfunction
+
+let s:last_cursor_line = -1
+function! LanguageClient_handleCursorMoved() abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    let l:cursor_line = line('.')
+    if l:cursor_line == s:last_cursor_line
+        return
+    endif
+    let s:last_cursor_line = l:cursor_line
+
+    try
+        call LanguageClient#Notify('languageClient/handleCursorMoved', {
+                    \ 'buftype': &buftype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ 'line': line('.') - 1,
+                    \ })
+    catch /.*/
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr("Caught " . string(v:exception))
+        endif
+    endtry
+endfunction
+
+function! s:LanguageClient_FZFSinkLocation(line) abort
+    return LanguageClient#Notify('LanguageClient_FZFSinkLocation', [a:line])
+endfunction
+
+function! s:LanguageClient_FZFSinkCommand(selection) abort
+    return LanguageClient#Notify('LanguageClient_FZFSinkCommand', {
+                \ 'selection': a:selection,
+                \ })
+endfunction
+
+function! LanguageClient_NCMRefresh(info, context) abort
+    return LanguageClient#Notify('LanguageClient_NCMRefresh', [a:info, a:context])
+endfunction
+
+function! LanguageClient_omniComplete(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'langugeId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    call LanguageClient#Call("languageClient/omniComplete", l:params,
+                \ 's:LanguageClient_omniComplete_handleOutput')
+endfunction
+
+let g:LanguageClient_completeResults = []
+function! s:LanguageClient_omniComplete_handleOutput(result, error)
+    if len(a:error) > 0
+        call s:Echoerr(get(a:error, 'message'))
+        call add(g:LanguageClient_completeResults, [])
+    else
+        call add(g:LanguageClient_completeResults, a:result)
+    endif
+endfunction
+
+function! LanguageClient#complete(findstart, base) abort
+    if a:findstart
+        let l:line = getline('.')
+        let l:start = col('.') - 1
+        while l:start > 0 && l:line[l:start - 1] =~ '\a'
+            let l:start -= 1
+        endwhile
+        return l:start
+    else
+        call LanguageClient_omniComplete({
+                    \ 'character': col('.') - 1 + len(a:base),
+                    \ })
+        while len(g:LanguageClient_completeResults) == 0
+            sleep 50m
+        endwhile
+        return remove(g:LanguageClient_completeResults, 0)
+    endif
+endfunction
+
+function! LanguageClient_exit() abort
+    return LanguageClient#Notify('exit', {
+                \ 'languageId': &filetype,
+                \ })
+endfunction
+
+command! LanguageClientStop :call LanguageClient_exit()
+
+autocmd BufReadPost * call LanguageClient_handleBufReadPost()
+autocmd TextChanged * call LanguageClient_handleTextChanged()
+autocmd TextChangedI * call LanguageClient_handleTextChanged()
+autocmd BufWritePost * call LanguageClient_handleBufWritePost()
+autocmd BufDelete * call LanguageClient_handleBufDelete()
+autocmd CursorMoved * call LanguageClient_handleCursorMoved()
+
+nnoremap <F1> :call Hello()<CR>
