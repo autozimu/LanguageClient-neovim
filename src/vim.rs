@@ -79,7 +79,7 @@ impl IVim for Arc<Mutex<State>> {
             json!(0)
         };
 
-        let result = self.call(None, "getbufline", json!([bufexp, '.', '$']))?;
+        let result = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
         Ok(serde_json::from_value(result)?)
     }
 
