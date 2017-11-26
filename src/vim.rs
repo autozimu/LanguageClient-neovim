@@ -14,7 +14,7 @@ pub trait IVim {
         E: ToVimExp,
         T: DeserializeOwned;
     fn command(&self, cmd: &str) -> Result<()>;
-    fn getbufline(&self, bufexp: Option<&str>) -> Result<Vec<String>>;
+    fn getbufline(&self, bufexp: &str) -> Result<Vec<String>>;
     fn goto_location(&self, filename: &str, line: u64, character: u64) -> Result<()>;
 }
 
@@ -72,13 +72,7 @@ impl IVim for Arc<Mutex<State>> {
         self.notify(None, "execute", cmd)
     }
 
-    fn getbufline(&self, bufexp: Option<&str>) -> Result<Vec<String>> {
-        let bufexp = if let Some(bufexp) = bufexp {
-            json!(bufexp)
-        } else {
-            json!(0)
-        };
-
+    fn getbufline(&self, bufexp: &str) -> Result<Vec<String>> {
         let result = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
         Ok(serde_json::from_value(result)?)
     }

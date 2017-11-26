@@ -8,9 +8,10 @@ pub use std::ops::Deref;
 pub use std::path::{Path, PathBuf};
 pub use std::io::prelude::*;
 pub use std::io::{BufReader, BufWriter};
+pub use std::fs::File;
 pub use std::process::{ChildStdin, Stdio};
-pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall,
-                              Notification, Output, Params, Success, Value, Version};
+pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Notification, Output,
+                              Params, Success, Value, Version};
 pub use languageserver_types::*;
 pub use url::Url;
 pub use pathdiff::diff_paths;
@@ -48,8 +49,10 @@ pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub struct State {
     // Program state.
     pub id: u64,
-    #[serde(skip_serializing)] pub txs: HashMap<u64, Sender<Result<Value>>>,
-    #[serde(skip_serializing)] pub writers: HashMap<String, BufWriter<ChildStdin>>,
+    #[serde(skip_serializing)]
+    pub txs: HashMap<u64, Sender<Result<Value>>>,
+    #[serde(skip_serializing)]
+    pub writers: HashMap<String, BufWriter<ChildStdin>>,
     pub capabilities: HashMap<String, Value>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
@@ -235,7 +238,8 @@ pub struct QuickfixEntry {
     pub col: Option<u64>,
     pub nr: Option<String>,
     pub text: Option<String>,
-    #[serde(rename = "type")] pub typee: Option<char>,
+    #[serde(rename = "type")]
+    pub typee: Option<char>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
