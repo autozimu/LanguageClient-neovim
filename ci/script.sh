@@ -2,12 +2,8 @@
 
 set -ex
 
-main() {
-    cargo test
-    # make integration-test
-}
+make test
 
-# we don't run the "test phase" when doing deploys
-if [ -z $TRAVIS_TAG ]; then
-    main
+if [[ ${INTEGRATION_TEST:-0} == 1 ]]; then
+    make integration-test
 fi
