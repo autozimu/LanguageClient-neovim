@@ -140,41 +140,41 @@ def test_workspace_symbol(nvim):
     nvim.funcs.LanguageClient_workspace_symbol()
 
 
-def test_textDocument_references(nvim):
-    nvim.funcs.cursor(8, 4)
-    nvim.funcs.LanguageClient_textDocument_references()
-    time.sleep(1)
-    expect = ["fn greet() -> i32 {",
-              """println!("{}", greet());"""]
+# def test_textDocument_references(nvim):
+#     nvim.funcs.cursor(8, 4)
+#     nvim.funcs.LanguageClient_textDocument_references()
+#     time.sleep(1)
+#     expect = ["fn greet() -> i32 {",
+#               """println!("{}", greet());"""]
 
-    def predicate():
-        return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     def predicate():
+#         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     retry(predicate)
+#     assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    nvim.command("lnext")
+#     nvim.command("lnext")
 
-    def predicate():
-        return nvim.current.window.cursor == [3, 19]
+#     def predicate():
+#         return nvim.current.window.cursor == [3, 19]
 
-    retry(predicate)
-    assert nvim.current.window.cursor == [3, 19]
+#     retry(predicate)
+#     assert nvim.current.window.cursor == [3, 19]
 
 
-def test_textDocument_references_modified_buffer(nvim):
-    nvim.funcs.cursor(8, 4)
-    nvim.input("iabc")
-    time.sleep(2)
-    nvim.funcs.LanguageClient_textDocument_references()
-    expect = ["fn abcgreet() -> i32 {"]
+# def test_textDocument_references_modified_buffer(nvim):
+#     nvim.funcs.cursor(8, 4)
+#     nvim.input("iabc")
+#     time.sleep(2)
+#     nvim.funcs.LanguageClient_textDocument_references()
+#     expect = ["fn abcgreet() -> i32 {"]
 
-    def predicate():
-        return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     def predicate():
+#         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
-    retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
-    nvim.command("edit! {}".format(PATH_MAINRS))
+#     retry(predicate)
+#     assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+#     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
 def test_textDocument_didChange(nvim):
