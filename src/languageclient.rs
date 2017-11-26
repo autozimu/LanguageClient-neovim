@@ -1282,6 +1282,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state
                 .diagnostics
                 .insert(filename.clone(), params.diagnostics.clone());
+            state.line_diagnostics.retain(|fl, _| fl.0 != filename);
             Ok(())
         })?;
 
