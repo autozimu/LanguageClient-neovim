@@ -1,14 +1,8 @@
-import sys
+import time
 from os import path
 from typing import List, Dict
 
 from .base import Base
-
-LanguageClientPath = path.dirname(path.dirname(path.dirname(
-    path.realpath(__file__))))
-# TODO: use relative path.
-sys.path.append(LanguageClientPath)
-from LanguageClient import LanguageClient, path_to_uri  # noqa: E402
 
 GREP_HEADER_SYNTAX = (
     'syntax match deniteSource_grepHeader '
@@ -29,6 +23,8 @@ GREP_LINE_SYNTAX = (
 GREP_LINE_HIGHLIGHT = 'highlight default link deniteSource_grepLineNR LineNR'
 
 GREP_PATTERNS_HIGHLIGHT = 'highlight default link deniteGrepPatterns Function'
+
+ReferencesResults = "g:LanguageClient_referencesResults"
 
 
 class Source(Base):
@@ -60,7 +56,7 @@ class Source(Base):
 
     def convert_to_candidates(self, locations: List[Dict]) -> List[Dict]:
         candidates = []
-        pwd = path_to_uri(self.vim.funcs.getcwd())
+        pwd = self.vim.funcs.getcwd()
         for loc in locations:
             uri = loc["uri"]
             filepath = path.relpath(uri, pwd)
@@ -84,7 +80,15 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        locations = LanguageClient._instance.textDocument_references(handle=False)
+        self.vim.funcs.LanguageClient_textDocument_references({
+            "handle": False
+        })
+
+        while self.vim.funcs.eval("len({})".format(ReferencesResults)) == 0:
+            time.sleep(0.1)
+
+        locations = self.vim.funcs.eval(
+            "remove({}, 0)".format(ReferencesResults))
 
         if locations is None:
             return []

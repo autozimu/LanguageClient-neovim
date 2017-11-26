@@ -469,6 +469,7 @@ pub enum VimVarName {
     Character,
     Cword,
     NewName,
+    Handle,
 }
 
 impl ToString for VimVarName {
@@ -481,6 +482,7 @@ impl ToString for VimVarName {
             VimVarName::Character => "character",
             VimVarName::Cword => "cword",
             VimVarName::NewName => "newName",
+            VimVarName::Handle => "handle",
         }.to_owned()
     }
 }
@@ -528,6 +530,7 @@ impl ToVimExp for VimVarName {
             VimVarName::Character => "col('.') - 1",
             VimVarName::Cword => "expand('<cword>')",
             VimVarName::NewName => "v:null",
+            VimVarName::Handle => "v:true",
         }.to_owned()
     }
 }

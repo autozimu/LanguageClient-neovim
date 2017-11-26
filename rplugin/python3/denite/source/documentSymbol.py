@@ -4,12 +4,6 @@ from typing import List, Dict
 
 from .base import Base
 
-LanguageClientPath = path.dirname(path.dirname(path.dirname(
-    path.realpath(__file__))))
-# TODO: use relative path.
-sys.path.append(LanguageClientPath)
-from LanguageClient import LanguageClient  # noqa: E402
-
 
 def convert_to_candidate(symbol: Dict, bufname: str) -> Dict:
     name = symbol["name"]
@@ -32,7 +26,9 @@ class Source(Base):
         self.kind = 'file'
 
     def gather_candidates(self, context: Dict) -> List[Dict]:
-        symbols = LanguageClient._instance.textDocument_documentSymbol(handle=False)
+        self.vim.funcs.LanguageClient_textDocument_documentSymbol({
+            "handle": False,
+        })
 
         if symbols is None:
             return []

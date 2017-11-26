@@ -63,13 +63,26 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:result = get(l:message, 'result')
                 let Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                call call(Handle, [l:result, {}])
+                if type(Handle) == v:t_func
+                    call call(Handle, [l:result, {}])
+                elseif type(Handle) == v:t_list
+                    call add(Handle, l:result)
+                else
+                    s:Echoerr('Unknown Handle type: ' . string(Handle))
+                endif
             elseif has_key(l:message, 'error')
                 let l:id = get(l:message, 'id')
                 let l:error = get(l:message, 'error')
                 let Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                call call(Handle, [{}, l:error])
+                if type(Handle) == v:t_func
+                    call s:Echoerr(get(l:error, 'message'))
+                    call call(Handle, [{}, l:error])
+                elseif type(Handle) == v:t_list
+                    call add(Handle, v:null)
+                else
+                    s:Echoerr('Unknown Handle type: ' . string(Handle))
+                endif
             else
                 call s:Echoerr('Unknown message: ' . string(l:message))
             endif
@@ -133,7 +146,7 @@ endfunction
 function! LanguageClient#Call(method, params, callback) abort
     let l:id = s:id
     let s:id = s:id + 1
-    if a:callback == v:null
+    if a:callback is v:null
         let s:handlers[l:id] = function('HandleOutput')
     else
         let s:handlers[l:id] = a:callback
@@ -221,7 +234,7 @@ endfunction
 function! LanguageClient_textDocument_codeAction() abort
     return LanguageClient#Call('textDocument/codeAction', {
                 \ 'buftype': &buftype,
-                \ 'langugeId': &filetype,
+                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -231,21 +244,27 @@ endfunction
 function! LanguageClient_textDocument_completion() abort
     return LanguageClient#Call('textDocument/completion', {
                 \ 'buftype': &buftype,
-                \ 'langugeId': &filetype,
+                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ }, v:null)
 endfunction
 
-function! LanguageClient_textDocument_references() abort
-    return LanguageClient#Call('textDocument/references', {
+let g:LanguageClient_referencesResults = []
+
+function! LanguageClient_textDocument_references(...) abort
+    let l:params = {
                 \ 'buftype': &buftype,
-                \ 'langugeId': &filetype,
+                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ }, v:null)
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_referencesResults
+    return LanguageClient#Call('textDocument/references', l:params, l:callback)
 endfunction
 
 function! LanguageClient_textDocument_didOpen() abort
@@ -409,27 +428,20 @@ function! LanguageClient_NCMRefresh(info, context) abort
     return LanguageClient#Notify('LanguageClient_NCMRefresh', [a:info, a:context])
 endfunction
 
+let g:LanguageClient_completeResults = []
+
 function! LanguageClient_omniComplete(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
-                \ 'langugeId': &filetype,
+                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
     call LanguageClient#Call("languageClient/omniComplete", l:params,
-                \ 's:LanguageClient_omniComplete_handleOutput')
-endfunction
-
-let g:LanguageClient_completeResults = []
-function! s:LanguageClient_omniComplete_handleOutput(result, error)
-    if len(a:error) > 0
-        call s:Echoerr(get(a:error, 'message'))
-        call add(g:LanguageClient_completeResults, [])
-    else
-        call add(g:LanguageClient_completeResults, a:result)
-    endif
+                \ l:callback)
 endfunction
 
 function! LanguageClient#complete(findstart, base) abort
@@ -445,7 +457,7 @@ function! LanguageClient#complete(findstart, base) abort
                     \ 'character': col('.') - 1 + len(a:base),
                     \ })
         while len(g:LanguageClient_completeResults) == 0
-            sleep 50m
+            sleep 100m
         endwhile
         return remove(g:LanguageClient_completeResults, 0)
     endif

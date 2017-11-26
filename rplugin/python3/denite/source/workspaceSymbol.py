@@ -4,12 +4,6 @@ from typing import List, Dict
 
 from .base import Base
 
-LanguageClientPath = path.dirname(path.dirname(path.dirname(
-    path.realpath(__file__))))
-# TODO: use relative path.
-sys.path.append(LanguageClientPath)
-from LanguageClient import LanguageClient, path_to_uri  # noqa: E402
-
 
 class Source(Base):
     def __init__(self, vim):
@@ -21,7 +15,7 @@ class Source(Base):
 
     def convert_to_candidates(self, symbols: List[Dict]) -> List[Dict]:
         candidates = []
-        pwd = path_to_uri(self.vim.funcs.getcwd())
+        pwd = self.vim.funcs.getcwd()
         for sb in symbols:
             name = sb["name"]
             uri = sb["location"]["uri"]
