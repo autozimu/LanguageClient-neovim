@@ -3,17 +3,13 @@
 set -ex
 
 main() {
-    cross build --target $TARGET
-    cross build --target $TARGET --release
+    make test
 
-    if [ ! -z $DISABLE_TESTS ]; then
-        return
+    if [[ ${INTEGRATION_TEST:-0} == 1 ]]; then
+        make integration-test
     fi
 
-    cross test --target $TARGET
-    cross test --target $TARGET --release
-
-    # TODO: run integration tests
+    cross build --target $TARGET --release
 }
 
 # we don't run the "test phase" when doing deploys

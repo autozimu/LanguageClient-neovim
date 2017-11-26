@@ -5,7 +5,7 @@
 # Based on the "trust" template v0.1.1
 # https://github.com/japaric/trust/tree/v0.1.1
 
-dist: trusty
+dist: xenial
 language: rust
 services: docker
 sudo: required
@@ -25,12 +25,8 @@ matrix:
       rust: nightly
 
     # OSX
-    - env: TARGET=x86_64-apple-darwin DISABLE_TESTS=1
+    - env: TARGET=x86_64-apple-darwin
       os: osx
-      rust: nightly
-
-    # Windows
-    - env: TARGET=x86_64-pc-windows-gnu DISABLE_TESTS=1
       rust: nightly
 
 before_install:
