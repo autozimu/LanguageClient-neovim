@@ -1,4 +1,4 @@
-all: build
+all: fmt build
 
 build-docker-image: Dockerfile
 	docker build --tag autozimu/languageclientneovim .
@@ -6,13 +6,14 @@ build-docker-image: Dockerfile
 publish-docker-image:
 	docker push autozimu/languageclientneovim
 
-build:
+fmt:
 	cargo fmt
+
+build:
 	cargo build
 	# cargo build --features clippy
 
 release:
-	cargo fmt
 	cargo build --release
 	mkdir -p bin
 	cp --force target/release/languageclient bin/

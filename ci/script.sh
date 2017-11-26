@@ -3,7 +3,7 @@
 set -ex
 
 main() {
-    make test
+    cargo test
     make integration-test
 }
 
