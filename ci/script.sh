@@ -4,7 +4,7 @@ set -ex
 
 main() {
     cargo test
-    make integration-test
+    # make integration-test
 }
 
 # we don't run the "test phase" when doing deploys
