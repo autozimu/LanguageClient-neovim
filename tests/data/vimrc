@@ -8,7 +8,7 @@ set hidden
 
 let $LANGUAGECLIENT_DEBUG = 1
 let g:LanguageClient_serverCommands = {
-    \ 'rust': ['rls'],
+    \ 'rust': ['/root/.cargo/bin/rls'],
     \ }
 let g:LanguageClient_selectionUI = "location-list"
 
