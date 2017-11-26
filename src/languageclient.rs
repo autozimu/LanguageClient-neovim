@@ -952,7 +952,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         }
 
-        Ok(text)
+        Ok(text.as_str().strip().to_owned())
     }
 
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {

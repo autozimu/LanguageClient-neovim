@@ -1,8 +1,10 @@
-import sys
+import time
 from os import path
 from typing import List, Dict
 
 from .base import Base
+
+WorkspaceSymbolResults = "g:LanguageClient_workspaceSymbolResults"
 
 
 class Source(Base):
@@ -34,7 +36,15 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        symbols = LanguageClient._instance.workspace_symbol(handle=False)
+        self.vim.funcs.LanguageClient_workspace_symbol({
+            "handle": False,
+        })
+
+        while self.vim.funcs.eval("len({})".format(WorkspaceSymbolResults)) == 0:
+            time.sleep(0.1)
+
+        symbols = self.vim.funcs.eval(
+            "remove({}, 0)".format(WorkspaceSymbolResults))
 
         if symbols is None:
             return []

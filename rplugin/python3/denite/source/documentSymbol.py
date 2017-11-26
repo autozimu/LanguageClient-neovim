@@ -1,8 +1,9 @@
-import sys
-from os import path
+import time
 from typing import List, Dict
 
 from .base import Base
+
+DocumentSymbolResults = "g:LanguageClient_documentSymbolResults"
 
 
 def convert_to_candidate(symbol: Dict, bufname: str) -> Dict:
@@ -29,6 +30,12 @@ class Source(Base):
         self.vim.funcs.LanguageClient_textDocument_documentSymbol({
             "handle": False,
         })
+
+        while self.vim.funcs.eval("len({})".format(DocumentSymbolResults)) == 0:
+            time.sleep(0.1)
+
+        symbols = self.vim.funcs.eval(
+            "remove({}, 0)".format(DocumentSymbolResults))
 
         if symbols is None:
             return []
