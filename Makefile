@@ -20,12 +20,9 @@ release:
 test:
 	cargo test
 
-integration-test-install-dependencies:
-	pip3 install neovim mypy flake8 --upgrade
-
 integration-test-lint:
 	mypy tests rplugin/python3/denite/source rplugin/python3/deoplete/sources
 	flake8 .
 
-integration-test: integration-test-lint
+integration-test: build integration-test-lint
 	tests/test.sh

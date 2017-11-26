@@ -182,7 +182,7 @@ fn test_apply_TextEdit() {
 "#.to_owned(),
     };
 
-    assert_eq!(apply_TextEdit(&lines, &[edit]).unwrap(), expect);
+    assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
 }
 
 fn get_command_add_sign(sign: &Sign, filename: &str) -> String {
