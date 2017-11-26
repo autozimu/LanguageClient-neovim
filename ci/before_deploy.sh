@@ -19,7 +19,6 @@ package() {
     test -f Cargo.lock || cargo generate-lockfile
 
     cross build --target $TARGET --release
-    cross rustc --bin $CRATE_NAME --target $TARGET --release -- -C lto
 
     cp target/$TARGET/release/$CRATE_NAME $stage/
 
@@ -30,6 +29,7 @@ package() {
     rm -rf $stage
 }
 
+TARGETS=(${TARGETS//:/ })
 for TARGET in "${TARGETS[@]}"; do
     package $TARGET
 done

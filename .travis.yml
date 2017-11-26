@@ -17,11 +17,11 @@ env:
 matrix:
   include:
     # Linux
-    - env: TARGETS=(i686-unknown-linux-musl x86_64-unknown-linux-musl)
+    - env: TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl
       rust: nightly
 
     # OSX
-    - env: TARGETS=(x86_64-apple-darwin)
+    - env: TARGETS=x86_64-apple-darwin
       os: osx
       rust: nightly
 
