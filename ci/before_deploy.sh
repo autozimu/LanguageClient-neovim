@@ -2,9 +2,10 @@
 
 set -ex
 
-main() {
-    local src=$(pwd) \
-          stage=
+package() {
+    local TARGET=$1 \
+        src=$(pwd) \
+        stage=
 
     case $TRAVIS_OS_NAME in
         linux)
@@ -17,6 +18,7 @@ main() {
 
     test -f Cargo.lock || cargo generate-lockfile
 
+    cross build --target $TARGET --release
     cross rustc --bin $CRATE_NAME --target $TARGET --release -- -C lto
 
     cp target/$TARGET/release/$CRATE_NAME $stage/
@@ -28,4 +30,6 @@ main() {
     rm -rf $stage
 }
 
-main
+for TARGET in "${TARGETS[@]}"; do
+    package $TARGET
+done

@@ -4,12 +4,7 @@ set -ex
 
 main() {
     make test
-
-    if [[ ${INTEGRATION_TEST:-0} == 1 ]]; then
-        make integration-test
-    fi
-
-    cross build --target $TARGET --release
+    make integration-test
 }
 
 # we don't run the "test phase" when doing deploys

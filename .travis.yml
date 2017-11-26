@@ -17,15 +17,11 @@ env:
 matrix:
   include:
     # Linux
-    # - env: TARGET=i686-unknown-linux-gnu
-    - env: TARGET=i686-unknown-linux-musl
-      rust: nightly
-    # - env: TARGET=x86_64-unknown-linux-gnu
-    - env: TARGET=x86_64-unknown-linux-musl
+    - env: TARGETS=(i686-unknown-linux-musl x86_64-unknown-linux-musl)
       rust: nightly
 
     # OSX
-    - env: TARGET=x86_64-apple-darwin
+    - env: TARGETS=(x86_64-apple-darwin)
       os: osx
       rust: nightly
 
@@ -34,7 +30,6 @@ before_install:
   - rustup self update
 
 install:
-  - sh ci/install.sh
   - source ~/.cargo/env || true
 
 script:
@@ -43,7 +38,8 @@ script:
 after_script: set +e
 
 before_deploy:
-  - sh ci/before_deploy.sh
+  - bash ci/install.sh
+  - bash ci/before_deploy.sh
 
 deploy:
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
@@ -52,7 +48,7 @@ deploy:
   api_key:
     secure: Dr/oCr65KsSjcDk21+CS7cZ/UR/ktncwDLsQIF/UyFC0bCP5MFbQ76Cz7Dy460hMtjCiy/X4QukxtiF0oeaOvi1szbo29s1KYjc9xPVhI1roQUyGghkGzo+V5Ncum3pwKF1Mb/kotikh2QSFQJYA3o32HhMNVb+1bApD+bwyAsGlnlAYYWQy+EcIDByhG9B4HB2pScoblyPmbgQPftc/E3ldKkm4iPNiNNa9T/rlXazNOkuiAqbRR/qBI4sSVAFFvfzvEcva4k5X8wzWfdsiDk9HKnNL7iDzdMMExSOoIKoet6jK3E3f2VbwD7tRw+We2cB+EBrW7xtkcck/BbEtnXhiWpt+Gg4qxXjZ6RVXgVw9tH0CGp2FjZ6B2DQ/chtgzIzLE+iuhJwhRqJ+7IW7LgNrnEsi6QelCiNKsm0aqXEpU5BVoBXxBegJHgHhunkKPpqmhYps5KsH4RPzrduqk2LHlYriwaGumcEnOVXzoJJs0NE6RaFzwl5cxmiKxC8tl1/dE4w2WmYM8n3yMmfbCd520bTQbvOe68k/8iV7gqZmOnWX//PLJ6Zf+v7T0yhaFC8Oj8ueWUCCSd7TAC3rHxd52BVZnQF1xXosiiN2PyWGZGbxaO1Qh7UbF1Xk+ot2pwEsP5Q8h155DlYJ/3mMzLvSi6Cp+78YKsoFlpfDy6w=
   file_glob: true
-  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
+  file: $CRATE_NAME-$TRAVIS_TAG-*
   on:
     tags: true
   provider: releases
