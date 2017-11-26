@@ -6,9 +6,11 @@
 # https://github.com/japaric/trust/tree/v0.1.1
 
 dist: xenial
-language: rust
 services: docker
 sudo: required
+language: rust
+rust:
+    - nightly-2017-11-20
 
 env:
   global:
@@ -18,12 +20,10 @@ matrix:
   include:
     # Linux
     - env: TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl
-      rust: nightly
 
     # OSX
     - env: TARGETS=x86_64-apple-darwin
       os: osx
-      rust: nightly
 
 before_install:
   - set -e

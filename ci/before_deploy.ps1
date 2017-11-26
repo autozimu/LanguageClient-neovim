@@ -10,7 +10,7 @@ Set-Location $STAGE
 
 $ZIP = "$SRC_DIR\$($Env:CRATE_NAME)-$($Env:APPVEYOR_REPO_TAG_NAME)-$($Env:TARGET).zip"
 
-Copy-Item "$SRC_DIR\target\$($Env:TARGET)\release\languageclient.exe" '.\'
+Copy-Item "$SRC_DIR\target\release\languageclient.exe" '.\'
 
 7z a "$ZIP" *
 
