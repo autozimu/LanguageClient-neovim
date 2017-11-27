@@ -11,5 +11,5 @@ exec 2>$LOGFILE
 DIR=$(dirname $(realpath $0))
 
 cargo build --manifest-path=$DIR/Cargo.toml
-export RUST_LOG=languageclient=info
+export RUST_LOG=languageclient=debug
 $DIR/target/debug/languageclient
