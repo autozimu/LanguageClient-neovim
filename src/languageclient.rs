@@ -1049,7 +1049,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
 
-        // TODO: get line text
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let root = self.get(|state| {
