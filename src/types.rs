@@ -9,6 +9,7 @@ pub use std::path::{Path, PathBuf};
 pub use std::io::prelude::*;
 pub use std::io::{BufReader, BufWriter};
 pub use std::fs::File;
+pub use std::env;
 pub use std::process::{ChildStdin, Stdio};
 pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Notification, Output,
                               Params, Success, Value, Version};

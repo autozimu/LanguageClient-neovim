@@ -29,7 +29,7 @@ pub fn init() -> Result<()> {
                 record.args()
             )
         })
-        .parse(&std::env::var("RUST_LOG").unwrap_or_default())
+        .parse(&env::var("RUST_LOG").unwrap_or_default())
         .init()?;
     Ok(())
 }

@@ -88,8 +88,8 @@ impl<'a> ToUrl for &'a str {
 }
 
 pub fn get_server_logpath() -> PathBuf {
-    let dir = std::env::var("TMP")
-        .or_else(|_| std::env::var("TEMP"))
+    let dir = env::var("TMP")
+        .or_else(|_| env::var("TEMP"))
         .unwrap_or_else(|_| "/tmp".to_owned());
 
     Path::new(dir.as_str()).join("LanguageServer.log")
