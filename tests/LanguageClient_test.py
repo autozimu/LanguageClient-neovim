@@ -22,10 +22,11 @@ def join_path(path: str) -> str:
 
 PATH_MAINRS = join_path("data/sample-rs/src/main.rs")
 PATH_LIBSRS = join_path("data/sample-rs/src/libs.rs")
+print(PATH_MAINRS)
 
 
 def retry(predicate: Callable[[], bool],
-          sleep_time=0.1, max_retry=100) -> None:
+          sleep_time=0.3, max_retry=100) -> None:
     """
     Retry until predicate is True or exceeds max_retry times.
     """
