@@ -313,7 +313,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Ok(())
         })?;
 
-        cx.recv_timeout(std::time::Duration::from_secs(60))?
+        cx.recv_timeout(std::time::Duration::from_secs(60 * 5))?
     }
 
     /// RPC notification.
@@ -950,13 +950,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         if text.is_empty() {
             let reader = BufReader::new(File::open(filename)?);
-            let line = line.to_usize()?;
-            for (i, t) in reader.lines().enumerate() {
-                if i == line {
-                    text = t?;
-                    break;
-                }
-            }
+            text = reader
+                .lines()
+                .nth(line.to_usize()?)
+                .ok_or(format_err!("Failed to get line"))??;
         }
 
         Ok(text.as_str().strip().to_owned())
@@ -1114,11 +1111,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidOpenTextDocument);
-        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
                 VimVarName::Buftype,
                 VimVarName::LanguageId,
                 VimVarName::Filename,
+                VimVarName::Text,
             ],
             params,
         )?;
@@ -1131,7 +1129,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             uri: filename.as_str().to_url()?,
             language_id: Some(languageId.clone()),
             version: None,
-            text: self.getbufline(filename.as_str())?.join("\n"),
+            text: text.join("\n"),
         };
 
         self.update(|state| {
@@ -1156,11 +1154,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_didChange(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidChangeTextDocument);
-        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
                 VimVarName::Buftype,
                 VimVarName::LanguageId,
                 VimVarName::Filename,
+                VimVarName::Text,
             ],
             params,
         )?;
@@ -1171,7 +1170,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return self.textDocument_didOpen(params);
         }
 
-        let text = self.getbufline(filename.as_str())?.join("\n");
+        let text = text.join("\n");
         if text == self.get(|state| {
             state
                 .text_documents

@@ -280,6 +280,7 @@ function! LanguageClient_textDocument_didChange() abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': getbufline('', 1, '$'),
                 \})
 endfunction
 
@@ -345,6 +346,7 @@ function! LanguageClient_handleTextChanged() abort
                     \ 'buftype': &buftype,
                     \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
+                    \ 'text': getbufline('', 1, '$'),
                     \ })
     catch /.*/
         if $LANGUAGECLIENT_DEBUG
