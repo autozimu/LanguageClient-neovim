@@ -187,22 +187,31 @@ function! Hello() abort
 endfunction
 
 function! LanguageClient_textDocument_hover() abort
-    return LanguageClient#Call('textDocument/hover', {
-                \ 'languageId': &filetype,
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ }, v:null)
-endfunction
-
-function! LanguageClient_textDocument_definition() abort
-    return LanguageClient#Call('textDocument/definition', {
+    let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ }, v:null)
+                \ 'handle': v:true,
+    }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/hover', l:params, l:callback)
+endfunction
+
+function! LanguageClient_textDocument_definition() abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/definition', l:params, l:callback)
 endfunction
 
 function! LanguageClient_textDocument_rename(...) abort
@@ -213,42 +222,60 @@ function! LanguageClient_textDocument_rename(...) abort
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'cword': expand('<cword>'),
+                \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/rename', l:params, v:null)
 endfunction
 
 function! LanguageClient_textDocument_documentSymbol() abort
-    return LanguageClient#Call('textDocument/documentSymbol', {
+    let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
-                \ }, v:null)
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/documentSymbol', l:params, l:callback)
 endfunction
 
 function! LanguageClient_workspace_symbol() abort
-    return LanguageClient#Call('workspace/symbol', {
-                \ }, v:null)
+    let l:params = {
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('workspace/symbol', l:params, l:callback)
 endfunction
 
 function! LanguageClient_textDocument_codeAction() abort
-    return LanguageClient#Call('textDocument/codeAction', {
+    let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ }, v:null)
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/codeAction', l:params, l:callback)
 endfunction
 
 function! LanguageClient_textDocument_completion() abort
-    return LanguageClient#Call('textDocument/completion', {
+    let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ }, v:null)
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/completion', l:params, l:callback)
 endfunction
 
 let g:LanguageClient_referencesResults = []
@@ -265,6 +292,41 @@ function! LanguageClient_textDocument_references(...) abort
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_referencesResults
     return LanguageClient#Call('textDocument/references', l:params, l:callback)
+endfunction
+
+function! LanguageClient_textDocument_formatting(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+    }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/formatting', l:params, l:callback)
+endfunction
+
+function! LanguageClient_textDocument_rangeFormatting(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+    }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:callback)
+endfunction
+
+function! LanguageClient_rustDocument_implementations(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+    }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('rustDocument/implementations', l:params, l:callback)
 endfunction
 
 function! LanguageClient_textDocument_didOpen() abort
@@ -442,8 +504,7 @@ function! LanguageClient_omniComplete(...) abort
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
-    call LanguageClient#Call("languageClient/omniComplete", l:params,
-                \ l:callback)
+    call LanguageClient#Call("languageClient/omniComplete", l:params, l:callback)
 endfunction
 
 function! LanguageClient#complete(findstart, base) abort
