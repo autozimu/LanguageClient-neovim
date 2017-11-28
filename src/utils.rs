@@ -89,8 +89,8 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
 
 pub fn get_server_logpath() -> PathBuf {
     let dir = env::var("TMP")
-        .or_else(|_| env::var("TEMP"))
-        .unwrap_or_else(|_| "/tmp".to_owned());
+        .or(env::var("TEMP"))
+        .unwrap_or("/tmp".to_owned());
 
     Path::new(&dir).join("LanguageServer.log")
 }

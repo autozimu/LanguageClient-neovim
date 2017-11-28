@@ -144,7 +144,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let spawn_result = std::thread::Builder::new()
                 .name(format!(
                     "Handler-{}",
-                    languageId.clone().unwrap_or_else(|| "main".into())
+                    languageId.clone().unwrap_or("main".to_owned())
                 ))
                 .spawn(move || {
                     if let Err(err) = state.handle_message(languageId_clone, message.clone()) {
