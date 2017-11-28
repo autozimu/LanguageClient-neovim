@@ -31,6 +31,7 @@ pub trait ILanguageClient {
     fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Result<()>;
     fn apply_TextEdits(&self, filename: &str, edits: &[TextEdit]) -> Result<()>;
     fn display_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()>;
+    fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()>;
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()>;
     fn get_line(&self, filename: &str, line: u64) -> Result<String>;
 
@@ -47,6 +48,7 @@ pub trait ILanguageClient {
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_applyEdit(&self, params: &Option<Params>) -> Result<Value>;
+    fn rustDocument_implementations(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()>;
     fn textDocument_didChange(&self, params: &Option<Params>) -> Result<()>;
     fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()>;
@@ -99,7 +101,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         } else {
             "{}".to_owned()
         };
-        debug!("{}", chars(before.as_str(), after.as_str()).to_string());
+        debug!("{}", chars(&before, &after).to_string());
         result
     }
 
@@ -200,6 +202,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__RangeFormatting => self.textDocument_rangeFormatting(&method_call.params),
                     REQUEST__ExecuteCommand => self.workspace_executeCommand(&method_call.params),
                     REQUEST__ApplyEdit => self.workspace_applyEdit(&method_call.params),
+                    REQUEST__RustImplementations => self.rustDocument_implementations(&method_call.params),
                     // Extensions.
                     REQUEST__Hello => self.hello(&method_call.params),
                     REQUEST__GetState => self.languageClient_getState(&method_call.params),
@@ -597,6 +600,64 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
+    fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()> {
+        match self.get(|state| Ok(state.selectionUI.clone()))? {
+            SelectionUI::FZF => {
+                let root = self.get(|state| {
+                    state
+                        .roots
+                        .get(languageId)
+                        .cloned()
+                        .ok_or(format_err!("Failed to get root"))
+                })?;
+                let source: Vec<_> = locations
+                    .iter()
+                    .map(|loc| {
+                        let filename = loc.uri.path();
+                        let relpath = diff_paths(Path::new(loc.uri.path()), Path::new(&root))
+                            .unwrap_or(Path::new(filename).to_path_buf());
+                        let relpath = relpath.to_str().unwrap_or(filename);
+                        let start = loc.range.start;
+                        let text = self.get_line(filename, start.line).unwrap_or("".to_owned());
+                        format!(
+                            "{}:{}:{}:\t{}",
+                            relpath,
+                            start.line + 1,
+                            start.character + 1,
+                            text
+                        )
+                    })
+                    .collect();
+
+                self.notify(
+                    None,
+                    "s:FZF",
+                    json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
+                )?;
+            }
+            SelectionUI::LocationList => {
+                let loclist: Vec<_> = locations
+                    .iter()
+                    .map(|loc| {
+                        let filename = loc.uri.path();
+                        let start = loc.range.start;
+                        let text = self.get_line(filename, start.line).unwrap_or("".to_owned());
+                        json!({
+                        "filename": filename,
+                        "lnum": start.line + 1,
+                        "col": start.character + 1,
+                        "text": text,
+                    })
+                    })
+                    .collect();
+
+                self.notify(None, "setloclist", json!([0, loclist]))?;
+                self.echo("References populated to location list.")?;
+            }
+        }
+        Ok(())
+    }
+
     /// Sample RPC method.
     fn hello(&self, params: &Option<Params>) -> Result<Value> {
         info!("Received params: {:?}", params);
@@ -879,7 +940,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let initialization_options = Some(settings["initializationOptions"].clone());
 
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__Initialize,
             InitializeParams {
                 process_id: Some(std::process::id().into()),
@@ -1051,61 +1112,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-
-        match self.get(|state| Ok(state.selectionUI.clone()))? {
-            SelectionUI::FZF => {
-                let root = self.get(|state| {
-                    state
-                        .roots
-                        .get(&languageId)
-                        .cloned()
-                        .ok_or(format_err!("Failed to get root"))
-                })?;
-                let source: Vec<_> = locations
-                    .iter()
-                    .map(|loc| {
-                        let filename = loc.uri.path();
-                        let relpath = diff_paths(Path::new(loc.uri.path()), Path::new(&root))
-                            .unwrap_or(Path::new(filename).to_path_buf());
-                        let relpath = relpath.to_str().unwrap_or(filename);
-                        let start = loc.range.start;
-                        let text = self.get_line(filename, start.line).unwrap_or("".to_owned());
-                        format!(
-                            "{}:{}:{}:\t{}",
-                            relpath,
-                            start.line + 1,
-                            start.character + 1,
-                            text
-                        )
-                    })
-                    .collect();
-
-                self.notify(
-                    None,
-                    "s:FZF",
-                    json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
-                )?;
-            }
-            SelectionUI::LocationList => {
-                let loclist: Vec<_> = locations
-                    .iter()
-                    .map(|loc| {
-                        let filename = loc.uri.path();
-                        let start = loc.range.start;
-                        let text = self.get_line(filename, start.line).unwrap_or("".to_owned());
-                        json!({
-                        "filename": filename,
-                        "lnum": start.line + 1,
-                        "col": start.character + 1,
-                        "text": text,
-                    })
-                    })
-                    .collect();
-
-                self.notify(None, "setloclist", json!([0, loclist]))?;
-                self.echo("References populated to location list.")?;
-            }
-        }
+        self.display_locations(&locations, languageId.as_str())?;
 
         info!("End {}", REQUEST__References);
         Ok(result)
@@ -1937,6 +1944,40 @@ impl ILanguageClient for Arc<Mutex<State>> {
         )?)
     }
 
+    fn rustDocument_implementations(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__RustImplementations);
+        let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
+            &[
+                VimVarName::Buftype,
+                VimVarName::LanguageId,
+                VimVarName::Filename,
+                VimVarName::Line,
+                VimVarName::Character,
+            ],
+            params,
+        )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+        self.textDocument_didChange(params)?;
+        let result = self.call(
+            Some(languageId.as_str()),
+            REQUEST__RustImplementations,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.as_str().to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
+        self.display_locations(&locations, languageId.as_str())?;
+
+        info!("End {}", REQUEST__RustImplementations);
+        Ok(result)
+    }
+
     fn exit(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__Exit);
         let (languageId,): (String,) = self.gather_args(&[VimVarName::LanguageId], params)?;
@@ -1986,6 +2027,5 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     // TODO:
-    // - rust extensions
     // - denite integrations
 }
