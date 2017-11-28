@@ -43,6 +43,7 @@ pub trait ILanguageClient {
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value>;
+    fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_applyEdit(&self, params: &Option<Params>) -> Result<Value>;
@@ -196,6 +197,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__Completion => self.textDocument_completion(&method_call.params),
                     REQUEST__References => self.textDocument_references(&method_call.params),
                     REQUEST__Formatting => self.textDocument_formatting(&method_call.params),
+                    REQUEST__RangeFormatting => self.textDocument_rangeFormatting(&method_call.params),
                     REQUEST__ExecuteCommand => self.workspace_executeCommand(&method_call.params),
                     REQUEST__ApplyEdit => self.workspace_applyEdit(&method_call.params),
                     // Extensions.
@@ -1147,6 +1149,62 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(result)
     }
 
+    fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__RangeFormatting);
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[
+                VimVarName::Buftype,
+                VimVarName::LanguageId,
+                VimVarName::Filename,
+            ],
+            params,
+        )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+        self.textDocument_didChange(params)?;
+
+        let (tab_size, insert_spaces, start_line, end_line, end_character): (u64, bool, u64, u64, u64) = self.eval(
+            &[
+                "tabstop",
+                "expandtab",
+                "v:lnum - 1",
+                "v:lnum - 1 + v:count",
+                "len(getline(v:lnum + v:count)) - 1",
+            ][..],
+        )?;
+        let result = self.call(
+            Some(languageId.as_str()),
+            REQUEST__RangeFormatting,
+            DocumentRangeFormattingParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.as_str().to_url()?,
+                },
+                options: FormattingOptions {
+                    tab_size,
+                    insert_spaces,
+                    properties: HashMap::new(),
+                },
+                range: Range {
+                    start: Position {
+                        line: start_line,
+                        character: 0,
+                    },
+                    end: Position {
+                        line: end_line,
+                        character: end_character,
+                    },
+                },
+            },
+        )?;
+
+        let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let edits = edits.unwrap_or(vec![]);
+        self.apply_TextEdits(filename.as_str(), &edits)?;
+        info!("End {}", REQUEST__RangeFormatting);
+        Ok(result)
+    }
+
     fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidOpenTextDocument);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
@@ -1928,7 +1986,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     // TODO:
-    // - rangeFormatting
     // - rust extensions
     // - denite integrations
 }
