@@ -194,7 +194,7 @@ function! LanguageClient_textDocument_hover() abort
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
-    }
+                \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/hover', l:params, l:callback)
@@ -299,7 +299,7 @@ function! LanguageClient_textDocument_formatting(...) abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
-    }
+                \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/formatting', l:params, l:callback)
@@ -310,7 +310,7 @@ function! LanguageClient_textDocument_rangeFormatting(...) abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
-    }
+                \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:callback)
@@ -323,7 +323,7 @@ function! LanguageClient_rustDocument_implementations(...) abort
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-    }
+                \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('rustDocument/implementations', l:params, l:callback)
@@ -343,7 +343,7 @@ function! LanguageClient_textDocument_didChange() abort
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': getbufline('', 1, '$'),
-                \})
+                \ })
 endfunction
 
 function! LanguageClient_textDocument_didSave() abort
