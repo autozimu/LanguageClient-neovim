@@ -1397,12 +1397,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Hover);
-        let (languageId, filename, line, character): (String, String, u64, u64) = self.gather_args(
+        let (languageId, filename, line, character, handle): (String, String, u64, u64, bool) = self.gather_args(
             &[
                 VimVar::LanguageId,
                 VimVar::Filename,
                 VimVar::Line,
                 VimVar::Character,
+                VimVar::Handle,
             ],
             params,
         )?;
@@ -1418,6 +1419,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
+        if !handle {
+            return Ok(result);
+        }
+
         let hover: Hover = serde_json::from_value(result.clone())?;
 
         let message = hover.to_string();
@@ -1429,23 +1434,25 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_definition(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__GotoDefinition);
-        let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Line,
-                VimVar::Character,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
 
         self.textDocument_didChange(params)?;
 
-        let value = self.call(
+        let result = self.call(
             Some(&languageId),
             REQUEST__GotoDefinition,
             TextDocumentPositionParams {
@@ -1456,7 +1463,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        let response: GotoDefinitionResponse = serde_json::from_value(value.clone())?;
+        if !handle {
+            return Ok(result);
+        }
+
+        let response: GotoDefinitionResponse = serde_json::from_value(result.clone())?;
 
         match response {
             GotoDefinitionResponse::None => {
@@ -1486,12 +1497,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         };
 
         info!("End {}", REQUEST__GotoDefinition);
-        Ok(value)
+        Ok(result)
     }
 
     fn textDocument_rename(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Rename);
-        let (buftype, languageId, filename, line, character, cword, new_name): (
+        let (buftype, languageId, filename, line, character, cword, new_name, handle): (
             String,
             String,
             String,
@@ -1499,6 +1510,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             u64,
             String,
             Option<String>,
+            bool,
         ) = self.gather_args(
             &[
                 VimVar::Buftype,
@@ -1508,6 +1520,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 VimVar::Character,
                 VimVar::Cword,
                 VimVar::NewName,
+                VimVar::Handle,
             ],
             params,
         )?;
@@ -1524,7 +1537,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        let value = self.call(
+        let result = self.call(
             Some(&languageId),
             REQUEST__Rename,
             RenameParams {
@@ -1536,23 +1549,28 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        if value == Value::Null {
-            return Ok(value);
+        if !handle || result == Value::Null {
+            return Ok(result);
         }
 
-        let edit: WorkspaceEdit = serde_json::from_value(value.clone())?;
+        let edit: WorkspaceEdit = serde_json::from_value(result.clone())?;
         self.apply_WorkspaceEdit(&edit)?;
 
         info!("End {}", REQUEST__Rename);
-        Ok(value)
+        Ok(result)
     }
 
     fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__DocumentSymbols);
         self.textDocument_didChange(params)?;
 
-        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Handle,
+            ],
             params,
         )?;
 
@@ -1569,6 +1587,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 },
             },
         )?;
+
+        if !handle {
+            return Ok(result);
+        }
 
         let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
 
@@ -1613,7 +1635,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__WorkspaceSymbols);
-        let (buftype, languageId): (String, String) = self.gather_args(&[VimVar::Buftype, VimVar::LanguageId], params)?;
+        let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1625,6 +1650,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             REQUEST__WorkspaceSymbols,
             WorkspaceSymbolParams { query },
         )?;
+
+        if !handle {
+            return Ok(result);
+        }
 
         let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
 
@@ -1779,16 +1808,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__CodeAction);
-        let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Line,
-                VimVar::Character,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1826,6 +1857,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
+        if !handle {
+            return Ok(result);
+        }
+
         let commands: Vec<Command> = serde_json::from_value(result.clone())?;
 
         let source: Vec<_> = commands
@@ -1851,16 +1886,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Completion);
 
-        let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Line,
-                VimVar::Character,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1875,6 +1912,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 position: Position { line, character },
             },
         )?;
+
+        if !handle {
+            return Ok(result);
+        }
 
         info!("End {}", REQUEST__Completion);
         Ok(result)
@@ -1909,16 +1950,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn rustDocument_implementations(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RustImplementations);
-        let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Line,
-                VimVar::Character,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1933,6 +1976,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 position: Position { line, character },
             },
         )?;
+
+        if !handle {
+            return Ok(result);
+        }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
         self.display_locations(&locations, &languageId)?;
