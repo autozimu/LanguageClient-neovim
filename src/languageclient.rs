@@ -1246,6 +1246,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(());
         }
         if !self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
+            warn!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
 
@@ -1258,24 +1259,20 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .map(|doc| doc.text.clone())
         }).unwrap_or("".to_owned());
         if text == text_state {
+            info!("Texts equal. Skipping didChange.");
             return Ok(());
         }
 
         let version = self.update(|state| {
             let document = state
                 .text_documents
-                .get(&filename)
-                .ok_or(format_err!("Failed to get TextDocumentItem"))?
-                .clone();
+                .get_mut(&filename)
+                .ok_or(format_err!("Failed to get TextDocumentItem"))?;
 
-            let document = TextDocumentItem {
-                version: document.version.map(|v| v + 1),
-                ..document
-            };
-            state
-                .text_documents
-                .insert(languageId.clone(), document.clone());
-            Ok(document.version.unwrap_or(1))
+            let version = document.version.unwrap_or(0) + 1;
+            document.version = Some(version);
+            document.text = text.clone();
+            Ok(version)
         })?;
 
         self.notify(
