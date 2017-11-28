@@ -467,7 +467,7 @@ impl ToUsize for u64 {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum VimVarName {
+pub enum VimVar {
     Buftype,
     LanguageId,
     Filename,
@@ -479,67 +479,67 @@ pub enum VimVarName {
     Handle,
 }
 
-impl ToString for VimVarName {
+impl ToString for VimVar {
     fn to_string(&self) -> String {
         match *self {
-            VimVarName::Buftype => "buftype",
-            VimVarName::LanguageId => "languageId",
-            VimVarName::Filename => "filename",
-            VimVarName::Line => "line",
-            VimVarName::Character => "character",
-            VimVarName::Text => "text",
-            VimVarName::Cword => "cword",
-            VimVarName::NewName => "newName",
-            VimVarName::Handle => "handle",
+            VimVar::Buftype => "buftype",
+            VimVar::LanguageId => "languageId",
+            VimVar::Filename => "filename",
+            VimVar::Line => "line",
+            VimVar::Character => "character",
+            VimVar::Text => "text",
+            VimVar::Cword => "cword",
+            VimVar::NewName => "newName",
+            VimVar::Handle => "handle",
         }.to_owned()
     }
 }
 
-pub trait ToVimExp {
-    fn to_exp(&self) -> String;
+pub trait VimExp {
+    fn exp(&self) -> String;
 }
 
-impl<'a> ToVimExp for &'a str {
-    fn to_exp(&self) -> String {
+impl<'a> VimExp for &'a str {
+    fn exp(&self) -> String {
         (*self).to_owned()
     }
 }
 
-impl ToVimExp for String {
-    fn to_exp(&self) -> String {
+impl VimExp for String {
+    fn exp(&self) -> String {
         self.clone()
     }
 }
 
-impl<'a, T> ToVimExp for &'a [T]
+impl VimExp for VimVar {
+    fn exp(&self) -> String {
+        match *self {
+            VimVar::Buftype => "&buftype",
+            VimVar::LanguageId => "&filetype",
+            VimVar::Filename => "s:Expand('%:p')",
+            VimVar::Line => "line('.') - 1",
+            VimVar::Character => "col('.') - 1",
+            VimVar::Text => "getbufline('', 1, '$')",
+            VimVar::Cword => "expand('<cword>')",
+            VimVar::NewName => "v:null",
+            VimVar::Handle => "v:true",
+        }.to_owned()
+    }
+}
+
+impl<'a, T> VimExp for &'a [T]
 where
-    T: ToVimExp,
+    T: VimExp,
 {
-    fn to_exp(&self) -> String {
+    fn exp(&self) -> String {
         let mut exp = "[".to_owned();
         for (i, e) in self.iter().enumerate() {
             if i != 0 {
                 exp += ", ";
             }
-            exp += &e.to_exp();
+            exp += &e.exp();
         }
         exp += "]";
         exp
-    }
-}
-
-impl ToVimExp for VimVarName {
-    fn to_exp(&self) -> String {
-        match *self {
-            VimVarName::Buftype => "&buftype",
-            VimVarName::LanguageId => "&filetype",
-            VimVarName::Filename => "s:Expand('%:p')",
-            VimVarName::Line => "line('.') - 1",
-            VimVarName::Character => "col('.') - 1",
-            VimVarName::Text => "getbufline('', 1, '$')",
-            VimVarName::Cword => "expand('<cword>')",
-            VimVarName::NewName => "v:null",
-            VimVarName::Handle => "v:true",
-        }.to_owned()
     }
 }

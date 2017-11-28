@@ -21,7 +21,7 @@ pub trait ILanguageClient {
     fn notify<P: Serialize>(&self, languageId: Option<&str>, method: &str, params: P) -> Result<()>;
 
     // Utils.
-    fn gather_args<E: ToVimExp + ToString + std::fmt::Debug, T: DeserializeOwned>(
+    fn gather_args<E: VimExp + ToString + std::fmt::Debug, T: DeserializeOwned>(
         &self,
         exps: &[E],
         params: &Option<Params>,
@@ -336,7 +336,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
-    fn gather_args<E: ToVimExp + ToString + std::fmt::Debug, T: DeserializeOwned>(
+    fn gather_args<E: VimExp + ToString + std::fmt::Debug, T: DeserializeOwned>(
         &self,
         exps: &[E],
         map: &Option<Params>,
@@ -353,7 +353,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let k = e.to_string();
             if !map.contains_key(&k) {
                 keys_request.push(k);
-                exps_request.push(e.to_exp());
+                exps_request.push(e.exp());
             }
         }
         let values_request: Vec<Value> = if keys_request.is_empty() {
@@ -470,14 +470,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Result<()> {
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
-        let (filename, line, character): (String, u64, u64) = self.gather_args(
-            &[
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
-            ],
-            &None,
-        )?;
+        let (filename, line, character): (String, u64, u64) =
+            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], &None)?;
         for (uri, edits) in &edit.changes {
             self.apply_TextEdits(uri.path(), edits.as_slice())?;
         }
@@ -661,7 +655,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     /// Sample RPC method.
     fn hello(&self, params: &Option<Params>) -> Result<Value> {
         info!("Received params: {:?}", params);
-        let character: u64 = self.eval(VimVarName::Character)?;
+        let character: u64 = self.eval(VimVar::Character)?;
         info!("character = {}", character);
 
         Ok(json!("world"))
@@ -676,7 +670,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn languageClient_isAlive(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__IsAlive);
-        let (languageId,): (String,) = self.gather_args(&[VimVarName::LanguageId], params)?;
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let is_alive = self.get(|state| Ok(state.writers.contains_key(&languageId)))?;
         info!("End {}", REQUEST__IsAlive);
         Ok(Value::Bool(is_alive))
@@ -685,11 +679,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
 
@@ -799,11 +789,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn languageClient_handleBufReadPost(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufReadPost);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() || filename.is_empty() {
@@ -868,7 +854,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn languageClient_handleBufDelete(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
-        let (filename,): (String,) = self.gather_args(&[VimVarName::Filename], params)?;
+        let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
         self.update(|state| {
             state.text_documents.retain(|f, _| f != &filename);
             state.diagnostics.retain(|f, _| f != &filename);
@@ -883,10 +869,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn languageClient_handleCursorMoved(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (buftype, filename, line): (String, String, u64) = self.gather_args(
-            &[VimVarName::Buftype, VimVarName::Filename, VimVarName::Line],
-            params,
-        )?;
+        let (buftype, filename, line): (String, String, u64) =
+            self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
         if !buftype.is_empty() || line == self.get(|state| Ok(state.last_cursor_line))? {
             return Ok(());
         }
@@ -919,7 +903,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn initialize(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Initialize);
         let (languageId, filename): (String, String) =
-            self.gather_args(&[VimVarName::LanguageId, VimVarName::Filename], params)?;
+            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         let root = get_rootPath(Path::new(&filename), &languageId)?
             .to_str()
             .ok_or(format_err!("Failed to convert &Path to &str"))?
@@ -1080,12 +1064,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
                 &[
-                    VimVarName::Buftype,
-                    VimVarName::LanguageId,
-                    VimVarName::Filename,
-                    VimVarName::Line,
-                    VimVarName::Character,
-                    VimVarName::Handle,
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
                 ],
                 params,
             )?;
@@ -1121,11 +1105,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Formatting);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1159,11 +1139,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RangeFormatting);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1216,10 +1192,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__DidOpenTextDocument);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Text,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Text,
             ],
             params,
         )?;
@@ -1259,10 +1235,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__DidChangeTextDocument);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Text,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Text,
             ],
             params,
         )?;
@@ -1327,11 +1303,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidSaveTextDocument);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1355,11 +1327,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_didClose(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidCloseTextDocument);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1416,7 +1384,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         info!("End {}", NOTIFICATION__PublishDiagnostics);
 
-        let current_filename: String = self.eval(VimVarName::Filename)?;
+        let current_filename: String = self.eval(VimVar::Filename)?;
         if filename != current_filename {
             return Ok(());
         }
@@ -1431,10 +1399,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__Hover);
         let (languageId, filename, line, character): (String, String, u64, u64) = self.gather_args(
             &[
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
             ],
             params,
         )?;
@@ -1463,11 +1431,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__GotoDefinition);
         let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
             ],
             params,
         )?;
@@ -1533,13 +1501,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Option<String>,
         ) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
-                VimVarName::Cword,
-                VimVarName::NewName,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
+                VimVar::Cword,
+                VimVar::NewName,
             ],
             params,
         )?;
@@ -1584,11 +1552,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didChange(params)?;
 
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-            ],
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
         )?;
 
@@ -1649,8 +1613,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__WorkspaceSymbols);
-        let (buftype, languageId): (String, String) =
-            self.gather_args(&[VimVarName::Buftype, VimVarName::LanguageId], params)?;
+        let (buftype, languageId): (String, String) = self.gather_args(&[VimVar::Buftype, VimVar::LanguageId], params)?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1745,7 +1708,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .pop()
                 .ok_or(format_err!("Failed to get filepath token"))?
                 .to_owned();
-            let languageId: String = self.eval(VimVarName::LanguageId)?;
+            let languageId: String = self.eval(VimVar::LanguageId)?;
             let root = self.get(|state| {
                 state
                     .roots
@@ -1759,7 +1722,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .ok_or(format_err!("Failed to convert PathBuf to str"))?
                 .to_owned()
         } else {
-            self.eval(VimVarName::Filename)?
+            self.eval(VimVar::Filename)?
         };
         let line = tokens
             .pop()
@@ -1818,11 +1781,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__CodeAction);
         let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
             ],
             params,
         )?;
@@ -1890,11 +1853,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
             ],
             params,
         )?;
@@ -1919,7 +1882,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__ExecuteCommand);
-        let (languageId,): (String,) = self.gather_args(&[VimVarName::LanguageId], params)?;
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (command, arguments): (String, Vec<Value>) = self.gather_args(&["command", "arguments"], params)?;
 
         let result = self.call(
@@ -1948,11 +1911,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__RustImplementations);
         let (buftype, languageId, filename, line, character): (String, String, String, u64, u64) = self.gather_args(
             &[
-                VimVarName::Buftype,
-                VimVarName::LanguageId,
-                VimVarName::Filename,
-                VimVarName::Line,
-                VimVarName::Character,
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
             ],
             params,
         )?;
@@ -1980,7 +1943,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn exit(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__Exit);
-        let (languageId,): (String,) = self.gather_args(&[VimVarName::LanguageId], params)?;
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
         self.notify(Some(&languageId), NOTIFICATION__Exit, Value::Null)?;
 

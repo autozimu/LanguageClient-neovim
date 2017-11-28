@@ -10,6 +10,7 @@ pub fn escape_single_quote(s: &str) -> String {
 fn test_escape_single_quote() {
     assert_eq!(escape_single_quote("my' precious"), "my'' precious");
 }
+
 pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
     match languageId {
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
@@ -107,9 +108,7 @@ impl<'a> Strip for &'a str {
 
 impl Strip for String {
     fn strip(&self) -> Self {
-        self.trim()
-            .trim_matches(|c| c == '\r' || c == '\n')
-            .to_owned()
+        self.as_str().strip().to_owned()
     }
 }
 

@@ -11,7 +11,7 @@ pub trait IVim {
     fn echowarn(&self, message: &str) -> Result<()>;
     fn eval<E, T>(&self, exp: E) -> Result<T>
     where
-        E: ToVimExp,
+        E: VimExp,
         T: DeserializeOwned;
     fn command(&self, cmd: &str) -> Result<()>;
     fn getbufline(&self, bufexp: &str) -> Result<Vec<String>>;
@@ -61,10 +61,10 @@ impl IVim for Arc<Mutex<State>> {
 
     fn eval<E, T>(&self, exp: E) -> Result<T>
     where
-        E: ToVimExp,
+        E: VimExp,
         T: DeserializeOwned,
     {
-        let result = self.call(None, "eval", exp.to_exp())?;
+        let result = self.call(None, "eval", exp.exp())?;
         Ok(serde_json::from_value(result)?)
     }
 
