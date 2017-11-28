@@ -394,9 +394,9 @@ impl ToString for Hover {
         };
 
         match self.contents {
-            HoverContents::Scalar(ref s) => message += markedString_to_String(s).as_str(),
+            HoverContents::Scalar(ref s) => message += &markedString_to_String(s),
             HoverContents::Array(ref vec) => for item in vec {
-                message += markedString_to_String(item).as_str();
+                message += &markedString_to_String(item);
             },
         };
 
@@ -419,11 +419,11 @@ impl ToString for Vec<diff::Result<char>> {
     fn to_string(&self) -> String {
         let mut s = String::new();
         for comp in self {
-            s += match *comp {
+            s += &match *comp {
                 diff::Result::Both(v, _) => format!("{}", v),
                 diff::Result::Left(v) => format!("{}", format!("{}", v).red()),
                 diff::Result::Right(v) => format!("{}", format!("{}", v).green()),
-            }.as_str();
+            };
         }
         s
     }
@@ -521,7 +521,7 @@ where
             if i != 0 {
                 exp += ", ";
             }
-            exp += e.to_exp().as_str();
+            exp += &e.to_exp();
         }
         exp += "]";
         exp

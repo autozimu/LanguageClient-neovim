@@ -167,7 +167,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     /// Handle an incoming message.
     fn handle_message(&self, languageId: Option<String>, message: String) -> Result<()> {
-        if let Ok(output) = serde_json::from_str::<Output>(message.as_str()) {
+        if let Ok(output) = serde_json::from_str::<Output>(&message) {
             let tx = self.update(|state| {
                 state
                     .txs
@@ -185,7 +185,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         // FIXME
         let message = message.replace(r#","meta":{}"#, "");
 
-        let call = serde_json::from_str(message.as_str())?;
+        let call = serde_json::from_str(&message)?;
 
         match call {
             Call::MethodCall(method_call) => {
@@ -290,7 +290,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let message = serde_json::to_string(&response)?;
         info!("=> {}", message);
-        self.write(languageId, message.as_str())?;
+        self.write(languageId, &message)?;
         Ok(())
     }
 
@@ -310,7 +310,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let message = serde_json::to_string(&method_call)?;
         info!("=> {}", message);
-        self.write(languageId, message.as_str())?;
+        self.write(languageId, &message)?;
 
         let (tx, cx) = channel();
         self.update(|state| {
@@ -331,7 +331,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let message = serde_json::to_string(&notification)?;
         info!("=> {}", message);
-        self.write(languageId, message.as_str())?;
+        self.write(languageId, &message)?;
 
         Ok(())
     }
@@ -453,17 +453,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let mut cmd = "echo".to_owned();
 
             for entry in state.diagnosticsDisplay.values() {
-                cmd += format!(
+                cmd += &format!(
                     " | execute 'sign define LanguageClient{} text={} texthl={}'",
                     entry.name,
                     entry.signText,
                     entry.signTexthl,
-                ).as_str();
+                );
             }
 
             Ok(cmd)
         })?;
-        self.command(cmd.as_str())?;
+        self.command(&cmd)?;
         info!("Define signs");
         Ok(())
     }
@@ -523,7 +523,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .unwrap_or(vec![]);
             Ok(get_command_update_signs(&signs_prev, &signs, filename))
         })?;
-        self.command(cmd.as_str())?;
+        self.command(&cmd)?;
 
         // Quickfix.
         let qflist: Vec<_> = diagnostics
@@ -791,7 +791,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "let g:LanguageClient_serverCommands={}",
             serde_json::to_string(&self.get(|state| Ok(state.serverCommands.clone()))?)?
         );
-        self.command(exp.as_str())?;
+        self.command(&exp)?;
         info!("End {}", REQUEST__RegisterServerCommands);
         Ok(Value::Null)
     }
@@ -837,7 +837,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .cloned()
                     .ok_or(format_err!("No diagnostics"))
             }).unwrap_or(vec![]);
-            self.display_diagnostics(filename.as_str(), &diagnostics)?;
+            self.display_diagnostics(&filename, &diagnostics)?;
             self.languageClient_handleCursorMoved(params)?;
         } else {
             let autoStart: i32 = self.eval("!!get(g:, 'LanguageClient_autoStart', v:true)")?;
@@ -910,7 +910,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state.last_line_diagnostic = message.clone();
             Ok(())
         })?;
-        self.echo_ellipsis(message.as_str())?;
+        self.echo_ellipsis(&message)?;
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
         Ok(())
@@ -920,7 +920,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__Initialize);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVarName::LanguageId, VimVarName::Filename], params)?;
-        let root = get_rootPath(Path::new(filename.as_str()), languageId.as_str())?
+        let root = get_rootPath(Path::new(&filename), &languageId)?
             .to_str()
             .ok_or(format_err!("Failed to convert &Path to &str"))?
             .to_owned();
@@ -931,10 +931,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         use std::fs::File;
 
         let settings = || -> Result<Value> {
-            let mut f = File::open(Path::new(root.as_str()).join(self.get(|state| Ok(state.settingsPath.clone()))?))?;
+            let mut f = File::open(Path::new(&root).join(self.get(|state| Ok(state.settingsPath.clone()))?))?;
             let mut buffer = String::new();
             f.read_to_string(&mut buffer)?;
-            Ok(serde_json::from_str(buffer.as_str())?)
+            Ok(serde_json::from_str(&buffer)?)
         }()
             .unwrap_or(json!({}));
         let initialization_options = Some(settings["initializationOptions"].clone());
@@ -945,7 +945,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             InitializeParams {
                 process_id: Some(std::process::id().into()),
                 root_path: Some(root.clone()),
-                root_uri: Some(root.as_str().to_url()?),
+                root_uri: Some(root.to_url()?),
                 initialization_options,
                 capabilities: ClientCapabilities {
                     workspace: None,
@@ -963,7 +963,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         info!("End {}", REQUEST__Initialize);
-        self.registerCMSource(languageId.as_str(), &result)?;
+        self.registerCMSource(&languageId, &result)?;
         Ok(result)
     }
 
@@ -985,7 +985,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .map(|opt| {
                 let strings: Vec<_> = opt.trigger_characters
                     .iter()
-                    .map(|c| regex::escape(c.as_str()))
+                    .map(|c| regex::escape(c))
                     .collect();
                 strings
             })
@@ -1094,11 +1094,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__References,
             ReferenceParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
                 context: ReferenceContext {
@@ -1112,7 +1112,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations, languageId.as_str())?;
+        self.display_locations(&locations, &languageId)?;
 
         info!("End {}", REQUEST__References);
         Ok(result)
@@ -1135,11 +1135,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let (tab_size, insert_spaces): (u64, bool) = self.eval(&["tabstop", "expandtab"][..])?;
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__Formatting,
             DocumentFormattingParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 options: FormattingOptions {
                     tab_size,
@@ -1151,7 +1151,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
         let edits = edits.unwrap_or(vec![]);
-        self.apply_TextEdits(filename.as_str(), &edits)?;
+        self.apply_TextEdits(&filename, &edits)?;
         info!("End {}", REQUEST__Formatting);
         Ok(result)
     }
@@ -1181,11 +1181,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
             ][..],
         )?;
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__RangeFormatting,
             DocumentRangeFormattingParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 options: FormattingOptions {
                     tab_size,
@@ -1207,7 +1207,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
         let edits = edits.unwrap_or(vec![]);
-        self.apply_TextEdits(filename.as_str(), &edits)?;
+        self.apply_TextEdits(&filename, &edits)?;
         info!("End {}", REQUEST__RangeFormatting);
         Ok(result)
     }
@@ -1229,7 +1229,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let text_document = TextDocumentItem {
-            uri: filename.as_str().to_url()?,
+            uri: filename.to_url()?,
             language_id: Some(languageId.clone()),
             version: None,
             text: text.join("\n"),
@@ -1244,7 +1244,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         self.notify(
-            Some(languageId.as_str()),
+            Some(&languageId),
             NOTIFICATION__DidOpenTextDocument,
             DidOpenTextDocumentParams { text_document },
         )?;
@@ -1303,11 +1303,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         self.notify(
-            Some(languageId.as_str()),
+            Some(&languageId),
             NOTIFICATION__DidChangeTextDocument,
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                     version,
                 },
                 content_changes: vec![
@@ -1339,11 +1339,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         self.notify(
-            Some(languageId.as_str()),
+            Some(&languageId),
             NOTIFICATION__DidSaveTextDocument,
             DidSaveTextDocumentParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
             },
         )?;
@@ -1367,11 +1367,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         self.notify(
-            Some(languageId.as_str()),
+            Some(&languageId),
             NOTIFICATION__DidCloseTextDocument,
             DidCloseTextDocumentParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
             },
         )?;
@@ -1399,15 +1399,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let line = entry.range.start.line;
             let mut msg = String::new();
             if let Some(severity) = entry.severity {
-                msg += format!("[{:?}]", severity).as_str();
+                msg += &format!("[{:?}]", severity);
             }
             if let Some(ref code) = entry.code {
                 let s = code.to_string();
                 if !s.is_empty() {
-                    msg += format!("[{}]", s).as_str();
+                    msg += &format!("[{}]", s);
                 }
             }
-            msg += entry.message.as_str();
+            msg += &entry.message;
             self.update(|state| {
                 state.line_diagnostics.insert((filename.clone(), line), msg);
                 Ok(())
@@ -1421,7 +1421,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(());
         }
 
-        self.display_diagnostics(filename.as_str(), &params.diagnostics)?;
+        self.display_diagnostics(&filename, &params.diagnostics)?;
         self.languageClient_handleCursorMoved(&None)?;
 
         Ok(())
@@ -1440,11 +1440,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         )?;
 
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__Hover,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
             },
@@ -1453,7 +1453,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let hover: Hover = serde_json::from_value(result.clone())?;
 
         let message = hover.to_string();
-        self.echomsg(message.as_str())?;
+        self.echomsg(&message)?;
 
         info!("End {}", REQUEST__Hover);
         Ok(result)
@@ -1478,11 +1478,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didChange(params)?;
 
         let value = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__GotoDefinition,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
             },
@@ -1557,11 +1557,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let value = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__Rename,
             RenameParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
                 new_name,
@@ -1601,7 +1601,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             REQUEST__DocumentSymbols,
             DocumentSymbolParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
             },
         )?;
@@ -1658,7 +1658,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didChange(params)?;
         let query = "".to_owned();
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__WorkspaceSymbols,
             WorkspaceSymbolParams { query },
         )?;
@@ -1770,7 +1770,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .ok_or(format_err!("Failed to get character token"))?
             .to_int()? - 1;
 
-        self.goto_location(filename.as_str(), line, character)?;
+        self.goto_location(&filename, line, character)?;
 
         info!("End {}", NOTIFICATION__FZFSinkLocation);
         Ok(())
@@ -1848,11 +1848,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
             )
         })?;
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__CodeAction,
             CodeActionParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 //TODO: is this correct?
                 range: diagnostics
@@ -1903,11 +1903,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__Completion,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
             },
@@ -1923,7 +1923,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (command, arguments): (String, Vec<Value>) = self.gather_args(&["command", "arguments"], params)?;
 
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__ExecuteCommand,
             ExecuteCommandParams { command, arguments },
         )?;
@@ -1961,18 +1961,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
         self.textDocument_didChange(params)?;
         let result = self.call(
-            Some(languageId.as_str()),
+            Some(&languageId),
             REQUEST__RustImplementations,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
-                    uri: filename.as_str().to_url()?,
+                    uri: filename.to_url()?,
                 },
                 position: Position { line, character },
             },
         )?;
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations, languageId.as_str())?;
+        self.display_locations(&locations, &languageId)?;
 
         info!("End {}", REQUEST__RustImplementations);
         Ok(result)
@@ -2016,7 +2016,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         for (filename, signs) in signsmap {
             let cmd = get_command_update_signs(&signs, &[], &filename);
-            self.command(cmd.as_str())?;
+            self.command(&cmd)?;
         }
 
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {

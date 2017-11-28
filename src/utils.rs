@@ -78,7 +78,7 @@ pub trait ToUrl {
     fn to_url(&self) -> Result<Url>;
 }
 
-impl<'a> ToUrl for &'a str {
+impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     fn to_url(&self) -> Result<Url> {
         Url::from_file_path(self).or(Err(format_err!(
             "Failed to convert from path ({:?}) to Url",
@@ -92,7 +92,7 @@ pub fn get_server_logpath() -> PathBuf {
         .or_else(|_| env::var("TEMP"))
         .unwrap_or_else(|_| "/tmp".to_owned());
 
-    Path::new(dir.as_str()).join("LanguageServer.log")
+    Path::new(&dir).join("LanguageServer.log")
 }
 
 pub trait Strip {
@@ -112,7 +112,7 @@ pub trait AsRefStr {
 impl AsRefStr for Option<String> {
     fn as_ref_str(&self) -> Option<&str> {
         match *self {
-            Some(ref s) => Some(s.as_str()),
+            Some(ref s) => Some(s),
             None => None,
         }
     }
@@ -230,10 +230,10 @@ pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &
     for comp in diff::slice(signs_prev, signs) {
         match comp {
             diff::Result::Left(sign) => {
-                cmd += get_command_delete_sign(sign, filename).as_str();
+                cmd += &get_command_delete_sign(sign, filename);
             }
             diff::Result::Right(sign) => {
-                cmd += get_command_add_sign(sign, filename).as_str();
+                cmd += &get_command_add_sign(sign, filename);
             }
             diff::Result::Both(_, _) => (),
         }
