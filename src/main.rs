@@ -1,8 +1,7 @@
 #![feature(getpid, slice_concat_ext, try_from)]
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
-#![allow(non_snake_case, non_upper_case_globals, unknown_lints)]
-#![allow(or_fun_call)]
+#![allow(non_snake_case, non_upper_case_globals, unknown_lints, useless_format, or_fun_call)]
 
 extern crate chrono;
 extern crate colored;

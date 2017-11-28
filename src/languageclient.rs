@@ -144,8 +144,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 ))
                 .spawn(move || {
                     if let Err(err) = state.handle_message(languageId_clone, message.clone()) {
-                        if let Some(_) = err.downcast_ref::<LCError>() {
-                        } else {
+                        if err.downcast_ref::<LCError>().is_none() {
                             error!(
                                 "Error handling message. Message: {}. Error: {:?}",
                                 message,
@@ -208,8 +207,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 };
 
                 if let Err(err) = result.as_ref() {
-                    if let Some(_) = err.downcast_ref::<LCError>() {
-                    } else {
+                    if err.downcast_ref::<LCError>().is_none() {
                         error!(
                             "Error handling message. Message: {}. Error: {:?}",
                             message,
@@ -754,13 +752,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             // Language server is running but file is not within project root.
-            if !self.get(|state| {
+            let is_in_root = self.get(|state| {
                 let root = state
                     .roots
                     .get(&languageId)
                     .ok_or(format_err!("Failed to get root"))?;
                 Ok(filename.starts_with(root))
-            })? {
+            })?;
+            if !is_in_root {
                 return Ok(());
             }
 
@@ -1170,14 +1169,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let text = text.join("\n");
-        if text == self.get(|state| {
+        let text_state = self.get(|state| {
             state
                 .text_documents
                 .get(&filename)
                 .ok_or(format_err!("No TextDocumentItem"))
                 .map(|doc| doc.text.clone())
-        }).unwrap_or("".to_owned())
-        {
+        }).unwrap_or("".to_owned());
+        if text == text_state {
             return Ok(());
         }
 
