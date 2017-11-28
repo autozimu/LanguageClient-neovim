@@ -808,7 +808,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state.text_documents.retain(|f, _| f != &filename);
             state.diagnostics.retain(|f, _| f != &filename);
             state.line_diagnostics.retain(|fl, _| fl.0 != filename);
-            // TODO: remove signs?
+            state.signs.retain(|f, _| f != &filename);
             Ok(())
         })?;
         self.textDocument_didClose(params)?;
