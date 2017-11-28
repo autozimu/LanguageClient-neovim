@@ -113,7 +113,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let mut line = String::new();
             if languageId.is_some() {
                 input.read_line(&mut line)?;
-                line = line.as_str().strip().to_owned();
+                line = line.strip();
                 if line.is_empty() {
                     let mut buf = vec![0; content_length];
                     input.read_exact(buf.as_mut_slice())?;
@@ -134,7 +134,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 break;
             }
 
-            message = message.as_str().strip().to_owned();
+            message = message.strip();
             if message.is_empty() {
                 continue;
             }
@@ -1020,7 +1020,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .ok_or(format_err!("Failed to get line"))??;
         }
 
-        Ok(text.as_str().strip().to_owned())
+        Ok(text.strip())
     }
 
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {

@@ -25,12 +25,12 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
-    }.or_else(|_| {
+    }.or({
         traverse_up(path, |dir| {
             dir.join(".git").exists() || dir.join(".hg").exists() || dir.join(".svn").exists()
         })
     })
-        .or_else(|_| {
+        .or({
             let message = "Unknown project type. Fallback to use dir as project root.";
             warn!("{}", message);
             path.parent().ok_or(format_err!("Failed to get file dir"))
@@ -96,12 +96,20 @@ pub fn get_server_logpath() -> PathBuf {
 }
 
 pub trait Strip {
-    fn strip(&self) -> &str;
+    fn strip(&self) -> Self;
 }
 
 impl<'a> Strip for &'a str {
-    fn strip(&self) -> &str {
+    fn strip(&self) -> Self {
         self.trim().trim_matches(|c| c == '\r' || c == '\n')
+    }
+}
+
+impl Strip for String {
+    fn strip(&self) -> Self {
+        self.trim()
+            .trim_matches(|c| c == '\r' || c == '\n')
+            .to_owned()
     }
 }
 
