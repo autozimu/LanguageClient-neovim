@@ -279,7 +279,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 Ok(writer.flush()?)
             })?;
         } else {
-            println!("{}", message);
+            let mut writer = std::io::stdout();
+            write!(writer, "Content-Length: {}\n{}\n", message.len(), message)?;
+            writer.flush()?;
         }
 
         Ok(())
@@ -1456,9 +1458,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn window_logMessage(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__LogMessage);
         let params: LogMessageParams = serde_json::from_value(params.clone().to_value())?;
-        let threshold = self.get(|state| {
-            state.windowLogMessageLevel.to_int()
-        })?;
+        let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
         if params.typ.to_int()? > threshold {
             return Ok(());
         }

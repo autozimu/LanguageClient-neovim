@@ -28,18 +28,31 @@ function! s:FZF(source, sink) abort
     endif
 endfunction
 
-let s:line = ''
+let s:content_length = 0
+let s:input = ''
 function! s:HandleMessage(job, lines, event) abort
     if a:event == 'stdout'
         while len(a:lines) > 0
-            let s:line = s:line . remove(a:lines, 0)
-            let l:len = len(s:line)
-            if !l:len || s:line[l:len - 1] !=# '}'
+            let l:line = remove(a:lines, 0)
+
+            if s:content_length != 0
+                if len(l:line) < s:content_length
+                    let s:input = s:input . l:line
+                    let s:content_length = s:content_length - len(l:line)
+                    continue
+                else
+                    let s:input = s:input . strpart(l:line, 0, s:content_length)
+                    call insert(a:lines, strpart(l:line, s:content_length), 0)
+                    let s:content_length = 0
+                endif
+            else
+                let l:line = substitute(l:line, '^Content-Length: ', '', '')
+                let s:content_length = str2nr(l:line)
                 continue
             endif
 
-            let l:message = json_decode(s:line)
-            let s:line = ''
+            let l:message = json_decode(s:input)
+            let s:input = ''
             if has_key(l:message, 'method')
                 let l:id = get(l:message, 'id', v:null)
                 let l:method = get(l:message, 'method')
