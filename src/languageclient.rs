@@ -74,6 +74,9 @@ pub trait ILanguageClient {
     fn languageClient_FZFSinkLocation(&self, params: &Option<Params>) -> Result<()>;
     fn languageClient_FZFSinkCommand(&self, params: &Option<Params>) -> Result<()>;
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()>;
+
+    // Extensions by languge servers.
+    fn language_status(&self, params: &Option<Params>) -> Result<()>;
 }
 
 impl ILanguageClient for Arc<Mutex<State>> {
@@ -245,6 +248,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 NOTIFICATION__HandleCursorMoved => self.languageClient_handleCursorMoved(&notification.params)?,
                 NOTIFICATION__FZFSinkLocation => self.languageClient_FZFSinkLocation(&notification.params)?,
                 NOTIFICATION__FZFSinkCommand => self.languageClient_FZFSinkCommand(&notification.params)?,
+                // Extensions by language servers.
+                NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,
                 _ => warn!("Unknown notification: {:?}", notification.method),
             },
             Call::Invalid(id) => return Err(format_err!("Invalid message of id: {:?}", id)),
@@ -2154,6 +2159,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.command("doautocmd User LanguageClientStopped")?;
         }
         info!("End {}", NOTIFICATION__Exit);
+        Ok(())
+    }
+
+    fn language_status(&self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__LanguageStatus);
+        let params: LanguageStatusParams = serde_json::from_value(params.clone().to_value())?;
+        let msg = format!("{} {}", params.typee, params.message);
+        self.echomsg(&msg)?;
+        info!("End {}", NOTIFICATION__LanguageStatus);
         Ok(())
     }
 

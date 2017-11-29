@@ -44,7 +44,10 @@ pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMo
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
 pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
+
+// Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
+pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
@@ -545,4 +548,11 @@ where
         exp += "]";
         exp
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LanguageStatusParams {
+    #[serde(rename = "type")]
+    pub typee: String,
+    pub message: String,
 }
