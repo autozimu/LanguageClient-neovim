@@ -43,6 +43,7 @@ pub trait ILanguageClient {
     fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value>;
+    fn textDocument_signatureHelp(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value>;
@@ -198,6 +199,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__WorkspaceSymbols => self.workspace_symbol(&method_call.params),
                     REQUEST__CodeAction => self.textDocument_codeAction(&method_call.params),
                     REQUEST__Completion => self.textDocument_completion(&method_call.params),
+                    REQUEST__SignatureHelp => self.textDocument_signatureHelp(&method_call.params),
                     REQUEST__References => self.textDocument_references(&method_call.params),
                     REQUEST__Formatting => self.textDocument_formatting(&method_call.params),
                     REQUEST__RangeFormatting => self.textDocument_rangeFormatting(&method_call.params),
@@ -1937,6 +1939,75 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         info!("End {}", REQUEST__Completion);
         Ok(result)
+    }
+
+    fn textDocument_signatureHelp(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__SignatureHelp);
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__SignatureHelp,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle || result == Value::Null {
+            return Ok(result);
+        }
+
+        let help: SignatureHelp = serde_json::from_value(result)?;
+        if help.signatures.is_empty() {
+            return Ok(Value::Null);
+        }
+        let active_signature = help.signatures
+            .get(help.active_signature.unwrap_or(0).to_usize()?)
+            .ok_or(format_err!("Failed to get active signature"))?;
+        let active_parameter: Option<&ParameterInformation>;
+        if let Some(ref parameters) = active_signature.parameters {
+            active_parameter = parameters.get(help.active_parameter.unwrap_or(0).to_usize()?);
+        } else {
+            active_parameter = None;
+        }
+
+        if let Some(active_parameter) = active_parameter {
+            let mut cmd = "echo".to_owned();
+            let chunks: Vec<&str> = active_signature
+                .label
+                .split(&active_parameter.label)
+                .collect();
+            for chunk in chunks {
+                cmd += &format!(" | echon {}", chunk);
+                cmd += &format!(
+                    " | echohl Bold | echon {} | echohl None",
+                    active_parameter.label
+                );
+            }
+            self.command(&cmd)?;
+        } else {
+            self.echo(&active_signature.label)?;
+        }
+
+        info!("End {}", REQUEST__SignatureHelp);
+        Ok(Value::Null)
     }
 
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value> {
