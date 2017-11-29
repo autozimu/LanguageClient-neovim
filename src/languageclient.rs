@@ -57,6 +57,7 @@ pub trait ILanguageClient {
     fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()>;
     fn textDocument_didClose(&self, params: &Option<Params>) -> Result<()>;
     fn textDocument_publishDiagnostics(&self, params: &Option<Params>) -> Result<()>;
+    fn window_logMessage(&self, params: &Option<Params>) -> Result<()>;
     fn exit(&self, params: &Option<Params>) -> Result<()>;
 
     // Extensions.
@@ -239,6 +240,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 NOTIFICATION__DidSaveTextDocument => self.textDocument_didSave(&notification.params)?,
                 NOTIFICATION__DidCloseTextDocument => self.textDocument_didClose(&notification.params)?,
                 NOTIFICATION__PublishDiagnostics => self.textDocument_publishDiagnostics(&notification.params)?,
+                NOTIFICATION__LogMessage => self.window_logMessage(&notification.params)?,
                 NOTIFICATION__Exit => self.exit(&notification.params)?,
                 // Extensions.
                 NOTIFICATION__HandleBufReadPost => self.languageClient_handleBufReadPost(&notification.params)?,
@@ -431,14 +433,32 @@ impl ILanguageClient for Arc<Mutex<State>> {
             _ => return Err(format_err!("Unknown selectionUI option: {:?}", selectionUI)),
         };
 
-        let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay): (u64, DiagnosticsList, Value) = self.eval(
+        let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
+            u64,
+            DiagnosticsList,
+            Value,
+            String,
+        ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
                 "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', v:null)",
+                "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
             ][..],
         )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
+        let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
+            "ERROR" => MessageType::Error,
+            "WARNING" => MessageType::Warning,
+            "INFO" => MessageType::Info,
+            "Log" => MessageType::Log,
+            _ => {
+                return Err(format_err!(
+                    "Unknown windowLogMessageLevel: {}",
+                    windowLogMessageLevel
+                ))
+            }
+        };
 
         self.update(|state| {
             state.autoStart = autoStart;
@@ -449,6 +469,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state.diagnosticsList = diagnosticsList;
             state.diagnosticsDisplay =
                 serde_json::from_value(serde_json::to_value(&state.diagnosticsDisplay)?.combine(diagnosticsDisplay))?;
+            state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
             Ok(())
@@ -1429,6 +1450,22 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.display_diagnostics(&filename, &params.diagnostics)?;
         self.languageClient_handleCursorMoved(&None)?;
 
+        Ok(())
+    }
+
+    fn window_logMessage(&self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__LogMessage);
+        let params: LogMessageParams = serde_json::from_value(params.clone().to_value())?;
+        let threshold = self.get(|state| {
+            state.windowLogMessageLevel.to_int()
+        })?;
+        if params.typ.to_int()? > threshold {
+            return Ok(());
+        }
+
+        let msg = format!("[{:?}] {}", params.typ, params.message);
+        self.echomsg(&msg)?;
+        info!("End {}", NOTIFICATION__LogMessage);
         Ok(())
     }
 

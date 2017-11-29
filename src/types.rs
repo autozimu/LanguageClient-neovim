@@ -462,6 +462,18 @@ impl ToInt for DiagnosticSeverity {
     }
 }
 
+impl ToInt for MessageType {
+    fn to_int(&self) -> Result<u64> {
+        let i = match *self {
+            MessageType::Error => 1,
+            MessageType::Warning => 2,
+            MessageType::Info => 3,
+            MessageType::Log => 4,
+        };
+        Ok(i)
+    }
+}
+
 pub trait ToUsize {
     fn to_usize(&self) -> Result<usize>;
 }
