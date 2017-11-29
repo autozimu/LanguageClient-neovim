@@ -30,7 +30,6 @@ pub enum LCError {
 }
 
 // Extensions.
-pub const REQUEST__Hello: &str = "hello";
 pub const REQUEST__GetState: &str = "languageClient/getState";
 pub const REQUEST__IsAlive: &str = "languageClient/isAlive";
 pub const REQUEST__StartServer: &str = "languageClient/startServer";

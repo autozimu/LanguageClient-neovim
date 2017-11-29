@@ -61,7 +61,6 @@ pub trait ILanguageClient {
     fn exit(&self, params: &Option<Params>) -> Result<()>;
 
     // Extensions.
-    fn hello(&self, params: &Option<Params>) -> Result<Value>;
     fn languageClient_getState(&self, &Option<Params>) -> Result<Value>;
     fn languageClient_isAlive(&self, &Option<Params>) -> Result<Value>;
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value>;
@@ -213,7 +212,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__ApplyEdit => self.workspace_applyEdit(&method_call.params),
                     REQUEST__RustImplementations => self.rustDocument_implementations(&method_call.params),
                     // Extensions.
-                    REQUEST__Hello => self.hello(&method_call.params),
                     REQUEST__GetState => self.languageClient_getState(&method_call.params),
                     REQUEST__IsAlive => self.languageClient_isAlive(&method_call.params),
                     REQUEST__StartServer => self.languageClient_startServer(&method_call.params),
@@ -683,15 +681,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         }
         Ok(())
-    }
-
-    /// Sample RPC method.
-    fn hello(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Received params: {:?}", params);
-        let character: u64 = self.eval(VimVar::Character)?;
-        info!("character = {}", character);
-
-        Ok(json!("world"))
     }
 
     fn languageClient_getState(&self, _params: &Option<Params>) -> Result<Value> {

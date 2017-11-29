@@ -1,32 +1,7 @@
-if has('job') && $LANGUAGECLIENT_DEBUG
-    call ch_logfile('/tmp/vim.log')
-endif
+let s:command = ['bash', expand('<sfile>:p:h:h') . '/wrapper.sh']
 
 let s:id = 1
 let s:handlers = {}
-
-" When editing a [No Name] file, neovim reports filename as "", while vim reports null.
-function! s:Expand(exp) abort
-    let l:result = expand(a:exp)
-    return l:result ==# '' ? '' : l:result
-endfunction
-
-function! s:getInput(prompt, default) abort
-    call inputsave()
-    let l:input = input(a:prompt, a:default)
-    call inputrestore()
-    return l:input
-endfunction
-
-function! s:FZF(source, sink) abort
-    call fzf#run(fzf#wrap({
-                \ 'source': a:source,
-                \ 'sink': function(a:sink),
-                \ }))
-    if has('nvim')
-        call feedkeys('i')
-    endif
-endfunction
 
 let s:content_length = 0
 let s:input = ''
@@ -123,8 +98,6 @@ function! s:HandleExitVim(job, data) abort
     return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
-let s:command = ['bash', expand('<sfile>:p:h:h') . '/wrapper.sh']
-
 if has('nvim')
     let s:job = jobstart(s:command, {
                 \ 'on_stdout': function('s:HandleMessage'),
@@ -185,14 +158,6 @@ function! HandleOutput(result, error) abort
             " echomsg l:result
         endif
     endif
-endfunction
-
-function! s:Echoerr(message) abort
-    echohl Error | echomsg a:message | echohl None
-endfunction
-
-function! Hello() abort
-    return LanguageClient#Call('hello', {}, v:null)
 endfunction
 
 function! LanguageClient_textDocument_hover() abort
@@ -383,8 +348,6 @@ function! LanguageClient_startServer() abort
     return LanguageClient#Call('languageClient/startServer', {}, v:null)
 endfunction
 
-command! LanguageClientStart :call LanguageClient_startServer()
-
 function! LanguageClient_registerServerCommands(cmds) abort
     return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null)
 endfunction
@@ -541,6 +504,34 @@ function! LanguageClient_exit() abort
                 \ })
 endfunction
 
+function! s:Echoerr(message) abort
+    echohl Error | echomsg a:message | echohl None
+endfunction
+
+" When editing a [No Name] file, neovim reports filename as "", while vim reports null.
+function! s:Expand(exp) abort
+    let l:result = expand(a:exp)
+    return l:result ==# '' ? '' : l:result
+endfunction
+
+function! s:getInput(prompt, default) abort
+    call inputsave()
+    let l:input = input(a:prompt, a:default)
+    call inputrestore()
+    return l:input
+endfunction
+
+function! s:FZF(source, sink) abort
+    call fzf#run(fzf#wrap({
+                \ 'source': a:source,
+                \ 'sink': function(a:sink),
+                \ }))
+    if has('nvim')
+        call feedkeys('i')
+    endif
+endfunction
+
+command! LanguageClientStart :call LanguageClient_startServer()
 command! LanguageClientStop :call LanguageClient_exit()
 
 autocmd BufReadPost * call LanguageClient_handleBufReadPost()
@@ -549,5 +540,3 @@ autocmd TextChangedI * call LanguageClient_handleTextChanged()
 autocmd BufWritePost * call LanguageClient_handleBufWritePost()
 autocmd BufDelete * call LanguageClient_handleBufDelete()
 autocmd CursorMoved * call LanguageClient_handleCursorMoved()
-
-nnoremap <F1> :call Hello()<CR>
