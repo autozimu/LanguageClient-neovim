@@ -47,6 +47,7 @@ pub trait ILanguageClient {
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value>;
+    fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value>;
     fn workspace_applyEdit(&self, params: &Option<Params>) -> Result<Value>;
@@ -203,6 +204,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__References => self.textDocument_references(&method_call.params),
                     REQUEST__Formatting => self.textDocument_formatting(&method_call.params),
                     REQUEST__RangeFormatting => self.textDocument_rangeFormatting(&method_call.params),
+                    REQUEST__ResolveCompletionItem => self.completionItem_resolve(&method_call.params),
                     REQUEST__ExecuteCommand => self.workspace_executeCommand(&method_call.params),
                     REQUEST__ApplyEdit => self.workspace_applyEdit(&method_call.params),
                     REQUEST__RustImplementations => self.rustDocument_implementations(&method_call.params),
@@ -1189,6 +1191,36 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.apply_TextEdits(&filename, &edits)?;
         info!("End {}", REQUEST__RangeFormatting);
         Ok(result)
+    }
+
+    fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__ResolveCompletionItem);
+        let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
+            params,
+        )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+        let (completion_item,): (CompletionItem,) = self.gather_args(&["completionItem"], params)?;
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__ResolveCompletionItem,
+            completion_item,
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        // TODO: proper integration.
+        let msg = format!("comletionItem/resolve result not handled: {:?}", result);
+        warn!("{}", msg);
+        self.echowarn(&msg)?;
+
+        info!("End {}", REQUEST__ResolveCompletionItem);
+        Ok(Value::Null)
     }
 
     fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()> {
