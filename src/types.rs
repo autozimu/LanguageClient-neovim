@@ -47,6 +47,9 @@ pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 
 
+pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
+
+
 #[derive(Debug, Serialize)]
 pub struct State {
     // Program state.

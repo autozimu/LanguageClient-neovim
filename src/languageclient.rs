@@ -34,6 +34,7 @@ pub trait ILanguageClient {
     fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()>;
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()>;
     fn get_line(&self, filename: &str, line: u64) -> Result<String>;
+    fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool>;
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value>;
@@ -1786,8 +1787,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .ok_or(format_err!("No project root found!"))
         })?;
 
-        //TODO: Try handle client commands.
-        // java.apply.workspaceEdit
+        if self.try_handle_command_by_client(&entry)? {
+            return Ok(());
+        }
 
         self.workspace_executeCommand(&Some(json!({
                 "command": entry.command,
@@ -1801,6 +1803,25 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         info!("End {}", NOTIFICATION__FZFSinkCommand);
         Ok(())
+    }
+
+    fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
+        if !CommandsClient.contains(&cmd.command.as_str()) {
+            return Ok(false);
+        }
+
+        if cmd.command == "java.apply.workspaceEdit" {
+            if let Some(ref edits) = cmd.arguments {
+                for edit in edits {
+                    let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
+                    self.apply_WorkspaceEdit(&edit)?;
+                }
+            }
+        } else {
+            return Err(format_err!("Not implemented: {}", cmd.command));
+        }
+
+        Ok(true)
     }
 
     fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value> {
