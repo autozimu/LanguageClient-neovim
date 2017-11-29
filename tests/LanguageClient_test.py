@@ -183,11 +183,10 @@ def test_textDocument_references_modified_buffer(nvim):
 def test_textDocument_didChange(nvim):
     nvim.funcs.setline(12, "fn greet_again() -> i64 { 7 }")
     nvim.funcs.setline(4, "    println!(\"{}\", greet_again());")
-    time.sleep(2)
     nvim.funcs.cursor(4, 23)
-    nvim.funcs.LanguageClient_textDocument_definition()
 
     def predicate():
+        nvim.funcs.LanguageClient_textDocument_definition()
         return nvim.current.window.cursor == [12, 3]
 
     retry(predicate)
