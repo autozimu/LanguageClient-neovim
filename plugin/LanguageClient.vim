@@ -10,7 +10,13 @@ function! s:HandleMessage(job, lines, event) abort
         while len(a:lines) > 0
             let l:line = remove(a:lines, 0)
 
-            if s:content_length != 0
+            if l:line ==# ''
+                continue
+            elseif s:content_length == 0
+                let l:line = substitute(l:line, '^Content-Length: ', '', '')
+                let s:content_length = str2nr(l:line)
+                continue
+            else
                 if len(l:line) < s:content_length
                     let s:input = s:input . l:line
                     let s:content_length = s:content_length - len(l:line)
@@ -20,10 +26,6 @@ function! s:HandleMessage(job, lines, event) abort
                     call insert(a:lines, strpart(l:line, s:content_length), 0)
                     let s:content_length = 0
                 endif
-            else
-                let l:line = substitute(l:line, '^Content-Length: ', '', '')
-                let s:content_length = str2nr(l:line)
-                continue
             endif
 
             let l:message = json_decode(s:input)
