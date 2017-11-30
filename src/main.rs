@@ -32,6 +32,11 @@ extern crate diff;
 
 extern crate regex;
 
+extern crate structopt;
+use structopt::StructOpt;
+#[macro_use]
+extern crate structopt_derive;
+
 mod logger;
 mod types;
 use types::*;
@@ -39,6 +44,9 @@ mod utils;
 mod vim;
 mod languageclient;
 use languageclient::*;
+
+#[derive(Debug, StructOpt)]
+struct Opt {}
 
 fn run() -> Result<()> {
     logger::init()?;
@@ -51,6 +59,8 @@ fn run() -> Result<()> {
 }
 
 fn main() {
+    let _ = Opt::from_args();
+
     if let Err(err) = run() {
         eprintln!("{:?}", err);
     }

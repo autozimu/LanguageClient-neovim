@@ -2,6 +2,7 @@
 name = "languageclient"
 version = "0.1.0"
 authors = ["Junfeng Li <autozimu@gmail.com>"]
+description = "Language Server Protocol (LSP) client for vim and neovim"
 
 [dependencies]
 failure = "*"
@@ -10,6 +11,8 @@ log = "*"
 env_logger = "*"
 chrono = "*"
 colored = "*"
+structopt = "*"
+structopt-derive = "*"
 
 serde = "*"
 serde_derive = "*"
