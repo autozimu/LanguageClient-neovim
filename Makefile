@@ -10,11 +10,11 @@ fmt:
 	cargo fmt
 
 build:
-	cargo +nightly build
-	# cargo +nightly build --features clippy
+	cargo build
+	# cargo build --features clippy
 
 release:
-	cargo +nightly build --release
+	cargo build --release
 	cp --force target/release/languageclient bin/
 
 test:
