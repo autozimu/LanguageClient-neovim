@@ -299,36 +299,36 @@ impl Combine for Value {
     }
 }
 
-pub fn value_diff<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<String, (Value, Value)> {
-    let mut diffs = HashMap::new();
-    match (v1, v2) {
-        (&Value::Null, &Value::Null)
-        | (&Value::Bool(_), &Value::Bool(_))
-        | (&Value::Number(_), &Value::Number(_))
-        | (&Value::String(_), &Value::String(_))
-        | (&Value::Array(_), &Value::Array(_)) => if v1 != v2 {
-            diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
-        },
-        (&Value::Object(ref map1), &Value::Object(ref map2)) => {
-            let keys1: HashSet<&String> = map1.keys().collect();
-            let keys2: HashSet<&String> = map2.keys().collect();
-            let keys = keys1.union(&keys2);
-            for k in keys {
-                let mut next_path = String::from(path);
-                next_path += ".";
-                next_path += k;
-                let next_diffs = value_diff(
-                    map1.get(*k).unwrap_or(&Value::Null),
-                    map2.get(*k).unwrap_or(&Value::Null),
-                    &next_path,
-                );
-                diffs.merge(next_diffs);
-            }
-        }
-        _ => {
-            diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
-        }
-    }
+// pub fn value_diff<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<String, (Value, Value)> {
+//     let mut diffs = HashMap::new();
+//     match (v1, v2) {
+//         (&Value::Null, &Value::Null)
+//         | (&Value::Bool(_), &Value::Bool(_))
+//         | (&Value::Number(_), &Value::Number(_))
+//         | (&Value::String(_), &Value::String(_))
+//         | (&Value::Array(_), &Value::Array(_)) => if v1 != v2 {
+//             diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
+//         },
+//         (&Value::Object(ref map1), &Value::Object(ref map2)) => {
+//             let keys1: HashSet<&String> = map1.keys().collect();
+//             let keys2: HashSet<&String> = map2.keys().collect();
+//             let keys = keys1.union(&keys2);
+//             for k in keys {
+//                 let mut next_path = String::from(path);
+//                 next_path += ".";
+//                 next_path += k;
+//                 let next_diffs = value_diff(
+//                     map1.get(*k).unwrap_or(&Value::Null),
+//                     map2.get(*k).unwrap_or(&Value::Null),
+//                     &next_path,
+//                 );
+//                 diffs.merge(next_diffs);
+//             }
+//         }
+//         _ => {
+//             diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
+//         }
+//     }
 
-    diffs
-}
+//     diffs
+// }

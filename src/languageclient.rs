@@ -443,7 +443,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
             u64,
             DiagnosticsList,
-            HashMap<u64, DiagnosticsDisplay>,
+            Value,
             String,
         ) = self.eval(
             &[
@@ -454,11 +454,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
             ][..],
         )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
-        let diagnosticsDisplay: HashMap<String, DiagnosticsDisplay> = diagnosticsDisplay
-            .into_iter()
-            .map(|(k, v)| (format!("{}", k), v))
-            .collect();
-        let diagnosticsDisplay = serde_json::to_value(diagnosticsDisplay)?;
         let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
             "ERROR" => MessageType::Error,
             "WARNING" => MessageType::Warning,
@@ -615,7 +610,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         for dn in diagnostics.iter() {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
-                .get(&severity.to_string_key()?)
+                .get(&severity.to_int()?)
                 .ok_or(format_err!("Failed to get display"))?
                 .texthl
                 .clone();
