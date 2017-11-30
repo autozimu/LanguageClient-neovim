@@ -23,6 +23,7 @@ test:
 
 integration-test-install-dependencies:
 	sudo add-apt-repository --yes ppa:neovim-ppa/stable
+	sudo apt-get update
 	sudo apt-get install --yes neovim python3-pip python3-pytest
 	pip3 install neovim mypy flake8
 	rustup component add rls-preview rust-analysis rust-src
