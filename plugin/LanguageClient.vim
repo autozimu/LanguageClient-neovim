@@ -1,4 +1,8 @@
-let s:command = ['bash', expand('<sfile>:p:h:h') . '/wrapper.sh']
+if $LANGUAGECLIENT_DEBUG
+    let s:command = ['bash', expand('<sfile>:p:h:h') . '/wrapper.sh']
+else
+    let s:command = [expand('<sfile>:p:h:h') . '/bin/languageclient']
+endif
 
 let s:id = 1
 let s:handlers = {}
