@@ -1,4 +1,4 @@
-import time
+from urllib import request, parse
 from os import path
 from typing import List, Dict
 
@@ -25,6 +25,10 @@ GREP_LINE_HIGHLIGHT = 'highlight default link deniteSource_grepLineNR LineNR'
 GREP_PATTERNS_HIGHLIGHT = 'highlight default link deniteGrepPatterns Function'
 
 ReferencesResults = "g:LanguageClient_referencesResults"
+
+
+def uri_to_path(uri: str) -> str:
+    return request.url2pathname(parse.urlparse(uri).path)
 
 
 class Source(Base):
@@ -58,14 +62,14 @@ class Source(Base):
         candidates = []
         pwd = self.vim.funcs.getcwd()
         for loc in locations:
-            uri = loc["uri"]
-            filepath = path.relpath(uri, pwd)
+            filepath = uri_to_path(loc["uri"])
+            relpath = path.relpath(filepath, pwd)
             start = loc["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
-            text = loc["text"]
+            text = loc.get("text", "")
             output = '{0}:{1}{2} {3}'.format(
-                filepath,
+                relpath,
                 line,
                 (':' + str(character) if character != 0 else ''),
                 text)
@@ -80,15 +84,17 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        self.vim.funcs.LanguageClient_textDocument_references({
-            "handle": False
-        })
+        if not context["is_async"]:
+            context["is_async"] = True
+            self.vim.funcs.LanguageClient_textDocument_references({
+                "handle": False
+            })
+            return []
+        elif self.vim.funcs.eval("len({})".format(ReferencesResults)) == 0:
+            return []
 
-        while self.vim.funcs.eval("len({})".format(ReferencesResults)) == 0:
-            time.sleep(0.1)
-
-        locations = self.vim.funcs.eval(
-            "remove({}, 0)".format(ReferencesResults))
+        context["is_async"] = False
+        locations = self.vim.funcs.eval("remove({}, 0)".format(ReferencesResults))
 
         if locations is None:
             return []

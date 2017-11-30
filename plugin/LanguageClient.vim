@@ -162,7 +162,7 @@ function! HandleOutput(result, error) abort
     endif
 endfunction
 
-function! LanguageClient_textDocument_hover() abort
+function! LanguageClient_textDocument_hover(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
@@ -176,7 +176,7 @@ function! LanguageClient_textDocument_hover() abort
     return LanguageClient#Call('textDocument/hover', l:params, l:callback)
 endfunction
 
-function! LanguageClient_textDocument_definition() abort
+function! LanguageClient_textDocument_definition(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
@@ -205,7 +205,8 @@ function! LanguageClient_textDocument_rename(...) abort
     return LanguageClient#Call('textDocument/rename', l:params, v:null)
 endfunction
 
-function! LanguageClient_textDocument_documentSymbol() abort
+let g:LanguageClient_documentSymbolResults = []
+function! LanguageClient_textDocument_documentSymbol(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
@@ -213,20 +214,21 @@ function! LanguageClient_textDocument_documentSymbol() abort
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_documentSymbolResults
     return LanguageClient#Call('textDocument/documentSymbol', l:params, l:callback)
 endfunction
 
-function! LanguageClient_workspace_symbol() abort
+let g:LanguageClient_workspaceSymbolResults = []
+function! LanguageClient_workspace_symbol(...) abort
     let l:params = {
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_workspaceSymbolResults
     return LanguageClient#Call('workspace/symbol', l:params, l:callback)
 endfunction
 
-function! LanguageClient_textDocument_codeAction() abort
+function! LanguageClient_textDocument_codeAction(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
@@ -240,7 +242,7 @@ function! LanguageClient_textDocument_codeAction() abort
     return LanguageClient#Call('textDocument/codeAction', l:params, l:callback)
 endfunction
 
-function! LanguageClient_textDocument_completion() abort
+function! LanguageClient_textDocument_completion(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
@@ -255,7 +257,6 @@ function! LanguageClient_textDocument_completion() abort
 endfunction
 
 let g:LanguageClient_referencesResults = []
-
 function! LanguageClient_textDocument_references(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
@@ -467,7 +468,6 @@ function! LanguageClient_NCMRefresh(info, context) abort
 endfunction
 
 let g:LanguageClient_completeResults = []
-
 function! LanguageClient_omniComplete(...) abort
     let l:params = {
                 \ 'buftype': &buftype,

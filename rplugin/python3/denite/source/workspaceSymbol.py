@@ -1,10 +1,14 @@
-import time
+from urllib import request, parse
 from os import path
 from typing import List, Dict
 
 from .base import Base
 
 WorkspaceSymbolResults = "g:LanguageClient_workspaceSymbolResults"
+
+
+def uri_to_path(uri: str) -> str:
+    return request.url2pathname(parse.urlparse(uri).path)
 
 
 class Source(Base):
@@ -21,13 +25,14 @@ class Source(Base):
         for sb in symbols:
             name = sb["name"]
             uri = sb["location"]["uri"]
-            filepath = path.relpath(uri, pwd)
+            filepath = uri_to_path(uri)
+            relpath = path.relpath(filepath, pwd)
             start = sb["location"]["range"]["start"]
             line = start["line"] + 1
             character = start["character"] + 1
             candidates.append({
                 "word": "{}:{}:{}:\t{}".format(
-                    filepath, line, character, name),
+                    relpath, line, character, name),
                 "action__path": filepath,
                 "action__line": line,
                 "action__col": character,
@@ -36,15 +41,17 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        self.vim.funcs.LanguageClient_workspace_symbol({
-            "handle": False,
-        })
+        if not context["is_async"]:
+            context["is_async"] = True
+            self.vim.funcs.LanguageClient_workspace_symbol({
+                "handle": False,
+            })
+            return []
+        elif self.vim.funcs.eval("len({})".format(WorkspaceSymbolResults)) == 0:
+            return []
 
-        while self.vim.funcs.eval("len({})".format(WorkspaceSymbolResults)) == 0:
-            time.sleep(0.1)
-
-        symbols = self.vim.funcs.eval(
-            "remove({}, 0)".format(WorkspaceSymbolResults))
+        context["is_async"] = False
+        symbols = self.vim.funcs.eval("remove({}, 0)".format(WorkspaceSymbolResults))
 
         if symbols is None:
             return []

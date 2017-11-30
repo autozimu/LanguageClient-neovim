@@ -1,4 +1,3 @@
-import time
 from typing import List, Dict
 
 from .base import Base
@@ -27,20 +26,21 @@ class Source(Base):
         self.kind = 'file'
 
     def gather_candidates(self, context: Dict) -> List[Dict]:
-        self.vim.funcs.LanguageClient_textDocument_documentSymbol({
-            "handle": False,
-        })
+        if not context["is_async"]:
+            context["is_async"] = True
+            self.vim.funcs.LanguageClient_textDocument_documentSymbol({
+                "handle": False,
+            })
+            return []
+        elif self.vim.funcs.eval("len({})".format(DocumentSymbolResults)) == 0:
+            return []
 
-        while self.vim.funcs.eval("len({})".format(DocumentSymbolResults)) == 0:
-            time.sleep(0.1)
-
-        symbols = self.vim.funcs.eval(
-            "remove({}, 0)".format(DocumentSymbolResults))
+        context["is_async"] = False
+        symbols = self.vim.funcs.eval("remove({}, 0)".format(DocumentSymbolResults))
 
         if symbols is None:
             return []
 
         bufname = self.vim.current.buffer.name
 
-        return [convert_to_candidate(symbol, bufname)
-                for symbol in symbols]
+        return [convert_to_candidate(symbol, bufname) for symbol in symbols]

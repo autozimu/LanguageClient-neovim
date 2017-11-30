@@ -35,10 +35,7 @@ class Source(Base):
             return []
 
         context["is_async"] = False
-        result = self.vim.funcs.eval(
-            "remove({}, 0)".format(CompleteResults))
-        if not isinstance(result, list):
-            # TODO: error handling.
-            self.error("Unexpected result: {}".format(result))
+        result = self.vim.funcs.eval("remove({}, 0)".format(CompleteResults))
+        if result is None:
             result = []
         return result
