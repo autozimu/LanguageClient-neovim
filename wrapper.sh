@@ -12,7 +12,7 @@ DIR=$(dirname $(realpath $0))
 
 if [[ -n "$LANGUAGECLIENT_DEBUG" ]]; then
     ~/.cargo/bin/cargo build --manifest-path=$DIR/Cargo.toml
-    export RUST_LOG=languageclient=info
+    export RUST_LOG=languageclient=debug
     exec $DIR/target/debug/languageclient
 else
     export RUST_LOG=languageclient=warn
