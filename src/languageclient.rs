@@ -99,7 +99,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let before = if log_enabled!(LogLevel::Debug) {
             // let s = serde_json::to_string(state.deref())?;
             // serde_json::from_str(&s)?
-            format!("{:?}", state)
+            format!("{:?}", state.deref())
         } else {
             "".to_owned()
         };
@@ -107,7 +107,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let after = if log_enabled!(LogLevel::Debug) {
             // let s = serde_json::to_string(state.deref())?;
             // serde_json::from_str(&s)?
-            format!("{:?}", state)
+            format!("{:?}", state.deref())
         } else {
             "".to_owned()
         };
