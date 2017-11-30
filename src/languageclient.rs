@@ -107,6 +107,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         } else {
             "{}".to_owned()
         };
+        // TODO: display only diff.
         debug!("{}", chars(&before, &after).to_string());
         result
     }
