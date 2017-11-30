@@ -108,7 +108,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         } else {
             Value::Null
         };
-        for (k, (v1, v2)) in value_diff(&before, &after, "") {
+        for (k, (v1, v2)) in value_diff(&before, &after, "state") {
             debug!("{}: {} => {}", k, v1, v2);
         }
         result
@@ -439,17 +439,21 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
             u64,
             DiagnosticsList,
-            Value,
+            HashMap<u64, DiagnosticsDisplay>,
             String,
         ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
                 "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
-                "get(g:, 'LanguageClient_diagnosticsDisplay', v:null)",
+                "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
             ][..],
         )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
+        let diagnosticsDisplay: HashMap<String, DiagnosticsDisplay> = diagnosticsDisplay.into_iter().map(|(k, v)| {
+            (format!("{}", k), v)
+        }).collect();
+        let diagnosticsDisplay = serde_json::to_value(diagnosticsDisplay)?;
         let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
             "ERROR" => MessageType::Error,
             "WARNING" => MessageType::Warning,
@@ -606,7 +610,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         for dn in diagnostics.iter() {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
-                .get(&severity.to_int()?)
+                .get(&severity.to_string_key()?)
                 .ok_or(format_err!("Failed to get display"))?
                 .texthl
                 .clone();

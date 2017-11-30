@@ -79,7 +79,7 @@ pub struct State {
     pub trace: TraceOption,
     pub diagnosticsEnable: bool,
     pub diagnosticsList: DiagnosticsList,
-    pub diagnosticsDisplay: HashMap<u64, DiagnosticsDisplay>,
+    pub diagnosticsDisplay: HashMap<String, DiagnosticsDisplay>,
     pub windowLogMessageLevel: MessageType,
     pub settingsPath: String,
     pub loadSettings: bool,
@@ -138,10 +138,10 @@ pub struct DiagnosticsDisplay {
 }
 
 impl DiagnosticsDisplay {
-    pub fn default() -> HashMap<u64, DiagnosticsDisplay> {
+    pub fn default() -> HashMap<String, DiagnosticsDisplay> {
         let mut map = HashMap::new();
         map.insert(
-            1,
+            "1".to_owned(),
             DiagnosticsDisplay {
                 name: "Error".to_owned(),
                 texthl: "ALEError".to_owned(),
@@ -150,7 +150,7 @@ impl DiagnosticsDisplay {
             },
         );
         map.insert(
-            2,
+            "2".to_owned(),
             DiagnosticsDisplay {
                 name: "Warning".to_owned(),
                 texthl: "ALEWarning".to_owned(),
@@ -159,7 +159,7 @@ impl DiagnosticsDisplay {
             },
         );
         map.insert(
-            3,
+            "3".to_owned(),
             DiagnosticsDisplay {
                 name: "Information".to_owned(),
                 texthl: "ALEInfo".to_owned(),
@@ -168,7 +168,7 @@ impl DiagnosticsDisplay {
             },
         );
         map.insert(
-            4,
+            "4".to_owned(),
             DiagnosticsDisplay {
                 name: "Hint".to_owned(),
                 texthl: "ALEInfo".to_owned(),
@@ -437,6 +437,7 @@ impl ToString for Vec<diff::Result<char>> {
 
 pub trait DiagnosticSeverityExt {
     fn to_quickfix_entry_type(&self) -> char;
+    fn to_string_key(&self) -> Result<String>;
 }
 
 impl DiagnosticSeverityExt for DiagnosticSeverity {
@@ -447,6 +448,10 @@ impl DiagnosticSeverityExt for DiagnosticSeverity {
             DiagnosticSeverity::Information => 'I',
             DiagnosticSeverity::Hint => 'H',
         }
+    }
+
+    fn to_string_key(&self) -> Result<String> {
+        Ok(format!("{}", self.to_int()?))
     }
 }
 
