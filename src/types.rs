@@ -64,6 +64,7 @@ pub struct State {
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
+    #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,

@@ -450,9 +450,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             ][..],
         )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
-        let diagnosticsDisplay: HashMap<String, DiagnosticsDisplay> = diagnosticsDisplay.into_iter().map(|(k, v)| {
-            (format!("{}", k), v)
-        }).collect();
+        let diagnosticsDisplay: HashMap<String, DiagnosticsDisplay> = diagnosticsDisplay
+            .into_iter()
+            .map(|(k, v)| (format!("{}", k), v))
+            .collect();
         let diagnosticsDisplay = serde_json::to_value(diagnosticsDisplay)?;
         let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
             "ERROR" => MessageType::Error,
