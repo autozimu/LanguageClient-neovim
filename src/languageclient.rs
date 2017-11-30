@@ -508,7 +508,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
         debug!("End apply WorkspaceEdit");
         self.goto_location(&filename, line, character)?;
-        self.textDocument_didChange(&None)?;
         Ok(())
     }
 
@@ -1081,7 +1080,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__References);
-        self.textDocument_didChange(params)?;
 
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
@@ -1133,7 +1131,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
-        self.textDocument_didChange(params)?;
 
         let (tab_size, insert_spaces): (u64, bool) = self.eval(&["tabstop", "expandtab"][..])?;
         let result = self.call(
@@ -1167,7 +1164,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
-        self.textDocument_didChange(params)?;
 
         let (tab_size, insert_spaces, start_line, end_line, end_character): (u64, bool, u64, u64, u64) = self.eval(
             &[
@@ -1513,8 +1509,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        self.textDocument_didChange(params)?;
-
         let result = self.call(
             Some(&languageId),
             REQUEST__GotoDefinition,
@@ -1625,7 +1619,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__DocumentSymbols);
-        self.textDocument_didChange(params)?;
 
         let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
             &[
@@ -1706,7 +1699,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        self.textDocument_didChange(params)?;
         let query = "".to_owned();
         let result = self.call(
             Some(&languageId),
@@ -2117,7 +2109,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
-        self.textDocument_didChange(params)?;
+
         let result = self.call(
             Some(&languageId),
             REQUEST__RustImplementations,
