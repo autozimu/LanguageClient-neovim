@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Try install by
+#   - download binary
+#   - build with cargo
+
+set -o nounset    # error when referencing undefined variable
+set -o errexit    # exit when command fails
+set -o pipefail
+
+version=0.0.1
+name=languageclient
+
+function try_curl() {
+    command -v curl > /dev/null &&
+        if [[ $1 =~ gz$ ]]; then
+            curl -fL $1 | tar -xzf -
+            mv -f $name bin/
+        else
+            local tmp=${TMP:-/tmp}
+            local zip="$tmp"/languagecient.zip
+            curl -fLo "$zip" $1 && unzip -o "$zip" && rm -f "$zip"
+            mv -f ${TMPDIR:-/tmp}/$name bin/
+        fi
+    }
+
+function try_wget() {
+    command -v wget > /dev/null &&
+        if [[ $1 =~ gz$ ]]; then
+            wget -O - $1 | tar -xzf -
+            mv -f $name bin/
+        else
+            local tmp=${TMP:-/tmp}
+            local zip="$tmp"/$name.zip
+            wget -O "$zip" $1 && unzip -o "$zip" && rm -f "$zip"
+            mv -f ${TMPDIR:-/tmp}/$name bin/
+        fi
+}
+
+function download() {
+    echo "Downloading bin/languageclient ..."
+    local url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
+    if (try_curl $url || try_wget $url); then
+        return
+    else
+        echo "Failed to download with curl and wget"
+        try_build
+    fi
+}
+
+function try_build() {
+    echo "Trying build locally ..."
+    make release
+}
+
+arch=$(uname -sm)
+binary=""
+case "${arch}" in
+    Linux\ *64) download $name-$version-x86_64-unknown-linux-musl.tar.gz ;;
+    Linux\ *86) download $name-$version-i686-unknown-linux-musl.tar.gz ;;
+    Darwin\ *64) download $name-$version-x86_64-apple-darwin.tar.gz ;;
+    *) echo "No pre-built binary available for ${arch}."; try_build ;;
+esac

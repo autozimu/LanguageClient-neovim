@@ -14,8 +14,7 @@ build:
 	# cargo build --features clippy
 
 release:
-	cargo build --release
-	mkdir -p bin
+	cargo +nightly build --release
 	cp --force target/release/languageclient bin/
 
 test:
