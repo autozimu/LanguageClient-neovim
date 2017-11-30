@@ -11,33 +11,19 @@ version=0.1.0
 name=languageclient
 
 function try_curl() {
-    command -v curl > /dev/null &&
-        if [[ $1 =~ gz$ ]]; then
-            curl -fL $1 | tar -xzf -
-            mv -f $name bin/
-        else
-            local tmp=${TMP:-/tmp}
-            local zip="$tmp"/languagecient.zip
-            curl -fLo "$zip" $1 && unzip -o "$zip" && rm -f "$zip"
-            mv -f ${TMPDIR:-/tmp}/$name bin/
-        fi
-    }
+    command -v curl > /dev/null && \
+        curl -fL $1 | tar -xzf - && \
+        mv -f $name bin/
+}
 
 function try_wget() {
-    command -v wget > /dev/null &&
-        if [[ $1 =~ gz$ ]]; then
-            wget -O - $1 | tar -xzf -
-            mv -f $name bin/
-        else
-            local tmp=${TMP:-/tmp}
-            local zip="$tmp"/$name.zip
-            wget -O "$zip" $1 && unzip -o "$zip" && rm -f "$zip"
-            mv -f ${TMPDIR:-/tmp}/$name bin/
-        fi
+    command -v wget > /dev/null && \
+        wget -O - $1 | tar -xzf - && \
+        mv -f $name bin/
 }
 
 function download() {
-    echo "Downloading bin/languageclient ..."
+    echo "Downloading bin/${name}..."
     local url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
     if (try_curl $url || try_wget $url); then
         return
