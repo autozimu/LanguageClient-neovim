@@ -93,24 +93,28 @@ impl ILanguageClient for Arc<Mutex<State>> {
         F: FnOnce(&mut State) -> Result<T>,
     {
         use log::LogLevel;
+        use diff::chars;
 
         let mut state = self.lock().or(Err(format_err!("Failed to lock state")))?;
         let before = if log_enabled!(LogLevel::Debug) {
-            let s = serde_json::to_string(state.deref())?;
-            serde_json::from_str(&s)?
+            // let s = serde_json::to_string(state.deref())?;
+            // serde_json::from_str(&s)?
+            format!("{:?}", state)
         } else {
-            Value::Null
+            "".to_owned()
         };
         let result = f(&mut state);
         let after = if log_enabled!(LogLevel::Debug) {
-            let s = serde_json::to_string(state.deref())?;
-            serde_json::from_str(&s)?
+            // let s = serde_json::to_string(state.deref())?;
+            // serde_json::from_str(&s)?
+            format!("{:?}", state)
         } else {
-            Value::Null
+            "".to_owned()
         };
-        for (k, (v1, v2)) in value_diff(&before, &after, "state") {
-            debug!("{}: {} => {}", k, v1, v2);
-        }
+        // for (k, (v1, v2)) in value_diff(&before, &after, "state") {
+        //     debug!("{}: {} => {}", k, v1, v2);
+        // }
+        debug!("{}", chars(&before, &after).to_string());
         result
     }
 
