@@ -10,8 +10,8 @@ fmt:
 	cargo fmt
 
 build:
-	cargo build
-	# cargo build --features clippy
+	cargo +nightly build
+	# cargo +nightly build --features clippy
 
 release:
 	cargo +nightly build --release
