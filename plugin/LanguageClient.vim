@@ -20,16 +20,17 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:line = substitute(l:line, '^Content-Length: ', '', '')
                 let s:content_length = str2nr(l:line)
                 continue
+            endif
+
+            let s:input = s:input . strpart(l:line, 0, s:content_length)
+            if s:content_length < len(l:line)
+                call insert(a:lines, strpart(l:line, s:content_length), 0)
+                let s:content_length = 0
             else
-                if len(l:line) < s:content_length
-                    let s:input = s:input . l:line
-                    let s:content_length = s:content_length - len(l:line)
-                    continue
-                else
-                    let s:input = s:input . strpart(l:line, 0, s:content_length)
-                    call insert(a:lines, strpart(l:line, s:content_length), 0)
-                    let s:content_length = 0
-                endif
+                let s:content_length = s:content_length - len(l:line)
+            endif
+            if s:content_length != 0
+                continue
             endif
 
             let l:message = json_decode(s:input)
