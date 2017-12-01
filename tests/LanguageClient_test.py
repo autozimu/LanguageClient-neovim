@@ -125,7 +125,7 @@ def test_textDocument_rename_multiple_files(nvim):
 def test_textDocument_documentSymbol(nvim):
     nvim.funcs.cursor(1, 1)
     nvim.funcs.LanguageClient_textDocument_documentSymbol()
-    time.sleep(1)
+    time.sleep(3)
     nvim.command("3lnext")
 
     def predicate():
