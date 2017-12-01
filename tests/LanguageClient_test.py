@@ -26,7 +26,7 @@ print(PATH_MAINRS)
 
 
 def retry(predicate: Callable[[], bool],
-          sleep_time=0.3, max_retry=100) -> None:
+          sleep_time=0.5, max_retry=60) -> None:
     """
     Retry until predicate is True or exceeds max_retry times.
     """
@@ -37,6 +37,7 @@ def retry(predicate: Callable[[], bool],
         else:
             time.sleep(sleep_time)
             count += 1
+    assert predicate()
 
 
 @pytest.fixture(scope="module")
@@ -53,40 +54,38 @@ def test_fixture(nvim):
 
 
 def test_textDocument_hover(nvim):
+    nvim.command("edit! {}".format(PATH_MAINRS))
     nvim.funcs.cursor(3, 23)
 
     def predicate():
         nvim.command("redir => g:echo")
         nvim.funcs.LanguageClient_textDocument_hover()
-        time.sleep(0.2)
+        time.sleep(0.5)
         nvim.command("redir END")
         return "fn () -> i32" in nvim.vars.get("echo")
-
     retry(predicate)
-    assert "fn () -> i32" in nvim.vars.get("echo")
 
 
 def test_textDocument_definition(nvim):
+    nvim.command("edit! {}".format(PATH_MAINRS))
     nvim.funcs.cursor(3, 23)
 
     def predicate():
         nvim.funcs.LanguageClient_textDocument_definition()
         return nvim.current.window.cursor == [8, 3]
-
     retry(predicate)
-    assert nvim.current.window.cursor == [8, 3]
 
 
 def test_textDocument_rename(nvim):
+    nvim.command("edit! {}".format(PATH_MAINRS))
     expect = [line.replace("greet", "hello") for line in nvim.current.buffer]
     nvim.funcs.cursor(3, 23)
     nvim.funcs.LanguageClient_textDocument_rename({"newName": "hello"})
 
     def predicate():
         return nvim.current.buffer[:] == expect
-
     retry(predicate)
-    assert nvim.current.buffer[:] == expect
+
     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
@@ -100,7 +99,7 @@ def test_textDocument_rename_multiple_oneline(nvim):
         return nvim.current.buffer[:] == expect
 
     retry(predicate)
-    assert nvim.current.buffer[:] == expect
+
     nvim.command("bd!")
     nvim.command("edit! {}".format(PATH_MAINRS))
     time.sleep(1)
@@ -114,9 +113,8 @@ def test_textDocument_rename_multiple_files(nvim):
 
     def predicate():
         return nvim.current.buffer[:] == expect
-
     retry(predicate)
-    assert nvim.current.buffer[:] == expect
+
     nvim.command("bd!")
     nvim.command("bd!")
     nvim.command("edit! {}".format(PATH_MAINRS))
@@ -125,14 +123,16 @@ def test_textDocument_rename_multiple_files(nvim):
 def test_textDocument_documentSymbol(nvim):
     nvim.funcs.cursor(1, 1)
     nvim.funcs.LanguageClient_textDocument_documentSymbol()
-    time.sleep(3)
+
+    def predicate():
+        return nvim.funcs.getloclist(0)
+    retry(predicate)
+
     nvim.command("3lnext")
 
     def predicate():
         return nvim.current.window.cursor == [8, 3]
-
     retry(predicate)
-    assert nvim.current.window.cursor == [8, 3]
 
 
 def test_workspace_symbol(nvim):
@@ -151,32 +151,29 @@ def test_textDocument_references(nvim):
 
     def predicate():
         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
-
     retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
     nvim.command("lnext")
 
     def predicate():
         return nvim.current.window.cursor == [3, 19]
-
     retry(predicate)
-    assert nvim.current.window.cursor == [3, 19]
 
 
 def test_textDocument_references_modified_buffer(nvim):
     nvim.command("edit! {}".format(PATH_MAINRS))
+    time.sleep(3)
     nvim.funcs.cursor(8, 4)
     nvim.input("iabc")
-    time.sleep(1)
-    nvim.funcs.LanguageClient_textDocument_references()
+    time.sleep(3)
     expect = ["fn abcgreet() -> i32 {"]
 
     def predicate():
+        nvim.funcs.LanguageClient_textDocument_references()
+        time.sleep(3)
         return [location["text"] for location in nvim.funcs.getloclist(0)] == expect
-
     retry(predicate)
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+
     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
@@ -188,9 +185,8 @@ def test_textDocument_didChange(nvim):
     def predicate():
         nvim.funcs.LanguageClient_textDocument_definition()
         return nvim.current.window.cursor == [12, 3]
-
     retry(predicate)
-    assert nvim.current.window.cursor == [12, 3]
+
     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
