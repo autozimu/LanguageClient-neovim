@@ -1,6 +1,5 @@
 use std;
 pub use std::str::FromStr;
-pub use std::convert::{TryFrom, TryInto};
 pub use std::collections::{HashMap, HashSet};
 pub use std::sync::mpsc::{channel, Receiver, Sender};
 pub use std::sync::{Arc, Mutex, MutexGuard};
@@ -503,7 +502,7 @@ pub trait ToUsize {
 
 impl ToUsize for u64 {
     fn to_usize(&self) -> Result<usize> {
-        Ok((*self).try_into()?)
+        Ok(self as usize)
     }
 }
 
