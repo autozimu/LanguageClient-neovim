@@ -24,8 +24,3 @@ url = "*"
 pathdiff = "*"
 diff = "*"
 regex = "*"
-
-clippy = {version = "*", optional = true}
-
-[features]
-default = []

@@ -1,17 +1,13 @@
 all: fmt build
 
-build-docker-image: Dockerfile
-	docker build --tag autozimu/languageclientneovim .
-
-publish-docker-image:
-	docker push autozimu/languageclientneovim
-
 fmt:
 	cargo fmt
 
+clippy:
+	rustup run nightly cargo clippy
+
 build:
 	cargo build
-	# cargo build --features clippy
 
 release:
 	cargo build --release

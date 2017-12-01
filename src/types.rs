@@ -308,8 +308,10 @@ impl From<CompletionItem> for VimCompleteItem {
         let word = lspitem.insert_text.clone().unwrap_or(lspitem.label.clone());
         let kind = match lspitem.kind {
             Some(CompletionItemKind::Variable) => "v".to_owned(),
-            Some(CompletionItemKind::Method) | Some(CompletionItemKind::Function) => "f".to_owned(),
-            Some(CompletionItemKind::Field) | Some(CompletionItemKind::Property) => "m".to_owned(),
+            Some(CompletionItemKind::Method) |
+            Some(CompletionItemKind::Function) => "f".to_owned(),
+            Some(CompletionItemKind::Field) |
+            Some(CompletionItemKind::Property) => "m".to_owned(),
             Some(CompletionItemKind::Class) => "c".to_owned(),
             Some(_) => format!("{:?}", lspitem.kind),
             None => "".to_owned(),
@@ -423,9 +425,11 @@ impl ToString for Hover {
 
         match self.contents {
             HoverContents::Scalar(ref s) => message += &markedString_to_String(s),
-            HoverContents::Array(ref vec) => for item in vec {
-                message += &markedString_to_String(item);
-            },
+            HoverContents::Array(ref vec) => {
+                for item in vec {
+                    message += &markedString_to_String(item);
+                }
+            }
         };
 
         message
@@ -502,7 +506,7 @@ pub trait ToUsize {
 
 impl ToUsize for u64 {
     fn to_usize(&self) -> Result<usize> {
-        Ok(self as usize)
+        Ok(*self as usize)
     }
 }
 

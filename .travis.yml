@@ -1,7 +1,3 @@
-# script:
-#     - docker run -v $(pwd):/root/.config/nvim autozimu/languageclientneovim bash -c "export PATH=$PATH:~/.cargo/bin && cd /root/.config/nvim && make test && make integration-test"
-
-
 # Based on the "trust" template v0.1.1
 # https://github.com/japaric/trust/tree/v0.1.1
 
