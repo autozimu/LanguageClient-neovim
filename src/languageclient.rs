@@ -327,15 +327,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
             params: Some(params.to_params()?),
         };
 
-        let message = serde_json::to_string(&method_call)?;
-        info!("=> {}", message);
-        self.write(languageId, &message)?;
-
         let (tx, cx) = channel();
         self.update(|state| {
             state.txs.insert(id, tx);
             Ok(())
         })?;
+
+        let message = serde_json::to_string(&method_call)?;
+        info!("=> {}", message);
+        self.write(languageId, &message)?;
 
         cx.recv_timeout(std::time::Duration::from_secs(60 * 5))?
     }
