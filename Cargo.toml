@@ -6,7 +6,6 @@ description = "Language Server Protocol (LSP) client for vim and neovim"
 
 [dependencies]
 failure = "*"
-failure_derive = "*"
 log = "*"
 env_logger = "*"
 chrono = "*"

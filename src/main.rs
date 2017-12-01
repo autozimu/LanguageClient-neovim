@@ -11,8 +11,6 @@ extern crate log;
 
 #[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 
 extern crate serde;
 #[macro_use]
