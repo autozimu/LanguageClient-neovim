@@ -1,10 +1,10 @@
 all: fmt build
 
 fmt:
-	cargo fmt
+	cargo +nightly fmt
 
 clippy:
-	rustup run nightly cargo clippy
+	cargo +nightly clippy
 
 build:
 	cargo build
