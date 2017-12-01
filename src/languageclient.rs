@@ -255,6 +255,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 NOTIFICATION__HandleCursorMoved => self.languageClient_handleCursorMoved(&notification.params)?,
                 NOTIFICATION__FZFSinkLocation => self.languageClient_FZFSinkLocation(&notification.params)?,
                 NOTIFICATION__FZFSinkCommand => self.languageClient_FZFSinkCommand(&notification.params)?,
+                NOTIFICATION__NCMRefresh => self.NCM_refresh(&notification.params)?,
                 // Extensions by language servers.
                 NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,
                 _ => warn!("Unknown notification: {:?}", notification.method),
@@ -981,7 +982,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()> {
         info!("Begin register NCM source");
-        let exists_CMRegister: u64 = self.eval("exists('cm#register')")?;
+        let exists_CMRegister: u64 = self.eval("exists('g:cm_matcher')")?;
         if exists_CMRegister == 0 {
             return Ok(());
         }

@@ -253,14 +253,37 @@ pub struct QuickfixEntry {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NCMInfo {
     pub name: String,
+    pub abbreviation: String,
+    pub enable: u64,
+    pub scopes: Vec<String>,
+    pub cm_refresh_patterns: Vec<String>,
+    pub early_cache: u64,
+    pub cm_refresh: String,
+    pub priority: u64,
+    pub auto_popup: u64,
+    pub cm_refresh_length: u64,
+    pub sort: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NCMContext {
-    pub typed: String,
+    pub bufnr: u64,
     pub lnum: u64,
     pub col: u64,
+    pub filetype: String,
+    pub typed: String,
+    pub filepath: String,
+
+    pub scope: String,
     pub startcol: u64,
+    pub base: String,
+    pub force: u64,
+    pub early_cache: bool,
+
+    pub scope_match: String,
+    pub changedtick: u64,
+    pub curpos: Vec<u64>,
+    pub match_end: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
