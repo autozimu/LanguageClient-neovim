@@ -38,20 +38,36 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:id = get(l:message, 'id', v:null)
                 let l:method = get(l:message, 'method')
                 let l:params = get(l:message, 'params')
-                if l:method ==# 'execute'
-                    for l:cmd in l:params
-                        execute l:cmd
-                    endfor
-                else
-                    let l:result = call(l:method, l:params)
-                endif
-                if l:id != v:null
-                    call LanguageClient#Write(json_encode({
-                                \ "jsonrpc": "2.0",
-                                \ "id": l:id,
-                                \ "result": l:result,
-                                \ }))
-                endif
+                try
+                    if l:method ==# 'execute'
+                        for l:cmd in l:params
+                            execute l:cmd
+                        endfor
+                    else
+                        let l:result = call(l:method, l:params)
+                    endif
+                    if l:id != v:null
+                        call LanguageClient#Write(json_encode({
+                                    \ "jsonrpc": "2.0",
+                                    \ "id": l:id,
+                                    \ "result": l:result,
+                                    \ }))
+                    endif
+                catch /.*/
+                    if l:id != v:null
+                        call LanguageClient#Write(json_encode({
+                                    \ "jsonrpc": "2.0",
+                                    \ "id": l:id,
+                                    \ "error": {
+                                    \   "code": -32603,
+                                    \   "message": string(v:exception)
+                                    \   }
+                                    \ }))
+                    endif
+                    if $LANGUAGECLIENT_DEBUG
+                        call s:Echoerr(string(v:exception))
+                    endif
+                endtry
             elseif has_key(l:message, 'result')
                 let l:id = get(l:message, 'id')
                 let l:result = get(l:message, 'result')
