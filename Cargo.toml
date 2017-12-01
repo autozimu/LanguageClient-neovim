@@ -12,6 +12,7 @@ chrono = "*"
 colored = "*"
 structopt = "*"
 structopt-derive = "*"
+libc = "*"
 
 serde = "*"
 serde_derive = "*"

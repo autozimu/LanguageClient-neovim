@@ -1,4 +1,5 @@
 use std;
+use libc;
 use std::slice::SliceConcatExt;
 use serde_json;
 use regex;
@@ -956,7 +957,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__Initialize,
             InitializeParams {
-                process_id: Some(std::process::id().into()),
+                process_id: Some(unsafe { libc::getpid() } as u64),
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
                 initialization_options,
