@@ -99,13 +99,17 @@ function! s:HandleMessage(job, lines, event) abort
             endif
         endwhile
     elseif a:event == 'stderr'
-        call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
+        endif
     elseif a:event == 'exit'
         if a:lines !=# '0'
             echomsg 'LanguageClient exited with: ' . string(a:lines)
         endif
     else
-        call s:Echoerr('Unknown event: ' . a:event)
+        if $LANGUAGECLIENT_DEBUG
+            call s:Echoerr('Unknown event: ' . a:event)
+        endif
     endif
 endfunction
 
