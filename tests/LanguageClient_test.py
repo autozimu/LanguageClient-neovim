@@ -60,7 +60,7 @@ def test_textDocument_hover(nvim):
     def predicate():
         nvim.command("redir => g:echo")
         nvim.funcs.LanguageClient_textDocument_hover()
-        time.sleep(0.5)
+        time.sleep(3)
         nvim.command("redir END")
         return "fn () -> i32" in nvim.vars.get("echo")
     retry(predicate)
