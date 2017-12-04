@@ -308,10 +308,8 @@ impl From<CompletionItem> for VimCompleteItem {
         let word = lspitem.insert_text.clone().unwrap_or(lspitem.label.clone());
         let kind = match lspitem.kind {
             Some(CompletionItemKind::Variable) => "v".to_owned(),
-            Some(CompletionItemKind::Method) |
-            Some(CompletionItemKind::Function) => "f".to_owned(),
-            Some(CompletionItemKind::Field) |
-            Some(CompletionItemKind::Property) => "m".to_owned(),
+            Some(CompletionItemKind::Method) | Some(CompletionItemKind::Function) => "f".to_owned(),
+            Some(CompletionItemKind::Field) | Some(CompletionItemKind::Property) => "m".to_owned(),
             Some(CompletionItemKind::Class) => "t".to_owned(),
             Some(kind) => format!("{:?}", kind),
             None => "".to_owned(),
@@ -425,11 +423,9 @@ impl ToString for Hover {
 
         match self.contents {
             HoverContents::Scalar(ref s) => message += &markedString_to_String(s),
-            HoverContents::Array(ref vec) => {
-                for item in vec {
-                    message += &markedString_to_String(item);
-                }
-            }
+            HoverContents::Array(ref vec) => for item in vec {
+                message += &markedString_to_String(item);
+            },
         };
 
         message

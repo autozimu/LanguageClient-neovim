@@ -159,17 +159,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     "Handler-{}",
                     languageId.clone().unwrap_or("main".to_owned())
                 ))
-                .spawn(move || if let Err(err) = state.handle_message(
-                    languageId_clone,
-                    message.clone(),
-                )
-                {
-                    if err.downcast_ref::<LCError>().is_none() {
-                        error!(
-                            "Error handling message. Message: {}. Error: {:?}",
-                            message,
-                            err
-                        );
+                .spawn(move || {
+                    if let Err(err) = state.handle_message(languageId_clone, message.clone()) {
+                        if err.downcast_ref::<LCError>().is_none() {
+                            error!(
+                                "Error handling message. Message: {}. Error: {:?}",
+                                message,
+                                err
+                            );
+                        }
                     }
                 });
             if let Err(err) = spawn_result {
@@ -184,9 +182,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn handle_message(&self, languageId: Option<String>, message: String) -> Result<()> {
         if let Ok(output) = serde_json::from_str::<Output>(&message) {
             let tx = self.update(|state| {
-                state.txs.remove(&output.id().to_int()?).ok_or(format_err!(
-                    "Failed to get sender"
-                ))
+                state
+                    .txs
+                    .remove(&output.id().to_int()?)
+                    .ok_or(format_err!("Failed to get sender"))
             })?;
             let result = match output {
                 Output::Success(success) => Ok(success.result),
@@ -273,11 +272,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn write(&self, languageId: Option<&str>, message: &str) -> Result<()> {
         if let Some(languageId) = languageId {
             self.update(|state| {
-                let writer = state.writers.get_mut(languageId).ok_or(
-                    LCError::NoLanguageServer {
+                let writer = state
+                    .writers
+                    .get_mut(languageId)
+                    .ok_or(LCError::NoLanguageServer {
                         languageId: languageId.to_owned(),
-                    },
-                )?;
+                    })?;
                 write!(
                     writer,
                     "Content-Length: {}\r\n\r\n{}",
@@ -365,8 +365,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     ) -> Result<T> {
         debug!("Begin gather_args");
         let mut map = match *map {
-            None |
-            Some(Params::None) => serde_json::map::Map::new(),
+            None | Some(Params::None) => serde_json::map::Map::new(),
             Some(Params::Array(_)) => return Err(format_err!("Params should be dict!")),
             Some(Params::Map(ref map)) => map.clone(),
         };
@@ -444,17 +443,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
             _ => return Err(format_err!("Unknown selectionUI option: {:?}", selectionUI)),
         };
 
-        let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (u64,
-                                                                                              DiagnosticsList,
-                                                                                              Value,
-                                                                                              String) = self.eval(
+        let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
+            u64,
+            DiagnosticsList,
+            Value,
+            String,
+        ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
                 "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
-            ]
-                [..],
+            ][..],
         )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
         let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
@@ -478,9 +478,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state.diagnosticsEnable = diagnosticsEnable;
             state.diagnosticsList = diagnosticsList;
             state.diagnosticsDisplay =
-                serde_json::from_value(serde_json::to_value(&state.diagnosticsDisplay)?.combine(
-                    diagnosticsDisplay,
-                ))?;
+                serde_json::from_value(serde_json::to_value(&state.diagnosticsDisplay)?.combine(diagnosticsDisplay))?;
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
@@ -513,10 +511,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Result<()> {
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
-        let (filename, line, character): (String, u64, u64) = self.gather_args(
-            &[VimVar::Filename, VimVar::Line, VimVar::Character],
-            &None,
-        )?;
+        let (filename, line, character): (String, u64, u64) =
+            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], &None)?;
         for (uri, edits) in &edit.changes {
             self.apply_TextEdits(uri.path(), edits.as_slice())?;
         }
@@ -609,17 +605,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 Ok(())
             })?;
         }
-        let source = source.ok_or(
-            format_err!("Failed to get highlight source id"),
-        )?;
+        let source = source.ok_or(format_err!("Failed to get highlight source id"))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
         // Optimize.
-        self.call(
-            None,
-            "nvim_buf_clear_highlight",
-            json!([0, source, 1, -1]),
-        )?;
+        self.call(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
         for dn in diagnostics.iter() {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
@@ -630,16 +620,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.notify(
                 None,
                 "nvim_buf_add_highlight",
-                json!(
-                    [
-                        0,
-                        source,
-                        hl_group,
-                        dn.range.start.line + 1,
-                        dn.range.start.character + 1,
-                        dn.range.end.character + 1,
-                    ]
-                ),
+                json!([
+                    0,
+                    source,
+                    hl_group,
+                    dn.range.start.line + 1,
+                    dn.range.start.character + 1,
+                    dn.range.end.character + 1
+                ]),
             )?;
         }
 
@@ -650,9 +638,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let root = self.get(|state| {
-                    state.roots.get(languageId).cloned().ok_or(format_err!(
-                        "Failed to get root"
-                    ))
+                    state
+                        .roots
+                        .get(languageId)
+                        .cloned()
+                        .ok_or(format_err!("Failed to get root"))
                 })?;
                 let source: Vec<_> = locations
                     .iter()
@@ -676,9 +666,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 self.notify(
                     None,
                     "s:FZF",
-                    json!(
-                        [source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]
-                    ),
+                    json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
                 )?;
             }
             SelectionUI::LocationList => {
@@ -714,29 +702,23 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn languageClient_isAlive(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__IsAlive);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
-        let is_alive = self.get(
-            |state| Ok(state.writers.contains_key(&languageId)),
-        )?;
+        let is_alive = self.get(|state| Ok(state.writers.contains_key(&languageId)))?;
         info!("End {}", REQUEST__IsAlive);
         Ok(Value::Bool(is_alive))
     }
 
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
 
         if !buftype.is_empty() || filename.is_empty() {
             return Ok(Value::Null);
         }
 
-        if self.get(
-            |state| Ok(state.writers.contains_key(&languageId)),
-        )?
-        {
+        if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             format_err!(
                 "Language client has already started for language {}.",
                 &languageId
@@ -746,41 +728,44 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.sync_settings()?;
 
         let mut command = self.get(|state| {
-            state.serverCommands.get(&languageId).cloned().ok_or(
-                format_err!(
+            state
+                .serverCommands
+                .get(&languageId)
+                .cloned()
+                .ok_or(format_err!(
                     "No language server command found for type: {}.",
                     &languageId
-                ),
-            )
+                ))
         })?;
 
         if command[0].starts_with('~') {
             let home = env::home_dir().ok_or(format_err!("Failed to get home dir"))?;
-            let home = home.to_str().ok_or(
-                format_err!("Failed to convert PathBuf to str"),
-            )?;
+            let home = home.to_str()
+                .ok_or(format_err!("Failed to convert PathBuf to str"))?;
             command[0] = command[0].replacen('~', home, 1);
         }
 
         let server_logpath = get_server_logpath();
-        let stderr = std::fs::OpenOptions::new().create(true).append(true).open(
-            &server_logpath,
-        )?;
+        let stderr = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&server_logpath)?;
 
-        let process = std::process::Command::new(command.get(0).ok_or(
-            format_err!("Failed to get command[0]"),
-        )?).args(&command[1..])
+        let process = std::process::Command::new(command
+            .get(0)
+            .ok_or(format_err!("Failed to get command[0]"))?)
+            .args(&command[1..])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(stderr)
             .spawn()?;
 
-        let reader = BufReader::new(process.stdout.ok_or(
-            format_err!("Failed to get subprocess stdout"),
-        )?);
-        let writer = BufWriter::new(process.stdin.ok_or(
-            format_err!("Failed to get subprocess stdin"),
-        )?);
+        let reader = BufReader::new(process
+            .stdout
+            .ok_or(format_err!("Failed to get subprocess stdout"))?);
+        let writer = BufWriter::new(process
+            .stdin
+            .ok_or(format_err!("Failed to get subprocess stdin"))?);
 
         self.update(|state| {
             state.writers.insert(languageId.clone(), writer);
@@ -791,12 +776,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let languageId_clone = languageId.clone();
         std::thread::Builder::new()
             .name(format!("RPC-{}", languageId))
-            .spawn(move || if let Err(err) = state.loop_message(
-                reader,
-                Some(languageId_clone),
-            )
-            {
-                error!("Thread error out: {}", err);
+            .spawn(move || {
+                if let Err(err) = state.loop_message(reader, Some(languageId_clone)) {
+                    error!("Thread error out: {}", err);
+                }
             })?;
 
         info!("End {}", REQUEST__StartServer);
@@ -836,32 +819,26 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn languageClient_handleBufReadPost(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufReadPost);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() || filename.is_empty() {
             return Ok(());
         }
 
         // File opened before.
-        if self.get(
-            |state| Ok(state.text_documents.contains_key(&filename)),
-        )?
-        {
+        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
             return Ok(());
         }
 
-        if self.get(
-            |state| Ok(state.writers.contains_key(&languageId)),
-        )?
-        {
+        if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             // Language server is running but file is not within project root.
             let is_in_root = self.get(|state| {
-                let root = state.roots.get(&languageId).ok_or(
-                    format_err!("Failed to get root"),
-                )?;
+                let root = state
+                    .roots
+                    .get(&languageId)
+                    .ok_or(format_err!("Failed to get root"))?;
                 Ok(filename.starts_with(root))
             })?;
             if !is_in_root {
@@ -871,9 +848,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.textDocument_didOpen(params)?;
 
             let diagnostics = self.get(|state| {
-                state.diagnostics.get(&filename).cloned().ok_or(
-                    format_err!("No diagnostics"),
-                )
+                state
+                    .diagnostics
+                    .get(&filename)
+                    .cloned()
+                    .ok_or(format_err!("No diagnostics"))
             }).unwrap_or(vec![]);
             self.display_diagnostics(&filename, &diagnostics)?;
             self.languageClient_handleCursorMoved(params)?;
@@ -921,10 +900,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn languageClient_handleCursorMoved(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (buftype, filename, line): (String, String, u64) = self.gather_args(
-            &[VimVar::Buftype, VimVar::Filename, VimVar::Line],
-            params,
-        )?;
+        let (buftype, filename, line): (String, String, u64) =
+            self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
         if !buftype.is_empty() || line == self.get(|state| Ok(state.last_cursor_line))? {
             return Ok(());
         }
@@ -956,10 +933,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Initialize);
-        let (languageId, filename): (String, String) = self.gather_args(
-            &[VimVar::LanguageId, VimVar::Filename],
-            params,
-        )?;
+        let (languageId, filename): (String, String) =
+            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         let root = get_rootPath(Path::new(&filename), &languageId)?
             .to_str()
             .ok_or(format_err!("Failed to convert &Path to &str"))?
@@ -971,13 +946,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         use std::fs::File;
 
         let settings = || -> Result<Value> {
-            let mut f = File::open(Path::new(&root).join(self.get(
-                |state| Ok(state.settingsPath.clone()),
-            )?))?;
+            let mut f = File::open(Path::new(&root).join(self.get(|state| Ok(state.settingsPath.clone()))?))?;
             let mut buffer = String::new();
             f.read_to_string(&mut buffer)?;
             Ok(serde_json::from_str(&buffer)?)
-        }().unwrap_or(json!({}));
+        }()
+            .unwrap_or(json!({}));
         let initialization_options = Some(settings["initializationOptions"].clone());
 
         let result = self.call(
@@ -997,10 +971,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
         self.update(|state| {
-            state.capabilities.insert(
-                languageId.clone(),
-                result.clone(),
-            );
+            state
+                .capabilities
+                .insert(languageId.clone(), result.clone());
             Ok(())
         })?;
 
@@ -1056,9 +1029,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         if text.is_empty() {
             let reader = BufReader::new(File::open(filename)?);
-            text = reader.lines().nth(line.to_usize()?).ok_or(
-                format_err!("Failed to get line"),
-            )??;
+            text = reader
+                .lines()
+                .nth(line.to_usize()?)
+                .ok_or(format_err!("Failed to get line"))??;
         }
 
         Ok(text.strip())
@@ -1067,8 +1041,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__NCMRefresh);
         let params = match *params {
-            None |
-            Some(Params::None) => return Err(format_err!("Empty params!")),
+            None | Some(Params::None) => return Err(format_err!("Empty params!")),
             Some(Params::Map(_)) => return Err(format_err!("Expecting array. Got dict.")),
             Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
         };
@@ -1138,9 +1111,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__References,
             ReferenceParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
-                context: ReferenceContext { include_declaration: true },
+                context: ReferenceContext {
+                    include_declaration: true,
+                },
             },
         )?;
 
@@ -1157,11 +1134,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Formatting);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1171,7 +1147,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__Formatting,
             DocumentFormattingParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 options: FormattingOptions {
                     tab_size,
                     insert_spaces,
@@ -1189,11 +1167,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RangeFormatting);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1205,14 +1182,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 "v:lnum - 1",
                 "v:lnum - 1 + v:count",
                 "len(getline(v:lnum + v:count)) - 1",
-            ]
-                [..],
+            ][..],
         )?;
         let result = self.call(
             Some(&languageId),
             REQUEST__RangeFormatting,
             DocumentRangeFormattingParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 options: FormattingOptions {
                     tab_size,
                     insert_spaces,
@@ -1240,11 +1218,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__ResolveCompletionItem);
-        let (buftype, languageId, handle): (String, String, bool) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
-                params,
-            )?;
+        let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1293,10 +1270,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         };
 
         self.update(|state| {
-            Ok(state.text_documents.insert(
-                filename.clone(),
-                text_document.clone(),
-            ))
+            Ok(
+                state
+                    .text_documents
+                    .insert(filename.clone(), text_document.clone()),
+            )
         })?;
 
         self.notify(
@@ -1325,10 +1303,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
-        if !self.get(
-            |state| Ok(state.text_documents.contains_key(&filename)),
-        )?
-        {
+        if !self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
             warn!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
@@ -1347,9 +1322,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let version = self.update(|state| {
-            let document = state.text_documents.get_mut(&filename).ok_or(
-                format_err!("Failed to get TextDocumentItem"),
-            )?;
+            let document = state
+                .text_documents
+                .get_mut(&filename)
+                .ok_or(format_err!("Failed to get TextDocumentItem"))?;
 
             let version = document.version.unwrap_or(0) + 1;
             document.version = Some(version);
@@ -1381,11 +1357,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidSaveTextDocument);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
@@ -1394,7 +1369,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             NOTIFICATION__DidSaveTextDocument,
             DidSaveTextDocumentParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
             },
         )?;
 
@@ -1404,11 +1381,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_didClose(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__DidCloseTextDocument);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
@@ -1417,7 +1393,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             NOTIFICATION__DidCloseTextDocument,
             DidCloseTextDocumentParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
             },
         )?;
         info!("End {}", NOTIFICATION__DidCloseTextDocument);
@@ -1433,10 +1411,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let filename = params.uri.path().to_owned();
         self.update(|state| {
-            state.diagnostics.insert(
-                filename.clone(),
-                params.diagnostics.clone(),
-            );
+            state
+                .diagnostics
+                .insert(filename.clone(), params.diagnostics.clone());
             state.line_diagnostics.retain(|fl, _| fl.0 != filename);
             Ok(())
         })?;
@@ -1504,7 +1481,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__Hover,
             TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
             },
         )?;
@@ -1544,7 +1523,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__GotoDefinition,
             TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
             },
         )?;
@@ -1588,14 +1569,16 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_rename(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__Rename);
-        let (buftype, languageId, filename, line, character, cword, new_name, handle): (String,
-                                                                                        String,
-                                                                                        String,
-                                                                                        u64,
-                                                                                        u64,
-                                                                                        String,
-                                                                                        Option<String>,
-                                                                                        bool) = self.gather_args(
+        let (buftype, languageId, filename, line, character, cword, new_name, handle): (
+            String,
+            String,
+            String,
+            u64,
+            u64,
+            String,
+            Option<String>,
+            bool,
+        ) = self.gather_args(
             &[
                 VimVar::Buftype,
                 VimVar::LanguageId,
@@ -1614,11 +1597,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let mut new_name = new_name.unwrap_or("".to_owned());
         if new_name.is_empty() {
-            let value = self.call(
-                None,
-                "s:getInput",
-                ["Rename to: ".to_owned(), cword],
-            )?;
+            let value = self.call(None, "s:getInput", ["Rename to: ".to_owned(), cword])?;
             new_name = serde_json::from_value(value)?;
         }
         if new_name.is_empty() {
@@ -1629,7 +1608,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__Rename,
             RenameParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
                 new_name,
             },
@@ -1667,7 +1648,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__DocumentSymbols,
             DocumentSymbolParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
             },
         )?;
 
@@ -1718,11 +1701,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__WorkspaceSymbols);
-        let (buftype, languageId, handle): (String, String, bool) =
-            self.gather_args(
-                &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
-                params,
-            )?;
+        let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1743,9 +1725,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let root = self.get(|state| {
-                    state.roots.get(&languageId).cloned().ok_or(
-                        format_err!("Failed to get root"),
-                    )
+                    state
+                        .roots
+                        .get(&languageId)
+                        .cloned()
+                        .ok_or(format_err!("Failed to get root"))
                 })?;
                 let source: Vec<_> = symbols
                     .iter()
@@ -1797,9 +1781,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn languageClient_FZFSinkLocation(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
         let params = match *params {
-            None |
-            Some(Params::None) |
-            Some(Params::Map(_)) => {
+            None | Some(Params::None) | Some(Params::Map(_)) => {
                 return Err(format_err!("Expecting array params!"));
             }
             Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
@@ -1822,9 +1804,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .to_owned();
             let languageId: String = self.eval(VimVar::LanguageId)?;
             let root = self.get(|state| {
-                state.roots.get(&languageId).cloned().ok_or(
-                    format_err!("Failed to get root"),
-                )
+                state
+                    .roots
+                    .get(&languageId)
+                    .cloned()
+                    .ok_or(format_err!("Failed to get root"))
             })?;
             Path::new(&root)
                 .join(relpath)
@@ -1853,12 +1837,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__FZFSinkCommand);
         let (selection,): (String,) = self.gather_args(&["selection"], params)?;
         let tokens: Vec<&str> = selection.split(": ").collect();
-        let command = tokens.get(0).cloned().ok_or(
-            format_err!("Failed to get command token"),
-        )?;
-        let title = tokens.get(1).cloned().ok_or(
-            format_err!("Failed to get title token"),
-        )?;
+        let command = tokens
+            .get(0)
+            .cloned()
+            .ok_or(format_err!("Failed to get command token"))?;
+        let title = tokens
+            .get(1)
+            .cloned()
+            .ok_or(format_err!("Failed to get title token"))?;
         let entry = self.get(|state| {
             state
                 .stashed_codeAction_commands
@@ -1933,8 +1919,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .filter(|dn| {
                         let start = dn.range.start;
                         let end = dn.range.end;
-                        start.line <= line && start.character <= character && end.line >= line &&
-                            end.character >= character
+                        start.line <= line && start.character <= character && end.line >= line
+                            && end.character >= character
                     })
                     .cloned()
                     .collect(),
@@ -1944,7 +1930,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__CodeAction,
             CodeActionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 //TODO: is this correct?
                 range: diagnostics
                     .get(0)
@@ -2003,7 +1991,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__Completion,
             TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
             },
         )?;
@@ -2038,7 +2028,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__SignatureHelp,
             TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
             },
         )?;
@@ -2132,7 +2124,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Some(&languageId),
             REQUEST__RustImplementations,
             TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier { uri: filename.to_url()? },
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
                 position: Position { line, character },
             },
         )?;
@@ -2152,11 +2146,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__Exit);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
-        self.notify(
-            Some(&languageId),
-            NOTIFICATION__Exit,
-            Value::Null,
-        )?;
+        self.notify(Some(&languageId), NOTIFICATION__Exit, Value::Null)?;
 
         self.update(|state| {
             state.last_cursor_line = 99;
@@ -2165,23 +2155,26 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let signsmap = self.update(|state| {
             state.writers.remove(&languageId);
-            let root = state.roots.remove(&languageId).ok_or(
-                format_err!("No project root found!"),
-            )?;
+            let root = state
+                .roots
+                .remove(&languageId)
+                .ok_or(format_err!("No project root found!"))?;
 
             state.text_documents.retain(|f, _| !f.starts_with(&root));
             state.diagnostics.retain(|f, _| !f.starts_with(&root));
 
             let mut signsmap = HashMap::new();
-            state.signs.retain(|f, s| if f.starts_with(&root) {
-                signsmap.insert(f.clone(), s.clone());
-                false
-            } else {
-                true
+            state.signs.retain(|f, s| {
+                if f.starts_with(&root) {
+                    signsmap.insert(f.clone(), s.clone());
+                    false
+                } else {
+                    true
+                }
             });
-            state.line_diagnostics.retain(
-                |fl, _| !fl.0.starts_with(&root),
-            );
+            state
+                .line_diagnostics
+                .retain(|fl, _| !fl.0.starts_with(&root));
             Ok(signsmap)
         })?;
 

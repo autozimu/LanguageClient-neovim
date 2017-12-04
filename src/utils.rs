@@ -16,21 +16,15 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
         "javascript" | "typescript" => traverse_up(path, |dir| dir.join("package.json").exists()),
-        "python" => {
-            traverse_up(path, |dir| {
-                dir.join("__init__.py").exists() || dir.join("setup.py").exists()
-            })
-        }
+        "python" => traverse_up(path, |dir| {
+            dir.join("__init__.py").exists() || dir.join("setup.py").exists()
+        }),
         "cs" => traverse_up(path, is_dotnet_root),
-        "java" => {
-            traverse_up(path, |dir| {
-                dir.join(".project").exists() || dir.join("pom.xml").exists()
-            })
-        }
-        "haskell" => {
-            traverse_up(path, |dir| dir.join("stack.yaml").exists())
-                .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists()))
-        }
+        "java" => traverse_up(path, |dir| {
+            dir.join(".project").exists() || dir.join("pom.xml").exists()
+        }),
+        "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
+            .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
     }.or({
         traverse_up(path, |dir| {
@@ -95,9 +89,9 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
 }
 
 pub fn get_server_logpath() -> PathBuf {
-    let dir = env::var("TMP").or(env::var("TEMP")).unwrap_or(
-        "/tmp".to_owned(),
-    );
+    let dir = env::var("TMP")
+        .or(env::var("TEMP"))
+        .unwrap_or("/tmp".to_owned());
 
     Path::new(&dir).join("LanguageServer.log")
 }
@@ -140,18 +134,14 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<Strin
         let end_line: usize = edit.range.end.line.to_usize()?;
         let end_character: usize = edit.range.end.character.to_usize()?;
 
-        let start = lines[..start_line].iter().map(|l| l.len()).fold(
-            0,
-            |acc, l| {
-                acc + l + 1
-            }, /*line ending*/
-        ) + start_character;
-        let end = lines[..end_line].iter().map(|l| l.len()).fold(
-            0,
-            |acc, l| {
-                acc + l + 1
-            }, /*line ending*/
-        ) + end_character;
+        let start = lines[..start_line]
+            .iter()
+            .map(|l| l.len())
+            .fold(0, |acc, l| acc + l + 1 /*line ending*/) + start_character;
+        let end = lines[..end_line]
+            .iter()
+            .map(|l| l.len())
+            .fold(0, |acc, l| acc + l + 1 /*line ending*/) + end_character;
 
         edits_by_index.push((start, end, &edit.new_text));
     }
@@ -169,8 +159,7 @@ fn test_apply_TextEdit() {
     let lines: Vec<String> = r#"fn main() {
 0;
 }
-"#
-        .to_owned()
+"#.to_owned()
         .split('\n')
         .map(|l| l.to_owned())
         .collect();
@@ -178,8 +167,7 @@ fn test_apply_TextEdit() {
     let expect: Vec<String> = r#"fn main() {
     0;
 }
-"#
-        .to_owned()
+"#.to_owned()
         .split('\n')
         .map(|l| l.to_owned())
         .collect();
@@ -198,8 +186,7 @@ fn test_apply_TextEdit() {
         new_text: r#"fn main() {
     0;
 }
-"#
-            .to_owned(),
+"#.to_owned(),
     };
 
     assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
