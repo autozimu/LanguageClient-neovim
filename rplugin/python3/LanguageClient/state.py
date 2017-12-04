@@ -86,14 +86,14 @@ def make_serializable(d: Any) -> Any:
             d2[k] = v
         return d2
     elif isinstance(d, list):
-        l = d
-        l2 = []
-        for i in l:
+        arr = d
+        arr2 = []
+        for i in arr:
             i2 = make_serializable(i)
             if i2 is None:
                 continue
-            l2.append(i2)
-        return l2
+            arr2.append(i2)
+        return arr2
     else:
         try:
             json.dumps(d)
