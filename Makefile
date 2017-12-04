@@ -21,8 +21,9 @@ integration-test-install-dependencies:
 	sudo apt-get update
 	sudo apt-get install --yes neovim python3-pip python3-pytest
 	pip3 install neovim mypy flake8
-	rustup component add rls-preview rust-analysis rust-src
-	timeout 5 ~/.cargo/bin/rls
+	rustup toolchain add nightly-2017-11-20
+	rustup component add rls-preview rust-analysis rust-src --toolchain nightly-2017-11-20
+	timeout 5 rustup run nightly-2017-11-20 rls
 
 integration-test-lint:
 	mypy tests rplugin/python3/denite/source rplugin/python3/deoplete/sources
