@@ -7,7 +7,7 @@ set noswapfile
 set hidden
 
 let g:LanguageClient_serverCommands = {
-    \ 'rust': ['~/.cargo/bin/rustup', 'run', 'nightly', 'rls'],
+    \ 'rust': ['rustup', 'run', 'nightly-2017-11-20', 'rls'],
     \ }
 let g:LanguageClient_selectionUI = "location-list"
 

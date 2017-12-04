@@ -6,6 +6,7 @@ if [[ -z "$TMP" ]]; then
     TMP=/tmp
 fi
 LOG="$TMP"/LanguageClient.log
+LOG_SERVER="$TMP"/LanguageServer.log
 
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
 cat /dev/null > $LOG
@@ -19,6 +20,7 @@ sleep 1s
 py.test-3 --capture=no --exitfirst -v $@
 ret=$?
 cat $LOG
+cat $LOG_SERVER
 
 kill $PID
 exit $ret
