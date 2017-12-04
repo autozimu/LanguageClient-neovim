@@ -31,3 +31,9 @@ integration-test-lint:
 
 integration-test: build integration-test-lint
 	tests/test.sh
+
+build-docker-image: Dockerfile
+	docker build --tag autozimu/languageclientneovim .
+
+publish-docker-image:
+	docker push autozimu/languageclientneovim

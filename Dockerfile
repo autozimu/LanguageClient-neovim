@@ -11,13 +11,10 @@ RUN apt-get install --yes software-properties-common && \
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly-2017-11-20 -y
 
-RUN ~/.cargo/bin/rustup component add rls-preview rust-analysis rust-src
+RUN ~/.cargo/bin/rustup component add rls-preview rust-analysis rust-src \
+        --toolchain nightly-2017-11-20
 
 # Verify rls works.
-RUN timeout 3 ~/.cargo/bin/rls
-
-RUN ~/.cargo/bin/cargo install rustfmt-nightly
-
-RUN git clone --depth 1 https://github.com/junegunn/fzf.git /root/.fzf && /root/.fzf/install --bin
+RUN timeout 5 ~/.cargo/bin/rustup run nightly-2017-11-20 rls
 
 CMD /bin/bash

@@ -5,6 +5,5 @@ set -ex
 make test
 
 if [[ ${INTEGRATION_TEST:-0} == 1 ]]; then
-    make integration-test-install-dependencies
-    make integration-test
+    docker run --volume $(pwd):/root/.config/nvim autozimu/languageclientneovim bash -c "export PATH=$PATH:~/.cargo/bin && cd /root/.config/nvim && make integration-test"
 fi
