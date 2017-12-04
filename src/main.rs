@@ -55,8 +55,12 @@ fn run() -> Result<()> {
     state.loop_message(stdin, None)
 }
 
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
+
 fn main() {
-    let _ = Opt::from_args();
+    let version = format!("{} ({} {})", semver(), short_sha(), short_now());
+    let app = Opt::clap().version(version.as_str());
+    let _ = app.get_matches();
 
     if let Err(err) = run() {
         eprintln!("{:?}", err);
