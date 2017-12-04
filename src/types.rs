@@ -312,8 +312,8 @@ impl From<CompletionItem> for VimCompleteItem {
             Some(CompletionItemKind::Function) => "f".to_owned(),
             Some(CompletionItemKind::Field) |
             Some(CompletionItemKind::Property) => "m".to_owned(),
-            Some(CompletionItemKind::Class) => "c".to_owned(),
-            Some(_) => format!("{:?}", lspitem.kind),
+            Some(CompletionItemKind::Class) => "t".to_owned(),
+            Some(kind) => format!("{:?}", kind),
             None => "".to_owned(),
         };
 
