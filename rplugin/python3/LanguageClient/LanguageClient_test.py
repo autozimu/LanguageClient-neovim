@@ -8,7 +8,6 @@ import pytest
 
 from .util import join_path
 from .state import state, update_state
-from .LanguageClient import get_selectionUI
 
 threading.current_thread().name = "Test"
 
@@ -54,7 +53,6 @@ def test_fixture(nvim):
 
 
 def test_get_selectionUI(nvim):
-    assert get_selectionUI() == "fzf"
     assert state["selectionUI"] == "location-list"
 
 
