@@ -5,4 +5,4 @@ services:
     - docker
 
 script:
-    - docker run -v $(pwd):/root/.config/nvim autozimu/languageclientneovim bash -c "cd /root/.config/nvim/rplugin/python3 && make"
+    - docker run -v $(pwd):/root/.config/nvim autozimu/languageclientneovim bash -c "export PATH=$PATH:~/.cargo/bin && cd /root/.config/nvim/rplugin/python3 && make"
