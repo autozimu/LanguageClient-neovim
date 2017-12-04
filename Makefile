@@ -23,7 +23,7 @@ integration-test-install-dependencies:
 	pip3 install neovim mypy flake8
 	rustup toolchain add nightly-2017-11-20
 	rustup component add rls-preview rust-analysis rust-src --toolchain nightly-2017-11-20
-	timeout 5 rustup run nightly-2017-11-20 rls
+	-timeout 5 rustup run nightly-2017-11-20 rls
 
 integration-test-lint:
 	mypy tests rplugin/python3/denite/source rplugin/python3/deoplete/sources
