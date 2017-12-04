@@ -3,7 +3,7 @@
 
 environment:
   global:
-    RUST_VERSION: nightly-2017-11-20
+    RUST_VERSION: stable
 
     CRATE_NAME: languageclient
 
