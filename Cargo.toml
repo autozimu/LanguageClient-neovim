@@ -8,9 +8,7 @@ build = "build.rs"
 [dependencies]
 failure = "*"
 log = "*"
-env_logger = "*"
-chrono = "*"
-colored = "*"
+log4rs = "*"
 structopt = "*"
 structopt-derive = "*"
 libc = "*"
@@ -24,6 +22,7 @@ languageserver-types = "*"
 url = "*"
 pathdiff = "*"
 diff = "*"
+colored = "*"
 regex = "*"
 
 [build-dependencies]

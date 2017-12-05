@@ -626,7 +626,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     hl_group,
                     dn.range.start.line + 1,
                     dn.range.start.character + 1,
-                    dn.range.end.character + 1
+                    dn.range.end.character + 1,
                 ]),
             )?;
         }
@@ -745,11 +745,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             command[0] = command[0].replacen('~', home, 1);
         }
 
-        let server_logpath = get_server_logpath();
         let stderr = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&server_logpath)?;
+            .open(&get_logpath_server())?;
 
         let process = std::process::Command::new(command
             .get(0)
@@ -939,9 +938,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .to_str()
             .ok_or(format_err!("Failed to convert &Path to &str"))?
             .to_owned();
-        self.update(|state| {
-            Ok(state.roots.insert(languageId.clone(), root.clone()))
-        })?;
+        self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
         use std::fs::File;
 
@@ -1270,11 +1267,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
         };
 
         self.update(|state| {
-            Ok(
-                state
-                    .text_documents
-                    .insert(filename.clone(), text_document.clone()),
-            )
+            Ok(state
+                .text_documents
+                .insert(filename.clone(), text_document.clone()))
         })?;
 
         self.notify(
@@ -1910,21 +1905,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let diagnostics: Vec<_> = self.get(|state| {
-            Ok(
-                state
-                    .diagnostics
-                    .get(&filename)
-                    .ok_or(format_err!("No diagnostics found!"))?
-                    .iter()
-                    .filter(|dn| {
-                        let start = dn.range.start;
-                        let end = dn.range.end;
-                        start.line <= line && start.character <= character && end.line >= line
-                            && end.character >= character
-                    })
-                    .cloned()
-                    .collect(),
-            )
+            Ok(state
+                .diagnostics
+                .get(&filename)
+                .ok_or(format_err!("No diagnostics found!"))?
+                .iter()
+                .filter(|dn| {
+                    let start = dn.range.start;
+                    let end = dn.range.end;
+                    start.line <= line && start.character <= character && end.line >= line && end.character >= character
+                })
+                .cloned()
+                .collect())
         })?;
         let result = self.call(
             Some(&languageId),
@@ -2097,9 +2089,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         info!("End {}", REQUEST__ApplyEdit);
 
-        Ok(serde_json::to_value(
-            ApplyWorkspaceEditResponse { applied: true },
-        )?)
+        Ok(serde_json::to_value(ApplyWorkspaceEditResponse {
+            applied: true,
+        })?)
     }
 
     fn rustDocument_implementations(&self, params: &Option<Params>) -> Result<Value> {

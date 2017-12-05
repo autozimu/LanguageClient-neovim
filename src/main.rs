@@ -1,8 +1,6 @@
 #![allow(non_snake_case, non_upper_case_globals, unknown_lints, useless_format, or_fun_call)]
 
-extern crate chrono;
-extern crate colored;
-extern crate env_logger;
+extern crate log4rs;
 #[macro_use]
 extern crate log;
 
@@ -27,6 +25,8 @@ extern crate pathdiff;
 
 extern crate diff;
 
+extern crate colored;
+
 extern crate regex;
 
 extern crate structopt;
@@ -46,7 +46,7 @@ use languageclient::*;
 struct Opt {}
 
 fn run() -> Result<()> {
-    logger::init()?;
+    let log = logger::init()?;
 
     let state = Arc::new(Mutex::new(State::new()));
 

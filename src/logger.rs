@@ -1,35 +1,34 @@
-use std;
-use std::fmt;
-use log::LogLevel;
-use env_logger;
-use chrono;
-use colored::Colorize;
+use utils;
+use log4rs;
 use types::*;
+use log::LogLevelFilter;
+use log4rs::Handle;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Logger, Root};
 
-struct ColoredLevel(LogLevel);
+fn config(level: LogLevelFilter) -> Result<Config> {
+    let logfile = FileAppender::builder().build(utils::get_logpath())?;
 
-impl fmt::Display for ColoredLevel {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            LogLevel::Error => format!("{}", self.0).red(),
-            LogLevel::Warn => format!("{}", self.0).yellow(),
-            _ => format!("{}", self.0).white(),
-        }.fmt(f)
-    }
+    let config = Config::builder()
+        .appender(Appender::builder().build("logfile", Box::new(logfile)))
+        .logger(Logger::builder().build("languageclient", LogLevelFilter::Info))
+        .build(
+            Root::builder()
+                .appender("logfile")
+                .build(LogLevelFilter::Info),
+        )?;
+    Ok(config)
 }
 
-pub fn init() -> Result<()> {
-    env_logger::LogBuilder::new()
-        .format(|record| {
-            format!(
-                "{} {:14} [{}] {}",
-                chrono::Local::now().format("%M:%S"),
-                std::thread::current().name().unwrap_or_default(),
-                ColoredLevel(record.level()),
-                record.args()
-            )
-        })
-        .parse(&env::var("RUST_LOG").unwrap_or_default())
-        .init()?;
+pub fn init() -> Result<Handle> {
+    let handle = log4rs::init_config(config(LogLevelFilter::Warn)?)?;
+
+    Ok(handle)
+}
+
+// TODO: Set loglevel at runtime.
+pub fn set_loglevel(handle: Handle, level: LogLevelFilter) -> Result<()> {
+    let config = config(level)?;
+    handle.set_config(config);
     Ok(())
 }

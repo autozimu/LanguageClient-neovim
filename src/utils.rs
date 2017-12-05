@@ -88,7 +88,15 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     }
 }
 
-pub fn get_server_logpath() -> PathBuf {
+pub fn get_logpath() -> PathBuf {
+    let dir = env::var("TMP")
+        .or(env::var("TEMP"))
+        .unwrap_or("/tmp".to_owned());
+
+    Path::new(&dir).join("LanguageClient.log")
+}
+
+pub fn get_logpath_server() -> PathBuf {
     let dir = env::var("TMP")
         .or(env::var("TEMP"))
         .unwrap_or("/tmp".to_owned());
