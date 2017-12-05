@@ -6,7 +6,9 @@ CompleteResults = "g:LanguageClient_completeResults"
 
 
 def simplify_snippet(snip: str) -> str:
-    return re.sub(r'(?<!\\)\$\d+', '', snip)
+    snip = re.sub(r'(?<!\\)\$(?P<num>\d+)', '<`\g<num>`>', snip)
+    return re.sub(r'(?<!\\)\${(?P<num>\d+):(?P<desc>.+?)}',
+                  '<`\g<num>:\g<desc>`>', snip)
 
 
 class Source(Base):
