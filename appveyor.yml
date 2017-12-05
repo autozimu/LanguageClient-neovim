@@ -45,6 +45,7 @@ deploy:
   on:
     appveyor_repo_tag: true
   provider: GitHub
+  force_update: true
 
 cache:
   - C:\Users\appveyor\.cargo\registry
