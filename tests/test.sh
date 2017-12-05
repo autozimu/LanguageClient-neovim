@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-set -o verbose
+set -o xtrace
+
+dir=$(dirname $(dirname $(realpath $0)))
+cd $dir
 
 LOG="${TMP:-/tmp}"/LanguageClient.log
 LOG_SERVER="${TMP:-/tmp}"/LanguageServer.log
@@ -15,6 +18,7 @@ sleep 1s
 
 py.test-3 --capture=no --exitfirst -v $@
 ret=$?
+
 cat $LOG
 cat $LOG_SERVER
 

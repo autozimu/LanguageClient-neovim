@@ -32,6 +32,10 @@ integration-test-lint:
 integration-test: build integration-test-lint
 	tests/test.sh
 
+clean:
+	cargo clean
+	rm -rf bin/languageclient
+
 build-docker-image: Dockerfile
 	docker build --tag autozimu/languageclientneovim .
 
