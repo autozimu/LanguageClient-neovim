@@ -1,22 +1,8 @@
-# This script takes care of packaging the build artifacts that will go in the
-# release zipfile
+$name = languageclient
 
 $SRC_DIR = $PWD.Path
-$STAGE = [System.Guid]::NewGuid().ToString()
+$filename = "$SRC_DIR\target\release\$($Env:CRATE_NAME)-$($Env:APPVEYOR_REPO_TAG_NAME)-$($Env:TARGET).exe"
 
-Set-Location $ENV:Temp
-New-Item -Type Directory -Name $STAGE
-Set-Location $STAGE
+Copy-Item "$SRC_DIR\target\release\$name.exe" $filename
 
-$ZIP = "$SRC_DIR\$($Env:CRATE_NAME)-$($Env:APPVEYOR_REPO_TAG_NAME)-$($Env:TARGET).zip"
-
-Copy-Item "$SRC_DIR\target\release\languageclient.exe" '.\'
-
-7z a "$ZIP" *
-
-Push-AppveyorArtifact "$ZIP"
-
-Remove-Item *.* -Force
-Set-Location ..
-Remove-Item $STAGE
-Set-Location $SRC_DIR
+Push-AppveyorArtifact "$filename"
