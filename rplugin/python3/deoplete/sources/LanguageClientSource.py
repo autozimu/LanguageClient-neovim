@@ -15,7 +15,9 @@ from LanguageClient import (
 
 
 def simplify_snippet(snip: str) -> str:
-    return re.sub(r'(?<!\\)\$\d+', '', snip)
+    snip = re.sub(r'(?<!\\)\$(?P<num>\d+)', '<`\g<num>`>', snip)
+    return re.sub(r'(?<!\\)\${(?P<num>\d+):(?P<desc>.+?)}',
+                  '<`\g<num>:\g<desc>`>', snip)
 
 
 def convert_to_deoplete_candidate(item: Dict) -> Dict:
