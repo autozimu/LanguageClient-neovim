@@ -54,11 +54,6 @@ class Source(Base):
 
         logger.info("deoplete LanguageClientSource initialized.")
 
-    def get_complete_position(self, context):
-        m = re.search('(?:' + context['keyword_patterns'] + ')*$',
-                      context['input'])
-        return m.start() if m else -1
-
     def gather_candidates(self, context):
         # context["is_async"] = True
 
