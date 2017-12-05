@@ -12,7 +12,7 @@ DIR=$(dirname $(realpath $0))
 
 exec 2>$LOGFILE
 
-cargo --version >&2
+rustc --version >&2
 cargo build --manifest-path=$DIR/Cargo.toml
 $DIR/target/debug/languageclient --version >&2
 export RUST_LOG=languageclient=debug

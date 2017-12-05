@@ -1,6 +1,7 @@
 # This script takes care of testing your crate
 
-set -ex
+set -o errtrace
+set -o xtrace
 
 make test
 
