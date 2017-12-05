@@ -1,3 +1,6 @@
+Microsoft Visual C++ 2015 runtime https://www.microsoft.com/en-us/download/details.aspx?id=52685
+
+
 # 1. Install neovim or vim
 
 Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package) or [vim](http://www.vim.org/)!
