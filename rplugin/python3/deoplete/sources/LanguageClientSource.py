@@ -21,11 +21,6 @@ class Source(Base):
         self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
 
-    def get_complete_position(self, context):
-        m = re.search('(?:' + context['keyword_patterns'] + ')*$',
-                      context['input'])
-        return m.start() if m else -1
-
     def gather_candidates(self, context):
         if not context["is_async"]:
             context["is_async"] = True
