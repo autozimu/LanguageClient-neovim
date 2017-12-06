@@ -172,14 +172,15 @@ def echo_signature(signature: str, activeParameter: str = None) -> None:
     """
     if activeParameter is None:
         echo(signature)
+        return
     parts = signature.split(activeParameter, 1)
     if (len(parts) != 2):
-        # active paramter is not part of a signature
+        # active parameter is not part of a signature
         echo(signature)
         return
     [begin, end] = parts
     execute_command("echon '{}' | echohl Bold | echon '{}' | echohl None | echon '{}'".format(
-        begin, activeParameter, end
+        escape(begin), escape(activeParameter), escape(end)
     ))
 
 
