@@ -824,7 +824,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
         let logger = LOGGER.deref().as_ref().or(Err(format_err!("No logger")))?;
-        logger::set_logging_level(logger, loggingLevel)?;
+        logger::set_logging_level(logger, &loggingLevel)?;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
     }

@@ -22,7 +22,7 @@ pub fn init() -> Result<Handle> {
     Ok(handle)
 }
 
-pub fn set_logging_level(handle: &Handle, level: String) -> Result<()> {
+pub fn set_logging_level(handle: &Handle, level: &str) -> Result<()> {
     let level = match level.to_uppercase().as_str() {
         "DEBUG" => LogLevelFilter::Debug,
         "INFO" => LogLevelFilter::Info,

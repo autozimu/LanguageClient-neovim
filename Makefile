@@ -1,4 +1,4 @@
-all: fmt build
+all: fmt build clippy
 
 fmt:
 	cargo +nightly fmt
