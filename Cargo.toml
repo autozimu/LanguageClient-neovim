@@ -12,6 +12,7 @@ log4rs = "*"
 structopt = "*"
 structopt-derive = "*"
 libc = "*"
+lazy_static = "*"
 
 serde = "*"
 serde_derive = "*"

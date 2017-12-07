@@ -33,6 +33,7 @@ pub const REQUEST__IsAlive: &str = "languageClient/isAlive";
 pub const REQUEST__StartServer: &str = "languageClient/startServer";
 pub const REQUEST__RegisterServerCommands: &str = "languageClient/registerServerCommands";
 pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
+pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";

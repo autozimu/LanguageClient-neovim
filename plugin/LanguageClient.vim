@@ -380,6 +380,13 @@ function! LanguageClient_registerServerCommands(cmds) abort
     return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null)
 endfunction
 
+function! LanguageClient_setLoggingLevel(level) abort
+    let l:params = {
+                \ 'loggingLevel': a:level,
+                \ }
+    return LanguageClient#Call('languageClient/setLoggingLevel', l:params, v:null)
+endfunction
+
 function! LanguageClient_handleBufReadPost() abort
     if &buftype != '' || &filetype == ''
         return

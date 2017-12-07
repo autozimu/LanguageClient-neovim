@@ -5,6 +5,8 @@ use regex;
 use types::*;
 use utils::*;
 use vim::*;
+use logger;
+use super::LOGGER;
 
 pub trait ILanguageClient {
     fn get<F, T>(&self, f: F) -> Result<T>
@@ -65,6 +67,7 @@ pub trait ILanguageClient {
     fn languageClient_isAlive(&self, &Option<Params>) -> Result<Value>;
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value>;
     fn languageClient_registerServerCommands(&self, params: &Option<Params>) -> Result<Value>;
+    fn languageClient_setLoggingLevel(&self, params: &Option<Params>) -> Result<Value>;
     fn languageClient_omniComplete(&self, params: &Option<Params>) -> Result<Value>;
     fn languageClient_handleBufReadPost(&self, params: &Option<Params>) -> Result<()>;
     fn languageClient_handleTextChanged(&self, params: &Option<Params>) -> Result<()>;
@@ -223,6 +226,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__IsAlive => self.languageClient_isAlive(&method_call.params),
                     REQUEST__StartServer => self.languageClient_startServer(&method_call.params),
                     REQUEST__RegisterServerCommands => self.languageClient_registerServerCommands(&method_call.params),
+                    REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&method_call.params),
                     REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
                     _ => Err(format_err!("Unknown method call: {}", method_call.method)),
                 };
@@ -813,6 +817,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
         );
         self.command(&exp)?;
         info!("End {}", REQUEST__RegisterServerCommands);
+        Ok(Value::Null)
+    }
+
+    fn languageClient_setLoggingLevel(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__SetLoggingLevel);
+        let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
+        let logger = LOGGER.deref().as_ref().or(Err(format_err!("No logger")))?;
+        logger::set_logging_level(logger, loggingLevel)?;
+        info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
     }
 

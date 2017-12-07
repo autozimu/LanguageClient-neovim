@@ -34,6 +34,9 @@ use structopt::StructOpt;
 #[macro_use]
 extern crate structopt_derive;
 
+#[macro_use]
+extern crate lazy_static;
+
 mod logger;
 mod types;
 use types::*;
@@ -45,9 +48,11 @@ use languageclient::*;
 #[derive(Debug, StructOpt)]
 struct Opt {}
 
-fn run() -> Result<()> {
-    let log = logger::init()?;
+lazy_static! {
+    pub static ref LOGGER: Result<log4rs::Handle> = logger::init();
+}
 
+fn run() -> Result<()> {
     let state = Arc::new(Mutex::new(State::new()));
 
     let stdin = std::io::stdin();
