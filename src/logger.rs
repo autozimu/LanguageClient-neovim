@@ -26,7 +26,7 @@ pub fn set_logging_level(handle: &Handle, level: &str) -> Result<()> {
     let level = match level.to_uppercase().as_str() {
         "DEBUG" => LogLevelFilter::Debug,
         "INFO" => LogLevelFilter::Info,
-        "WARNING" => LogLevelFilter::Warn,
+        "WARNING" | "WARN" => LogLevelFilter::Warn,
         "ERROR" => LogLevelFilter::Error,
         _ => bail!("Unknown logging level: {}", level),
     };
