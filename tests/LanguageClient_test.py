@@ -185,22 +185,6 @@ def test_textDocument_references_modified_buffer(nvim):
     nvim.command("edit! {}".format(PATH_MAINRS))
 
 
-def test_textDocument_didChange(nvim):
-    nvim.command("edit! {}".format(PATH_MAINRS))
-    nvim.funcs.setline(12, "fn greet_again() -> i64 { 7 }")
-    nvim.funcs.setline(4, "    println!(\"{}\", greet_again());")
-    nvim.funcs.cursor(4, 23)
-    time.sleep(5)
-    nvim.funcs.LanguageClient_textDocument_definition()
-
-    def predicate():
-        return nvim.current.window.cursor == [12, 3]
-    retry(predicate)
-    assert nvim.current.window.cursor == [12, 3]
-
-    nvim.command("edit! {}".format(PATH_MAINRS))
-
-
 def test_textDocument_throttleChange(nvim):
     pass
 
