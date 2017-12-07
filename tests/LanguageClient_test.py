@@ -186,9 +186,11 @@ def test_textDocument_references_modified_buffer(nvim):
 
 
 def test_textDocument_didChange(nvim):
+    nvim.command("edit! {}".format(PATH_MAINRS))
     nvim.funcs.setline(12, "fn greet_again() -> i64 { 7 }")
     nvim.funcs.setline(4, "    println!(\"{}\", greet_again());")
     nvim.funcs.cursor(4, 23)
+    time.sleep(3)
 
     def predicate():
         nvim.funcs.LanguageClient_textDocument_definition()
