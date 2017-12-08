@@ -8,7 +8,7 @@ set hidden
 
 let $LANGUAGECLIENT_DEBUG = 1
 let g:LanguageClient_serverCommands = {
-    \ 'rust': ['rustup', 'run', 'nightly-2017-11-20', 'rls'],
+    \ 'javascript': ['javascript-typescript-stdio'],
     \ }
 let g:LanguageClient_selectionUI = "location-list"
 
