@@ -98,3 +98,10 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
    start neovim normally.
 1. Run `:echo &runtimepath` and make sure the plugin path is in the list.
 1. Make sure language server run properly when invoked manually from shell.
+
+# 8. Known issues
+
+Q: Single 'd' deletes a line <https://github.com/autozimu/LanguageClient-neovim/issues/132>
+
+A: This is a bug relates to timer in neovim version <= 0.2. Please upgrade to
+neovim 0.2.1 or above.
