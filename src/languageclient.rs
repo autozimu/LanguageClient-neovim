@@ -1306,7 +1306,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             DidOpenTextDocumentParams { text_document },
         )?;
 
-        self.command("set omnifunc=LanguageClient#complete")?;
+        self.command("setlocal omnifunc=LanguageClient#complete")?;
 
         info!("End {}", NOTIFICATION__DidOpenTextDocument);
         Ok(())
