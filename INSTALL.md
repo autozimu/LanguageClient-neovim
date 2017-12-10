@@ -33,7 +33,7 @@ call dein#add('autozimu/LanguageClient-neovim', {
 Restart neovim and run `:call dein#install()` to install this plugin.
 
 ## Manual
-Clone this repo into some place, e.g., '~/.vim-plugins'
+Clone this repo into some place, e.g., `~/.vim-plugins`
 ```sh
 mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
@@ -72,7 +72,7 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 # 6. Troubleshooting
 
 1. Begin with something small.
-    - Backup your vimrc and use [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/next/min-init.vim) as vimrc.
-    - Try with [sample projects](https://github.com/autozimu/LanguageClient-neovim/tree/next/tests/data).
+    - Backup your vimrc and use [min-init.vim](min-init.vim) as vimrc.
+    - Try with [sample projects](tests/data).
 1. Run `:echo &runtimepath` and make sure the plugin path is in the list.
 1. Make sure language server could be started when invoked manually from shell.
