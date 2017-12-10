@@ -36,20 +36,15 @@ functional.)
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
-Plug 'autozimu/LanguageClient-neovim', { 'do': ':UpdateRemotePlugins' }
+Plug 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': './install.sh' }
 
 " (Optional) Multi-entry selection UI.
 Plug 'junegunn/fzf'
-" (Optional) Multi-entry selection UI.
-Plug 'Shougo/denite.nvim'
 
-" (Optional) Completion integration with deoplete.
+" (Completion plugin option 1)
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-" (Optional) Completion integration with nvim-completion-manager.
+" (Completion plugin option 2)
 Plug 'roxma/nvim-completion-manager'
-
-" (Optional) Showing function signature and inline doc.
-Plug 'Shougo/echodoc.vim'
 ```
 
 Example configuration
@@ -60,11 +55,8 @@ set hidden
 
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
-    \ 'javascript': ['/opt/javascript-typescript-langserver/lib/language-server-stdio.js'],
+    \ 'javascript': ['javascript-typescript-stdio'],
     \ }
-
-" Automatically start language servers.
-let g:LanguageClient_autoStart = 1
 
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
@@ -72,15 +64,16 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
-this plugin. Install corresponding language servers. Start neovim and language
-services will be available right away if things go well. Happy hacking!
+this plugin. Install corresponding language servers. Restart neovim/vim and
+language services will be available right away if things go well. Happy
+hacking!
 
 Please see [INSTALL](INSTALL.md) for complete installation and configuration
 instructions.
 
 # Troubleshooting
 
-[Troubleshooting](https://github.com/autozimu/LanguageClient-neovim/blob/master/INSTALL.md#7-troubleshooting)
+[Troubleshooting](https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting)
 
 # Language Servers
 
@@ -91,11 +84,11 @@ Please see <http://langserver.org> and/or <https://github.com/Microsoft/language
 See [LanguageClient.txt] for full list of configurations, commands and
 functions.
 
-[LanguageClient.txt]: https://github.com/autozimu/LanguageClient-neovim/blob/master/doc/LanguageClient.txt
+[LanguageClient.txt]: https://github.com/autozimu/LanguageClient-neovim/blob/next/doc/LanguageClient.txt
 
 # Development
 
-[DEVELOPMENT](https://github.com/autozimu/LanguageClient-neovim/blob/master/DEVELOPMENT.md)
+[DEVELOPMENT](https://github.com/autozimu/LanguageClient-neovim/blob/next/DEVELOPMENT.md)
 
 # License
 
