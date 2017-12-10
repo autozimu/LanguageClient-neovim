@@ -1,4 +1,4 @@
-> This branch has been deprecated. Please use [next] branch if possible.
+> This branch has been deprecated. Please use branch [next] if possible.
 
 [next]: https://github.com/autozimu/LanguageClient-neovim/tree/next
 
