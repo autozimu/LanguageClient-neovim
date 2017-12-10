@@ -36,7 +36,10 @@ functional.)
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
-Plug 'autozimu/LanguageClient-neovim', {'do': './install.sh' }
+Plug 'autozimu/LanguageClient-neovim', {
+    \ 'branch': 'next',
+    \ 'do': './install.sh'
+    \ }
 
 " (Optional) Multi-entry selection UI.
 Plug 'junegunn/fzf'
