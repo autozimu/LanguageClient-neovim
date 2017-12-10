@@ -65,15 +65,14 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
 this plugin. Install corresponding language servers. Restart neovim/vim and
-language services will be available right away if things go well. Happy
-hacking!
+language services will be available right away. Happy hacking!
 
 Please see [INSTALL](INSTALL.md) for complete installation and configuration
 instructions.
 
 # Troubleshooting
 
-[Troubleshooting](https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting)
+[Troubleshooting](INSTALL.md#6-troubleshooting)
 
 # Language Servers
 
@@ -84,11 +83,11 @@ Please see <http://langserver.org> and/or <https://github.com/Microsoft/language
 See [LanguageClient.txt] for full list of configurations, commands and
 functions.
 
-[LanguageClient.txt]: https://github.com/autozimu/LanguageClient-neovim/blob/next/doc/LanguageClient.txt
+[LanguageClient.txt]: doc/LanguageClient.txt
 
 # Development
 
-[DEVELOPMENT](https://github.com/autozimu/LanguageClient-neovim/blob/next/DEVELOPMENT.md)
+[DEVELOPMENT](DEVELOPMENT.md)
 
 # License
 
