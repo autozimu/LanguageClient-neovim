@@ -2,7 +2,7 @@
 name = "languageclient"
 version = "0.1.0"
 authors = ["Junfeng Li <autozimu@gmail.com>"]
-description = "Language Server Protocol (LSP) client for vim and neovim"
+description = "Language Server Protocol (LSP) support for vim and neovim"
 build = "build.rs"
 
 [dependencies]

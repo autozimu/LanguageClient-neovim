@@ -1,5 +1,5 @@
 # LanguageClient-neovim
-[![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=master)](https://travis-ci.org/autozimu/LanguageClient-neovim)
+[![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=next)](https://travis-ci.org/autozimu/LanguageClient-neovim)
 
 [Language Server Protocol] support for [neovim] and [vim].
 
@@ -36,7 +36,7 @@ functional.)
 Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 
 ```vim
-Plug 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': './install.sh' }
+Plug 'autozimu/LanguageClient-neovim', {'do': './install.sh' }
 
 " (Optional) Multi-entry selection UI.
 Plug 'junegunn/fzf'

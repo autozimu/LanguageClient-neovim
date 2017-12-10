@@ -16,7 +16,7 @@ Choose steps matching your plugin manager.
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
 ```vim
-Plug 'autozimu/LanguageClient-neovim', {'branch': 'next',  'do': './install.sh' }
+Plug 'autozimu/LanguageClient-neovim', {'do': './install.sh' }
 ```
 
 Restart neovim and run `:PlugInstall` to install this plugin.
@@ -25,7 +25,6 @@ Restart neovim and run `:PlugInstall` to install this plugin.
 For MacOS and Linux user, add following to vimrc
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
-    \ 'rev': 'next',
     \ 'build': './install.sh',
     \ })
 ```
@@ -37,7 +36,7 @@ Clone this repo into some place, e.g., `~/.vim-plugins`
 ```sh
 mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
-git clone -b next --single-branch https://github.com/autozimu/LanguageClient-neovim.git
+git clone https://github.com/autozimu/LanguageClient-neovim.git
 cd LanguageClient-neovim
 ./install.sh
 ```
