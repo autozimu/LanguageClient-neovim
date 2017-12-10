@@ -19,6 +19,7 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "python" => traverse_up(path, |dir| {
             dir.join("__init__.py").exists() || dir.join("setup.py").exists()
         }),
+        "c" | "cpp" => traverse_up(path, |dir| dir.join("CMakeLists.txt").exists()),
         "cs" => traverse_up(path, is_dotnet_root),
         "java" => traverse_up(path, |dir| {
             dir.join(".project").exists() || dir.join("pom.xml").exists()
@@ -32,9 +33,12 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         })
     })
         .or({
-            let message = "Unknown project type. Fallback to use dir as project root.";
-            warn!("{}", message);
-            path.parent().ok_or(format_err!("Failed to get file dir"))
+            let parent = path.parent().ok_or(format_err!("Failed to get file dir"));
+            warn!(
+                "Unknown project type. Fallback to use dir as project root: {:?}",
+                parent
+            );
+            parent
         })
 }
 

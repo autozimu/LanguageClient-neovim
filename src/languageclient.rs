@@ -414,29 +414,30 @@ impl ILanguageClient for Arc<Mutex<State>> {
             String,
             String,
             String,
-            bool,
+            u64,
         ) = self.eval(
             &[
-                "!!get(g:, 'LanguageClient_autoStart', v:true)",
+                "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "get(g:, 'LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', '')",
                 "get(g:, 'LanguageClient_trace', 'Off')",
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
-                "get(g:, 'LanguageClient_loadSettings', v:true)",
+                "!!get(g:, 'LanguageClient_loadSettings', 1)",
             ][..],
         )?;
         // vimscript use 1 for true, 0 for false.
         let autoStart = autoStart == 1;
+        let loadSettings = loadSettings == 1;
 
         let trace = match trace.to_uppercase().as_str() {
             "OFF" => TraceOption::Off,
-            "Messages" => TraceOption::Messages,
-            "Verbose" => TraceOption::Verbose,
+            "MESSAGES" => TraceOption::Messages,
+            "VERBOSE" => TraceOption::Verbose,
             _ => return Err(format_err!("Unknown trace option: {:?}", trace)),
         };
 
         if selectionUI == "" {
-            let loaded_fzf: i32 = self.eval("get(g:, 'loaded_fzf')")?;
+            let loaded_fzf: u64 = self.eval("get(g:, 'loaded_fzf')")?;
             if loaded_fzf == 1 {
                 selectionUI = "FZF".into();
             }
@@ -953,16 +954,23 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .to_owned();
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
-        use std::fs::File;
-
         let settings = || -> Result<Value> {
+            if !self.get(|state| Ok(state.loadSettings))? {
+                return Ok(json!({}));
+            }
+
             let mut f = File::open(Path::new(&root).join(self.get(|state| Ok(state.settingsPath.clone()))?))?;
             let mut buffer = String::new();
             f.read_to_string(&mut buffer)?;
             Ok(serde_json::from_str(&buffer)?)
         }()
             .unwrap_or(json!({}));
+        debug!("Project settings: {}", serde_json::to_string(&settings)?);
         let initialization_options = Some(settings["initializationOptions"].clone());
+        debug!(
+            "Project settings.initializationOptions: {}",
+            serde_json::to_string(&initialization_options)?
+        );
 
         let result = self.call(
             Some(&languageId),
