@@ -1455,6 +1455,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.display_diagnostics(&filename, &params.diagnostics)?;
         self.languageClient_handleCursorMoved(&None)?;
 
+        if self.eval::<_, u64>("exists('#User#LanguageClientDiagnosticsChanged')")? == 1 {
+            self.command("doautocmd User LanguageClientDiagnosticsChanged")?;
+        }
+
         Ok(())
     }
 

@@ -278,6 +278,11 @@ Example: >
     autocmd User LanguageClientStopped setlocal signcolumn=auto
   augroup END
 
+5.3 LanguageClientDiagnosticsChanged
+*LanguageClientDiagnosticsChanged*
+
+This event is triggered when diagnostics changed.
+
 ==============================================================================
 6. License                                             *LanguageClientLicense*
 
