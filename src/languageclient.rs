@@ -732,7 +732,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         self.sync_settings()?;
 
-        let mut command = self.get(|state| {
+        let command = self.get(|state| {
             state
                 .serverCommands
                 .get(&languageId)
@@ -743,12 +743,19 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 ))
         })?;
 
-        if command[0].starts_with('~') {
-            let home = env::home_dir().ok_or(format_err!("Failed to get home dir"))?;
-            let home = home.to_str()
-                .ok_or(format_err!("Failed to convert PathBuf to str"))?;
-            command[0] = command[0].replacen('~', home, 1);
-        }
+        let home = env::home_dir().ok_or(format_err!("Failed to get home dir"))?;
+        let home = home.to_str()
+            .ok_or(format_err!("Failed to convert PathBuf to str"))?;
+        let command: Vec<_> = command
+            .into_iter()
+            .map(|cmd| {
+                if cmd.starts_with('~') {
+                    cmd.replacen('~', home, 1)
+                } else {
+                    cmd
+                }
+            })
+            .collect();
 
         let stderr = std::fs::OpenOptions::new()
             .create(true)
