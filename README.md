@@ -1,7 +1,7 @@
 # LanguageClient-neovim
 [![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=next)](https://travis-ci.org/autozimu/LanguageClient-neovim)
 
-[Language Server Protocol] support for [neovim] and [vim].
+[Language Server Protocol] (LSP) support for [vim] and [neovim].
 
 [Language Server Protocol]: https://github.com/Microsoft/language-server-protocol
 [neovim]: https://neovim.io/
@@ -16,10 +16,10 @@ More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/Lan
 - Non-blocking asynchronous calls.
 - [Sensible completion](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731936).
   Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim) 
-  or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager).
+  or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager). Or with `omnifunc`.
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288732042)
 - [Rename.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731403)
-- [Get identifer info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)
+- [Hover/Get identifer info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)
 - [Goto definition.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731744)
 - Goto reference locations.
 - [Workspace/Document symbols query](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731839).
