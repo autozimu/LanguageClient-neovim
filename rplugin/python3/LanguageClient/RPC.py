@@ -68,9 +68,13 @@ class RPC:
                 logger.exception(msg)
                 continue
             if line:
-                header, value = line.split(":")
-                if header == "Content-Length":
-                    content_length = int(value)
+                try:
+                    header, value = line.split(":")
+                    if header == "Content-Length":
+                        content_length = int(value)
+                except Exception:
+                    logger.error("Error while parsing header:" + header)
+
             else:
                 try:
                     data = self.infile.read(content_length)
