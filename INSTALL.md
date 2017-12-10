@@ -1,79 +1,59 @@
-Microsoft Visual C++ 2015 runtime https://www.microsoft.com/en-us/download/details.aspx?id=52685
-
-
 # 1. Install neovim or vim
 
 Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package) or [vim](http://www.vim.org/)!
 
-# 2. Install python modules
-## python-neovim
-Run following command to install neovim python plugin host:
-```
-sudo pip3 install --upgrade neovim
-```
+# 2. Install dependencies
 
-## typing
-_Note: Already included in Python version 3.6.0 and later_.
+For Windows user, [Microsoft Visual C++ 2015 runtime] is needed.
 
-Run following command to install `typing` module:
-```
-sudo pip3 install --upgrade typing
-```
-
-# 3.0 (Vim only)
-
-For vim, two other plugins are necessary to make this one work (I'm sorry,
-but vim support is a second thought.)
-
-- [vim-hug-neovim-rpc](https://github.com/roxma/vim-hug-neovim-rpc)
-- [nvim-yarp](https://github.com/roxma/nvim-yarp)
-
-Also, following `:UpdateRemotePlugins` commands is not needed for vim users.
+[Microsoft Visual C++ 2015 runtime]: https://www.microsoft.com/en-us/download/details.aspx?id=52685
 
 # 3. Install this plugin
 Choose steps matching your plugin manager.
 
+> For Windows user, replace all following `install.sh` with `install.ps1`.
+
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
+```vim
+Plug 'autozimu/LanguageClient-neovim', {'branch': 'next',  'do': './install.sh' }
 ```
-Plug 'autozimu/LanguageClient-neovim', { 'do': ':UpdateRemotePlugins' }
-```
-Restart neovim and run `:PlugInstall`.
 
-## [Vundle](https://github.com/VundleVim/Vundle.vim) user
-Add following to vimrc
-```
-Plugin 'autozimu/LanguageClient-neovim'
-
-```
-Restart neovim and run `:PluginInstall`.
-
-When using Vundle you need to run `:UpdateRemotePlugins` command manually 
-after you install/update the plugin. 
+Restart neovim and run `:PlugInstall` to install this plugin.
 
 ## [dein.vim](https://github.com/Shougo/dein.vim) user
+For MacOS and Linux user, add following to vimrc
+```vim
+call dein#add('autozimu/LanguageClient-neovim', {
+    \ 'rev': 'next',
+    \ 'build': './install.sh',
+    \ })
 ```
-call dein#add('autozimu/LanguageClient-neovim')
-```
-Restart neovim and run `:call dein#install()`.
+
+Restart neovim and run `:call dein#install()` to install this plugin.
 
 ## Manual
-Clone this repo into some place and add the folder into neovim runtimepath.
+Clone this repo into some place, e.g., '~/.vim-plugins'
+```sh
+mkdir -p ~/.vim-plugins
+cd ~/.vim-plugins
+git clone -b next --single-branch https://github.com/autozimu/LanguageClient-neovim.git
+cd LanguageClient-neovim
+./install.sh
+```
 
-# 4. Register this plugin
+Add this plugin to vim/neovim `runtimepath`,
+```vim
+set runtimepath+=~/.vim-plugins/LanguageClient-neovim
+```
 
-Run `:UpdateRemotePlugins` in neovim and restart.
-
-At this point, your `~/.local/share/nvim/rplugin.vim` should contains
-information about this plugin. If not, see following troubleshooting.
-
-# 5. Install language servers
+# 4. Install language servers
 Install language servers if corresponding language servers are not available
 yet on your system. Please see <http://langserver.org> and/or
 <https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>
 for list of language servers.
 
-# 6. Configure this plugin
+# 5. Configure this plugin
 Example configuration
 ```vim
 " Required for operations modifying multiple buffers like rename.
@@ -81,23 +61,18 @@ set hidden
 
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
-    \ 'javascript': ['/opt/javascript-typescript-langserver/lib/language-server-stdio.js'],
+    \ 'javascript': ['javascript-typescript-stdio'],
     \ }
-
-" Automatically start language servers.
-let g:LanguageClient_autoStart = 1
 
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 ```
 
-# 7. Troubleshooting
+# 6. Troubleshooting
 
 1. Begin with something small.
-    - Backup your init.vim and use [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/master/min-init.vim) as init.vim, run `nvim +PlugInstall +UpdateRemotePlugins +qa` command in shell.
-    - Try with [sample projects](https://github.com/autozimu/LanguageClient-neovim/tree/master/rplugin/python3/tests).
-1. Run `:CheckHealth` to see if there is issue with neovim python3 host.  then
-   start neovim normally.
+    - Backup your vimrc and use [min-init.vim](https://github.com/autozimu/LanguageClient-neovim/blob/next/min-init.vim) as vimrc.
+    - Try with [sample projects](https://github.com/autozimu/LanguageClient-neovim/tree/next/tests/data).
 1. Run `:echo &runtimepath` and make sure the plugin path is in the list.
-1. Make sure language server run properly when invoked manually from shell.
+1. Make sure language server could be started when invoked manually from shell.

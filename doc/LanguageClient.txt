@@ -24,13 +24,12 @@ for detail. Here is a simple example config: >
         \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
         \ }
 
-After that, open a file with one of the above filetypes, then run
-:LanguageClientStart to get start, which will start language server in
-background and get initialized.
+After that, open a file with one of the above filetypes, functionalities
+provided by language servers should be available out of the box.
 
 At this point, call any provided function as you like. See
 |LanguageClientFunctions| for a complete list of functions. Usually one would
-like to map these functions to some shortcuts, for example: >
+like to map these functions to shortcuts, for example: >
 
     nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
     nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
@@ -44,10 +43,9 @@ or 'completefunc': >
     set completefunc=LanguageClient#complete
 <
 If the language server supports, diagnostic/lint information will be displayed
-via gutter and syntax highlighting along editing. At the same time, The
-information are populated into quickfix list, which can be accessed by regular
-quickfix operations. See also |g:LanguageClient_diagnosticsDisplay| to
-customize how the information are displayed.
+via gutter and syntax highlighting with real time editing. At the same time,
+those info are populated into quickfix list (or location list), which can be
+accessed by regular quickfix/location list operations.
 
 To use the language server with Vim's formatting operator |gq|, set 'formatexpr': >
     set formatexpr=LanguageClient_textDocument_rangeFormatting()
@@ -58,8 +56,8 @@ To use the language server with Vim's formatting operator |gq|, set 'formatexpr'
 
 2.1 g:LanguageClient_serverCommands          *g:LanguageClient_serverCommands*
 
-String to list map. Defines commands to execute to start language server for
-specific filetype. For example: >
+String to list map. Defines commands to start language server for specific
+filetype. For example: >
 
     let g:LanguageClient_serverCommands = {
         \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
@@ -101,20 +99,22 @@ Default: >
 
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
-Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
+Interval in seconds during which textDocument_didChange is suppressed. For
+exmaple: >
 
     let g:LanguageClient_changeThrottle = 0.5
 
-This will make LanguageClient pause 0.5 second to send text changes to
-server after one textDocument_didChange is sent.
+This will make LanguageClient pause 0.5 second to send text changes to server
+after one textDocument_didChange is sent.
 
 Default: 0. No throttling.
 
 2.5 g:LanguageClient_autoStart                  *g:LanguageClient_autoStart*
 
-Automatically start language servers.
+Whether to start language servers automatically when opening a file of
+associated filetype.
 
-Default: 0.
+Default: 1.
 
 2.6 g:LanguageClient_selectionUI                *g:LanguageClient_selectionUI*
 
@@ -125,7 +125,7 @@ Valid options: "fzf" | "location-list"
 
 2.7 g:LanguageClient_trace                           *g:LanguageClient_trace*
 
-trace setting passed to server.
+Trace setting passed to server.
 
 Default: "off"
 Valid options: "off" | "messages" | "verbose"
@@ -139,47 +139,28 @@ Valid options: "quickfix" | "location" | ""
 
 2.9 g:LanguageClient_diagnosticsEnable    *g:LanguageClient_diagnosticsEnable*
 
-Set if diagnostics integration is enabled.
+Whether to handle diagnostic messages, including gutter, highlight and
+quickfix/location list.
 
 Default: 1
 Valid options: 1 | 0
 
 2.10 g:LanguageClient_windowLogMessageLevel  *g:LanguageClient_windowLogMessageLevel*
 
-Maximum MessageType to echoshow messages from window/logMessage.
-
-MessageType >
-    export namespace MessageType {
-        /**
-         * An error message.
-         */
-        export const Error = 1;
-        /**
-         * A warning message.
-         */
-        export const Warning = 2;
-        /**
-         * An information message.
-         */
-        export const Info = 3;
-        /**
-         * A log message.
-         */
-        export const Log = 4;
-    }
+Maximum MessageType to show messages from window/logMessage notifications.
 
 Default: "Warning"
 Valid options: "Error" | "Warning" | "Info" | "Log"
 
-2.11 g:LanguageClient_settingsPath   *g:LanguageClient_settingsPath*
+2.11 g:LanguageClient_settingsPath              *g:LanguageClient_settingsPath*
 
 Default path for language server settings
 
-Default: .vim/settings.json
+Default: ".vim/settings.json"
 
-2.12 g:LanguageClient_loadSettings         *g:LanguageClient_loadSettings*
+2.12 g:LanguageClient_loadSettings             *g:LanguageClient_loadSettings*
 
-Set if settings loading is enabled.
+Whether to load language server settings.
 
 Default: 0
 Valid options: 1 | 0
