@@ -42,9 +42,9 @@ Plug 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': './install.sh' }
 Plug 'junegunn/fzf'
 
 " (Completion plugin option 1)
-Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-" (Completion plugin option 2)
 Plug 'roxma/nvim-completion-manager'
+" (Completion plugin option 2)
+Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 ```
 
 Example configuration
