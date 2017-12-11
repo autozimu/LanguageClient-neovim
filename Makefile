@@ -11,7 +11,7 @@ clippy:
 
 release:
 	cargo build --release
-	cp --force target/release/languageclient bin/
+	cp -f target/release/languageclient bin/
 
 test:
 	cargo test
