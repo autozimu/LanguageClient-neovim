@@ -13,6 +13,9 @@ Choose steps matching your plugin manager.
 
 > For Windows user, replace all following `install.sh` with `install.ps1`.
 
+> If you don't want to install pre-built binaries, replace all following
+> `install.sh` with `make release`.
+
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
 ```vim
