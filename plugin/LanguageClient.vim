@@ -103,7 +103,7 @@ function! s:HandleMessage(job, lines, event) abort
             call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
         endif
     elseif a:event == 'exit'
-        if a:lines !=# '0'
+        if a:lines !=# [-1]
             echomsg 'LanguageClient exited with: ' . string(a:lines)
         endif
     else
