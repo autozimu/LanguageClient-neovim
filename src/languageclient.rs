@@ -1167,7 +1167,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        let (tab_size, insert_spaces): (u64, bool) = self.eval(&["&tabstop", "&expandtab"][..])?;
+        let (tab_size, insert_spaces): (u64, u64) = self.eval(&["&tabstop", "&expandtab"][..])?;
+        let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
             REQUEST__Formatting,
@@ -1200,7 +1201,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        let (tab_size, insert_spaces, start_line, end_line, end_character): (u64, bool, u64, u64, u64) = self.eval(
+        let (tab_size, insert_spaces, start_line, end_line, end_character): (u64, u64, u64, u64, u64) = self.eval(
             &[
                 "&tabstop",
                 "&expandtab",
@@ -1209,6 +1210,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 "len(getline(v:lnum + v:count)) - 1",
             ][..],
         )?;
+        let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
             REQUEST__RangeFormatting,
