@@ -528,12 +528,16 @@ impl ILanguageClient for Arc<Mutex<State>> {
         edits.reverse();
         self.goto_location(filename, 0, 0)?;
         let mut lines: Vec<String> = self.getbufline(filename)?;
+        let lines_len = lines.len();
         lines = apply_TextEdits(&lines, &edits)?;
         let fixendofline: u64 = self.eval("&fixendofline")?;
         if fixendofline == 1 && lines[lines.len() - 1].is_empty() {
             lines.pop();
         }
         self.notify(None, "setline", json!([1, lines]))?;
+        if lines.len() + 1 < lines_len {
+            self.command(&format!("{},{}d", lines.len() + 1, lines_len))?;
+        }
         debug!("End apply WorkspaceEdit");
         Ok(())
     }
