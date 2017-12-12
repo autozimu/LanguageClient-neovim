@@ -13,8 +13,8 @@ release:
 	cargo build --release
 	cp -f target/release/languageclient bin/
 
-github-release:
-	ci/github-release.sh
+release-tag:
+	ci/release-tag.sh
 
 test:
 	cargo test
