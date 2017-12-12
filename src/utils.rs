@@ -207,10 +207,7 @@ fn test_apply_TextEdit() {
 fn get_command_add_sign(sign: &Sign, filename: &str) -> String {
     format!(
         " | execute 'sign place {} line={} name=LanguageClient{:?} file={}'",
-        sign.id,
-        sign.line,
-        sign.severity,
-        filename
+        sign.id, sign.line, sign.severity, filename
     )
 }
 
@@ -263,7 +260,6 @@ pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &
 
 #[test]
 fn test_get_command_update_signs() {}
-
 
 pub trait Merge {
     fn merge(&mut self, other: Self) -> ();

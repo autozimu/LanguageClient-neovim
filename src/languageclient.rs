@@ -167,8 +167,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
                                 "Error handling message. Message: {}. Error: {:?}",
-                                message,
-                                err
+                                message, err
                             );
                         }
                     }
@@ -235,8 +234,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     if err.downcast_ref::<LCError>().is_none() {
                         error!(
                             "Error handling message. Message: {}. Error: {:?}",
-                            message,
-                            result
+                            message, result
                         );
                     }
                 }
@@ -387,8 +385,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         } else {
             warn!(
                 "Some arguments are missing, requesting from vim. Keys: {:?}. Exps: {:?}",
-                keys_request,
-                exps_request,
+                keys_request, exps_request,
             );
             self.eval(&exps_request[..])?
         };
@@ -501,9 +498,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             for entry in state.diagnosticsDisplay.values() {
                 cmd += &format!(
                     " | execute 'sign define LanguageClient{} text={} texthl={}'",
-                    entry.name,
-                    entry.signText,
-                    entry.signTexthl,
+                    entry.name, entry.signText, entry.signTexthl,
                 );
             }
 
@@ -567,15 +562,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
         // Quickfix.
         let qflist: Vec<_> = diagnostics
             .iter()
-            .map(|dn| {
-                QuickfixEntry {
-                    filename: filename.to_owned(),
-                    lnum: dn.range.start.line + 1,
-                    col: Some(dn.range.start.character + 1),
-                    nr: dn.code.clone().map(|ns| ns.to_string()),
-                    text: Some(dn.message.to_owned()),
-                    typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
-                }
+            .map(|dn| QuickfixEntry {
+                filename: filename.to_owned(),
+                lnum: dn.range.start.line + 1,
+                col: Some(dn.range.start.character + 1),
+                nr: dn.code.clone().map(|ns| ns.to_string()),
+                text: Some(dn.message.to_owned()),
+                typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
             })
             .collect();
         let diagnosticsList = self.get(|state| Ok(state.diagnosticsList.clone()))?;
@@ -597,12 +590,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if source.is_none() {
             let exp = format!(
                 "nvim_buf_add_highlight({}, {}, {}, {}, {}, {})",
-                0,
-                0,
-                "''",
-                1,
-                1,
-                1
+                0, 0, "''", 1, 1, 1
             );
             source = Some(self.eval(exp)?);
             self.update(|state| {

@@ -47,9 +47,7 @@ pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
-
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
-
 
 #[derive(Debug, Serialize)]
 pub struct State {
@@ -452,7 +450,6 @@ impl ToString for Vec<diff::Result<char>> {
         s
     }
 }
-
 
 pub trait DiagnosticSeverityExt {
     fn to_quickfix_entry_type(&self) -> char;
