@@ -679,7 +679,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .collect();
 
                 self.notify(None, "setloclist", json!([0, loclist]))?;
-                self.echo("References populated to location list.")?;
+                self.echo("Location list updated.")?;
             }
         }
         Ok(())
@@ -1565,19 +1565,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     loc.range.start.character,
                 )?;
             }
-            GotoDefinitionResponse::Array(arr) => {
-                let loc = arr.get(0).ok_or(format_err!("Not found!"))?;
-                self.goto_location(
-                    loc.uri.path(),
-                    loc.range.start.line,
-                    loc.range.start.character,
-                )?;
-                if arr.len() > 1 {
-                    let message = "Multiple defintions found. Goto first!";
-                    warn!("{}", message);
-                    self.echomsg(message)?;
+            GotoDefinitionResponse::Array(arr) => match arr.len() {
+                0 => self.echowarn("Not found!")?,
+                1 => {
+                    let loc = arr.get(0).ok_or(format_err!("Not found!"))?;
+                    self.goto_location(
+                        loc.uri.path(),
+                        loc.range.start.line,
+                        loc.range.start.character,
+                    )?;
                 }
-            }
+                _ => self.display_locations(&arr, &languageId)?,
+            },
         };
 
         info!("End {}", REQUEST__GotoDefinition);
