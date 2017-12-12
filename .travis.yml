@@ -19,6 +19,10 @@ matrix:
     - env: TARGETS=x86_64-apple-darwin
       os: osx
 
+branches:
+    except:
+        - binary-*
+
 before_install:
   - set -e
   - rustup self update

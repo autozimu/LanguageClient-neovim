@@ -32,4 +32,5 @@ package() {
 TARGETS=(${TARGETS//:/ })
 for TARGET in "${TARGETS[@]}"; do
     package $TARGET
+    make github-release
 done
