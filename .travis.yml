@@ -9,15 +9,20 @@ language: rust
 env:
   global:
     - CRATE_NAME=languageclient
+    - secure: eWJeA/cgx+RqY6jny1wtw4LErLy5leXYFvcfmGzwn8jGzDuUYt9S86GpMWamhKXsWZnUq3tdaCUFEThqd72nbQDd5tXhlKDAHQO6imo7zkszERv2mBRbDJwufYnj9J41OSyXk2MrJKerOTkD0HX5RmHXpY/wZf5ESSY5KamWBrqEOCLHdkT0QFD8Yqa9oCrfX3pI16b70rbZF60TSL5sE4neU9ai771fWyl0cGgO6QrpmW+J2fzC+gEtvDuBVoOUsfLlUBAEdylO6FIEEZy7i+HFFBCXYKtJIffdlMWKg9nogDU2ZqEtcPCgbc6HbhTCMPNPm/JlXUPw2zwb6tCO/IlMe3heLMPs+dfzbUdSCxTWicPzdzbZCjA4iUvDE2/vailVdKm72jSbm9ja7Vr9H5Y+IQpH3uncAAyE/q6fpKUh6uVRgKPA/5bULgzOwM0EuwWpyMC2iJvu/SGmrsUYZzztuB61p+G+TGlqrKFw9IfzfzrKlRDkMHYRbbSGQuB7NEYRV2Qn+4VavLjw+bshiK+8BqfjfFBdp/v1u8D06MhE1f4NnK9jh7NUm7qipfTU+HgZUauYN54T8CeljtyaynUeTDy2FNnK+zoA8WfxxZSnN7z8XOeAQESZWCRx3gG6ES6hChkwNxsyub9cU+VGCKvPgikXQzaWZ2EvOzGrpz8=
 
 matrix:
   include:
     # Linux
-    - env: TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl INTEGRATION_TEST=1
+    - env: INTEGRATION_TEST=1 TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl:i686-pc-windows-gnu:x86_64-pc-windows-gnu
 
     # OSX
     - env: TARGETS=x86_64-apple-darwin
       os: osx
+
+branches:
+  except:
+    - /binary-.*/
 
 before_install:
   - set -e
@@ -54,3 +59,5 @@ cache:
 before_cache:
   # Travis can't cache files that are not readable by "others"
   - chmod -R a+r $HOME/.cargo
+
+# vim: tabstop=2

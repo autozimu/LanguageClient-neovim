@@ -13,9 +13,6 @@ release:
 	cargo build --release
 	cp -f target/release/languageclient bin/
 
-release-tag:
-	ci/release-tag.sh
-
 test:
 	cargo test
 
