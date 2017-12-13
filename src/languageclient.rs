@@ -1284,7 +1284,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let text_document = TextDocumentItem {
             uri: filename.to_url()?,
             language_id: Some(languageId.clone()),
-            version: None,
+            version: Some(0),
             text: text.join("\n"),
         };
 
