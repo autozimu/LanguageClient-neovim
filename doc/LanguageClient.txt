@@ -100,7 +100,7 @@ Default: >
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
 Interval in seconds during which textDocument_didChange is suppressed. For
-exmaple: >
+example: >
 
     let g:LanguageClient_changeThrottle = 0.5
 
@@ -304,7 +304,7 @@ There is also an utility script in: >
 
     $RUNTIME/rplugin/python3/LanguageClient/wrapper.sh
 
-which can work like a proxy and logs all stdin  and stdout of the language
+which can work like a proxy and logs all stdin and stdout of the language
 server into a log file.
 
 ==============================================================================
