@@ -535,7 +535,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             lines.pop();
         }
         self.notify(None, "setline", json!([1, lines]))?;
-        if lines.len() + 1 < lines_len {
+        if lines.len() < lines_len {
             self.command(&format!("{},{}d", lines.len() + 1, lines_len))?;
         }
         debug!("End apply WorkspaceEdit");
