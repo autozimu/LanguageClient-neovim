@@ -522,8 +522,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn apply_TextEdits(&self, filename: &str, edits: &[TextEdit]) -> Result<()> {
-        debug!("Begin apply WorkspaceEdit: {:?}", edits);
+        debug!("Begin apply TextEdits: {:?}", edits);
         let mut edits = edits.to_vec();
+        edits.reverse();
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
         self.goto_location(filename, 0, 0)?;
@@ -538,7 +539,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if lines.len() < lines_len {
             self.command(&format!("{},{}d", lines.len() + 1, lines_len))?;
         }
-        debug!("End apply WorkspaceEdit");
+        debug!("End apply TextEdits");
         Ok(())
     }
 
