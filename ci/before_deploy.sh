@@ -48,6 +48,8 @@ release_tag() {
     tagname="binary-$TRAVIS_TAG-$TARGET"
     git tag --force "$tagname"
     git push --force https://${GITHUB_TOKEN}@github.com/autozimu/LanguageClient-neovim.git "$tagname"
+
+    git reset --hard HEAD^
 }
 
 TARGETS=(${TARGETS//:/ })
