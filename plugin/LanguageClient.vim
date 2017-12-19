@@ -380,7 +380,7 @@ function! LanguageClient_startServer(...) abort
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
-                \ 'filename': s:Expand('%:p')
+                \ 'filename': s:Expand('%:p'),
                 \ 'cmdargs': [],
                 \ }
     call extend(l:params, a:0 > 0 ? {'cmdargs': a:000} : {})
