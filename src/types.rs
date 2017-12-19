@@ -299,7 +299,10 @@ pub struct VimCompleteItem {
 
 impl From<CompletionItem> for VimCompleteItem {
     fn from(lspitem: CompletionItem) -> VimCompleteItem {
-        let word = lspitem.insert_text.clone().unwrap_or(lspitem.label.clone());
+        let word = lspitem
+            .insert_text
+            .clone()
+            .unwrap_or_else(|| lspitem.label.clone());
         let kind = match lspitem.kind {
             Some(CompletionItemKind::Variable) => "v".to_owned(),
             Some(CompletionItemKind::Method) | Some(CompletionItemKind::Function) => "f".to_owned(),
@@ -314,8 +317,8 @@ impl From<CompletionItem> for VimCompleteItem {
             abbr: lspitem.label.clone(),
             icase: 1,
             dup: 1,
-            menu: lspitem.detail.clone().unwrap_or("".to_owned()),
-            info: lspitem.documentation.clone().unwrap_or("".to_owned()),
+            menu: lspitem.detail.clone().unwrap_or_default(),
+            info: lspitem.documentation.clone().unwrap_or_default(),
             kind,
         }
     }
@@ -512,8 +515,13 @@ pub enum VimVar {
     Handle,
 }
 
-impl ToString for VimVar {
-    fn to_string(&self) -> String {
+pub trait VimExp {
+    fn to_key(&self) -> String;
+    fn to_exp(&self) -> String;
+}
+
+impl VimExp for VimVar {
+    fn to_key(&self) -> String {
         match *self {
             VimVar::Buftype => "buftype",
             VimVar::LanguageId => "languageId",
@@ -526,26 +534,8 @@ impl ToString for VimVar {
             VimVar::Handle => "handle",
         }.to_owned()
     }
-}
 
-pub trait VimExp {
-    fn exp(&self) -> String;
-}
-
-impl<'a> VimExp for &'a str {
-    fn exp(&self) -> String {
-        (*self).to_owned()
-    }
-}
-
-impl VimExp for String {
-    fn exp(&self) -> String {
-        self.clone()
-    }
-}
-
-impl VimExp for VimVar {
-    fn exp(&self) -> String {
+    fn to_exp(&self) -> String {
         match *self {
             VimVar::Buftype => "&buftype",
             VimVar::LanguageId => "&filetype",
@@ -560,17 +550,51 @@ impl VimExp for VimVar {
     }
 }
 
+impl<'a> VimExp for &'a str {
+    fn to_key(&self) -> String {
+        (*self).to_owned()
+    }
+
+    fn to_exp(&self) -> String {
+        (*self).to_owned()
+    }
+}
+
+impl VimExp for String {
+    fn to_key(&self) -> String {
+        self.clone()
+    }
+
+    fn to_exp(&self) -> String {
+        self.clone()
+    }
+}
+
+impl<'a> VimExp for (&'a str, &'a str) {
+    fn to_key(&self) -> String {
+        self.0.to_owned()
+    }
+
+    fn to_exp(&self) -> String {
+        self.1.to_owned()
+    }
+}
+
 impl<'a, T> VimExp for &'a [T]
 where
     T: VimExp,
 {
-    fn exp(&self) -> String {
+    fn to_key(&self) -> String {
+        String::new()
+    }
+
+    fn to_exp(&self) -> String {
         let mut exp = "[".to_owned();
         for (i, e) in self.iter().enumerate() {
             if i != 0 {
                 exp += ", ";
             }
-            exp += &e.exp();
+            exp += &e.to_exp();
         }
         exp += "]";
         exp

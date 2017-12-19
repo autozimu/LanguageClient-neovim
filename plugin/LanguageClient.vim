@@ -376,8 +376,15 @@ function! LanguageClient_alive(callback) abort
     return LanguageClient#Call('languageClient/isAlive', {}, a:callback)
 endfunction
 
-function! LanguageClient_startServer() abort
-    return LanguageClient#Call('languageClient/startServer', {}, v:null)
+function! LanguageClient_startServer(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p')
+                \ 'cmdargs': [],
+                \ }
+    call extend(l:params, a:0 > 0 ? {'cmdargs': a:000} : {})
+    return LanguageClient#Call('languageClient/startServer', l:params, v:null)
 endfunction
 
 function! LanguageClient_registerServerCommands(cmds) abort
@@ -569,7 +576,7 @@ function! s:FZF(source, sink) abort
     endif
 endfunction
 
-command! LanguageClientStart :call LanguageClient_startServer()
+command! -nargs=* LanguageClientStart :call LanguageClient_startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient_exit()
 
 autocmd BufReadPost * call LanguageClient_handleBufReadPost()

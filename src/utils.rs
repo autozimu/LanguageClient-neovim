@@ -33,7 +33,8 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         })
     })
         .or({
-            let parent = path.parent().ok_or(format_err!("Failed to get file dir"));
+            let parent = path.parent()
+                .ok_or_else(|| format_err!("Failed to get file dir"));
             warn!(
                 "Unknown project type. Fallback to use dir as project root: {:?}",
                 parent
@@ -50,7 +51,7 @@ where
         return Ok(path);
     }
 
-    let next_path = path.parent().ok_or(format_err!("Hit root"))?;
+    let next_path = path.parent().ok_or_else(|| format_err!("Hit root"))?;
 
     traverse_up(next_path, predicate)
 }
@@ -85,25 +86,27 @@ pub trait ToUrl {
 
 impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     fn to_url(&self) -> Result<Url> {
-        Url::from_file_path(self).or(Err(format_err!(
-            "Failed to convert from path ({:?}) to Url",
-            self
-        )))
+        Url::from_file_path(self).or_else(|_| {
+            Err(format_err!(
+                "Failed to convert from path ({:?}) to Url",
+                self
+            ))
+        })
     }
 }
 
 pub fn get_logpath() -> PathBuf {
     let dir = env::var("TMP")
-        .or(env::var("TEMP"))
-        .unwrap_or("/tmp".to_owned());
+        .or_else(|_| env::var("TEMP"))
+        .unwrap_or_else(|_| "/tmp".to_owned());
 
     Path::new(&dir).join("LanguageClient.log")
 }
 
 pub fn get_logpath_server() -> PathBuf {
     let dir = env::var("TMP")
-        .or(env::var("TEMP"))
-        .unwrap_or("/tmp".to_owned());
+        .or_else(|_| env::var("TEMP"))
+        .unwrap_or_else(|_| "/tmp".to_owned());
 
     Path::new(&dir).join("LanguageServer.log")
 }
@@ -305,6 +308,35 @@ impl Combine for Value {
             (_, other) => other,
         }
     }
+}
+
+pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
+    let mut map = serde_json::map::Map::new();
+    for arg in args {
+        let mut tokens: Vec<_> = arg.splitn(2, '=').collect();
+        tokens.reverse();
+        let key = tokens
+            .pop()
+            .ok_or_else(|| format_err!("Failed to parse command arguments."))?;
+        let value = tokens
+            .pop()
+            .ok_or_else(|| format_err!("Failed to parse command arguments."))?;
+        let value = Value::String(value.to_owned());
+        map.insert(key.to_owned(), value);
+    }
+
+    Ok(Value::Object(map))
+}
+
+#[test]
+fn test_vim_cmd_args_to_value() {
+    let cmdargs = ["rootPath=/tmp".to_owned()];
+    assert_eq!(
+        vim_cmd_args_to_value(&cmdargs).unwrap(),
+        json!({
+        "rootPath": "/tmp"
+    })
+    );
 }
 
 // pub fn value_diff<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<String, (Value, Value)> {

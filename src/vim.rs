@@ -64,7 +64,7 @@ impl IVim for Arc<Mutex<State>> {
         E: VimExp,
         T: DeserializeOwned,
     {
-        let result = self.call(None, "eval", exp.exp())?;
+        let result = self.call(None, "eval", exp.to_exp())?;
         Ok(serde_json::from_value(result)?)
     }
 
@@ -79,7 +79,7 @@ impl IVim for Arc<Mutex<State>> {
 
     fn goto_location(&self, filename: &str, line: u64, character: u64) -> Result<()> {
         let bufname: Option<String> = self.eval(format!("bufname('{}')", filename).as_str())?;
-        let bufname = bufname.unwrap_or("".to_owned());
+        let bufname = bufname.unwrap_or_default();
 
         let action = if bufname.is_empty() { "edit" } else { "buffer" };
         let cmd = format!(
