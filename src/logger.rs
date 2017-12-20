@@ -1,3 +1,4 @@
+use std;
 use utils;
 use log4rs;
 use types::*;
@@ -17,6 +18,15 @@ fn config(level: LogLevelFilter) -> Result<Config> {
 }
 
 pub fn init() -> Result<Handle> {
+    {
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(utils::get_logpath())?;
+        writeln!(f, "")?;
+    }
+
     let handle = log4rs::init_config(config(LogLevelFilter::Warn)?)?;
 
     Ok(handle)

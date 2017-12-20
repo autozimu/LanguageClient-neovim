@@ -787,7 +787,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let stderr = std::fs::OpenOptions::new()
             .create(true)
-            .append(true)
+            .write(true)
+            .truncate(true)
             .open(&get_logpath_server())?;
 
         let process = std::process::Command::new(command
