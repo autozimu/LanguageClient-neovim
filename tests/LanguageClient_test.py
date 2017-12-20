@@ -29,7 +29,7 @@ def nvim() -> neovim.Nvim:
     nvim = neovim.attach("socket", path=NVIM_LISTEN_ADDRESS)
     time.sleep(1)
     nvim.command("edit! {}".format(PATH_INDEXJS))
-    time.sleep(1)
+    time.sleep(3)
     return nvim
 
 
