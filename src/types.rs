@@ -54,6 +54,7 @@ pub struct State {
     // Program state.
     pub id: u64,
     #[serde(skip_serializing)] pub txs: HashMap<u64, Sender<Result<Value>>>,
+    pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)] pub writers: HashMap<String, BufWriter<ChildStdin>>,
     pub capabilities: HashMap<String, Value>,
     pub roots: HashMap<String, String>,
@@ -85,6 +86,7 @@ impl State {
         State {
             id: 0,
             txs: HashMap::new(),
+            child_ids: HashMap::new(),
             writers: HashMap::new(),
             capabilities: HashMap::new(),
             roots: HashMap::new(),

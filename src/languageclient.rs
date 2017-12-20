@@ -37,6 +37,7 @@ pub trait ILanguageClient {
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()>;
     fn get_line(&self, filename: &str, line: u64) -> Result<String>;
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool>;
+    fn cleanup(&self, languageId: String) -> Result<()>;
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value>;
@@ -124,19 +125,45 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn loop_message<T: BufRead>(&self, input: T, languageId: Option<String>) -> Result<()> {
+        // Count how many consequent empty lines.
+        let mut count_empty_lines = 0;
+
         let mut input = input;
         let mut content_length = 0;
         loop {
             let mut message = String::new();
             let mut line = String::new();
-            if languageId.is_some() {
+            if let Some(languageId) = languageId.clone() {
                 input.read_line(&mut line)?;
                 line = line.strip();
                 if line.is_empty() {
+                    count_empty_lines += 1;
+                    if count_empty_lines > 3 {
+                        let child_id = self.get(|state| match state.child_ids.get(&languageId) {
+                            Some(id) => Ok(*id),
+                            None => Err(format_err!("Failed to get child id")),
+                        })?;
+
+                        let mut status: libc::c_int = 0;
+                        unsafe { libc::waitpid(child_id as i32, &mut status, libc::WNOHANG) };
+                        if status != 0 {
+                            if let Err(err) = self.cleanup(languageId.clone()) {
+                                error!("Error in cleanup: {:?}", err);
+                            }
+
+                            let message = format!("Language server ({}) exited unexpectedly!", languageId);
+                            if let Err(err) = self.echoerr(&message) {
+                                error!("Error in echoerr: {:?}", err);
+                            };
+                            return Err(format_err!("{}", message));
+                        }
+                    }
+
                     let mut buf = vec![0; content_length];
                     input.read_exact(buf.as_mut_slice())?;
                     message = String::from_utf8(buf)?;
                 } else {
+                    count_empty_lines = 0;
                     if !line.starts_with("Content-Length") {
                         continue;
                     }
@@ -772,6 +799,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .stderr(stderr)
             .spawn()?;
 
+        let child_id = process.id();
         let reader = BufReader::new(process
             .stdout
             .ok_or_else(|| format_err!("Failed to get subprocess stdout"))?);
@@ -780,17 +808,19 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .ok_or_else(|| format_err!("Failed to get subprocess stdin"))?);
 
         self.update(|state| {
+            state.child_ids.insert(languageId.clone(), child_id);
             state.writers.insert(languageId.clone(), writer);
             Ok(())
         })?;
 
         let state = Arc::clone(self);
         let languageId_clone = languageId.clone();
+        let thread_name = format!("RPC-{}", languageId);
         std::thread::Builder::new()
-            .name(format!("RPC-{}", languageId))
+            .name(thread_name.clone())
             .spawn(move || {
                 if let Err(err) = state.loop_message(reader, Some(languageId_clone)) {
-                    error!("Thread error out: {}", err);
+                    error!("{} thread error: {}", thread_name, err);
                 }
             })?;
 
@@ -2180,9 +2210,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
         self.notify(Some(&languageId), NOTIFICATION__Exit, Value::Null)?;
+        self.cleanup(languageId)
+    }
 
+    fn cleanup(&self, languageId: String) -> Result<()> {
         self.update(|state| {
-            state.last_cursor_line = 99;
+            state.last_cursor_line = 0;
             Ok(())
         })?;
 
