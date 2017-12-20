@@ -16,7 +16,7 @@ Choose steps matching your plugin manager.
 > If you don't want to use provided scripts to download pre-built binaries,
 > use git tags with binaries in repo, e.g. `Plug
 > 'autozimu/LanguageClient-neovim', {'tag':
-> 'binary-0.1.0-x86_64-apple-darwin'}`.
+> 'binary-*-x86_64-apple-darwin'}`.
 
 > If you don't want to install pre-built binaries, replace all following
 > `install.sh` with `make release`.
