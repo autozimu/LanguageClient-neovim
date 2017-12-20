@@ -493,7 +493,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "ERROR" => MessageType::Error,
             "WARNING" => MessageType::Warning,
             "INFO" => MessageType::Info,
-            "Log" => MessageType::Log,
+            "LOG" => MessageType::Log,
             _ => {
                 return Err(format_err!(
                     "Unknown windowLogMessageLevel: {}",
