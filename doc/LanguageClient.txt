@@ -165,6 +165,13 @@ Whether to load language server settings.
 Default: 0
 Valid options: 1 | 0
 
+2.13 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
+
+Logging level.
+
+Default: 'WARN'
+Valid options: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

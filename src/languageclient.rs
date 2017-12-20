@@ -435,13 +435,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn sync_settings(&self) -> Result<()> {
-        let (autoStart, serverCommands, mut selectionUI, trace, settingsPath, loadSettings): (
+        let (autoStart, serverCommands, mut selectionUI, trace, settingsPath, loadSettings, loggingLevel): (
             u64,
             HashMap<String, Vec<String>>,
             String,
             String,
             String,
             u64,
+            String,
         ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
@@ -450,6 +451,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 "get(g:, 'LanguageClient_trace', 'Off')",
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
+                "get(g:, 'LanguageClient_loggingLevel', 'WARN')",
             ][..],
         )?;
         // vimscript use 1 for true, 0 for false.
@@ -474,6 +476,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "" | "LOCATIONLIST" | "LOCATION-LIST" => SelectionUI::LocationList,
             _ => return Err(format_err!("Unknown selectionUI option: {:?}", selectionUI)),
         };
+
+        let logger = LOGGER
+            .deref()
+            .as_ref()
+            .or_else(|_| Err(format_err!("No logger")))?;
+        logger::set_logging_level(logger, &loggingLevel)?;
 
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
             u64,
