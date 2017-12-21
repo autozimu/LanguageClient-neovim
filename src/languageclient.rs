@@ -140,10 +140,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     count_empty_lines += 1;
                     if count_empty_lines > 5 {
                         if let Err(err) = self.cleanup(languageId.clone()) {
-                            error!("Error in cleanup: {:?}", err);
+                            error!("Error when cleanup: {:?}", err);
                         }
 
-                        let message = format!("Language server ({}) exited unexpectedly!", languageId);
+                        let mut message = format!("Language server ({}) exited unexpectedly!", languageId);
+                        match get_log_server() {
+                            Ok(log_server) => {
+                                message += "\n\nlanguage server stderr:\n";
+                                message += &log_server;
+                            }
+                            Err(err) => error!("Error when get_log_server: {:?}", err),
+                        }
                         if let Err(err) = self.echoerr(&message) {
                             error!("Error in echoerr: {:?}", err);
                         };
