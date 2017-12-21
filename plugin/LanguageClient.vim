@@ -108,7 +108,7 @@ function! s:HandleMessage(job, lines, event) abort
         endif
     elseif a:event == 'exit'
         if a:lines !=# '0'
-            echomsg 'LanguageClient exited with: ' . string(a:lines)
+            call s:Echoerr('languageclient exited with: ' . string(a:lines))
         endif
     else
         if $LANGUAGECLIENT_DEBUG

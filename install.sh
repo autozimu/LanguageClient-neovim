@@ -12,14 +12,12 @@ name=languageclient
 
 function try_curl() {
     command -v curl > /dev/null && \
-        curl -fL $1 | tar -xzf - && \
-        mv -f $name bin/
+        curl --fail --location $1 --output bin/$name
 }
 
 function try_wget() {
     command -v wget > /dev/null && \
-        wget -O - $1 | tar -xzf - && \
-        mv -f $name bin/
+        wget --output-document=bin/$name $1
 }
 
 function download() {
@@ -41,8 +39,8 @@ function try_build() {
 arch=$(uname -sm)
 binary=""
 case "${arch}" in
-    Linux\ *64) download $name-$version-x86_64-unknown-linux-musl.tar.gz ;;
-    Linux\ *86) download $name-$version-i686-unknown-linux-musl.tar.gz ;;
-    Darwin\ *64) download $name-$version-x86_64-apple-darwin.tar.gz ;;
+    Linux\ *64) download $name-$version-x86_64-unknown-linux-musl ;;
+    Linux\ *86) download $name-$version-i686-unknown-linux-musl ;;
+    Darwin\ *64) download $name-$version-x86_64-apple-darwin ;;
     *) echo "No pre-built binary available for ${arch}."; try_build ;;
 esac

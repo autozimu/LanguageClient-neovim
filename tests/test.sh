@@ -16,8 +16,10 @@ sleep 1s
 py.test-3 --capture=no --exitfirst -v $@
 ret=$?
 
-cat $LOG
-cat $LOG_SERVER
+if [[ $ret != 0 ]]; then
+    cat $LOG
+    cat $LOG_SERVER
+fi
 
 kill $PID
 exit $ret

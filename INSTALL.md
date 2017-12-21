@@ -4,9 +4,7 @@ Obviously you need [neovim](https://github.com/neovim/neovim#install-from-packag
 
 # 2. Install dependencies
 
-For Windows user, [Microsoft Visual C++ 2015 runtime] is needed.
-
-[Microsoft Visual C++ 2015 runtime]: https://www.microsoft.com/en-us/download/details.aspx?id=52685
+None.
 
 # 3. Install this plugin
 Choose steps matching your plugin manager.

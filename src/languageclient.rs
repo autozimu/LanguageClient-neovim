@@ -138,25 +138,16 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 line = line.strip();
                 if line.is_empty() {
                     count_empty_lines += 1;
-                    if count_empty_lines > 3 {
-                        let child_id = self.get(|state| match state.child_ids.get(&languageId) {
-                            Some(id) => Ok(*id),
-                            None => Err(format_err!("Failed to get child id")),
-                        })?;
-
-                        let mut status: libc::c_int = 0;
-                        unsafe { libc::waitpid(child_id as i32, &mut status, libc::WNOHANG) };
-                        if status != 0 {
-                            if let Err(err) = self.cleanup(languageId.clone()) {
-                                error!("Error in cleanup: {:?}", err);
-                            }
-
-                            let message = format!("Language server ({}) exited unexpectedly!", languageId);
-                            if let Err(err) = self.echoerr(&message) {
-                                error!("Error in echoerr: {:?}", err);
-                            };
-                            return Err(format_err!("{}", message));
+                    if count_empty_lines > 5 {
+                        if let Err(err) = self.cleanup(languageId.clone()) {
+                            error!("Error in cleanup: {:?}", err);
                         }
+
+                        let message = format!("Language server ({}) exited unexpectedly!", languageId);
+                        if let Err(err) = self.echoerr(&message) {
+                            error!("Error in echoerr: {:?}", err);
+                        };
+                        return Err(format_err!("{}", message));
                     }
 
                     let mut buf = vec![0; content_length];

@@ -14,7 +14,7 @@ env:
 matrix:
   include:
     # Linux
-    - env: INTEGRATION_TEST=1 TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl:i686-pc-windows-gnu:x86_64-pc-windows-gnu
+    - env: TARGETS=i686-unknown-linux-musl:x86_64-unknown-linux-musl:i686-pc-windows-gnu:x86_64-pc-windows-gnu
 
     # OSX
     - env: TARGETS=x86_64-apple-darwin
@@ -47,7 +47,7 @@ deploy:
   api_key:
     secure: Dr/oCr65KsSjcDk21+CS7cZ/UR/ktncwDLsQIF/UyFC0bCP5MFbQ76Cz7Dy460hMtjCiy/X4QukxtiF0oeaOvi1szbo29s1KYjc9xPVhI1roQUyGghkGzo+V5Ncum3pwKF1Mb/kotikh2QSFQJYA3o32HhMNVb+1bApD+bwyAsGlnlAYYWQy+EcIDByhG9B4HB2pScoblyPmbgQPftc/E3ldKkm4iPNiNNa9T/rlXazNOkuiAqbRR/qBI4sSVAFFvfzvEcva4k5X8wzWfdsiDk9HKnNL7iDzdMMExSOoIKoet6jK3E3f2VbwD7tRw+We2cB+EBrW7xtkcck/BbEtnXhiWpt+Gg4qxXjZ6RVXgVw9tH0CGp2FjZ6B2DQ/chtgzIzLE+iuhJwhRqJ+7IW7LgNrnEsi6QelCiNKsm0aqXEpU5BVoBXxBegJHgHhunkKPpqmhYps5KsH4RPzrduqk2LHlYriwaGumcEnOVXzoJJs0NE6RaFzwl5cxmiKxC8tl1/dE4w2WmYM8n3yMmfbCd520bTQbvOe68k/8iV7gqZmOnWX//PLJ6Zf+v7T0yhaFC8Oj8ueWUCCSd7TAC3rHxd52BVZnQF1xXosiiN2PyWGZGbxaO1Qh7UbF1Xk+ot2pwEsP5Q8h155DlYJ/3mMzLvSi6Cp+78YKsoFlpfDy6w=
   file_glob: true
-  file: $CRATE_NAME-$TRAVIS_TAG-*
+  file: bin/$CRATE_NAME-$TRAVIS_TAG-*
   overwrite: true
   on:
     tags: true

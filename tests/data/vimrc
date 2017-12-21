@@ -11,6 +11,6 @@ let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
-let g:LanguageClient_loggingLevel = 'DEBUG'
+let g:LanguageClient_loggingLevel = 'INFO'
 
 autocmd BufReadPost *.rs setlocal filetype=rust

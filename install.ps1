@@ -9,7 +9,7 @@ if ($ENV:PROCESSOR_ARCHITECTURE -eq "AMD64") {
     $filename = $filename + 'i686'
 }
 
-$filename = $filename + '-pc-windows-msvc.exe'
+$filename = $filename + '-pc-windows-gnu.exe'
 $url = $url + $filename
 
 $path = "bin\$name.exe"

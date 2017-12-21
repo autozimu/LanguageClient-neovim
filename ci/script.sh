@@ -5,6 +5,6 @@ set -o xtrace
 
 make test
 
-if [[ ${INTEGRATION_TEST:-0} == 1 ]]; then
+if command -v docker > /dev/null ; then
     make integration-test-docker
 fi
