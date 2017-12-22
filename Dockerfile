@@ -15,10 +15,9 @@ RUN pip3 install neovim mypy flake8
 
 RUN npm install -g javascript-typescript-langserver
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly-2017-11-20 -y
-RUN ~/.cargo/bin/rustup component add rls-preview rust-analysis rust-src \
-        --toolchain nightly-2017-11-20
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN ~/.cargo/bin/rustup component add rls-preview rust-analysis rust-src
 # Verify rls works.
-RUN timeout 5 ~/.cargo/bin/rustup run nightly-2017-11-20 rls
+RUN timeout 5 ~/.cargo/bin/rustup run stable rls
 
 CMD /bin/bash
