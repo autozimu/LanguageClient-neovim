@@ -15,7 +15,7 @@ release:
 	cp -f target/release/languageclient bin/
 
 bump-version:
-	cargo release --level=patch --no-dev-version
+	cargo release --level=patch
 
 test:
 	cargo test
