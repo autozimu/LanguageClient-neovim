@@ -24,7 +24,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum LCError {
-    #[fail(display = "Language server is not running for: {}", languageId)] NoLanguageServer { languageId: String },
+    #[fail(display = "Language server is not running for: {}", languageId)]
+    NoLanguageServer { languageId: String },
 }
 
 // Extensions.
@@ -53,14 +54,17 @@ pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
 pub struct State {
     // Program state.
     pub id: u64,
-    #[serde(skip_serializing)] pub txs: HashMap<u64, Sender<Result<Value>>>,
+    #[serde(skip_serializing)]
+    pub txs: HashMap<u64, Sender<Result<Value>>>,
     pub child_ids: HashMap<String, u32>,
-    #[serde(skip_serializing)] pub writers: HashMap<String, BufWriter<ChildStdin>>,
+    #[serde(skip_serializing)]
+    pub writers: HashMap<String, BufWriter<ChildStdin>>,
     pub capabilities: HashMap<String, Value>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
-    #[serde(skip_serializing)] pub line_diagnostics: HashMap<(String, u64), String>,
+    #[serde(skip_serializing)]
+    pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
 
@@ -242,7 +246,8 @@ pub struct QuickfixEntry {
     pub col: Option<u64>,
     pub nr: Option<String>,
     pub text: Option<String>,
-    #[serde(rename = "type")] pub typee: Option<char>,
+    #[serde(rename = "type")]
+    pub typee: Option<char>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -605,6 +610,7 @@ where
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LanguageStatusParams {
-    #[serde(rename = "type")] pub typee: String,
+    #[serde(rename = "type")]
+    pub typee: String,
     pub message: String,
 }

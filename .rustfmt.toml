@@ -1,4 +1,3 @@
 error_on_line_overflow = false
 max_width = 120
-attributes_on_same_line_as_field = false
-attributes_on_same_line_as_variant = false
+same_line_attributes = false
