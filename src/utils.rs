@@ -135,19 +135,6 @@ impl Strip for String {
     }
 }
 
-pub trait AsRefStr {
-    fn as_ref_str(&self) -> Option<&str>;
-}
-
-impl AsRefStr for Option<String> {
-    fn as_ref_str(&self) -> Option<&str> {
-        match *self {
-            Some(ref s) => Some(s),
-            None => None,
-        }
-    }
-}
-
 pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<String>> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
@@ -182,16 +169,14 @@ fn test_apply_TextEdit() {
     let lines: Vec<String> = r#"fn main() {
 0;
 }
-"#.to_owned()
-        .split('\n')
+"#.split('\n')
         .map(|l| l.to_owned())
         .collect();
 
     let expect: Vec<String> = r#"fn main() {
     0;
 }
-"#.to_owned()
-        .split('\n')
+"#.split('\n')
         .map(|l| l.to_owned())
         .collect();
 

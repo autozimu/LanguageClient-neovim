@@ -266,7 +266,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     }
                 }
 
-                self.output(languageId.as_ref_str(), method_call.id, result)?
+                self.output(
+                    languageId.as_ref().map(|s| s.as_str()),
+                    method_call.id,
+                    result,
+                )?
             }
             Call::Notification(notification) => {
                 match notification.method.as_str() {
