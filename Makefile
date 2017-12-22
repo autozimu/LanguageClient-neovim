@@ -1,6 +1,7 @@
 all: build fmt clippy
 
 build:
+	cargo check
 	cargo build
 
 fmt:

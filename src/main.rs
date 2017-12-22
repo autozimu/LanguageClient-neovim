@@ -9,6 +9,8 @@ extern crate failure;
 
 extern crate libc;
 
+extern crate chrono;
+
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -60,10 +62,14 @@ fn run() -> Result<()> {
     state.loop_message(stdin, None)
 }
 
-include!(concat!(env!("OUT_DIR"), "/version.rs"));
-
 fn main() {
-    let version = format!("{} ({} {})", semver(), short_sha(), short_now());
+    let version = format!(
+        "{} ({} {:?})",
+        env!("CARGO_PKG_VERSION"),
+        option_env!("TRAVIS_COMMIT").unwrap_or("NULL"),
+        chrono::Utc::now(),
+    );
+
     let app = Opt::clap().version(version.as_str());
     let _ = app.get_matches();
 

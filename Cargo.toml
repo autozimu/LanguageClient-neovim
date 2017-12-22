@@ -3,7 +3,6 @@ name = "languageclient"
 version = "0.1.0"
 authors = ["Junfeng Li <autozimu@gmail.com>"]
 description = "Language Server Protocol (LSP) support for vim and neovim"
-build = "build.rs"
 
 [dependencies]
 failure = "*"
@@ -13,6 +12,7 @@ structopt = "*"
 structopt-derive = "*"
 libc = "*"
 lazy_static = "*"
+chrono = "*"
 
 serde = "*"
 serde_derive = "*"
@@ -25,6 +25,3 @@ pathdiff = "*"
 diff = "*"
 colored = "*"
 regex = "*"
-
-[build-dependencies]
-vergen = "*"
