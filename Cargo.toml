@@ -14,6 +14,7 @@ structopt-derive = "*"
 libc = "*"
 lazy_static = "*"
 chrono = "0.4.*"
+maplit = "*"
 
 serde = "*"
 serde_derive = "*"
@@ -24,7 +25,6 @@ languageserver-types = "*"
 url = "*"
 pathdiff = "*"
 diff = "*"
-colored = "*"
 regex = "*"
 
 [package.metadata.release]

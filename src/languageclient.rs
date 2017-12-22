@@ -98,29 +98,25 @@ impl ILanguageClient for Arc<Mutex<State>> {
         F: FnOnce(&mut State) -> Result<T>,
     {
         use log::LogLevel;
-        use diff::chars;
 
         let mut state = self.lock()
             .or_else(|_| Err(format_err!("Failed to lock state")))?;
         let before = if log_enabled!(LogLevel::Debug) {
-            // let s = serde_json::to_string(state.deref())?;
-            // serde_json::from_str(&s)?
-            format!("{:?}", state.deref())
+            let s = serde_json::to_string(state.deref())?;
+            serde_json::from_str(&s)?
         } else {
-            "".to_owned()
+            Value::default()
         };
         let result = f(&mut state);
         let after = if log_enabled!(LogLevel::Debug) {
-            // let s = serde_json::to_string(state.deref())?;
-            // serde_json::from_str(&s)?
-            format!("{:?}", state.deref())
+            let s = serde_json::to_string(state.deref())?;
+            serde_json::from_str(&s)?
         } else {
-            "".to_owned()
+            Value::default()
         };
-        // for (k, (v1, v2)) in value_diff(&before, &after, "state") {
-        //     debug!("{}: {} => {}", k, v1, v2);
-        // }
-        debug!("{}", chars(&before, &after).to_string());
+        for (k, (v1, v2)) in diff_value(&before, &after, "state") {
+            debug!("{}: {} ==> {}", k, v1, v2);
+        }
         result
     }
 
@@ -396,7 +392,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
         exps: &[E],
         map: &Option<Params>,
     ) -> Result<T> {
-        debug!("Begin gather_args");
         let mut map = match *map {
             None | Some(Params::None) => serde_json::map::Map::new(),
             Some(Params::Array(_)) => return Err(format_err!("Params should be dict!")),
@@ -431,8 +426,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .ok_or_else(|| format_err!("Failed to get value"))?);
         }
 
-        debug!("End gather_args");
-        debug!("{:?} = {:?}", exps, result);
+        info!("gather_args: {:?} = {:?}", exps, result);
         Ok(serde_json::from_value(Value::Array(result))?)
     }
 
@@ -2275,7 +2269,4 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("End {}", NOTIFICATION__LanguageStatus);
         Ok(())
     }
-
-    // TODO:
-    // - denite integrations
 }

@@ -17,7 +17,6 @@ pub use url::Url;
 pub use pathdiff::diff_paths;
 pub use serde::Serialize;
 pub use serde::de::DeserializeOwned;
-pub use colored::Colorize;
 
 pub use failure::Error;
 pub type Result<T> = std::result::Result<T, Error>;
@@ -442,22 +441,6 @@ impl ToString for NumberOrString {
             NumberOrString::Number(n) => format!("{}", n),
             NumberOrString::String(ref s) => s.clone(),
         }
-    }
-}
-
-use diff;
-
-impl ToString for Vec<diff::Result<char>> {
-    fn to_string(&self) -> String {
-        let mut s = String::new();
-        for comp in self {
-            s += &match *comp {
-                diff::Result::Both(v, _) => format!("{}", v),
-                diff::Result::Left(v) => format!("{}", format!("{}", v).red()),
-                diff::Result::Right(v) => format!("{}", format!("{}", v).green()),
-            };
-        }
-        s
     }
 }
 

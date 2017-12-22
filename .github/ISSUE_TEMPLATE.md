@@ -16,10 +16,9 @@ If not, please try follow the instructions there first.
     1.
     2.
     3.
-- Logs. Run `:call LanguageClient_setLoggingLevel('DEBUG') |
-:LanguageClientStop | :LanguageClientStart`, follow previous provided
-reproduction steps to reproduce the bug. Attach contents of
-`/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
+- Logs. Ensure `let g:LanguageClient_loggingLevel = 'DEBUG'` is in minimal
+  vimrc. Follow previous provided reproduction steps to reproduce the bug.
+  Attach contents of `/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
 
 (Please understand the more detailed information provided, the sooner a issue
 could be resolved. Low quality bug reports might be closed directly.)

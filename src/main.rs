@@ -11,6 +11,10 @@ extern crate libc;
 
 extern crate chrono;
 
+#[cfg(test)]
+#[macro_use]
+extern crate maplit;
+
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -26,8 +30,6 @@ extern crate url;
 extern crate pathdiff;
 
 extern crate diff;
-
-extern crate colored;
 
 extern crate regex;
 
