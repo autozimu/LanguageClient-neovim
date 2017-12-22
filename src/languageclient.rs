@@ -37,7 +37,7 @@ pub trait ILanguageClient {
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()>;
     fn get_line(&self, filename: &str, line: u64) -> Result<String>;
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool>;
-    fn cleanup(&self, languageId: String) -> Result<()>;
+    fn cleanup(&self, languageId: &str) -> Result<()>;
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value>;
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value>;
@@ -139,7 +139,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 if line.is_empty() {
                     count_empty_lines += 1;
                     if count_empty_lines > 5 {
-                        if let Err(err) = self.cleanup(languageId.clone()) {
+                        if let Err(err) = self.cleanup(&languageId) {
                             error!("Error when cleanup: {:?}", err);
                         }
 
@@ -2217,20 +2217,20 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
         self.notify(Some(&languageId), NOTIFICATION__Exit, Value::Null)?;
-        self.cleanup(languageId)
+        self.cleanup(&languageId)
     }
 
-    fn cleanup(&self, languageId: String) -> Result<()> {
+    fn cleanup(&self, languageId: &str) -> Result<()> {
         self.update(|state| {
             state.last_cursor_line = 0;
             Ok(())
         })?;
 
         let signsmap = self.update(|state| {
-            state.writers.remove(&languageId);
+            state.writers.remove(languageId);
             let root = state
                 .roots
-                .remove(&languageId)
+                .remove(languageId)
                 .ok_or_else(|| format_err!("No project root found!"))?;
 
             state.text_documents.retain(|f, _| !f.starts_with(&root));

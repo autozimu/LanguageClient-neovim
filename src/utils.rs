@@ -64,11 +64,10 @@ fn is_dotnet_root(dir: &Path) -> bool {
         return false;
     }
 
-    let entries = dir.read_dir();
-    if entries.is_err() {
-        return false;
-    }
-    let entries = entries.unwrap();
+    let entries = match dir.read_dir() {
+        Ok(entries) => entries,
+        Err(_) => return false,
+    };
     for entry in entries {
         if let Ok(entry) = entry {
             if entry.path().ends_with(".csproj") {
