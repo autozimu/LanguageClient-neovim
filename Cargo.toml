@@ -3,6 +3,7 @@ name = "languageclient"
 version = "0.1.0"
 authors = ["Junfeng Li <autozimu@gmail.com>"]
 description = "Language Server Protocol (LSP) support for vim and neovim"
+publish = false
 
 [dependencies]
 failure = "*"
@@ -25,3 +26,9 @@ pathdiff = "*"
 diff = "*"
 colored = "*"
 regex = "*"
+
+[package.metadata.release]
+pre-release-replacements = [
+    { file = "install.sh", search = "version=.*", replace = "version={{version}}" },
+    { file = "install.ps1", search = "$version = .*", replace = "$version = {{version}}" }
+]
