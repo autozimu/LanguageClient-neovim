@@ -7,35 +7,38 @@ Obviously you need [neovim](https://github.com/neovim/neovim#install-from-packag
 None.
 
 # 3. Install this plugin
+
+> Choose binary architecture to match your machine. Right now, binaries
+> are built for 5 platforms through Travis CI,
+> - i686-unknown-linux-musl
+> - x86\_64-unknown-linux-musl
+> - i686-pc-windows-gnu
+> - x86\_64-pc-windows-gnu
+> - x86\_64-apple-darwin
+> And use it to replace the example architecture inside tags.
+
+> If you don't want to use pre-built binaries, use `make release` as post
+> action after plugin installation and update.
+
 Choose steps matching your plugin manager.
-
-> For Windows user, replace all following `install.sh` with `install.ps1`.
-
-> If you don't want to use provided scripts to download pre-built binaries,
-> use git tags with binaries in repo, e.g. `Plug
-> 'autozimu/LanguageClient-neovim', {'tag':
-> 'binary-*-x86_64-apple-darwin'}`.
-
-> If you don't want to install pre-built binaries, replace all following
-> `install.sh` with `make release`.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
 ```vim
-Plug 'autozimu/LanguageClient-neovim', {'do': './install.sh' }
+Plug 'autozimu/LanguageClient-neovim', {'tag': 'binary-*-x86_64-apple-darwin' }
 ```
 
-Restart neovim and run `:PlugInstall` to install this plugin.
+Restart neovim and run `:PlugInstall` to install.
 
 ## [dein.vim](https://github.com/Shougo/dein.vim) user
-For MacOS and Linux user, add following to vimrc
+Add following to vimrc
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
-    \ 'build': './install.sh',
+    \ 'rev': 'binary-*-x86_64-apple-darwin',
     \ })
 ```
 
-Restart neovim and run `:call dein#install()` to install this plugin.
+Restart neovim and run `:call dein#install()` to install.
 
 ## Manual
 Clone this repo into some place, e.g., `~/.vim-plugins`
@@ -44,7 +47,10 @@ mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
 git clone https://github.com/autozimu/LanguageClient-neovim.git
 cd LanguageClient-neovim
-./install.sh
+# Suppose latest release is 0.1.2
+git checkout binary-0.1.2-x86_64-apple-darwin
+# Or build it locally
+# make release
 ```
 
 Add this plugin to vim/neovim `runtimepath`,
