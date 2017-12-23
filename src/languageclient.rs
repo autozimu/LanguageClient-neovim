@@ -409,8 +409,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let values_request: Vec<Value> = if keys_request.is_empty() {
             vec![]
         } else {
-            warn!(
-                "Some arguments are missing, requesting from vim. Keys: {:?}. Exps: {:?}",
+            info!(
+                "Some arguments are not available. Requesting from vim. Keys: {:?}. Exps: {:?}",
                 keys_request, exps_request,
             );
             self.eval(&exps_request[..])?
