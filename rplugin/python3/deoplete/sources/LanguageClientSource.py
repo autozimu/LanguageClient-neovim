@@ -33,6 +33,6 @@ class Source(Base):
 
         context["is_async"] = False
         result = self.vim.funcs.eval("remove({}, 0)".format(CompleteResults))
-        if result is None:
+        if not isinstance(result, list):
             result = []
         return result
