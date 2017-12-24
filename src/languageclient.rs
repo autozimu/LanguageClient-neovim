@@ -498,12 +498,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "WARNING" => MessageType::Warning,
             "INFO" => MessageType::Info,
             "LOG" => MessageType::Log,
-            _ => {
-                bail!(
-                    "Unknown windowLogMessageLevel: {}",
-                    windowLogMessageLevel
-                )
-            }
+            _ => bail!("Unknown windowLogMessageLevel: {}", windowLogMessageLevel),
         };
 
         self.update(|state| {
