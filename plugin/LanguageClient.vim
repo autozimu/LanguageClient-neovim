@@ -3,9 +3,13 @@ function! s:Echoerr(message) abort
 endfunction
 
 function! s:Debug(message) abort
-	if g:LanguageClient_loggingLevel ==? 'INFO' || g:LanguageClient_loggingLevel ==? 'DEBUG'
-		call s:Echoerr(a:message)
-	endif
+    if !exists('g:LanguageClient_loggingLevel')
+        return
+    endif
+
+    if g:LanguageClient_loggingLevel ==? 'INFO' || g:LanguageClient_loggingLevel ==? 'DEBUG'
+        call s:Echoerr(a:message)
+    endif
 endfunction
 
 if exists('LanguageClient_devel')
