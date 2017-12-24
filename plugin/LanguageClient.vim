@@ -1,4 +1,14 @@
-if $LANGUAGECLIENT_DEBUG
+function! s:Echoerr(message) abort
+    echohl Error | echomsg a:message | echohl None
+endfunction
+
+function! s:Debug(message) abort
+	if g:LanguageClient_loggingLevel ==? 'INFO' || g:LanguageClient_loggingLevel ==? 'DEBUG'
+		call s:Echoerr(a:message)
+	endif
+endfunction
+
+if exists('LanguageClient_devel')
     if empty($CARGO_TARGET_DIR)
         let s:command = [expand('<sfile>:p:h:h') . '/target/debug/languageclient']
     else
@@ -69,9 +79,7 @@ function! s:HandleMessage(job, lines, event) abort
                                     \   }
                                     \ }))
                     endif
-                    if $LANGUAGECLIENT_DEBUG
-                        call s:Echoerr(string(v:exception))
-                    endif
+                    call s:Debug(string(v:exception))
                 endtry
             elseif has_key(l:message, 'result')
                 let l:id = get(l:message, 'id')
@@ -103,17 +111,14 @@ function! s:HandleMessage(job, lines, event) abort
             endif
         endwhile
     elseif a:event == 'stderr'
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
-        endif
+        call s:Echoerr('languageclient stderr: ' . string(a:lines))
     elseif a:event == 'exit'
-        if a:lines !=# '0'
-            call s:Echoerr('languageclient exited with: ' . string(a:lines))
+        if type(a:lines) == v:t_number && a:lines == 0
+            return
         endif
+        call s:Echoerr('languageclient exited with: ' . string(a:lines))
     else
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr('Unknown event: ' . a:event)
-        endif
+        call s:Debug('languageclient unknown event: ' . a:event)
     endif
 endfunction
 
@@ -135,12 +140,20 @@ if has('nvim')
                 \ 'on_stderr': function('s:HandleMessage'),
                 \ 'on_exit': function('s:HandleMessage'),
                 \ })
+    if s:job == 0
+        call s:Echoerr('languageclient: Invalid arguments!')
+    elseif s:job == -1
+        call s:Echoerr('languageclient: Not executable!')
+    endif
 elseif has('job')
     let s:job = job_start(s:command, {
                 \ 'out_cb': function('s:HandleStdoutVim'),
                 \ 'err_cb': function('s:HandleStderrVim'),
                 \ 'exit_cb': function('s:HandleExitVim'),
                 \ })
+    if job_status(s:job) != 'run'
+        s:Echoerr('languageclient: job failed to start or died!')
+    endif
 else
     echoerr 'Not supported: not nvim nor vim with +job.'
 endif
@@ -410,9 +423,7 @@ function! LanguageClient_handleBufReadPost() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr("Caught " . string(v:exception))
-        endif
+        call s:Debug('languageclient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -429,9 +440,7 @@ function! LanguageClient_handleTextChanged() abort
                     \ 'text': getbufline('', 1, '$'),
                     \ })
     catch /.*/
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr("Caught " . string(v:exception))
-        endif
+        call s:Debug('languageclient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -447,9 +456,7 @@ function! LanguageClient_handleBufWritePost() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr("Caught " . string(v:exception))
-        endif
+        call s:Debug('languageclient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -465,9 +472,7 @@ function! LanguageClient_handleBufDelete() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr("Caught " . string(v:exception))
-        endif
+        call s:Debug('languageclient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -490,9 +495,7 @@ function! LanguageClient_handleCursorMoved() abort
                     \ 'line': line('.') - 1,
                     \ })
     catch /.*/
-        if $LANGUAGECLIENT_DEBUG
-            call s:Echoerr("Caught " . string(v:exception))
-        endif
+        call s:Debug('languageclient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -547,10 +550,6 @@ function! LanguageClient_exit() abort
     return LanguageClient#Notify('exit', {
                 \ 'languageId': &filetype,
                 \ })
-endfunction
-
-function! s:Echoerr(message) abort
-    echohl Error | echomsg a:message | echohl None
 endfunction
 
 " When editing a [No Name] file, neovim reports filename as "", while vim reports null.

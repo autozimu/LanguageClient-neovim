@@ -1,3 +1,5 @@
+set nocompatible
+
 let s:root = expand('<sfile>:p:h:h:h')
 execute 'set runtimepath+=' . s:root
 
@@ -6,11 +8,11 @@ set runtimepath+=$HOME/.fzf
 set noswapfile
 set hidden
 
-let $LANGUAGECLIENT_DEBUG = 1
+let g:LanguageClient_devel = 1
+let g:LanguageClient_loggingLevel = 'DEBUG'
 let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
-let g:LanguageClient_loggingLevel = 'DEBUG'
 
 autocmd BufReadPost *.rs setlocal filetype=rust

@@ -80,7 +80,7 @@ instructions.
 
 # Language Servers
 
-Please see <http://langserver.org> and/or <https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>.
+Please see <http://langserver.org> and/or <https://microsoft.github.io/language-server-protocol/implementors/servers/>.
 
 # Documentation
 
