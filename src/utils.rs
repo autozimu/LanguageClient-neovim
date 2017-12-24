@@ -24,6 +24,7 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "java" => traverse_up(path, |dir| {
             dir.join(".project").exists() || dir.join("pom.xml").exists()
         }),
+        "scala" => traverse_up(path, |dir| dir.join("build.sbt").exists()),
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
