@@ -150,7 +150,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                         if let Err(err) = self.echoerr(&message) {
                             error!("Error in echoerr: {:?}", err);
                         };
-                        return Err(format_err!("{}", message));
+                        bail!("{}", message);
                     }
 
                     let mut buf = vec![0; content_length];
@@ -291,7 +291,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     _ => warn!("Unknown notification: {:?}", notification.method),
                 }
             }
-            Call::Invalid(id) => return Err(format_err!("Invalid message of id: {:?}", id)),
+            Call::Invalid(id) => bail!("Invalid message of id: {:?}", id),
         }
 
         Ok(())
@@ -394,7 +394,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     ) -> Result<T> {
         let mut map = match *map {
             None | Some(Params::None) => serde_json::map::Map::new(),
-            Some(Params::Array(_)) => return Err(format_err!("Params should be dict!")),
+            Some(Params::Array(_)) => bail!("Params should be dict!"),
             Some(Params::Map(ref map)) => map.clone(),
         };
         let mut keys_request = vec![];
@@ -458,7 +458,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "OFF" => TraceOption::Off,
             "MESSAGES" => TraceOption::Messages,
             "VERBOSE" => TraceOption::Verbose,
-            _ => return Err(format_err!("Unknown trace option: {:?}", trace)),
+            _ => bail!("Unknown trace option: {:?}", trace),
         };
 
         if selectionUI == "" {
@@ -470,7 +470,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let selectionUI = match selectionUI.to_uppercase().as_str() {
             "FZF" => SelectionUI::FZF,
             "" | "LOCATIONLIST" | "LOCATION-LIST" => SelectionUI::LocationList,
-            _ => return Err(format_err!("Unknown selectionUI option: {:?}", selectionUI)),
+            _ => bail!("Unknown selectionUI option: {:?}", selectionUI),
         };
 
         let logger = LOGGER
@@ -499,10 +499,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
             "INFO" => MessageType::Info,
             "LOG" => MessageType::Log,
             _ => {
-                return Err(format_err!(
+                bail!(
                     "Unknown windowLogMessageLevel: {}",
                     windowLogMessageLevel
-                ))
+                )
             }
         };
 
@@ -851,7 +851,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let params = params.clone().ok_or_else(|| format_err!("Empty params"))?;
         let map = match params {
             Params::Map(map) => Value::Object(map),
-            _ => return Err(format_err!("Unexpected params type!")),
+            _ => bail!("Unexpected params type!"),
         };
         let map = serde_json::from_value(map)?;
         self.update(|state| Ok(state.serverCommands.merge(map)))?;
@@ -1109,8 +1109,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__NCMRefresh);
         let params = match *params {
-            None | Some(Params::None) => return Err(format_err!("Empty params!")),
-            Some(Params::Map(_)) => return Err(format_err!("Expecting array. Got dict.")),
+            None | Some(Params::None) => bail!("Empty params!"),
+            Some(Params::Map(_)) => bail!("Expecting array. Got dict."),
             Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
         };
         let (info, ctx): (NCMInfo, NCMContext) = serde_json::from_value(params)?;
@@ -1853,7 +1853,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
         let params = match *params {
             None | Some(Params::None) | Some(Params::Map(_)) => {
-                return Err(format_err!("Expecting array params!"));
+                bail!("Expecting array params!");
             }
             Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
         };
@@ -1956,7 +1956,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 }
             }
         } else {
-            return Err(format_err!("Not implemented: {}", cmd.command));
+            bail!("Not implemented: {}", cmd.command);
         }
 
         Ok(true)
