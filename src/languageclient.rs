@@ -754,7 +754,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
-            format_err!(
+            bail!(
                 "Language client has already started for language {}.",
                 &languageId
             );
@@ -2220,6 +2220,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn cleanup(&self, languageId: &str) -> Result<()> {
         self.update(|state| {
+            state.child_ids.remove(languageId);
             state.last_cursor_line = 0;
             Ok(())
         })?;
