@@ -1562,7 +1562,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let hover: Hover = serde_json::from_value(result.clone())?;
 
         let message = hover.to_string();
-        self.echomsg(&message)?;
+        self.echo(&message)?;
 
         info!("End {}", REQUEST__Hover);
         Ok(result)
