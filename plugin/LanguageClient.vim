@@ -519,16 +519,21 @@ endfunction
 
 let g:LanguageClient_completeResults = []
 function! LanguageClient_omniComplete(...) abort
-    let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
-    call LanguageClient#Call("languageClient/omniComplete", l:params, l:callback)
+    try
+        let l:params = {
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ 'filename': s:Expand('%:p'),
+                    \ 'line': line('.') - 1,
+                    \ 'character': col('.') - 1,
+                    \ }
+        call extend(l:params, a:0 >= 1 ? a:1 : {})
+        let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
+        call LanguageClient#Call("languageClient/omniComplete", l:params, l:callback)
+    catch /.*/
+        call add(g:LanguageClient_completeResults, v:null)
+        call s:Debug(string(v:exception))
+    endtry
 endfunction
 
 function! LanguageClient#complete(findstart, base) abort
