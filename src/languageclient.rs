@@ -1472,7 +1472,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(());
         }
 
-        let filename = params.uri.path().to_owned();
+        let mut filename = params
+            .uri
+            .to_file_path()
+            .map_err(|_| format_err!("Failed to convert uri to file path"))?
+            .to_str()
+            .ok_or_else(|| format_err!("Failed to convert PathBuf to str"))?
+            .to_owned();
+        // Remove first '/' in case of '/C:/blabla'.
+        if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
+            filename.remove(0);
+        }
         self.update(|state| {
             state
                 .diagnostics
