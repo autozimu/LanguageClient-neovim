@@ -84,6 +84,7 @@ pub trait ILanguageClient {
     fn rust_handleBeginBuild(&self, params: &Option<Params>) -> Result<()>;
     fn rust_handleDiagnosticsBegin(&self, params: &Option<Params>) -> Result<()>;
     fn rust_handleDiagnosticsEnd(&self, params: &Option<Params>) -> Result<()>;
+    fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()>;
 }
 
 impl ILanguageClient for Arc<Mutex<State>> {
@@ -300,6 +301,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     NOTIFICATION__RustBeginBuild => self.rust_handleBeginBuild(&notification.params)?,
                     NOTIFICATION__RustDiagnosticsBegin => self.rust_handleDiagnosticsBegin(&notification.params)?,
                     NOTIFICATION__RustDiagnosticsEnd => self.rust_handleDiagnosticsEnd(&notification.params)?,
+                    NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
                     _ => warn!("Unknown notification: {:?}", notification.method),
                 }
             }
@@ -2322,6 +2324,24 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.echo("Rust: build completed")?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
+        Ok(())
+    }
+
+    fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__CqueryProgress);
+        let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
+        let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
+            + params.onIdMappedCount + params.onIndexedCount;
+
+        if total != 0 {
+            self.echo(&format!(
+                "cquery: indexing ({} jobs)",
+                params.indexRequestCount
+            ))?;
+        } else {
+            self.echo("cquery: idle")?;
+        }
+        info!("End {}", NOTIFICATION__CqueryProgress);
         Ok(())
     }
 }

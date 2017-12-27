@@ -56,6 +56,7 @@ pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
+pub const NOTIFICATION__CqueryProgress: &str = "$cquery/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
@@ -645,4 +646,13 @@ pub struct LanguageStatusParams {
 pub enum RootMarkers {
     Array(Vec<String>),
     Map(HashMap<String, Vec<String>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CqueryProgressParams {
+    pub indexRequestCount: u64,
+    pub doIdMapCount: u64,
+    pub loadPreviousIndexCount: u64,
+    pub onIdMappedCount: u64,
+    pub onIndexedCount: u64,
 }
