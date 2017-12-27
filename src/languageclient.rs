@@ -81,6 +81,9 @@ pub trait ILanguageClient {
 
     // Extensions by languge servers.
     fn language_status(&self, params: &Option<Params>) -> Result<()>;
+    fn rust_handleBeginBuild(&self, params: &Option<Params>) -> Result<()>;
+    fn rust_handleDiagnosticsBegin(&self, params: &Option<Params>) -> Result<()>;
+    fn rust_handleDiagnosticsEnd(&self, params: &Option<Params>) -> Result<()>;
 }
 
 impl ILanguageClient for Arc<Mutex<State>> {
@@ -294,6 +297,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     NOTIFICATION__NCMRefresh => self.NCM_refresh(&notification.params)?,
                     // Extensions by language servers.
                     NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,
+                    NOTIFICATION__RustBeginBuild => self.rust_handleBeginBuild(&notification.params)?,
+                    NOTIFICATION__RustDiagnosticsBegin => self.rust_handleDiagnosticsBegin(&notification.params)?,
+                    NOTIFICATION__RustDiagnosticsEnd => self.rust_handleDiagnosticsEnd(&notification.params)?,
                     _ => warn!("Unknown notification: {:?}", notification.method),
                 }
             }
@@ -2295,6 +2301,27 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let msg = format!("{} {}", params.typee, params.message);
         self.echomsg(&msg)?;
         info!("End {}", NOTIFICATION__LanguageStatus);
+        Ok(())
+    }
+
+    fn rust_handleBeginBuild(&self, _params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__RustBeginBuild);
+        self.echo("Rust: build started")?;
+        info!("End {}", NOTIFICATION__RustBeginBuild);
+        Ok(())
+    }
+
+    fn rust_handleDiagnosticsBegin(&self, _params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
+        self.echo("Rust: diagnostics started")?;
+        info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
+        Ok(())
+    }
+
+    fn rust_handleDiagnosticsEnd(&self, _params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
+        self.echo("Rust: build completed")?;
+        info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
     }
 }

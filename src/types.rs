@@ -53,6 +53,9 @@ pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
+pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
+pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
+pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
