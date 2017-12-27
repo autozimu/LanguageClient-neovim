@@ -2308,38 +2308,62 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn rust_handleBeginBuild(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
-        self.echo("Rust: build started")?;
+        if !self.get(|state| Ok(state.showed_first_build_complete))? {
+            self.echo("Rust: build started")?;
+        }
         info!("End {}", NOTIFICATION__RustBeginBuild);
         Ok(())
     }
 
     fn rust_handleDiagnosticsBegin(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
-        self.echo("Rust: diagnostics started")?;
+        if !self.get(|state| Ok(state.showed_first_build_complete))? {
+            self.echo("Rust: diagnostics started")?;
+        }
         info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
         Ok(())
     }
 
     fn rust_handleDiagnosticsEnd(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
-        self.echo("Rust: build completed")?;
+        if !self.get(|state| Ok(state.showed_first_build_complete))? {
+            self.update(|state| {
+                state.showed_first_build_complete = true;
+                Ok(())
+            })?;
+
+            self.echo("Rust: build completed")?;
+        }
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
     }
 
     fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
-        let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
-        let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
-            + params.onIdMappedCount + params.onIndexedCount;
+        if !self.get(|state| Ok(state.showed_first_build_complete))? {
+            let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
+            let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
+                + params.onIdMappedCount + params.onIndexedCount;
 
-        if total != 0 {
-            self.echo(&format!(
-                "cquery: indexing ({} jobs)",
-                params.indexRequestCount
-            ))?;
-        } else {
-            self.echo("cquery: idle")?;
+            if total != 0 {
+                self.update(|state| {
+                    state.showed_cquery_build_progress = true;
+                    Ok(())
+                })?;
+                self.echo(&format!(
+                    "cquery: indexing ({} jobs)",
+                    params.indexRequestCount
+                ))?;
+            } else {
+                self.update(|state| {
+                    // In the beginning cquery sends 0 jobs
+                    if state.showed_cquery_build_progress {
+                        state.showed_first_build_complete = true;
+                    }
+                    Ok(())
+                })?;
+                self.echo("cquery: idle")?;
+            }
         }
         info!("End {}", NOTIFICATION__CqueryProgress);
         Ok(())
