@@ -1041,7 +1041,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         info!("End {}", REQUEST__Initialize);
-        self.registerCMSource(&languageId, &result)?;
+        if let Err(e) = self.registerCMSource(&languageId, &result) {
+            let message = "LanguageClient: failed to register as NCM source!";
+            debug!("{}: {:?}", message, e);
+            self.echoerr(message)?;
+        }
         Ok(result)
     }
 
