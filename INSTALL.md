@@ -18,7 +18,7 @@ None.
 > And use it to replace the example architecture inside tags.
 
 > If you don't want to use pre-built binaries, specify branch `next` and `make release` as post
-> action after plugin installation and update. e.g., `Plug 'autozimu/LanguageClient', {'branch': 'next', 'do': 'make release'}`.
+> action after plugin installation and update. e.g., `Plug 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': 'make release'}`.
 
 Choose steps matching your plugin manager.
 
