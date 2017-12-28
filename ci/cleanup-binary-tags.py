@@ -10,8 +10,10 @@ def tag_to_version(tag):
     version = re.sub(r'-[x86|i686].*', '', version)
     return version
 
+
 subprocess.check_call('git pull --tags', shell=True)
-tags = subprocess.check_output('git tag --list | grep binary', shell=True).decode('UTF-8').splitlines()
+tags = subprocess.check_output(
+    'git tag --list | grep binary', shell=True).decode('UTF-8').splitlines()
 versions = sorted(list(set([tag_to_version(tag) for tag in tags])), key=semver.parse_version_info)
 versions_to_delete = versions[:-3]
 
