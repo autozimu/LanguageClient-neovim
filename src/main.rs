@@ -21,9 +21,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-extern crate jsonrpc_core;
+pub extern crate jsonrpc_core;
 
-extern crate languageserver_types;
+pub extern crate languageserver_types;
 
 extern crate url;
 

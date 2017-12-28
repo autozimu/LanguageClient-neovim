@@ -10,9 +10,15 @@ pub use std::io::{BufReader, BufWriter};
 pub use std::fs::File;
 pub use std::env;
 pub use std::process::{ChildStdin, Stdio};
-pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Notification, Output,
-                              Params, Success, Value, Version};
-pub use languageserver_types::*;
+pub use jsonrpc_core as rpc;
+// TODO: use rpc prefix.
+pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success,
+                              Value, Version};
+pub use languageserver_types as lsp;
+// TODO: unglob.
+pub use lsp::*;
+pub use lsp::request::Request;
+pub use lsp::notification::Notification;
 pub use url::Url;
 pub use pathdiff::diff_paths;
 pub use serde::Serialize;
@@ -324,7 +330,10 @@ impl From<CompletionItem> for VimCompleteItem {
             icase: 1,
             dup: 1,
             menu: lspitem.detail.clone().unwrap_or_default(),
-            info: lspitem.documentation.clone().unwrap_or_default(),
+            info: lspitem
+                .documentation
+                .map(|d| d.to_string())
+                .unwrap_or_default(),
             kind,
         }
     }
@@ -414,24 +423,44 @@ impl<'a> ToString for &'a str {
     }
 }
 
+impl ToString for lsp::MarkedString {
+    fn to_string(&self) -> String {
+        match *self {
+            MarkedString::String(ref s) => s.clone(),
+            // TODO: display language content properly.
+            MarkedString::LanguageString(ref ls) => ls.value.clone(),
+        }
+    }
+}
+
 impl ToString for Hover {
     fn to_string(&self) -> String {
         let mut message = String::new();
-        let markedString_to_String = |ms: &MarkedString| -> String {
-            match *ms {
-                MarkedString::String(ref s) => s.clone(),
-                MarkedString::LanguageString(ref ls) => ls.value.clone(),
-            }
-        };
 
         match self.contents {
-            HoverContents::Scalar(ref s) => message += &markedString_to_String(s),
+            HoverContents::Scalar(ref ms) => message += &ms.to_string(),
             HoverContents::Array(ref vec) => for item in vec {
-                message += &markedString_to_String(item);
+                message += &item.to_string();
             },
+            HoverContents::Markup(ref mc) => message += &mc.to_string(),
         };
 
         message
+    }
+}
+
+impl ToString for lsp::MarkupContent {
+    fn to_string(&self) -> String {
+        self.value.clone()
+    }
+}
+
+impl ToString for lsp::Documentation {
+    fn to_string(&self) -> String {
+        match *self {
+            lsp::Documentation::String(ref s) => s.to_owned(),
+            lsp::Documentation::MarkupContent(ref mc) => mc.to_string(),
+        }
     }
 }
 

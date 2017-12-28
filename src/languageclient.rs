@@ -228,20 +228,20 @@ impl ILanguageClient for Arc<Mutex<State>> {
         match call {
             Call::MethodCall(method_call) => {
                 let result: Result<Value> = match method_call.method.as_str() {
-                    REQUEST__Hover => self.textDocument_hover(&method_call.params),
-                    REQUEST__GotoDefinition => self.textDocument_definition(&method_call.params),
-                    REQUEST__Rename => self.textDocument_rename(&method_call.params),
-                    REQUEST__DocumentSymbols => self.textDocument_documentSymbol(&method_call.params),
-                    REQUEST__WorkspaceSymbols => self.workspace_symbol(&method_call.params),
-                    REQUEST__CodeAction => self.textDocument_codeAction(&method_call.params),
-                    REQUEST__Completion => self.textDocument_completion(&method_call.params),
-                    REQUEST__SignatureHelp => self.textDocument_signatureHelp(&method_call.params),
-                    REQUEST__References => self.textDocument_references(&method_call.params),
-                    REQUEST__Formatting => self.textDocument_formatting(&method_call.params),
-                    REQUEST__RangeFormatting => self.textDocument_rangeFormatting(&method_call.params),
-                    REQUEST__ResolveCompletionItem => self.completionItem_resolve(&method_call.params),
-                    REQUEST__ExecuteCommand => self.workspace_executeCommand(&method_call.params),
-                    REQUEST__ApplyEdit => self.workspace_applyEdit(&method_call.params),
+                    lsp::request::HoverRequest::METHOD => self.textDocument_hover(&method_call.params),
+                    lsp::request::GotoDefinition::METHOD => self.textDocument_definition(&method_call.params),
+                    lsp::request::Rename::METHOD => self.textDocument_rename(&method_call.params),
+                    lsp::request::DocumentSymbol::METHOD => self.textDocument_documentSymbol(&method_call.params),
+                    lsp::request::WorkspaceSymbol::METHOD => self.workspace_symbol(&method_call.params),
+                    lsp::request::CodeActionRequest::METHOD => self.textDocument_codeAction(&method_call.params),
+                    lsp::request::Completion::METHOD => self.textDocument_completion(&method_call.params),
+                    lsp::request::SignatureHelpRequest::METHOD => self.textDocument_signatureHelp(&method_call.params),
+                    lsp::request::References::METHOD => self.textDocument_references(&method_call.params),
+                    lsp::request::Formatting::METHOD => self.textDocument_formatting(&method_call.params),
+                    lsp::request::RangeFormatting::METHOD => self.textDocument_rangeFormatting(&method_call.params),
+                    lsp::request::ResolveCompletionItem::METHOD => self.completionItem_resolve(&method_call.params),
+                    lsp::request::ExecuteCommand::METHOD => self.workspace_executeCommand(&method_call.params),
+                    lsp::request::ApplyWorkspaceEdit::METHOD => self.workspace_applyEdit(&method_call.params),
                     REQUEST__RustImplementations => self.rustDocument_implementations(&method_call.params),
                     // Extensions.
                     REQUEST__GetState => self.languageClient_getState(&method_call.params),
@@ -270,13 +270,19 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
             Call::Notification(notification) => {
                 match notification.method.as_str() {
-                    NOTIFICATION__DidOpenTextDocument => self.textDocument_didOpen(&notification.params)?,
-                    NOTIFICATION__DidChangeTextDocument => self.textDocument_didChange(&notification.params)?,
-                    NOTIFICATION__DidSaveTextDocument => self.textDocument_didSave(&notification.params)?,
-                    NOTIFICATION__DidCloseTextDocument => self.textDocument_didClose(&notification.params)?,
-                    NOTIFICATION__PublishDiagnostics => self.textDocument_publishDiagnostics(&notification.params)?,
-                    NOTIFICATION__LogMessage => self.window_logMessage(&notification.params)?,
-                    NOTIFICATION__Exit => self.exit(&notification.params)?,
+                    lsp::notification::DidOpenTextDocument::METHOD => self.textDocument_didOpen(&notification.params)?,
+                    lsp::notification::DidChangeTextDocument::METHOD => {
+                        self.textDocument_didChange(&notification.params)?
+                    }
+                    lsp::notification::DidSaveTextDocument::METHOD => self.textDocument_didSave(&notification.params)?,
+                    lsp::notification::DidCloseTextDocument::METHOD => {
+                        self.textDocument_didClose(&notification.params)?
+                    }
+                    lsp::notification::PublishDiagnostics::METHOD => {
+                        self.textDocument_publishDiagnostics(&notification.params)?
+                    }
+                    lsp::notification::LogMessage::METHOD => self.window_logMessage(&notification.params)?,
+                    lsp::notification::Exit::METHOD => self.exit(&notification.params)?,
                     // Extensions.
                     NOTIFICATION__HandleBufReadPost => self.languageClient_handleBufReadPost(&notification.params)?,
                     NOTIFICATION__HandleTextChanged => self.languageClient_handleTextChanged(&notification.params)?,
@@ -374,7 +380,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     /// RPC notification.
     fn notify<P: Serialize>(&self, languageId: Option<&str>, method: &str, params: P) -> Result<()> {
-        let notification = Notification {
+        let notification = rpc::Notification {
             jsonrpc: Some(Version::V2),
             method: method.to_owned(),
             params: Some(params.to_params()?),
@@ -986,7 +992,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__Initialize);
+        info!("Begin {}", lsp::request::Initialize::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         let (rootPath,): (Option<String>,) = self.gather_args(&[("rootPath", "v:null")], params)?;
@@ -1019,7 +1025,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__Initialize,
+            lsp::request::Initialize::METHOD,
             InitializeParams {
                 process_id: Some(unsafe { libc::getpid() } as u64),
                 root_path: Some(root.clone()),
@@ -1040,7 +1046,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Ok(())
         })?;
 
-        info!("End {}", REQUEST__Initialize);
+        info!("End {}", lsp::request::Initialize::METHOD);
         if let Err(e) = self.registerCMSource(&languageId, &result) {
             let message = "LanguageClient: failed to register as NCM source!";
             debug!("{}: {:?}", message, e);
@@ -1156,7 +1162,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__References);
+        info!("Begin {}", lsp::request::References::METHOD);
 
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
@@ -1176,7 +1182,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__References,
+            lsp::request::References::METHOD,
             ReferenceParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1195,12 +1201,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
         self.display_locations(&locations, &languageId)?;
 
-        info!("End {}", REQUEST__References);
+        info!("End {}", lsp::request::References::METHOD);
         Ok(result)
     }
 
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__Formatting);
+        info!("Begin {}", lsp::request::Formatting::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
@@ -1213,7 +1219,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
-            REQUEST__Formatting,
+            lsp::request::Formatting::METHOD,
             DocumentFormattingParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1229,12 +1235,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
         let edits = edits.unwrap_or_default();
         self.apply_TextEdits(&filename, &edits)?;
-        info!("End {}", REQUEST__Formatting);
+        info!("End {}", lsp::request::Formatting::METHOD);
         Ok(result)
     }
 
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__RangeFormatting);
+        info!("Begin {}", lsp::request::RangeFormatting::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
@@ -1255,7 +1261,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
-            REQUEST__RangeFormatting,
+            lsp::request::RangeFormatting::METHOD,
             DocumentRangeFormattingParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1281,12 +1287,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
         let edits = edits.unwrap_or_default();
         self.apply_TextEdits(&filename, &edits)?;
-        info!("End {}", REQUEST__RangeFormatting);
+        info!("End {}", lsp::request::RangeFormatting::METHOD);
         Ok(result)
     }
 
     fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__ResolveCompletionItem);
+        info!("Begin {}", lsp::request::ResolveCompletionItem::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
             params,
@@ -1298,7 +1304,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__ResolveCompletionItem,
+            lsp::request::ResolveCompletionItem::METHOD,
             completion_item,
         )?;
 
@@ -1311,12 +1317,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         warn!("{}", msg);
         self.echowarn(&msg)?;
 
-        info!("End {}", REQUEST__ResolveCompletionItem);
+        info!("End {}", lsp::request::ResolveCompletionItem::METHOD);
         Ok(Value::Null)
     }
 
     fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__DidOpenTextDocument);
+        info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
                 VimVar::Buftype,
@@ -1333,8 +1339,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let text_document = TextDocumentItem {
             uri: filename.to_url()?,
-            language_id: Some(languageId.clone()),
-            version: Some(0),
+            language_id: languageId.clone(),
+            version: 0,
             text: text.join("\n"),
         };
 
@@ -1346,18 +1352,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         self.notify(
             Some(&languageId),
-            NOTIFICATION__DidOpenTextDocument,
+            lsp::notification::DidOpenTextDocument::METHOD,
             DidOpenTextDocumentParams { text_document },
         )?;
 
         self.command("setlocal omnifunc=LanguageClient#complete")?;
 
-        info!("End {}", NOTIFICATION__DidOpenTextDocument);
+        info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
     }
 
     fn textDocument_didChange(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__DidChangeTextDocument);
+        info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
             &[
                 VimVar::Buftype,
@@ -1394,15 +1400,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .get_mut(&filename)
                 .ok_or_else(|| format_err!("Failed to get TextDocumentItem"))?;
 
-            let version = document.version.unwrap_or(0) + 1;
-            document.version = Some(version);
+            let version = document.version + 1;
+            document.version = version;
             document.text = text.clone();
             Ok(version)
         })?;
 
         self.notify(
             Some(&languageId),
-            NOTIFICATION__DidChangeTextDocument,
+            lsp::notification::DidChangeTextDocument::METHOD,
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1418,12 +1424,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        info!("End {}", NOTIFICATION__DidChangeTextDocument);
+        info!("End {}", lsp::notification::DidChangeTextDocument::METHOD);
         Ok(())
     }
 
     fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__DidSaveTextDocument);
+        info!("Begin {}", lsp::notification::DidSaveTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
@@ -1434,7 +1440,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         self.notify(
             Some(&languageId),
-            NOTIFICATION__DidSaveTextDocument,
+            lsp::notification::DidSaveTextDocument::METHOD,
             DidSaveTextDocumentParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1442,12 +1448,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        info!("End {}", NOTIFICATION__DidSaveTextDocument);
+        info!("End {}", lsp::notification::DidSaveTextDocument::METHOD);
         Ok(())
     }
 
     fn textDocument_didClose(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__DidCloseTextDocument);
+        info!("Begin {}", lsp::notification::DidCloseTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             params,
@@ -1458,19 +1464,19 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         self.notify(
             Some(&languageId),
-            NOTIFICATION__DidCloseTextDocument,
+            lsp::notification::DidCloseTextDocument::METHOD,
             DidCloseTextDocumentParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
             },
         )?;
-        info!("End {}", NOTIFICATION__DidCloseTextDocument);
+        info!("End {}", lsp::notification::DidCloseTextDocument::METHOD);
         Ok(())
     }
 
     fn textDocument_publishDiagnostics(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__PublishDiagnostics);
+        info!("Begin {}", lsp::notification::PublishDiagnostics::METHOD);
         let params: PublishDiagnosticsParams = serde_json::from_value(params.clone().to_value())?;
         if !self.get(|state| Ok(state.diagnosticsEnable))? {
             return Ok(());
@@ -1514,7 +1520,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             })?;
         }
 
-        info!("End {}", NOTIFICATION__PublishDiagnostics);
+        info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
 
         let current_filename: String = self.eval(VimVar::Filename)?;
         if filename != current_filename {
@@ -1532,7 +1538,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn window_logMessage(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__LogMessage);
+        info!("Begin {}", lsp::notification::LogMessage::METHOD);
         let params: LogMessageParams = serde_json::from_value(params.clone().to_value())?;
         let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
         if params.typ.to_int()? > threshold {
@@ -1541,12 +1547,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let msg = format!("[{:?}] {}", params.typ, params.message);
         self.echomsg(&msg)?;
-        info!("End {}", NOTIFICATION__LogMessage);
+        info!("End {}", lsp::notification::LogMessage::METHOD);
         Ok(())
     }
 
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__Hover);
+        info!("Begin {}", lsp::request::HoverRequest::METHOD);
         let (languageId, filename, line, character, handle): (String, String, u64, u64, bool) = self.gather_args(
             &[
                 VimVar::LanguageId,
@@ -1560,7 +1566,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__Hover,
+            lsp::request::HoverRequest::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1578,12 +1584,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let message = hover.to_string();
         self.echo(&message)?;
 
-        info!("End {}", REQUEST__Hover);
+        info!("End {}", lsp::request::HoverRequest::METHOD);
         Ok(result)
     }
 
     fn textDocument_definition(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__GotoDefinition);
+        info!("Begin {}", lsp::request::GotoDefinition::METHOD);
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
                 &[
@@ -1602,7 +1608,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__GotoDefinition,
+            lsp::request::GotoDefinition::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1643,12 +1649,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         };
 
-        info!("End {}", REQUEST__GotoDefinition);
+        info!("End {}", lsp::request::GotoDefinition::METHOD);
         Ok(result)
     }
 
     fn textDocument_rename(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__Rename);
+        info!("Begin {}", lsp::request::Rename::METHOD);
         let (buftype, languageId, filename, line, character, cword, new_name, handle): (
             String,
             String,
@@ -1686,7 +1692,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__Rename,
+            lsp::request::Rename::METHOD,
             RenameParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1703,12 +1709,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let edit: WorkspaceEdit = serde_json::from_value(result.clone())?;
         self.apply_WorkspaceEdit(&edit)?;
 
-        info!("End {}", REQUEST__Rename);
+        info!("End {}", lsp::request::Rename::METHOD);
         Ok(result)
     }
 
     fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__DocumentSymbols);
+        info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
         let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
             &[
@@ -1726,7 +1732,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__DocumentSymbols,
+            lsp::request::DocumentSymbol::METHOD,
             DocumentSymbolParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1775,12 +1781,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         }
 
-        info!("End {}", REQUEST__DocumentSymbols);
+        info!("End {}", lsp::request::DocumentSymbol::METHOD);
         Ok(result)
     }
 
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__WorkspaceSymbols);
+        info!("Begin {}", lsp::request::WorkspaceSymbol::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
             params,
@@ -1792,7 +1798,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let query = "".to_owned();
         let result = self.call(
             Some(&languageId),
-            REQUEST__WorkspaceSymbols,
+            lsp::request::WorkspaceSymbol::METHOD,
             WorkspaceSymbolParams { query },
         )?;
 
@@ -1854,7 +1860,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         }
 
-        info!("End {}", REQUEST__WorkspaceSymbols);
+        info!("End {}", lsp::request::WorkspaceSymbol::METHOD);
         Ok(result)
     }
 
@@ -1972,7 +1978,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__CodeAction);
+        info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
                 &[
@@ -2005,7 +2011,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
         let result = self.call(
             Some(&languageId),
-            REQUEST__CodeAction,
+            lsp::request::CodeActionRequest::METHOD,
             CodeActionParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -2041,12 +2047,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             json!([source, format!("s:{}", NOTIFICATION__FZFSinkCommand)]),
         )?;
 
-        info!("End {}", REQUEST__CodeAction);
+        info!("End {}", lsp::request::CodeActionRequest::METHOD);
         Ok(result)
     }
 
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__Completion);
+        info!("Begin {}", lsp::request::Completion::METHOD);
 
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
@@ -2066,7 +2072,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__Completion,
+            lsp::request::Completion::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -2079,12 +2085,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(result);
         }
 
-        info!("End {}", REQUEST__Completion);
+        info!("End {}", lsp::request::Completion::METHOD);
         Ok(result)
     }
 
     fn textDocument_signatureHelp(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__SignatureHelp);
+        info!("Begin {}", lsp::request::SignatureHelpRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
             self.gather_args(
                 &[
@@ -2103,7 +2109,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__SignatureHelp,
+            lsp::request::SignatureHelpRequest::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -2148,31 +2154,31 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.echo(&active_signature.label)?;
         }
 
-        info!("End {}", REQUEST__SignatureHelp);
+        info!("End {}", lsp::request::SignatureHelpRequest::METHOD);
         Ok(Value::Null)
     }
 
     fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__ExecuteCommand);
+        info!("Begin {}", lsp::request::ExecuteCommand::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (command, arguments): (String, Vec<Value>) = self.gather_args(&["command", "arguments"], params)?;
 
         let result = self.call(
             Some(&languageId),
-            REQUEST__ExecuteCommand,
+            lsp::request::ExecuteCommand::METHOD,
             ExecuteCommandParams { command, arguments },
         )?;
-        info!("End {}", REQUEST__ExecuteCommand);
+        info!("End {}", lsp::request::ExecuteCommand::METHOD);
         Ok(result)
     }
 
     fn workspace_applyEdit(&self, params: &Option<Params>) -> Result<Value> {
-        info!("Begin {}", REQUEST__ApplyEdit);
+        info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         let params: ApplyWorkspaceEditParams = serde_json::from_value(params.clone().to_value())?;
         self.apply_WorkspaceEdit(&params.edit)?;
 
-        info!("End {}", REQUEST__ApplyEdit);
+        info!("End {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         Ok(serde_json::to_value(ApplyWorkspaceEditResponse {
             applied: true,
@@ -2220,11 +2226,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn exit(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__Exit);
+        info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
-        self.notify(Some(&languageId), NOTIFICATION__Exit, Value::Null)?;
-        self.cleanup(&languageId)
+        self.notify(
+            Some(&languageId),
+            lsp::notification::Exit::METHOD,
+            Value::Null,
+        )?;
+        self.cleanup(&languageId)?;
+        info!("End {}", lsp::notification::Exit::METHOD);
+        Ok(())
     }
 
     fn cleanup(&self, languageId: &str) -> Result<()> {
@@ -2267,7 +2279,6 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
             self.command("doautocmd User LanguageClientStopped")?;
         }
-        info!("End {}", NOTIFICATION__Exit);
         Ok(())
     }
 
