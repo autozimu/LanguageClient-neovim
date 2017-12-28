@@ -27,12 +27,12 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
-    }.or({
+    }.or_else(|_| {
         traverse_up(path, |dir| {
             dir.join(".git").exists() || dir.join(".hg").exists() || dir.join(".svn").exists()
         })
     })
-        .or({
+        .or_else(|_| {
             let parent = path.parent()
                 .ok_or_else(|| format_err!("Failed to get file dir"));
             warn!(
