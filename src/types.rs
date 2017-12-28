@@ -61,6 +61,10 @@ pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
 
+// Vim variable names
+pub const VIM__Building: &str = "g:LanguageClient_building";
+pub const VIM__BuildStatus: &str = "g:LanguageClient_buildStatus";
+
 #[derive(Debug, Serialize)]
 pub struct State {
     // Program state.
@@ -82,8 +86,6 @@ pub struct State {
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_codeAction_commands: Vec<Command>,
-    pub showed_first_build_complete: bool,
-    pub showed_cquery_build_progress: bool,
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
@@ -117,8 +119,6 @@ impl State {
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_codeAction_commands: vec![],
-            showed_first_build_complete: false,
-            showed_cquery_build_progress: false,
 
             serverCommands: HashMap::new(),
             autoStart: true,

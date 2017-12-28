@@ -2294,6 +2294,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
             self.command("doautocmd User LanguageClientStopped")?;
         }
+        if self.eval::<_, u64>(format!("exists('{}')", VIM__BuildStatus).as_str())? == 1 {
+            self.command(&format!("unlet {}", VIM__BuildStatus))?;
+        }
+        self.command(&format!("let {}=0", VIM__Building))?;
         Ok(())
     }
 
@@ -2308,62 +2312,49 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn rust_handleBeginBuild(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
-        if !self.get(|state| Ok(state.showed_first_build_complete))? {
-            self.echo("Rust: build started")?;
-        }
+        self.command(&format!(
+            "let {}=1 | let {}='Rust: build started'",
+            VIM__Building, VIM__BuildStatus
+        ))?;
         info!("End {}", NOTIFICATION__RustBeginBuild);
         Ok(())
     }
 
     fn rust_handleDiagnosticsBegin(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
-        if !self.get(|state| Ok(state.showed_first_build_complete))? {
-            self.echo("Rust: diagnostics started")?;
-        }
+        self.command(&format!(
+            "let {}=1 | let {}='Rust: diagnostics started'",
+            VIM__Building, VIM__BuildStatus
+        ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
         Ok(())
     }
 
     fn rust_handleDiagnosticsEnd(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
-        if !self.get(|state| Ok(state.showed_first_build_complete))? {
-            self.update(|state| {
-                state.showed_first_build_complete = true;
-                Ok(())
-            })?;
-
-            self.echo("Rust: build completed")?;
-        }
+        self.command(&format!(
+            "let {}=0 | let {}='Rust: build completed'",
+            VIM__Building, VIM__BuildStatus
+        ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
     }
 
     fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
-        if !self.get(|state| Ok(state.showed_first_build_complete))? {
-            let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
-            let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
-                + params.onIdMappedCount + params.onIndexedCount;
-
-            if total != 0 {
-                self.update(|state| {
-                    state.showed_cquery_build_progress = true;
-                    Ok(())
-                })?;
-                self.echo(&format!(
-                    "cquery: indexing ({} jobs)",
-                    params.indexRequestCount
-                ))?;
-            } else {
-                self.update(|state| {
-                    // In the beginning cquery sends 0 jobs
-                    if state.showed_cquery_build_progress {
-                        state.showed_first_build_complete = true;
-                    }
-                    Ok(())
-                })?;
-                self.echo("cquery: idle")?;
-            }
+        let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
+        let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
+            + params.onIdMappedCount + params.onIndexedCount;
+        if total != 0 {
+            self.command(&format!(
+                "let {}=1 | let {}='cquery: indexing ({} jobs)'",
+                VIM__Building, VIM__BuildStatus, params.indexRequestCount
+            ))?;
+        } else {
+            self.command(&format!(
+                "let {}=0 | let {}='cquery: idle'",
+                VIM__Building, VIM__BuildStatus
+            ))?;
         }
         info!("End {}", NOTIFICATION__CqueryProgress);
         Ok(())
