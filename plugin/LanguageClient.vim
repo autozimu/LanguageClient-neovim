@@ -5,7 +5,7 @@ endif
 if !exists('yarp#py3')
     echoerr 'LanguageClient: yarp#py3 does not exist. Refusing to load.'
     finish
-fi
+endif
 
 command LanguageClientStart call LanguageClient_start()
 command LanguageClientStop call LanguageClient_stop()
