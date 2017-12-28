@@ -34,6 +34,9 @@ integration-test-docker:
 		cd /root/.config/nvim && \
 		make integration-test"
 
+cleanup-binary-tags:
+	ci/cleanup-binary-tags.py
+
 clean:
 	cargo clean
 	rm -rf bin/languageclient
