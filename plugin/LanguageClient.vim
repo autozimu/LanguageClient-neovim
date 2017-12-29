@@ -134,11 +134,11 @@ endfunction
 
 let s:root = expand('<sfile>:p:h:h')
 function! s:Launch() abort
-    if exists('LanguageClient_devel')
-        if empty($CARGO_TARGET_DIR)
-            let l:command = [s:root . '/target/debug/languageclient']
-        else
+    if exists('g:LanguageClient_devel')
+        if exists('$CARGO_TARGET_DIR')
             let l:command = [$CARGO_TARGET_DIR . '/debug/languageclient']
+        else
+            let l:command = [s:root . '/target/debug/languageclient']
         endif
     else
         let l:command = [s:root . '/bin/languageclient']

@@ -1,7 +1,6 @@
 set nocompatible
 
-let s:root = expand('<sfile>:p:h:h:h')
-execute 'set runtimepath+=' . s:root
+execute 'set runtimepath+=' . expand('<sfile>:p:h:h:h')
 
 set runtimepath+=$HOME/.fzf
 
@@ -14,5 +13,3 @@ let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
-
-autocmd BufReadPost *.rs setlocal filetype=rust
