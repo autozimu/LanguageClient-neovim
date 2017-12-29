@@ -1,3 +1,7 @@
+if exists('g:LanguageClient_loaded') && g:LanguageClient_loaded
+    finish
+endif
+
 function! s:Echoerr(message) abort
     echohl Error | echomsg a:message | echohl None
 endfunction
@@ -11,16 +15,6 @@ function! s:Debug(message) abort
         call s:Echoerr(a:message)
     endif
 endfunction
-
-if exists('LanguageClient_devel')
-    if empty($CARGO_TARGET_DIR)
-        let s:command = [expand('<sfile>:p:h:h') . '/target/debug/languageclient']
-    else
-        let s:command = [$CARGO_TARGET_DIR . '/debug/languageclient']
-    endif
-else
-    let s:command = [expand('<sfile>:p:h:h') . '/bin/languageclient']
-endif
 
 let s:id = 1
 let s:handlers = {}
@@ -115,14 +109,14 @@ function! s:HandleMessage(job, lines, event) abort
             endif
         endwhile
     elseif a:event == 'stderr'
-        call s:Echoerr('languageclient stderr: ' . string(a:lines))
+        call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
     elseif a:event == 'exit'
         if type(a:lines) == v:t_number && a:lines == 0
             return
         endif
-        call s:Echoerr('languageclient exited with: ' . string(a:lines))
+        call s:Echoerr('LanguageClient exited with: ' . string(a:lines))
     else
-        call s:Debug('languageclient unknown event: ' . a:event)
+        call s:Debug('LanguageClient unknown event: ' . a:event)
     endif
 endfunction
 
@@ -138,29 +132,50 @@ function! s:HandleExitVim(job, data) abort
     return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
-if has('nvim')
-    let s:job = jobstart(s:command, {
-                \ 'on_stdout': function('s:HandleMessage'),
-                \ 'on_stderr': function('s:HandleMessage'),
-                \ 'on_exit': function('s:HandleMessage'),
-                \ })
-    if s:job == 0
-        call s:Echoerr('languageclient: Invalid arguments!')
-    elseif s:job == -1
-        call s:Echoerr('languageclient: Not executable!')
+let s:root = expand('<sfile>:p:h:h')
+function! s:Launch() abort
+    if exists('LanguageClient_devel')
+        if empty($CARGO_TARGET_DIR)
+            let l:command = [s:root . '/target/debug/languageclient']
+        else
+            let l:command = [$CARGO_TARGET_DIR . '/debug/languageclient']
+        endif
+    else
+        let l:command = [s:root . '/bin/languageclient']
     endif
-elseif has('job')
-    let s:job = job_start(s:command, {
-                \ 'out_cb': function('s:HandleStdoutVim'),
-                \ 'err_cb': function('s:HandleStderrVim'),
-                \ 'exit_cb': function('s:HandleExitVim'),
-                \ })
-    if job_status(s:job) != 'run'
-        s:Echoerr('languageclient: job failed to start or died!')
+
+    if has('nvim')
+        let s:job = jobstart(l:command, {
+                    \ 'on_stdout': function('s:HandleMessage'),
+                    \ 'on_stderr': function('s:HandleMessage'),
+                    \ 'on_exit': function('s:HandleMessage'),
+                    \ })
+        if s:job == 0
+            call s:Echoerr('LanguageClient: Invalid arguments!')
+            return 0
+        elseif s:job == -1
+            call s:Echoerr('LanguageClient: Not executable!')
+            return 0
+        else
+            return 1
+        endif
+    elseif has('job')
+        let s:job = job_start(l:command, {
+                    \ 'out_cb': function('s:HandleStdoutVim'),
+                    \ 'err_cb': function('s:HandleStderrVim'),
+                    \ 'exit_cb': function('s:HandleExitVim'),
+                    \ })
+        if job_status(s:job) != 'run'
+            s:Echoerr('LanguageClient: job failed to start or died!')
+            return 0
+        else
+            return 1
+        endif
+    else
+        echoerr 'Not supported: not nvim nor vim with +job.'
+        return 0
     endif
-else
-    echoerr 'Not supported: not nvim nor vim with +job.'
-endif
+endfunction
 
 function! LanguageClient#Write(message) abort
     let l:message = a:message . "\n"
@@ -430,7 +445,7 @@ function! LanguageClient_handleBufReadPost() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        call s:Debug('languageclient caught exception: ' . string(v:exception))
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -447,9 +462,11 @@ function! LanguageClient_handleTextChanged() abort
                     \ 'text': getbufline('', 1, '$'),
                     \ })
     catch /.*/
-        call s:Debug('languageclient caught exception: ' . string(v:exception))
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
+
+let g:LanguageClient_loaded = s:Launch()
 
 function! LanguageClient_handleBufWritePost() abort
     if &buftype != '' || &filetype == ''
@@ -463,7 +480,7 @@ function! LanguageClient_handleBufWritePost() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        call s:Debug('languageclient caught exception: ' . string(v:exception))
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -479,7 +496,7 @@ function! LanguageClient_handleBufDelete() abort
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch /.*/
-        call s:Debug('languageclient caught exception: ' . string(v:exception))
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
@@ -502,7 +519,7 @@ function! LanguageClient_handleCursorMoved() abort
                     \ 'line': line('.') - 1,
                     \ })
     catch /.*/
-        call s:Debug('languageclient caught exception: ' . string(v:exception))
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
 
