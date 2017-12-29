@@ -267,6 +267,9 @@ endfunction
 let g:LanguageClient_workspaceSymbolResults = []
 function! LanguageClient_workspace_symbol(...) abort
     let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'query': '',
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})

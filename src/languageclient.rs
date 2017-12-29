@@ -1795,7 +1795,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(Value::Null);
         }
 
-        let query = "".to_owned();
+        let (query,): (String,) = self.gather_args(&[("query", "")], params)?;
         let result = self.call(
             Some(&languageId),
             lsp::request::WorkspaceSymbol::METHOD,
