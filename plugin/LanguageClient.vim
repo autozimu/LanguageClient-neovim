@@ -581,6 +581,15 @@ function! LanguageClient_exit() abort
                 \ })
 endfunction
 
+" Set to 1 when the language server is busy (e.g. building the code).
+let g:LanguageClient_serverBusy = 0
+function! LanguageClient_statusLine() abort
+    if !exists('g:LanguageClient_serverStatusMessage')
+        return ''
+    endif
+    return '['.g:LanguageClient_serverStatusMessage.']'
+endfunction
+
 " When editing a [No Name] file, neovim reports filename as "", while vim reports null.
 function! s:Expand(exp) abort
     let l:result = expand(a:exp)

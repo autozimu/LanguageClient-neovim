@@ -53,9 +53,17 @@ pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
+pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
+pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
+pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
+pub const NOTIFICATION__CqueryProgress: &str = "$cquery/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
+
+// Vim variable names
+pub const VIM__ServerBusy: &str = "g:LanguageClient_serverBusy";
+pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
 
 #[derive(Debug, Serialize)]
 pub struct State {
@@ -642,4 +650,13 @@ pub struct LanguageStatusParams {
 pub enum RootMarkers {
     Array(Vec<String>),
     Map(HashMap<String, Vec<String>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CqueryProgressParams {
+    pub indexRequestCount: u64,
+    pub doIdMapCount: u64,
+    pub loadPreviousIndexCount: u64,
+    pub onIdMappedCount: u64,
+    pub onIndexedCount: u64,
 }
