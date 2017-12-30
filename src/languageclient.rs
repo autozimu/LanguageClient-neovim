@@ -2294,10 +2294,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
             self.command("doautocmd User LanguageClientStopped")?;
         }
-        if self.eval::<_, u64>(format!("exists('{}')", VIM__BuildStatus).as_str())? == 1 {
-            self.command(&format!("unlet {}", VIM__BuildStatus))?;
+        if self.eval::<_, u64>(format!("exists('{}')", VIM__ServerStatusMessage).as_str())? == 1 {
+            self.command(&format!("unlet {}", VIM__ServerStatusMessage))?;
         }
-        self.command(&format!("let {}=0", VIM__Building))?;
+        self.command(&format!("let {}=0", VIM__ServerBusy))?;
         Ok(())
     }
 
@@ -2314,7 +2314,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(&format!(
             "let {}=1 | let {}='Rust: build started'",
-            VIM__Building, VIM__BuildStatus
+            VIM__ServerBusy, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustBeginBuild);
         Ok(())
@@ -2324,7 +2324,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
         self.command(&format!(
             "let {}=1 | let {}='Rust: diagnostics started'",
-            VIM__Building, VIM__BuildStatus
+            VIM__ServerBusy, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
         Ok(())
@@ -2334,7 +2334,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.command(&format!(
             "let {}=0 | let {}='Rust: build completed'",
-            VIM__Building, VIM__BuildStatus
+            VIM__ServerBusy, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
@@ -2348,12 +2348,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if total != 0 {
             self.command(&format!(
                 "let {}=1 | let {}='cquery: indexing ({} jobs)'",
-                VIM__Building, VIM__BuildStatus, params.indexRequestCount
+                VIM__ServerBusy, VIM__ServerStatusMessage, params.indexRequestCount
             ))?;
         } else {
             self.command(&format!(
                 "let {}=0 | let {}='cquery: idle'",
-                VIM__Building, VIM__BuildStatus
+                VIM__ServerBusy, VIM__ServerStatusMessage
             ))?;
         }
         info!("End {}", NOTIFICATION__CqueryProgress);

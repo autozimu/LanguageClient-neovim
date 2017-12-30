@@ -62,8 +62,8 @@ pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
 
 // Vim variable names
-pub const VIM__Building: &str = "g:LanguageClient_building";
-pub const VIM__BuildStatus: &str = "g:LanguageClient_buildStatus";
+pub const VIM__ServerBusy: &str = "g:LanguageClient_serverBusy";
+pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
 
 #[derive(Debug, Serialize)]
 pub struct State {
