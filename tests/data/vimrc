@@ -11,5 +11,6 @@ let g:LanguageClient_devel = 1
 let g:LanguageClient_loggingLevel = 'DEBUG'
 let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
+    \ 'rust': ['rustup', 'run', 'stable', 'rls'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'

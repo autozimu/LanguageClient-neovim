@@ -437,7 +437,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn sync_settings(&self) -> Result<()> {
-        let (autoStart, serverCommands, mut selectionUI, trace, settingsPath, loadSettings, loggingLevel): (
+        let (autoStart, serverCommands, mut selectionUI, trace, settingsPath, loadSettings, loggingLevel, rootMarkers): (
             u64,
             HashMap<String, Vec<String>>,
             String,
@@ -445,6 +445,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             String,
             u64,
             String,
+            Option<RootMarkers>,
         ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
@@ -454,6 +455,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_loggingLevel', 'WARN')",
+                "get(g:, 'LanguageClient_rootMarkers', v:null)",
             ][..],
         )?;
         // vimscript use 1 for true, 0 for false.
@@ -519,6 +521,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
+            state.rootMarkers = rootMarkers;
             Ok(())
         })?;
 
@@ -998,11 +1001,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let (rootPath,): (Option<String>,) = self.gather_args(&[("rootPath", "v:null")], params)?;
         let root = match rootPath {
             Some(r) => r,
-            None => get_rootPath(Path::new(&filename), &languageId)?
-                .to_str()
-                .ok_or_else(|| format_err!("Failed to convert &Path to &str"))?
-                .to_owned(),
+            _ => {
+                let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
+                get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
+                    .to_str()
+                    .ok_or_else(|| format_err!("Failed to convert &Path to &str"))?
+                    .to_owned()
+            }
         };
+        info!("Project root: {}", root);
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
         let settings = || -> Result<Value> {

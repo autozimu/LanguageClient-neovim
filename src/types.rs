@@ -10,6 +10,7 @@ pub use std::io::{BufReader, BufWriter};
 pub use std::fs::File;
 pub use std::env;
 pub use std::process::{ChildStdin, Stdio};
+
 pub use jsonrpc_core as rpc;
 // TODO: use rpc prefix.
 pub use jsonrpc_core::types::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success,
@@ -23,6 +24,7 @@ pub use url::Url;
 pub use pathdiff::diff_paths;
 pub use serde::Serialize;
 pub use serde::de::DeserializeOwned;
+pub use glob;
 
 pub use failure::Error;
 pub type Result<T> = std::result::Result<T, Error>;
@@ -88,6 +90,7 @@ pub struct State {
     pub windowLogMessageLevel: MessageType,
     pub settingsPath: String,
     pub loadSettings: bool,
+    pub rootMarkers: Option<RootMarkers>,
 }
 
 impl State {
@@ -119,7 +122,14 @@ impl State {
             windowLogMessageLevel: MessageType::Warning,
             settingsPath: format!(".vim{}settings.json", std::path::MAIN_SEPARATOR),
             loadSettings: false,
+            rootMarkers: None,
         }
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -625,4 +635,11 @@ pub struct LanguageStatusParams {
     #[serde(rename = "type")]
     pub typee: String,
     pub message: String,
+}
+
+#[derive(Debug, Eq, PartialEq, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum RootMarkers {
+    Array(Vec<String>),
+    Map(HashMap<String, Vec<String>>),
 }

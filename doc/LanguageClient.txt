@@ -172,6 +172,24 @@ Logging level.
 Default: 'WARN'
 Valid options: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 
+2.14 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
+
+Customized project root markers. Generally a heuristic algorithm within this
+plugin should be able to detect project root automatically. This option is
+provided in case the algorithm failed.
+
+Example setting 1. List of string array. Shell-like glob is supported. >
+    let g:LanguageClient_rootMarkers = ['.root', 'project.*']
+
+Example setting 2. Map filetype to string array. >
+    let g:LanguageClient_rootMarkers = {
+        \ 'javascript': ['project.json'],
+        \ 'rust': ['Cargo.toml'],
+        \ }
+
+Default: v:null
+Valid option: Array<String> | Map<String, Array<String>>
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

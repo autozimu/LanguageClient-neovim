@@ -11,7 +11,34 @@ fn test_escape_single_quote() {
     assert_eq!(escape_single_quote("my' precious"), "my'' precious");
 }
 
-pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
+pub fn get_rootPath<'a>(path: &'a Path, languageId: &str, rootMarkers: &Option<RootMarkers>) -> Result<&'a Path> {
+    if let Some(ref rootMarkers) = *rootMarkers {
+        let empty = vec![];
+        let rootMarkers = match *rootMarkers {
+            RootMarkers::Array(ref arr) => arr,
+            RootMarkers::Map(ref map) => map.get(languageId).unwrap_or(&empty),
+        };
+
+        for marker in rootMarkers {
+            let ret = traverse_up(path, |dir| {
+                let p = dir.join(marker);
+                let p = p.to_str();
+                if p.is_none() {
+                    return false;
+                }
+                let p = p.unwrap_or_default();
+                match glob::glob(p) {
+                    Ok(paths) => paths.count() > 0,
+                    _ => false,
+                }
+            });
+
+            if ret.is_ok() {
+                return ret;
+            }
+        }
+    }
+
     match languageId {
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
@@ -19,7 +46,9 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str) -> Result<&'a Path> {
         "python" => traverse_up(path, |dir| {
             dir.join("__init__.py").exists() || dir.join("setup.py").exists()
         }),
-        "c" | "cpp" => traverse_up(path, |dir| dir.join("CMakeLists.txt").exists()),
+        "c" | "cpp" => traverse_up(path, |dir| {
+            dir.join("compile_commands.json").exists() || dir.join("CMakeLists.txt").exists()
+        }),
         "cs" => traverse_up(path, is_dotnet_root),
         "java" => traverse_up(path, |dir| {
             dir.join(".project").exists() || dir.join("pom.xml").exists()

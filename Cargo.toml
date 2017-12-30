@@ -26,6 +26,7 @@ url = "*"
 pathdiff = "*"
 diff = "*"
 regex = "*"
+glob = "*"
 
 [package.metadata.release]
 no-dev-version = true

@@ -32,6 +32,7 @@ extern crate pathdiff;
 extern crate diff;
 
 extern crate regex;
+pub extern crate glob;
 
 extern crate structopt;
 use structopt::StructOpt;
