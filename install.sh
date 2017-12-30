@@ -24,6 +24,7 @@ function download() {
     echo "Downloading bin/${name}..."
     local url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
     if (try_curl $url || try_wget $url); then
+        chmod a+x bin/$name
         return
     else
         echo "Failed to download with curl and wget"
