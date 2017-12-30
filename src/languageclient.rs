@@ -2294,10 +2294,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
             self.command("doautocmd User LanguageClientStopped")?;
         }
-        if self.eval::<_, u64>(format!("exists('{}')", VIM__ServerStatusMessage).as_str())? == 1 {
-            self.command(&format!("unlet {}", VIM__ServerStatusMessage))?;
-        }
-        self.command(&format!("let {}=0", VIM__ServerBusy))?;
+        self.command(&format!("let {}=0", VIM__ServerStatus))?;
+        self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
         Ok(())
     }
 
@@ -2313,8 +2311,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn rust_handleBeginBuild(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(&format!(
-            "let {}=1 | let {}='Rust: build started'",
-            VIM__ServerBusy, VIM__ServerStatusMessage
+            "let {}=1 | let {}='Rust: build begin'",
+            VIM__ServerStatus, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustBeginBuild);
         Ok(())
@@ -2323,8 +2321,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn rust_handleDiagnosticsBegin(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
         self.command(&format!(
-            "let {}=1 | let {}='Rust: diagnostics started'",
-            VIM__ServerBusy, VIM__ServerStatusMessage
+            "let {}=1 | let {}='Rust: diagnostics begin'",
+            VIM__ServerStatus, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
         Ok(())
@@ -2333,8 +2331,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn rust_handleDiagnosticsEnd(&self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.command(&format!(
-            "let {}=0 | let {}='Rust: build completed'",
-            VIM__ServerBusy, VIM__ServerStatusMessage
+            "let {}=0 | let {}='Rust: diagnostics end'",
+            VIM__ServerStatus, VIM__ServerStatusMessage
         ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
@@ -2348,12 +2346,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if total != 0 {
             self.command(&format!(
                 "let {}=1 | let {}='cquery: indexing ({} jobs)'",
-                VIM__ServerBusy, VIM__ServerStatusMessage, params.indexRequestCount
+                VIM__ServerStatus, VIM__ServerStatusMessage, params.indexRequestCount
             ))?;
         } else {
             self.command(&format!(
                 "let {}=0 | let {}='cquery: idle'",
-                VIM__ServerBusy, VIM__ServerStatusMessage
+                VIM__ServerStatus, VIM__ServerStatusMessage
             ))?;
         }
         info!("End {}", NOTIFICATION__CqueryProgress);

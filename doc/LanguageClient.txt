@@ -281,6 +281,19 @@ Format selected lines.
 
 Send a notification to the current language server.
 
+4.12 LanguageClient_serverStatus()           *LanguageClient_serverStatus*
+
+Get language server status. 0 for server idle. 1 for server busy.
+
+4.13 LanguageClient_serverStatusMessage()
+*LanguageClient_serverStatusMessage*
+
+Get a detail message of server status.
+
+4.14 LangugeClient_statusLine() *LanguageClient_statusLine*
+
+Example status line making use of LanguageClient_serverStatusMessage.
+
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
 
