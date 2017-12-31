@@ -668,9 +668,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     0,
                     source,
                     hl_group,
-                    dn.range.start.line + 1,
-                    dn.range.start.character + 1,
-                    dn.range.end.character + 1
+                    dn.range.start.line,
+                    dn.range.start.character,
+                    dn.range.end.character,
                 ]),
             )?;
         }
