@@ -585,10 +585,8 @@ class LanguageClient:
     def workspace_didChangeConfiguration_vim(self, args: List) -> None:
         self.workspace_didChangeConfiguration(settings=args[0])
 
-    @neovim.function("LanguageClient_textDocument_hover")
-    @deco_args
-    def textDocument_hover(self, uri: str, languageId: str,
-                           line: int, character: int, handle=True) -> Dict:
+    def _textDocument_hover(self, uri: str, languageId: str,
+                            line: int, character: int) -> Dict:
         logger.info("Begin textDocument/hover")
 
         self.textDocument_didChange()
@@ -603,6 +601,20 @@ class LanguageClient:
             }
         })
 
+        logger.info("End textDocument/hover")
+        return result
+
+    @neovim.function("LanguageClient_textDocument_hoverSync", sync=True)
+    @deco_args
+    def textDocument_hoverSync(self, uri: str, languageId: str,
+                               line: int, character: int) -> Dict:
+        return self._textDocument_hover(uri, languageId, line, character)
+
+    @neovim.function("LanguageClient_textDocument_hover")
+    @deco_args
+    def textDocument_hover(self, uri: str, languageId: str,
+                           line: int, character: int, handle=True) -> Dict:
+        result = self._textDocument_hover(uri, languageId, line, character)
         if result is None or not handle:
             return result
 
@@ -616,7 +628,6 @@ class LanguageClient:
             info = markedString_to_str(contents)
         echo(info)
 
-        logger.info("End textDocument/hover")
         return result
 
     @neovim.function("LanguageClient_textDocument_definition")
