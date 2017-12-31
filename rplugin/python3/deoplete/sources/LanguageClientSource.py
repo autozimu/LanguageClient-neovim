@@ -27,9 +27,14 @@ class Source(Base):
     def get_complete_position(self, context):
         m = re.search('(?:' + context['keyword_patterns'] + ')$',
                       context['input'])
-        if not m:
-            m = re.search(self.__keyword_patterns, context['input'])
-        return m.end() if m else -1
+        if m:
+            return m.start()
+
+        m = re.search(self.__keyword_patterns, context['input'])
+        if m:
+            return m.end()
+
+        return -1
 
     def gather_candidates(self, context):
         if not context["is_async"]:
