@@ -46,9 +46,7 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str, rootMarkers: &Option<R
         "python" => traverse_up(path, |dir| {
             dir.join("__init__.py").exists() || dir.join("setup.py").exists()
         }),
-        "c" | "cpp" => traverse_up(path, |dir| {
-            dir.join("compile_commands.json").exists()
-        }),
+        "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
         "cs" => traverse_up(path, is_dotnet_root),
         "java" => traverse_up(path, |dir| {
             dir.join(".project").exists() || dir.join("pom.xml").exists()
