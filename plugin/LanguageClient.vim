@@ -2,7 +2,7 @@ if has('nvim')
     finish
 endif
 
-if !exists('yarp#py3')
+if !exists('*yarp#py3')
     echoerr 'LanguageClient: yarp#py3 does not exist. Refusing to load.'
     finish
 endif
