@@ -559,8 +559,16 @@ impl ILanguageClient for Arc<Mutex<State>> {
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
         let (filename, line, character): (String, u64, u64) =
             self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], &None)?;
-        for (uri, edits) in &edit.changes {
-            self.apply_TextEdits(uri.path(), edits.as_slice())?;
+
+        if let Some(ref changes) = edit.document_changes {
+            for e in changes {
+                self.apply_TextEdits(e.text_document.uri.path(), &e.edits)?;
+            }
+        }
+        if let Some(ref changes) = edit.changes {
+            for (uri, edits) in changes {
+                self.apply_TextEdits(uri.path(), edits)?;
+            }
         }
         debug!("End apply WorkspaceEdit");
         self.goto_location(&filename, line, character)?;
