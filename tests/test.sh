@@ -9,7 +9,7 @@ LOG="${TMP:-/tmp}"/LanguageClient.log
 LOG_SERVER="${TMP:-/tmp}"/LanguageServer.log
 
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
-NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless 2>/dev/null &
+NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless &
 PID=$!
 sleep 1s
 
