@@ -608,6 +608,11 @@ function! s:Expand(exp) abort
     return l:result ==# '' ? '' : l:result
 endfunction
 
+" Get all listed buffer file names.
+function! s:Bufnames() abort
+    return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), ":p")')
+endfunction
+
 function! s:getInput(prompt, default) abort
     call inputsave()
     let l:input = input(a:prompt, a:default)
