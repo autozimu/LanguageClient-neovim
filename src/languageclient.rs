@@ -598,6 +598,34 @@ impl ILanguageClient for Arc<Mutex<State>> {
     }
 
     fn display_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+        // Line diagnostics.
+        self.update(|state| {
+            state
+                .line_diagnostics
+                .retain(|&(ref f, _), _| f != filename);
+            Ok(())
+        })?;
+        let mut line_diagnostics = HashMap::new();
+        for entry in diagnostics {
+            let line = entry.range.start.line;
+            let mut msg = String::new();
+            if let Some(severity) = entry.severity {
+                msg += &format!("[{:?}]", severity);
+            }
+            if let Some(ref code) = entry.code {
+                let s = code.to_string();
+                if !s.is_empty() {
+                    msg += &format!("[{}]", s);
+                }
+            }
+            msg += &entry.message;
+            line_diagnostics.insert((filename.to_owned(), line), msg);
+        }
+        self.update(|state| {
+            state.line_diagnostics.merge(line_diagnostics);
+            Ok(())
+        })?;
+
         // Signs.
         let mut signs: Vec<_> = diagnostics
             .iter()
@@ -660,7 +688,8 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let source = source.ok_or_else(|| format_err!("Failed to get highlight source id"))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
-        // Optimize.
+        // Highlight.
+        // TODO: Optimize.
         self.call(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
         for dn in diagnostics.iter() {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
@@ -929,7 +958,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let diagnostics = self.get(|state| {
                 state
                     .diagnostics
-                    .get(&filename)
+                    .get(&filename.canonicalize())
                     .cloned()
                     .ok_or_else(|| format_err!("No diagnostics"))
             }).unwrap_or_default();
@@ -1512,41 +1541,22 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .to_str()
             .ok_or_else(|| format_err!("Failed to convert PathBuf to str"))?
             .to_owned();
-        // Remove first '/' in case of '/C:/blabla'.
+        // Workaround bug: remove first '/' in case of '/C:/blabla'.
         if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
+        let filename = filename.canonicalize();
         self.update(|state| {
             state
                 .diagnostics
                 .insert(filename.clone(), params.diagnostics.clone());
-            state.line_diagnostics.retain(|fl, _| fl.0 != filename);
             Ok(())
         })?;
-
-        for entry in &params.diagnostics {
-            let line = entry.range.start.line;
-            let mut msg = String::new();
-            if let Some(severity) = entry.severity {
-                msg += &format!("[{:?}]", severity);
-            }
-            if let Some(ref code) = entry.code {
-                let s = code.to_string();
-                if !s.is_empty() {
-                    msg += &format!("[{}]", s);
-                }
-            }
-            msg += &entry.message;
-            self.update(|state| {
-                state.line_diagnostics.insert((filename.clone(), line), msg);
-                Ok(())
-            })?;
-        }
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
 
         let current_filename: String = self.eval(VimVar::Filename)?;
-        if filename != current_filename {
+        if filename != current_filename.canonicalize() {
             return Ok(());
         }
 

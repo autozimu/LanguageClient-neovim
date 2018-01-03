@@ -410,3 +410,25 @@ fn test_diff_value() {
         }
     );
 }
+
+pub trait Canonicalize {
+    fn canonicalize(&self) -> String;
+}
+
+impl<P> Canonicalize for P
+where
+    P: AsRef<Path>,
+{
+    fn canonicalize(&self) -> String {
+        if let Ok(fc) = std::fs::canonicalize(self) {
+            if let Some(fs) = fc.to_str() {
+                return fs.to_owned();
+            }
+        }
+
+        self.as_ref()
+            .to_str()
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+}
