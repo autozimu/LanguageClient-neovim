@@ -575,6 +575,19 @@ function! LanguageClient#complete(findstart, base) abort
     endif
 endfunction
 
+function! LanguageClient_workspace_applyEdit(...) abort
+    if &buftype != '' || &filetype == ''
+        return
+    endif
+
+    let l:params = {
+                \ 'edit': {},
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('workspace/applyEdit', l:params, l:callback)
+endfunction
+
 function! LanguageClient_exit() abort
     return LanguageClient#Notify('exit', {
                 \ 'languageId': &filetype,

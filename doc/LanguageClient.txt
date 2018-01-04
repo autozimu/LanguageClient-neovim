@@ -276,10 +276,15 @@ Format current document.
 
 Format selected lines.
 
-4.11 LanguageClient_notify(method: str, params: Dict)
+4.11 LanguageClient#Notify(method: str, params: Dict)
 *LanguageClient_notify*
 
 Send a notification to the current language server.
+
+4.12 LanguageClient#Call(method: str, params: Dict, callback: function | list)
+*LanguageClient_notify*
+
+Call a method to the current language server.
 
 4.12 LanguageClient_serverStatus()           *LanguageClient_serverStatus*
 
@@ -293,6 +298,11 @@ Get a detail message of server status.
 4.14 LangugeClient_statusLine() *LanguageClient_statusLine*
 
 Example status line making use of LanguageClient_serverStatusMessage.
+
+4.15 LanguageClient_workspace_applyEdit(params: Dict, callback: function | list)
+*LanguageClient_workspace_applyEdit*
+
+Apply a workspace edit.
 
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
