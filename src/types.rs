@@ -325,6 +325,8 @@ pub struct VimCompleteItem {
     pub menu: String,
     pub info: String,
     pub kind: String,
+    #[serde(rename = "additionalTextEdits")]
+    pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
 }
 
 impl From<CompletionItem> for VimCompleteItem {
@@ -353,6 +355,7 @@ impl From<CompletionItem> for VimCompleteItem {
                 .map(|d| d.to_string())
                 .unwrap_or_default(),
             kind,
+            additional_text_edits: lspitem.additional_text_edits.clone(),
         }
     }
 }
