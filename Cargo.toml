@@ -34,3 +34,4 @@ pre-release-replacements = [
     { file = "install.sh", search = "version=.*", replace = "version={{version}}" },
     { file = "install.ps1", search = "version = '.*'", replace = "version = '{{version}}'" }
 ]
+pre-release-hook = 'ci/release-hook.sh'
