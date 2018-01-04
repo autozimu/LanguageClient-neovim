@@ -627,23 +627,39 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         // Signs.
+        let texts = self.get(|state| {
+            let text_document = state
+                .text_documents
+                .get(filename)
+                .ok_or_else(|| format_err!("Failed to get file texts"))?;
+            Ok(text_document.text.clone())
+        })?;
+        let texts: Vec<&str> = texts.split('\n').collect();
         let mut signs: Vec<_> = diagnostics
             .iter()
             .map(|dn| {
+                let line = dn.range.start.line;
+                let text = texts
+                    .get(line as usize)
+                    .map(|l| (*l).to_owned())
+                    .unwrap_or_default();
                 let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
-                Sign::new(dn.range.start.line + 1, severity)
+                Sign::new(line + 1, text, severity)
             })
             .collect();
-        signs.sort();
-        signs.dedup();
+        signs.sort_unstable();
 
         let cmd = self.update(|state| {
-            let signs_prev = state
-                .signs
-                .insert(filename.to_owned(), signs.clone())
-                .unwrap_or_default();
-            Ok(get_command_update_signs(&signs_prev, &signs, filename))
+            let cmd: String;
+            {
+                let empty = vec![];
+                let signs_prev = state.signs.get(filename).unwrap_or(&empty);
+                cmd = get_command_update_signs(signs_prev, &signs, filename);
+            }
+            state.signs.insert(filename.to_owned(), signs);
+            Ok(cmd)
         })?;
+        info!("Command to update signs: {}", cmd);
         self.command(&cmd)?;
 
         // Quickfix.

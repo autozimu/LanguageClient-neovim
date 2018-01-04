@@ -209,14 +209,16 @@ impl DiagnosticsDisplay {
 pub struct Sign {
     pub id: u64,
     pub line: u64,
+    pub text: String,
     pub severity: DiagnosticSeverity,
 }
 
 impl Sign {
-    pub fn new(line: u64, severity: DiagnosticSeverity) -> Sign {
+    pub fn new(line: u64, text: String, severity: DiagnosticSeverity) -> Sign {
         Sign {
             id: Self::get_id(line, severity),
             line,
+            text,
             severity,
         }
     }
@@ -241,7 +243,8 @@ impl std::cmp::PartialOrd for Sign {
 
 impl std::cmp::PartialEq for Sign {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        // Dirty way to check if sign has changed.
+        self.text == other.text && self.severity == other.severity
     }
 }
 
