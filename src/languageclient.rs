@@ -1464,7 +1464,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
                     uri: filename.to_url()?,
-                    version,
+                    version: Some(version),
                 },
                 content_changes: vec![
                     TextDocumentContentChangeEvent {
