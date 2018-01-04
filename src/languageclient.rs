@@ -1043,7 +1043,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", lsp::request::Initialize::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
-        let (rootPath,): (Option<String>,) = self.gather_args(&[("rootPath", "v:null")], params)?;
+        let (rootPath, has_snippet_support): (Option<String>, u64) = self.gather_args(
+            &[
+                ("rootPath", "v:null"),
+                ("hasSnippetSupport", "s:hasSnippetSupport()"),
+            ],
+            params,
+        )?;
         let root = match rootPath {
             Some(r) => r,
             _ => {
@@ -1055,6 +1061,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         };
         info!("Project root: {}", root);
+        let has_snippet_support = has_snippet_support > 0;
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
         let settings = || -> Result<Value> {
@@ -1085,7 +1092,30 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 initialization_options,
                 capabilities: ClientCapabilities {
                     workspace: None,
-                    text_document: None,
+                    text_document: Some(TextDocumentClientCapabilities {
+                        synchronization: None,
+                        completion: Some(CompletionCapability {
+                            dynamic_registration: None,
+                            completion_item: Some(CompletionItemCapability {
+                                snippet_support: Some(has_snippet_support),
+                                commit_characters_support: None,
+                                documentation_format: None,
+                            }),
+                        }),
+                        hover: None,
+                        signature_help: None,
+                        references: None,
+                        document_highlight: None,
+                        document_symbol: None,
+                        formatting: None,
+                        range_formatting: None,
+                        on_type_formatting: None,
+                        definition: None,
+                        code_action: None,
+                        code_lens: None,
+                        document_link: None,
+                        rename: None,
+                    }),
                     experimental: None,
                 },
                 trace: TraceOption::default(),
