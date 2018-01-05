@@ -8,24 +8,22 @@ None.
 
 # 3. Install this plugin
 
-> Choose binary architecture to match your machine. Right now, binaries
-> are built for 5 platforms through Travis CI,
-> - i686-unknown-linux-musl
-> - x86\_64-unknown-linux-musl
-> - i686-pc-windows-gnu
-> - x86\_64-pc-windows-gnu
-> - x86\_64-apple-darwin
-> And use it to replace the example architecture inside tags.
+> For Windows users, replace `install.sh` with `install.ps1` in following
+> snippets.
 
-> If you don't want to use pre-built binaries, specify branch `next` and `make release` as post
-> action after plugin installation and update. e.g., `Plug 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': 'make release'}`.
+> If you don't want to use pre-built binaries, specify branch `next` and `make
+> release` as post action after plugin installation and update. e.g., `Plug
+> 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': 'make release'}`.
 
 Choose steps matching your plugin manager.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
 ```vim
-Plug 'autozimu/LanguageClient-neovim', {'tag': 'binary-*-x86_64-apple-darwin' }
+Plug 'autozimu/LanguageClient-neovim', {
+    \ 'branch': 'next',
+    \ 'do': 'install.sh',
+    \ }
 ```
 
 Restart neovim and run `:PlugInstall` to install.
@@ -34,7 +32,8 @@ Restart neovim and run `:PlugInstall` to install.
 Add following to vimrc
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
-    \ 'rev': 'binary-*-x86_64-apple-darwin',
+    \ 'rev': 'branch',
+    \ 'build': './install.sh',
     \ })
 ```
 
@@ -45,12 +44,9 @@ Clone this repo into some place, e.g., `~/.vim-plugins`
 ```sh
 mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
-git clone https://github.com/autozimu/LanguageClient-neovim.git
+git clone --depth 1 https://github.com/autozimu/LanguageClient-neovim.git
 cd LanguageClient-neovim
-# Suppose latest release is 0.1.2
-git checkout binary-0.1.2-x86_64-apple-darwin
-# Or build it locally
-# make release
+./install.sh
 ```
 
 Add this plugin to vim/neovim `runtimepath`,
