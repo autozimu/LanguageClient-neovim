@@ -37,4 +37,9 @@ for TARGET in "${TARGETS[@]}"; do
     package
 done
 
-ci/cleanup-binary-tags.py
+if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
+    sudo apt-get install --yes python3-pip
+    sudo pip3 install semver
+
+    ci/cleanup-binary-tags.py
+fi
