@@ -1,6 +1,7 @@
-# This script takes care of testing your crate
+#!/usr/bin/env bash
 
-set -o errtrace
+set -o nounset
+set -o errexit
 set -o xtrace
 
 make test
