@@ -37,6 +37,8 @@ function try_build() {
     make release
 }
 
+rm -f bin/languageclient
+
 arch=$(uname -sm)
 binary=""
 case "${arch}" in

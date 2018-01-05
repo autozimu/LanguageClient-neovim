@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import subprocess
 import re
 import semver
@@ -18,7 +19,14 @@ versions = sorted(list(set([tag_to_version(tag) for tag in tags])), key=semver.p
 versions_to_delete = versions[:-3]
 
 cmd_delete_local = 'git tag --delete'
-cmd_delete_remote = 'git push --delete origin'
+cmd_delete_remote = 'git push --delete '
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+if GITHUB_TOKEN:
+    cmd_delete_remote += (
+        'https://{}@github.com/autozimu/LanguageClient-neovim.git'
+        .format(GITHUB_TOKEN))
+else:
+    cmd_delete_remote += 'origin'
 for tag in tags:
     if tag_to_version(tag) in versions_to_delete:
         cmd_delete_local += ' ' + tag
