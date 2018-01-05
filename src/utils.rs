@@ -237,19 +237,19 @@ fn get_command_add_sign(sign: &Sign, filename: &str) -> String {
 
 #[test]
 fn test_get_command_add_sign() {
-    let sign = Sign::new(1, DiagnosticSeverity::Error);
+    let sign = Sign::new(1, "".to_owned(), DiagnosticSeverity::Error);
     assert_eq!(
         get_command_add_sign(&sign, ""),
         " | execute 'sign place 75000 line=1 name=LanguageClientError file='"
     );
 
-    let sign = Sign::new(7, DiagnosticSeverity::Error);
+    let sign = Sign::new(7, "".to_owned(), DiagnosticSeverity::Error);
     assert_eq!(
         get_command_add_sign(&sign, ""),
         " | execute 'sign place 75024 line=7 name=LanguageClientError file='"
     );
 
-    let sign = Sign::new(7, DiagnosticSeverity::Hint);
+    let sign = Sign::new(7, "".to_owned(), DiagnosticSeverity::Hint);
     assert_eq!(
         get_command_add_sign(&sign, ""),
         " | execute 'sign place 75027 line=7 name=LanguageClientHint file='"
