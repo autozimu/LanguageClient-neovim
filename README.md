@@ -1,3 +1,5 @@
+> For legacy python implementation, see [branch master](https://github.com/autozimu/LanguageClient-neovim/tree/master).
+
 # LanguageClient-neovim
 [![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=next)](https://travis-ci.org/autozimu/LanguageClient-neovim)
 
