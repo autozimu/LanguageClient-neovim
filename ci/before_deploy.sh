@@ -36,3 +36,5 @@ for TARGET in "${TARGETS[@]}"; do
     release_tag
     package
 done
+
+ci/cleanup-binary-tags.py

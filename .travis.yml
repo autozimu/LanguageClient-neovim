@@ -27,6 +27,8 @@ branches:
 before_install:
   - set -e
   - rustup self update
+  - sudo apt-get install --yes python3-pip
+  - sudo pip3 install semver
 
 install:
   - source ~/.cargo/env || true
