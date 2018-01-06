@@ -282,7 +282,7 @@ Format selected lines.
 Send a notification to the current language server.
 
 4.12 LanguageClient#Call(method: str, params: Dict, callback: function | list)
-*LanguageClient_notify*
+*LanguageClient#Call*
 
 Call a method to the current language server.
 
