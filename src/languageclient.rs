@@ -1591,6 +1591,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
+        // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
         self.update(|state| {
             state
@@ -1606,7 +1607,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             return Ok(());
         }
 
-        self.display_diagnostics(&filename, &params.diagnostics)?;
+        self.display_diagnostics(&current_filename, &params.diagnostics)?;
         self.languageClient_handleCursorMoved(&None)?;
 
         if self.eval::<_, u64>("exists('#User#LanguageClientDiagnosticsChanged')")? == 1 {
