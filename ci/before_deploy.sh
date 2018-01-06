@@ -38,6 +38,7 @@ for TARGET in "${TARGETS[@]}"; do
 done
 
 if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
+    sudo apt-get update
     sudo apt-get install --yes python3-pip
     sudo pip3 install semver
 
