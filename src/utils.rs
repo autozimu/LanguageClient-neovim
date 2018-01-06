@@ -172,20 +172,21 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<Strin
         let end_line: usize = edit.range.end.line.to_usize()?;
         let end_character: usize = edit.range.end.character.to_usize()?;
 
-        let start = lines[..start_line]
+        let start = lines[..std::cmp::min(start_line, lines.len())]
             .iter()
             .map(|l| l.len())
             .fold(0, |acc, l| acc + l + 1 /*line ending*/) + start_character;
-        let end = lines[..end_line]
+        let end = lines[..std::cmp::min(end_line, lines.len())]
             .iter()
             .map(|l| l.len())
             .fold(0, |acc, l| acc + l + 1 /*line ending*/) + end_character;
-
         edits_by_index.push((start, end, &edit.new_text));
     }
 
     let mut text = lines.join("\n");
     for (start, end, new_text) in edits_by_index {
+        let start = std::cmp::min(start, text.len());
+        let end = std::cmp::min(end, text.len());
         text = String::new() + &text[..start] + new_text + &text[end..];
     }
 
@@ -223,6 +224,35 @@ fn test_apply_TextEdit() {
     0;
 }
 "#.to_owned(),
+    };
+
+    assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
+}
+
+#[test]
+fn test_apply_TextEdit_overlong_end() {
+    let lines: Vec<String> = r#"abc = 123"#
+        .split('\n')
+        .map(|l| l.to_owned())
+        .collect();
+
+    let expect: Vec<String> = r#"nb = 123"#
+        .split('\n')
+        .map(|l| l.to_owned())
+        .collect();
+
+    let edit = TextEdit {
+        range: Range {
+            start: Position {
+                line: 0,
+                character: 0,
+            },
+            end: Position {
+                line: 99999999,
+                character: 0,
+            },
+        },
+        new_text: r#"nb = 123"#.to_owned(),
     };
 
     assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
