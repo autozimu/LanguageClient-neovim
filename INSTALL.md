@@ -8,7 +8,7 @@ None.
 
 # 3. Install this plugin
 
-> For Windows users, replace `install.sh` with `install.ps1` in following
+> For Windows users, replace `bash install.sh` with `install.ps1` in following
 > snippets.
 
 > If you don't want to use pre-built binaries, specify branch `next` and `make
@@ -22,7 +22,7 @@ Add following to vimrc
 ```vim
 Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
-    \ 'do': 'install.sh',
+    \ 'do': 'bash install.sh',
     \ }
 ```
 
@@ -33,7 +33,7 @@ Add following to vimrc
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
     \ 'rev': 'branch',
-    \ 'build': './install.sh',
+    \ 'build': 'bash install.sh',
     \ })
 ```
 
@@ -46,7 +46,7 @@ mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
 git clone --depth 1 https://github.com/autozimu/LanguageClient-neovim.git
 cd LanguageClient-neovim
-./install.sh
+bash install.sh
 ```
 
 Add this plugin to vim/neovim `runtimepath`,

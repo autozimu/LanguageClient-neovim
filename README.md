@@ -40,7 +40,7 @@ Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 ```vim
 Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
-    \ 'do': 'install.sh',
+    \ 'do': 'bash install.sh',
     \ }
 
 " (Optional) Multi-entry selection UI.
