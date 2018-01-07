@@ -634,9 +634,14 @@ function! s:getInput(prompt, default) abort
 endfunction
 
 function! s:FZF(source, sink) abort
+    let l:options = get(g:, 'LanguageClient_fzfOptions', v:null)
+    if l:options == v:null
+        let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
+    endif
     call fzf#run(fzf#wrap({
                 \ 'source': a:source,
                 \ 'sink': function(a:sink),
+                \ 'options': l:options,
                 \ }))
     if has('nvim')
         call feedkeys('i')

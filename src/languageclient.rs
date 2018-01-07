@@ -731,21 +731,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
-    fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()> {
+    fn display_locations(&self, locations: &[Location], _languageId: &str) -> Result<()> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
-                let root = self.get(|state| {
-                    state
-                        .roots
-                        .get(languageId)
-                        .cloned()
-                        .ok_or_else(|| format_err!("Failed to get root"))
-                })?;
+                let cwd: String = self.eval("getcwd()")?;
                 let source: Vec<_> = locations
                     .iter()
                     .map(|loc| {
                         let filename = loc.uri.path();
-                        let relpath = diff_paths(Path::new(loc.uri.path()), Path::new(&root))
+                        let relpath = diff_paths(Path::new(loc.uri.path()), Path::new(&cwd))
                             .unwrap_or_else(|| Path::new(filename).to_path_buf());
                         let relpath = relpath.to_str().unwrap_or(filename);
                         let start = loc.range.start;

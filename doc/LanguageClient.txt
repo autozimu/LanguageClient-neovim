@@ -190,6 +190,13 @@ Example setting 2. Map filetype to string array. >
 Default: v:null
 Valid option: Array<String> | Map<String, Array<String>>
 
+2.15 g:LanguageClient_fzfOptions                *g:LanguageClient_fzfOptions*
+
+Customize fzf. Check fzf documentation for available options.
+
+Default: v:null
+Valid option: Array<String> | String
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
