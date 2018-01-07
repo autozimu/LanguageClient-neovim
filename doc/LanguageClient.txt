@@ -277,7 +277,7 @@ Format current document.
 Format selected lines.
 
 4.11 LanguageClient#Notify(method: str, params: Dict)
-*LanguageClient_notify*
+*LanguageClient#Notify*
 
 Send a notification to the current language server.
 
