@@ -2350,6 +2350,19 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.command(&cmd)?;
         }
 
+        let hlsource = self.update(|state| {
+            state
+                .highlight_source
+                .ok_or_else(|| format_err!("No highlight source"))
+        });
+        if let Ok(hlsource) = hlsource {
+            self.call(
+                None,
+                "nvim_buf_clear_highlight",
+                json!([0, hlsource, 1, -1]),
+            )?;
+        }
+
         if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
             self.command("doautocmd User LanguageClientStopped")?;
         }
