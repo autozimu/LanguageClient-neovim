@@ -641,7 +641,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 let line = dn.range.start.line;
                 let text = texts
                     .get(line as usize)
-                    .map(|l| (*l).to_owned())
+                    .map(|l| l.to_string())
                     .unwrap_or_default();
                 let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
                 Sign::new(line + 1, text, severity)

@@ -441,12 +441,6 @@ pub trait ToString {
     fn to_string(&self) -> String;
 }
 
-impl<'a> ToString for &'a str {
-    fn to_string(&self) -> String {
-        (*self).to_owned()
-    }
-}
-
 impl ToString for lsp::MarkedString {
     fn to_string(&self) -> String {
         match *self {
@@ -514,24 +508,13 @@ impl DiagnosticSeverityExt for DiagnosticSeverity {
 
 impl ToInt for DiagnosticSeverity {
     fn to_int(&self) -> Result<u64> {
-        Ok(match *self {
-            DiagnosticSeverity::Error => 1,
-            DiagnosticSeverity::Warning => 2,
-            DiagnosticSeverity::Information => 3,
-            DiagnosticSeverity::Hint => 4,
-        })
+        Ok(*self as u64)
     }
 }
 
 impl ToInt for MessageType {
     fn to_int(&self) -> Result<u64> {
-        let i = match *self {
-            MessageType::Error => 1,
-            MessageType::Warning => 2,
-            MessageType::Info => 3,
-            MessageType::Log => 4,
-        };
-        Ok(i)
+        Ok(*self as u64)
     }
 }
 
@@ -595,11 +578,11 @@ impl VimExp for VimVar {
 
 impl<'a> VimExp for &'a str {
     fn to_key(&self) -> String {
-        (*self).to_owned()
+        self.to_string()
     }
 
     fn to_exp(&self) -> String {
-        (*self).to_owned()
+        self.to_string()
     }
 }
 
