@@ -35,7 +35,7 @@ function! s:HandleMessage(job, lines, event) abort
             endif
 
             let s:input = s:input . strpart(l:line, 0, s:content_length)
-            if s:content_length < len(l:line)
+            if s:content_length < strlen(l:line)
                 call insert(a:lines, strpart(l:line, s:content_length), 0)
                 let s:content_length = 0
             else

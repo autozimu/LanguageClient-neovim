@@ -330,9 +330,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 Ok(writer.flush()?)
             })?;
         } else {
-            let mut writer = std::io::stdout();
-            write!(writer, "Content-Length: {}\n{}\n", message.len(), message)?;
-            writer.flush()?;
+            println!("Content-Length: {}\n\n{}", message.len(), message);
         }
 
         Ok(())
