@@ -340,6 +340,9 @@ function! LanguageClient_textDocument_formatting(...) abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
@@ -351,6 +354,9 @@ function! LanguageClient_textDocument_rangeFormatting(...) abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null

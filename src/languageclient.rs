@@ -30,7 +30,7 @@ pub trait ILanguageClient {
     ) -> Result<T>;
     fn sync_settings(&self) -> Result<()>;
     fn define_signs(&self) -> Result<()>;
-    fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Result<()>;
+    fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()>;
     fn apply_TextEdits(&self, filename: &str, edits: &[TextEdit]) -> Result<()>;
     fn display_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()>;
     fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()>;
@@ -553,10 +553,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
-    fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Result<()> {
-        debug!("Begin apply WorkspaceEdit: {:?}", edit);
+    fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()> {
+        debug!(
+            "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
+            edit, params
+        );
         let (filename, line, character): (String, u64, u64) =
-            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], &None)?;
+            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
 
         if let Some(ref changes) = edit.document_changes {
             for e in changes {
@@ -1297,8 +1300,13 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::Formatting::METHOD);
-        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Handle,
+            ],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1322,17 +1330,30 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
-        let edits = edits.unwrap_or_default();
-        self.apply_TextEdits(&filename, &edits)?;
+        if !handle {
+            return Ok(result);
+        }
+
+        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits = text_edits.unwrap_or_default();
+        let edit = lsp::WorkspaceEdit {
+            changes: Some(hashmap!{filename.to_url()? => text_edits}),
+            document_changes: None,
+        };
+        self.apply_WorkspaceEdit(&edit, params)?;
         info!("End {}", lsp::request::Formatting::METHOD);
         Ok(result)
     }
 
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
-        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
-            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Handle,
+            ],
             params,
         )?;
         if !buftype.is_empty() || languageId.is_empty() {
@@ -1374,9 +1395,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
             },
         )?;
 
-        let edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
-        let edits = edits.unwrap_or_default();
-        self.apply_TextEdits(&filename, &edits)?;
+        if !handle {
+            return Ok(result);
+        }
+
+        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits = text_edits.unwrap_or_default();
+        let edit = lsp::WorkspaceEdit {
+            changes: Some(hashmap!{filename.to_url()? => text_edits}),
+            document_changes: None,
+        };
+        self.apply_WorkspaceEdit(&edit, params)?;
         info!("End {}", lsp::request::RangeFormatting::METHOD);
         Ok(result)
     }
@@ -1779,7 +1808,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
 
         let edit: WorkspaceEdit = serde_json::from_value(result.clone())?;
-        self.apply_WorkspaceEdit(&edit)?;
+        self.apply_WorkspaceEdit(&edit, params)?;
 
         info!("End {}", lsp::request::Rename::METHOD);
         Ok(result)
@@ -2039,7 +2068,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             if let Some(ref edits) = cmd.arguments {
                 for edit in edits {
                     let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
-                    self.apply_WorkspaceEdit(&edit)?;
+                    self.apply_WorkspaceEdit(&edit, &None)?;
                 }
             }
         } else {
@@ -2248,7 +2277,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         let params: ApplyWorkspaceEditParams = serde_json::from_value(params.clone().to_value())?;
-        self.apply_WorkspaceEdit(&params.edit)?;
+        self.apply_WorkspaceEdit(&params.edit, &None)?;
 
         info!("End {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
