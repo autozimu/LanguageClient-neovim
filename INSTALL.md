@@ -32,7 +32,7 @@ Restart neovim and run `:PlugInstall` to install.
 Add following to vimrc
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
-    \ 'rev': 'branch',
+    \ 'rev': 'next',
     \ 'build': 'bash install.sh',
     \ })
 ```
