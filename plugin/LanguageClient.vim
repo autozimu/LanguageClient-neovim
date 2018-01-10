@@ -629,7 +629,7 @@ endfunction
 
 " Get all listed buffer file names.
 function! s:Bufnames() abort
-    return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), ":p")')
+    return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
 endfunction
 
 function! s:getInput(prompt, default) abort
@@ -674,9 +674,12 @@ endfunction
 command! -nargs=* LanguageClientStart :call LanguageClient_startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient_exit()
 
-autocmd BufReadPost * call LanguageClient_handleBufReadPost()
-autocmd TextChanged * call LanguageClient_handleTextChanged()
-autocmd TextChangedI * call LanguageClient_handleTextChanged()
-autocmd BufWritePost * call LanguageClient_handleBufWritePost()
-autocmd BufDelete * call LanguageClient_handleBufDelete()
-autocmd CursorMoved * call LanguageClient_handleCursorMoved()
+augroup languageClient
+    autocmd!
+    autocmd BufReadPost * call LanguageClient_handleBufReadPost()
+    autocmd TextChanged * call LanguageClient_handleTextChanged()
+    autocmd TextChangedI * call LanguageClient_handleTextChanged()
+    autocmd BufWritePost * call LanguageClient_handleBufWritePost()
+    autocmd BufDelete * call LanguageClient_handleBufDelete()
+    autocmd CursorMoved * call LanguageClient_handleCursorMoved()
+augroup END

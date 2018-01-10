@@ -7,7 +7,10 @@ Plug 'autozimu/LanguageClient-neovim', {
 
 call plug#end()
 
-autocmd BufReadPost *.rs setlocal filetype=rust
+augroup filetype_rust
+    autocmd!
+    autocmd BufReadPost *.rs setlocal filetype=rust
+augroup END
 
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
