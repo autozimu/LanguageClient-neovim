@@ -10,6 +10,9 @@ fmt:
 clippy:
 	cargo +nightly clippy
 
+vint:
+	vint .
+
 release:
 	cargo build --release
 	cp -f target/release/languageclient bin/

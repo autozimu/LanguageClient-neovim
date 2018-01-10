@@ -22,7 +22,7 @@ let s:handlers = {}
 let s:content_length = 0
 let s:input = ''
 function! s:HandleMessage(job, lines, event) abort
-    if a:event == 'stdout'
+    if a:event ==# 'stdout'
         while len(a:lines) > 0
             let l:line = remove(a:lines, 0)
 
@@ -61,19 +61,19 @@ function! s:HandleMessage(job, lines, event) abort
                     endif
                     if l:id != v:null
                         call LanguageClient#Write(json_encode({
-                                    \ "jsonrpc": "2.0",
-                                    \ "id": l:id,
-                                    \ "result": l:result,
+                                    \ 'jsonrpc': '2.0',
+                                    \ 'id': l:id,
+                                    \ 'result': l:result,
                                     \ }))
                     endif
                 catch /.*/
                     if l:id != v:null
                         call LanguageClient#Write(json_encode({
-                                    \ "jsonrpc": "2.0",
-                                    \ "id": l:id,
-                                    \ "error": {
-                                    \   "code": -32603,
-                                    \   "message": string(v:exception)
+                                    \ 'jsonrpc': '2.0',
+                                    \ 'id': l:id,
+                                    \ 'error': {
+                                    \   'code': -32603,
+                                    \   'message': string(v:exception)
                                     \   }
                                     \ }))
                     endif
@@ -89,7 +89,7 @@ function! s:HandleMessage(job, lines, event) abort
                 elseif type(Handle) == v:t_list
                     call add(Handle, l:result)
                 else
-                    s:Echoerr('Unknown Handle type: ' . string(Handle))
+                    call s:Echoerr('Unknown Handle type: ' . string(Handle))
                 endif
             elseif has_key(l:message, 'error')
                 let l:id = get(l:message, 'id')
@@ -102,15 +102,15 @@ function! s:HandleMessage(job, lines, event) abort
                 elseif type(Handle) == v:t_list
                     call add(Handle, v:null)
                 else
-                    s:Echoerr('Unknown Handle type: ' . string(Handle))
+                    call s:Echoerr('Unknown Handle type: ' . string(Handle))
                 endif
             else
                 call s:Echoerr('Unknown message: ' . string(l:message))
             endif
         endwhile
-    elseif a:event == 'stderr'
+    elseif a:event ==# 'stderr'
         call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
-    elseif a:event == 'exit'
+    elseif a:event ==# 'exit'
         if type(a:lines) == v:t_number && a:lines == 0
             return
         endif
@@ -165,8 +165,8 @@ function! s:Launch() abort
                     \ 'err_cb': function('s:HandleStderrVim'),
                     \ 'exit_cb': function('s:HandleExitVim'),
                     \ })
-        if job_status(s:job) != 'run'
-            s:Echoerr('LanguageClient: job failed to start or died!')
+        if job_status(s:job) !=# 'run'
+            call s:Echoerr('LanguageClient: job failed to start or died!')
             return 0
         else
             return 1
@@ -217,7 +217,7 @@ function! HandleOutput(result, error) abort
         call s:Echoerr(get(a:error, 'message'))
     else
         let l:result = string(a:result)
-        if l:result !=# "v:null"
+        if l:result !=# 'v:null'
             " echomsg l:result
         endif
     endif
@@ -440,7 +440,7 @@ function! LanguageClient_setLoggingLevel(level) abort
 endfunction
 
 function! LanguageClient_handleBufReadPost() abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
@@ -456,7 +456,7 @@ function! LanguageClient_handleBufReadPost() abort
 endfunction
 
 function! LanguageClient_handleTextChanged() abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
@@ -475,7 +475,7 @@ endfunction
 let g:LanguageClient_loaded = s:Launch()
 
 function! LanguageClient_handleBufWritePost() abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
@@ -491,7 +491,7 @@ function! LanguageClient_handleBufWritePost() abort
 endfunction
 
 function! LanguageClient_handleBufDelete() abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
@@ -508,7 +508,7 @@ endfunction
 
 let s:last_cursor_line = -1
 function! LanguageClient_handleCursorMoved() abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
@@ -555,7 +555,7 @@ function! LanguageClient_omniComplete(...) abort
                     \ }
         call extend(l:params, a:0 >= 1 ? a:1 : {})
         let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
-        call LanguageClient#Call("languageClient/omniComplete", l:params, l:callback)
+        call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
     catch /.*/
         call add(g:LanguageClient_completeResults, v:null)
         call s:Debug(string(v:exception))
@@ -566,7 +566,7 @@ function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
-        while l:start > 0 && l:line[l:start - 1] =~ '\a'
+        while l:start > 0 && l:line[l:start - 1] =~# '\S'
             let l:start -= 1
         endwhile
         return l:start
@@ -582,7 +582,7 @@ function! LanguageClient#complete(findstart, base) abort
 endfunction
 
 function! LanguageClient_workspace_applyEdit(...) abort
-    if &buftype != '' || &filetype == ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
