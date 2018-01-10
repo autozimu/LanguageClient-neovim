@@ -34,5 +34,6 @@ for tag in tags:
 
 if not cmd_delete_local.endswith('delete'):
     subprocess.check_call(cmd_delete_local, shell=True)
-if not cmd_delete_remote.endswith('origin'):
+if not (cmd_delete_remote.endswith('origin') or
+        cmd_delete_remote.endswith('.git')):
     subprocess.check_call(cmd_delete_remote, shell=True)
