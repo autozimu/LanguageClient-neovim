@@ -538,6 +538,7 @@ pub enum VimVar {
     Text,
     Cword,
     NewName,
+    GotoCmd,
     Handle,
 }
 
@@ -557,6 +558,7 @@ impl VimExp for VimVar {
             VimVar::Text => "text",
             VimVar::Cword => "cword",
             VimVar::NewName => "newName",
+            VimVar::GotoCmd => "gotoCmd",
             VimVar::Handle => "handle",
         }.to_owned()
     }
@@ -570,7 +572,7 @@ impl VimExp for VimVar {
             VimVar::Character => "col('.') - 1",
             VimVar::Text => "getbufline('', 1, '$')",
             VimVar::Cword => "expand('<cword>')",
-            VimVar::NewName => "v:null",
+            VimVar::NewName | VimVar::GotoCmd => "v:null",
             VimVar::Handle => "v:true",
         }.to_owned()
     }

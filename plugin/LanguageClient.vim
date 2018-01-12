@@ -244,6 +244,7 @@ function! LanguageClient_textDocument_definition(...) abort
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
+                \ 'gotoCmd': v:null,
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})

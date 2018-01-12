@@ -15,7 +15,7 @@ pub trait IVim {
         T: DeserializeOwned;
     fn command(&self, cmd: &str) -> Result<()>;
     fn getbufline(&self, bufexp: &str) -> Result<Vec<String>>;
-    fn goto_location(&self, filename: &str, line: u64, character: u64) -> Result<()>;
+    fn goto_location(&self, goto_cmd: &Option<String>, filename: &str, line: u64, character: u64) -> Result<()>;
 }
 
 // Whether should it be Mutex or RwLock.
@@ -77,14 +77,17 @@ impl IVim for Arc<Mutex<State>> {
         Ok(serde_json::from_value(result)?)
     }
 
-    fn goto_location(&self, filename: &str, line: u64, character: u64) -> Result<()> {
-        let bufname: Option<String> = self.eval(format!("bufname('{}')", filename).as_str())?;
-        let bufname = bufname.unwrap_or_default();
-
-        let action = if bufname.is_empty() { "edit" } else { "buffer" };
+    fn goto_location(&self, goto_cmd: &Option<String>, filename: &str, line: u64, character: u64) -> Result<()> {
+        let goto_cmd = if let Some(ref goto_cmd) = *goto_cmd {
+            goto_cmd
+        } else if self.eval::<_, i64>(format!("bufnr('{}')", filename))? != -1 {
+            "buffer"
+        } else {
+            "edit"
+        };
         let cmd = format!(
             "echo | execute '{} +:call\\ cursor({},{}) ' . fnameescape('{}')",
-            action,
+            goto_cmd,
             line + 1,
             character + 1,
             filename

@@ -572,7 +572,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
         }
         debug!("End apply WorkspaceEdit");
-        self.goto_location(&filename, line, character)?;
+        self.goto_location(&Some("buffer".to_string()), &filename, line, character)?;
         Ok(())
     }
 
@@ -582,7 +582,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         edits.reverse();
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
-        self.goto_location(filename, 0, 0)?;
+        self.goto_location(&None, filename, 0, 0)?;
         let mut lines: Vec<String> = self.getbufline(filename)?;
         let lines_len = lines.len();
         lines = apply_TextEdits(&lines, &edits)?;
@@ -1691,18 +1691,26 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
     fn textDocument_definition(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::GotoDefinition::METHOD);
-        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
-            self.gather_args(
-                &[
-                    VimVar::Buftype,
-                    VimVar::LanguageId,
-                    VimVar::Filename,
-                    VimVar::Line,
-                    VimVar::Character,
-                    VimVar::Handle,
-                ],
-                params,
-            )?;
+        let (buftype, languageId, filename, line, character, goto_cmd, handle): (
+            String,
+            String,
+            String,
+            u64,
+            u64,
+            Option<String>,
+            bool,
+        ) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
+                VimVar::GotoCmd,
+                VimVar::Handle,
+            ],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1731,6 +1739,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             }
             GotoDefinitionResponse::Scalar(loc) => {
                 self.goto_location(
+                    &goto_cmd,
                     loc.uri.path(),
                     loc.range.start.line,
                     loc.range.start.character,
@@ -1741,6 +1750,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 1 => {
                     let loc = arr.get(0).ok_or_else(|| format_err!("Not found!"))?;
                     self.goto_location(
+                        &goto_cmd,
                         loc.uri.path(),
                         loc.range.start.line,
                         loc.range.start.character,
@@ -2014,7 +2024,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .ok_or_else(|| format_err!("Failed to get character token"))?
             .to_int()? - 1;
 
-        self.goto_location(&filename, line, character)?;
+        self.goto_location(&None, &filename, line, character)?;
 
         info!("End {}", NOTIFICATION__FZFSinkLocation);
         Ok(())
