@@ -1,7 +1,4 @@
-use std;
-use utils;
-use log4rs;
-use types::*;
+use super::*;
 use log::LogLevelFilter;
 use log4rs::Handle;
 use log4rs::append::file::FileAppender;

@@ -1,7 +1,4 @@
-use serde_json;
-use types::*;
-use utils::*;
-use languageclient::*;
+use super::*;
 
 pub trait IVim {
     fn echo(&self, message: &str) -> Result<()>;

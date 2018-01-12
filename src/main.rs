@@ -1,11 +1,22 @@
 #![allow(non_snake_case, non_upper_case_globals, unknown_lints, useless_format)]
 
+use std::collections::{HashMap, HashSet};
+use std::sync::mpsc::{channel, Sender};
+use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::io::prelude::*;
+use std::io::{BufReader, BufWriter};
+use std::fs::File;
+use std::env;
+use std::process::{ChildStdin, Stdio};
+
 extern crate log4rs;
 #[macro_use]
 extern crate log;
 
 #[macro_use]
 extern crate failure;
+use failure::Error;
 
 extern crate libc;
 
@@ -15,23 +26,31 @@ extern crate chrono;
 extern crate maplit;
 
 extern crate serde;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-pub extern crate jsonrpc_core;
+extern crate jsonrpc_core as rpc;
+// TODO: use rpc prefix.
+use rpc::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success, Value, Version};
 
-pub extern crate languageserver_types;
+extern crate languageserver_types as lsp;
+// TODO: unglob.
+use lsp::*;
 
 extern crate url;
+use url::Url;
 
 extern crate pathdiff;
+use pathdiff::diff_paths;
 
 extern crate diff;
 
+extern crate glob;
 extern crate regex;
-pub extern crate glob;
 
 extern crate structopt;
 use structopt::StructOpt;
@@ -41,13 +60,14 @@ extern crate structopt_derive;
 #[macro_use]
 extern crate lazy_static;
 
-mod logger;
 mod types;
 use types::*;
 mod utils;
+use utils::*;
 mod vim;
 mod languageclient;
 use languageclient::*;
+mod logger;
 
 #[derive(Debug, StructOpt)]
 struct Opt {}

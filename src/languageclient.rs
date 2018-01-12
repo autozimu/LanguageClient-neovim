@@ -1,12 +1,9 @@
-use std;
-use libc;
-use serde_json;
-use regex;
-use types::*;
-use utils::*;
+use super::*;
+use std::str::FromStr;
+use std::ops::Deref;
+use lsp::request::Request;
+use lsp::notification::Notification;
 use vim::*;
-use logger;
-use super::LOGGER;
 
 pub trait ILanguageClient {
     fn get<F, T>(&self, f: F) -> Result<T>

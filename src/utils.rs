@@ -1,6 +1,4 @@
-use std;
-use types::*;
-use serde_json;
+use super::*;
 
 pub fn escape_single_quote(s: &str) -> String {
     s.replace("'", "''")
@@ -313,7 +311,7 @@ pub trait Merge {
     fn merge(&mut self, other: Self) -> ();
 }
 
-impl<K, V> Merge for HashMap<K, V>
+impl<K: std::hash::Hash + Eq, V, S: std::hash::BuildHasher> Merge for HashMap<K, V, S>
 where
     K: std::cmp::Eq + std::hash::Hash,
 {
