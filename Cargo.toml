@@ -1,6 +1,6 @@
 [package]
 name = "languageclient"
-version = "0.1.25"
+version = "0.1.26"
 authors = ["Junfeng Li <autozimu@gmail.com>"]
 description = "Language Server Protocol (LSP) support for vim and neovim"
 publish = false
