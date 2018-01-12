@@ -31,11 +31,11 @@ pub trait ILanguageClient {
     fn sync_settings(&self) -> Result<()>;
     fn define_signs(&self) -> Result<()>;
     fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()>;
-    fn apply_TextEdits(&self, filename: &str, edits: &[TextEdit]) -> Result<()>;
+    fn apply_TextEdits<P: AsRef<Path>>(&self, path: P, edits: &[TextEdit]) -> Result<()>;
     fn display_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()>;
     fn display_locations(&self, locations: &[Location], languageId: &str) -> Result<()>;
     fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()>;
-    fn get_line(&self, filename: &str, line: u64) -> Result<String>;
+    fn get_line<P: AsRef<Path>>(&self, path: P, line: u64) -> Result<String>;
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool>;
     fn cleanup(&self, languageId: &str) -> Result<()>;
 
@@ -563,12 +563,12 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         if let Some(ref changes) = edit.document_changes {
             for e in changes {
-                self.apply_TextEdits(e.text_document.uri.path(), &e.edits)?;
+                self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
             }
         }
         if let Some(ref changes) = edit.changes {
             for (uri, edits) in changes {
-                self.apply_TextEdits(uri.path(), edits)?;
+                self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
         }
         debug!("End apply WorkspaceEdit");
@@ -576,14 +576,14 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
-    fn apply_TextEdits(&self, filename: &str, edits: &[TextEdit]) -> Result<()> {
+    fn apply_TextEdits<P: AsRef<Path>>(&self, path: P, edits: &[TextEdit]) -> Result<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
         let mut edits = edits.to_vec();
         edits.reverse();
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
-        self.goto_location(&None, filename, 0, 0)?;
-        let mut lines: Vec<String> = self.getbufline(filename)?;
+        self.goto_location(&None, &path, 0, 0)?;
+        let mut lines: Vec<String> = self.getbufline(&path)?;
         let lines_len = lines.len();
         lines = apply_TextEdits(&lines, &edits)?;
         let fixendofline: u64 = self.eval("&fixendofline")?;
@@ -736,24 +736,23 @@ impl ILanguageClient for Arc<Mutex<State>> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
-                let source: Vec<_> = locations
+                let source: Result<Vec<_>> = locations
                     .iter()
                     .map(|loc| {
-                        let filename = loc.uri.path();
-                        let relpath = diff_paths(Path::new(loc.uri.path()), Path::new(&cwd))
-                            .unwrap_or_else(|| Path::new(filename).to_path_buf());
-                        let relpath = relpath.to_str().unwrap_or(filename);
+                        let filename = loc.uri.filepath()?;
                         let start = loc.range.start;
-                        let text = self.get_line(filename, start.line).unwrap_or_default();
-                        format!(
+                        let text = self.get_line(&filename, start.line).unwrap_or_default();
+                        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
+                        Ok(format!(
                             "{}:{}:{}:\t{}",
-                            relpath,
+                            relpath.to_str().unwrap_or_default(),
                             start.line + 1,
                             start.character + 1,
                             text
-                        )
+                        ))
                     })
                     .collect();
+                let source = source?;
 
                 self.notify(
                     None,
@@ -762,20 +761,21 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 )?;
             }
             SelectionUI::LocationList => {
-                let loclist: Vec<_> = locations
+                let loclist: Result<Vec<_>> = locations
                     .iter()
                     .map(|loc| {
-                        let filename = loc.uri.path();
+                        let filename = loc.uri.filepath()?;
                         let start = loc.range.start;
-                        let text = self.get_line(filename, start.line).unwrap_or_default();
-                        json!({
-                        "filename": filename,
-                        "lnum": start.line + 1,
-                        "col": start.character + 1,
-                        "text": text,
-                    })
+                        let text = self.get_line(&filename, start.line).unwrap_or_default();
+                        Ok(json!({
+                            "filename": filename,
+                            "lnum": start.line + 1,
+                            "col": start.character + 1,
+                            "text": text,
+                        }))
                     })
                     .collect();
+                let loclist = loclist?;
 
                 self.notify(None, "setloclist", json!([0, loclist]))?;
                 self.echo("Location list updated.")?;
@@ -1188,13 +1188,17 @@ impl ILanguageClient for Arc<Mutex<State>> {
         Ok(())
     }
 
-    fn get_line(&self, filename: &str, line: u64) -> Result<String> {
-        let value = self.call(None, "getbufline", json!([filename, line + 1]))?;
+    fn get_line<P: AsRef<Path>>(&self, path: P, line: u64) -> Result<String> {
+        let value = self.call(
+            None,
+            "getbufline",
+            json!([path.as_ref().to_str().unwrap_or_default(), line + 1]),
+        )?;
         let mut texts: Vec<String> = serde_json::from_value(value)?;
         let mut text = texts.pop().unwrap_or_default();
 
         if text.is_empty() {
-            let reader = BufReader::new(File::open(filename)?);
+            let reader = BufReader::new(File::open(path)?);
             text = reader
                 .lines()
                 .nth(line.to_usize()?)
@@ -1740,7 +1744,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             GotoDefinitionResponse::Scalar(loc) => {
                 self.goto_location(
                     &goto_cmd,
-                    loc.uri.path(),
+                    loc.uri.filepath()?.to_str().unwrap_or_default(),
                     loc.range.start.line,
                     loc.range.start.character,
                 )?;
@@ -1751,7 +1755,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     let loc = arr.get(0).ok_or_else(|| format_err!("Not found!"))?;
                     self.goto_location(
                         &goto_cmd,
-                        loc.uri.path(),
+                        loc.uri.filepath()?.to_str().unwrap_or_default(),
                         loc.range.start.line,
                         loc.range.start.character,
                     )?;
@@ -1921,30 +1925,23 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
-                let root = self.get(|state| {
-                    state
-                        .roots
-                        .get(&languageId)
-                        .cloned()
-                        .ok_or_else(|| format_err!("Failed to get root"))
-                })?;
-                let source: Vec<_> = symbols
+                let cwd: String = self.eval("getcwd()")?;
+                let source: Result<Vec<_>> = symbols
                     .iter()
                     .map(|sym| {
-                        let filename = sym.location.uri.path();
-                        let relpath = diff_paths(Path::new(sym.location.uri.path()), Path::new(&root))
-                            .unwrap_or_else(|| Path::new(filename).to_path_buf());
-                        let relpath = relpath.to_str().unwrap_or(filename);
+                        let filename = sym.location.uri.filepath()?;
+                        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
                         let start = sym.location.range.start;
-                        format!(
+                        Ok(format!(
                             "{}:{}:{}:\t{}",
-                            relpath,
+                            relpath.to_str().unwrap_or_default(),
                             start.line + 1,
                             start.character + 1,
                             sym.name
-                        )
+                        ))
                     })
                     .collect();
+                let source = source?;
 
                 self.notify(
                     None,
@@ -1958,7 +1955,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .map(|sym| {
                         let start = sym.location.range.start;
                         json!({
-                        "filename": sym.location.uri.path(),
+                        "filename": sym.location.uri.to_file_path(),
                         "lnum": start.line + 1,
                         "col": start.character + 1,
                         "text": sym.name,

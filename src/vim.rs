@@ -14,8 +14,14 @@ pub trait IVim {
         E: VimExp,
         T: DeserializeOwned;
     fn command(&self, cmd: &str) -> Result<()>;
-    fn getbufline(&self, bufexp: &str) -> Result<Vec<String>>;
-    fn goto_location(&self, goto_cmd: &Option<String>, filename: &str, line: u64, character: u64) -> Result<()>;
+    fn getbufline<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>>;
+    fn goto_location<P: AsRef<Path>>(
+        &self,
+        goto_cmd: &Option<String>,
+        path: P,
+        line: u64,
+        character: u64,
+    ) -> Result<()>;
 }
 
 // Whether should it be Mutex or RwLock.
@@ -72,15 +78,23 @@ impl IVim for Arc<Mutex<State>> {
         self.notify(None, "execute", cmd)
     }
 
-    fn getbufline(&self, bufexp: &str) -> Result<Vec<String>> {
+    fn getbufline<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
+        let bufexp = bufexp.as_ref().to_str().unwrap_or_default();
         let result = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
         Ok(serde_json::from_value(result)?)
     }
 
-    fn goto_location(&self, goto_cmd: &Option<String>, filename: &str, line: u64, character: u64) -> Result<()> {
+    fn goto_location<P: AsRef<Path>>(
+        &self,
+        goto_cmd: &Option<String>,
+        path: P,
+        line: u64,
+        character: u64,
+    ) -> Result<()> {
+        let path = path.as_ref().to_str().unwrap_or_default();
         let goto_cmd = if let Some(ref goto_cmd) = *goto_cmd {
             goto_cmd
-        } else if self.eval::<_, i64>(format!("bufnr('{}')", filename))? != -1 {
+        } else if self.eval::<_, i64>(format!("bufnr('{}')", path))? != -1 {
             "buffer"
         } else {
             "edit"
@@ -90,7 +104,7 @@ impl IVim for Arc<Mutex<State>> {
             goto_cmd,
             line + 1,
             character + 1,
-            filename
+            path
         );
 
         self.command(cmd.as_str())

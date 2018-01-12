@@ -651,3 +651,14 @@ pub struct CqueryProgressParams {
     pub onIdMappedCount: u64,
     pub onIndexedCount: u64,
 }
+
+pub trait Filepath {
+    fn filepath(&self) -> Result<PathBuf>;
+}
+
+impl Filepath for Url {
+    fn filepath(&self) -> Result<PathBuf> {
+        self.to_file_path()
+            .map_err(|_| format_err!("Uri is not valid file path: {:?}", self))
+    }
+}
