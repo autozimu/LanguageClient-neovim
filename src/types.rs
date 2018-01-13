@@ -406,7 +406,7 @@ impl ToInt for Id {
         match *self {
             Id::Num(id) => Ok(id),
             Id::Str(ref s) => s.as_str().to_int(),
-            Id::Null => Err(format_err!("Null id")),
+            Id::Null => Err(err_msg("Null id")),
         }
     }
 }

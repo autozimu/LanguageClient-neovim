@@ -1,4 +1,4 @@
-#![allow(non_snake_case, non_upper_case_globals, unknown_lints, useless_format)]
+#![allow(non_snake_case, non_upper_case_globals)]
 
 use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::{channel, Sender};
@@ -16,7 +16,7 @@ extern crate log;
 
 #[macro_use]
 extern crate failure;
-use failure::Error;
+use failure::{err_msg, Error};
 
 extern crate libc;
 

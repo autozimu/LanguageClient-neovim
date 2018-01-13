@@ -60,7 +60,7 @@ pub fn get_rootPath<'a>(path: &'a Path, languageId: &str, rootMarkers: &Option<R
     })
         .or_else(|_| {
             let parent = path.parent()
-                .ok_or_else(|| format_err!("Failed to get file dir"));
+                .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
             warn!(
                 "Unknown project type. Fallback to use dir as project root: {:?}",
                 parent
@@ -77,7 +77,7 @@ where
         return Ok(path);
     }
 
-    let next_path = path.parent().ok_or_else(|| format_err!("Hit root"))?;
+    let next_path = path.parent().ok_or_else(|| err_msg("Hit root"))?;
 
     traverse_up(next_path, predicate)
 }
@@ -360,10 +360,10 @@ pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
         tokens.reverse();
         let key = tokens
             .pop()
-            .ok_or_else(|| format_err!("Failed to parse command arguments."))?;
+            .ok_or_else(|| format_err!("Failed to parse command arguments! tokens: {:?}", tokens))?;
         let value = tokens
             .pop()
-            .ok_or_else(|| format_err!("Failed to parse command arguments."))?;
+            .ok_or_else(|| format_err!("Failed to parse command arguments! tokens: {:?}", tokens))?;
         let value = Value::String(value.to_owned());
         map.insert(key.to_owned(), value);
     }

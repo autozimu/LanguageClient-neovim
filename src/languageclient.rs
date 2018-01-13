@@ -90,7 +90,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         F: FnOnce(&State) -> Result<T>,
     {
         let state = self.lock()
-            .or_else(|_| Err(format_err!("Failed to lock state")))?;
+            .or_else(|_| Err(err_msg("Failed to lock state")))?;
         f(&state)
     }
 
@@ -101,7 +101,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         use log::LogLevel;
 
         let mut state = self.lock()
-            .or_else(|_| Err(format_err!("Failed to lock state")))?;
+            .or_else(|_| Err(err_msg("Failed to lock state")))?;
         let before = if log_enabled!(LogLevel::Debug) {
             let s = serde_json::to_string(state.deref())?;
             serde_json::from_str(&s)?
@@ -166,7 +166,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     let tokens: Vec<&str> = line.splitn(2, ':').collect();
                     let len = tokens
                         .get(1)
-                        .ok_or_else(|| format_err!("Failed to get length token"))?
+                        .ok_or_else(|| format_err!("Failed to get length! tokens: {:?}", tokens))?
                         .trim();
                     content_length = usize::from_str(len)?;
                 }
@@ -211,7 +211,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 state
                     .txs
                     .remove(&output.id().to_int()?)
-                    .ok_or_else(|| format_err!("Failed to get sender"))
+                    .ok_or_else(|| format_err!("Failed to get channel sender! id: {:?}", output.id()))
             })?;
             let result = match output {
                 Output::Success(success) => Ok(success.result),
@@ -432,7 +432,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         for e in exps {
             let k = e.to_key();
             result.push(map.remove(&k)
-                .ok_or_else(|| format_err!("Failed to get value"))?);
+                .ok_or_else(|| format_err!("Failed to get value! k: {}", k))?);
         }
 
         info!("gather_args: {:?} = {:?}", exps, result);
@@ -487,7 +487,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let logger = LOGGER
             .deref()
             .as_ref()
-            .or_else(|_| Err(format_err!("No logger")))?;
+            .or_else(|_| Err(err_msg("No logger")))?;
         logger::set_logging_level(logger, &loggingLevel)?;
 
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
@@ -629,7 +629,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let text_document = state
                 .text_documents
                 .get(filename)
-                .ok_or_else(|| format_err!("Failed to get file texts"))?;
+                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))?;
             Ok(text_document.text.clone())
         })?;
         let texts: Vec<&str> = texts.split('\n').collect();
@@ -699,7 +699,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 Ok(())
             })?;
         }
-        let source = source.ok_or_else(|| format_err!("Failed to get highlight source id"))?;
+        let source = source.ok_or_else(|| err_msg("Empty highlight source id"))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
         // Highlight.
@@ -709,7 +709,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
                 .get(&severity.to_int()?)
-                .ok_or_else(|| format_err!("Failed to get display"))?
+                .ok_or_else(|| err_msg("Failed to get display"))?
                 .texthl
                 .clone();
             self.notify(
@@ -832,9 +832,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 })
         })?;
 
-        let home = env::home_dir().ok_or_else(|| format_err!("Failed to get home dir"))?;
+        let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
         let home = home.to_str()
-            .ok_or_else(|| format_err!("Failed to convert PathBuf to str"))?;
+            .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?;
         let command: Vec<_> = command
             .into_iter()
             .map(|cmd| {
@@ -852,9 +852,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             .truncate(true)
             .open(&get_logpath_server())?;
 
-        let process = std::process::Command::new(command
-            .get(0)
-            .ok_or_else(|| format_err!("Failed to get command[0]"))?)
+        let process = std::process::Command::new(command.get(0).ok_or_else(|| err_msg("Empty command!"))?)
             .args(&command[1..])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -864,10 +862,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let child_id = process.id();
         let reader = BufReader::new(process
             .stdout
-            .ok_or_else(|| format_err!("Failed to get subprocess stdout"))?);
+            .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?);
         let writer = BufWriter::new(process
             .stdin
-            .ok_or_else(|| format_err!("Failed to get subprocess stdin"))?);
+            .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?);
 
         self.update(|state| {
             state.child_ids.insert(languageId.clone(), child_id);
@@ -905,7 +903,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
     // TODO: verify.
     fn languageClient_registerServerCommands(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
-        let params = params.clone().ok_or_else(|| format_err!("Empty params"))?;
+        let params = params.clone().ok_or_else(|| err_msg("Empty params!"))?;
         let map = match params {
             Params::Map(map) => Value::Object(map),
             _ => bail!("Unexpected params type!"),
@@ -927,7 +925,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let logger = LOGGER
             .deref()
             .as_ref()
-            .or_else(|_| Err(format_err!("No logger")))?;
+            .or_else(|_| Err(err_msg("No logger")))?;
         logger::set_logging_level(logger, &loggingLevel)?;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
@@ -954,7 +952,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 let root = state
                     .roots
                     .get(&languageId)
-                    .ok_or_else(|| format_err!("Failed to get root"))?;
+                    .ok_or_else(|| format_err!("Failed to get root! languageId: {}", languageId))?;
                 Ok(filename.starts_with(root))
             })?;
             if !is_in_root {
@@ -968,7 +966,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .diagnostics
                     .get(&filename.canonicalize())
                     .cloned()
-                    .ok_or_else(|| format_err!("No diagnostics"))
+                    .ok_or_else(|| format_err!("No diagnostics! filename: {}", filename))
             }).unwrap_or_default();
             self.display_diagnostics(&filename, &diagnostics)?;
             self.languageClient_handleCursorMoved(params)?;
@@ -1029,9 +1027,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let message = self.get(|state| {
             state
                 .line_diagnostics
-                .get(&(filename, line))
+                .get(&(filename.clone(), line))
                 .cloned()
-                .ok_or_else(|| format_err!("No line diagnostic message"))
+                .ok_or_else(|| {
+                    format_err!(
+                        "Line diagnostic message not found! filename: {}, line: {}",
+                        filename,
+                        line
+                    )
+                })
         }).unwrap_or_default();
         if message == self.get(|state| Ok(state.last_line_diagnostic.clone()))? {
             return Ok(());
@@ -1064,7 +1068,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
                 get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
                     .to_str()
-                    .ok_or_else(|| format_err!("Failed to convert &Path to &str"))?
+                    .ok_or_else(|| err_msg("Failed to convert &Path to &str"))?
                     .to_owned()
             }
         };
@@ -1199,7 +1203,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             text = reader
                 .lines()
                 .nth(line.to_usize()?)
-                .ok_or_else(|| format_err!("Failed to get line"))??;
+                .ok_or_else(|| format_err!("Failed to get line! line: {}", line))??;
         }
 
         Ok(text.strip())
@@ -1506,7 +1510,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             state
                 .text_documents
                 .get(&filename)
-                .ok_or_else(|| format_err!("No TextDocumentItem"))
+                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))
                 .map(|doc| doc.text.clone())
         }).unwrap_or_default();
         if text == text_state {
@@ -1518,7 +1522,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let document = state
                 .text_documents
                 .get_mut(&filename)
-                .ok_or_else(|| format_err!("Failed to get TextDocumentItem"))?;
+                .ok_or_else(|| format_err!("Failed to get TextDocumentItem! filename: {}", filename))?;
 
             let version = document.version + 1;
             document.version = version;
@@ -1604,10 +1608,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let mut filename = params
             .uri
-            .to_file_path()
-            .map_err(|_| format_err!("Failed to convert uri to file path"))?
+            .filepath()?
             .to_str()
-            .ok_or_else(|| format_err!("Failed to convert PathBuf to str"))?
+            .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?
             .to_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
         if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
@@ -1749,7 +1752,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             GotoDefinitionResponse::Array(arr) => match arr.len() {
                 0 => self.echowarn("Not found!")?,
                 1 => {
-                    let loc = arr.get(0).ok_or_else(|| format_err!("Not found!"))?;
+                    let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
                     self.goto_location(
                         &goto_cmd,
                         loc.uri.filepath()?.to_str().unwrap_or_default(),
@@ -1980,18 +1983,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
 
         let lines: Vec<String> = serde_json::from_value(params)?;
         if lines.is_empty() {
-            format_err!("No selection!");
+            err_msg("No selection!");
         }
         let mut tokens: Vec<&str> = lines
             .get(0)
-            .ok_or_else(|| format_err!("Failed to get line"))?
+            .ok_or_else(|| format_err!("Failed to get line! lines: {:?}", lines))?
             .split(':')
             .collect();
         tokens.reverse();
         let filename: String = if tokens.len() > 3 {
             let relpath = tokens
                 .pop()
-                .ok_or_else(|| format_err!("Failed to get filepath token"))?
+                .ok_or_else(|| format_err!("Failed to get file path! tokens: {:?}", tokens))?
                 .to_owned();
             let languageId: String = self.eval(VimVar::LanguageId)?;
             let root = self.get(|state| {
@@ -1999,23 +2002,23 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     .roots
                     .get(&languageId)
                     .cloned()
-                    .ok_or_else(|| format_err!("Failed to get root"))
+                    .ok_or_else(|| format_err!("Failed to get root! languageId: {}", languageId))
             })?;
             Path::new(&root)
                 .join(relpath)
                 .to_str()
-                .ok_or_else(|| format_err!("Failed to convert PathBuf to str"))?
+                .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?
                 .to_owned()
         } else {
             self.eval(VimVar::Filename)?
         };
         let line = tokens
             .pop()
-            .ok_or_else(|| format_err!("Failed to get line token"))?
+            .ok_or_else(|| format_err!("Failed to get line! tokens: {:?}", tokens))?
             .to_int()? - 1;
         let character = tokens
             .pop()
-            .ok_or_else(|| format_err!("Failed to get character token"))?
+            .ok_or_else(|| format_err!("Failed to get character! tokens: {:?}", tokens))?
             .to_int()? - 1;
 
         self.goto_location(&None, &filename, line, character)?;
@@ -2031,18 +2034,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let command = tokens
             .get(0)
             .cloned()
-            .ok_or_else(|| format_err!("Failed to get command token"))?;
+            .ok_or_else(|| format_err!("Failed to get command! tokens: {:?}", tokens))?;
         let title = tokens
             .get(1)
             .cloned()
-            .ok_or_else(|| format_err!("Failed to get title token"))?;
+            .ok_or_else(|| format_err!("Failed to get title! tokens: {:?}", tokens))?;
         let entry = self.get(|state| {
             state
                 .stashed_codeAction_commands
                 .iter()
                 .find(|e| e.command == command && e.title == title)
                 .cloned()
-                .ok_or_else(|| format_err!("No project root found!"))
+                .ok_or_else(|| err_msg("No stashed command found!"))
         })?;
 
         if self.try_handle_command_by_client(&entry)? {
@@ -2104,7 +2107,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             Ok(state
                 .diagnostics
                 .get(&filename)
-                .ok_or_else(|| format_err!("No diagnostics found!"))?
+                .ok_or_else(|| err_msg("No diagnostics found!"))?
                 .iter()
                 .filter(|dn| {
                     let start = dn.range.start;
@@ -2124,7 +2127,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 //TODO: is this correct?
                 range: diagnostics
                     .get(0)
-                    .ok_or_else(|| format_err!("No diagnostics found!"))?
+                    .ok_or_else(|| err_msg("No diagnostics found!"))?
                     .range,
                 context: CodeActionContext { diagnostics },
             },
@@ -2233,7 +2236,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         }
         let active_signature = help.signatures
             .get(help.active_signature.unwrap_or(0).to_usize()?)
-            .ok_or_else(|| format_err!("Failed to get active signature"))?;
+            .ok_or_else(|| err_msg("Failed to get active signature"))?;
         let active_parameter: Option<&ParameterInformation>;
         if let Some(ref parameters) = active_signature.parameters {
             active_parameter = parameters.get(help.active_parameter.unwrap_or(0).to_usize()?);
@@ -2356,7 +2359,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             let root = state
                 .roots
                 .remove(languageId)
-                .ok_or_else(|| format_err!("No project root found!"))?;
+                .ok_or_else(|| format_err!("No project root found! languageId: {}", languageId))?;
 
             state.text_documents.retain(|f, _| !f.starts_with(&root));
             state.diagnostics.retain(|f, _| !f.starts_with(&root));
@@ -2384,7 +2387,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let hlsource = self.update(|state| {
             state
                 .highlight_source
-                .ok_or_else(|| format_err!("No highlight source"))
+                .ok_or_else(|| err_msg("No highlight source"))
         });
         if let Ok(hlsource) = hlsource {
             self.call(
