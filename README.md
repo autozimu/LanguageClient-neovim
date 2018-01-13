@@ -86,8 +86,7 @@ Please see <http://langserver.org> and/or <https://microsoft.github.io/language-
 
 # Documentation
 
-See [LanguageClient.txt] for full list of configurations, commands and
-functions.
+[`:help LanguageClient`][LanguageClient.txt] for full list of configurations, commands and functions.
 
 [LanguageClient.txt]: doc/LanguageClient.txt
 

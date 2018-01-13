@@ -1,4 +1,4 @@
-*LanguageClient.txt* Language Server Protocol support for neovim
+*LanguageClient*  Language Server Protocol support for neovim
 
 
 ==============================================================================
