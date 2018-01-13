@@ -16,11 +16,18 @@ fn config(level: LogLevelFilter) -> Result<Config> {
 
 pub fn init() -> Result<Handle> {
     {
+        // Truncate log files.
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .open(utils::get_logpath())?;
+        writeln!(f, "")?;
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(utils::get_logpath_server())?;
         writeln!(f, "")?;
     }
 
