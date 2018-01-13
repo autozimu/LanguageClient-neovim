@@ -19,34 +19,41 @@ endfunction
 let s:id = 1
 let s:handlers = {}
 
-let s:content_length = 0
-let s:input = ''
 function! s:HandleMessage(job, lines, event) abort
     if a:event ==# 'stdout'
+        let l:content_length = 0
+        let l:input = ''
+
         while len(a:lines) > 0
             let l:line = remove(a:lines, 0)
 
             if l:line ==# ''
                 continue
-            elseif s:content_length == 0
-                let l:line = substitute(l:line, '^Content-Length: ', '', '')
-                let s:content_length = str2nr(l:line)
+            elseif l:content_length == 0
+                let l:content_length = str2nr(substitute(l:line, '.*Content-Length:', '', ''))
                 continue
             endif
 
-            let s:input = s:input . strpart(l:line, 0, s:content_length)
-            if s:content_length < strlen(l:line)
-                call insert(a:lines, strpart(l:line, s:content_length), 0)
-                let s:content_length = 0
+            let l:input .= strpart(l:line, 0, l:content_length)
+            if l:content_length < strlen(l:line)
+                call insert(a:lines, strpart(l:line, l:content_length), 0)
+                let l:content_length = 0
             else
-                let s:content_length = s:content_length - len(l:line)
+                let l:content_length = l:content_length - strlen(l:line)
             endif
-            if s:content_length != 0
+            if l:content_length > 0
                 continue
             endif
 
-            let l:message = json_decode(s:input)
-            let s:input = ''
+            try
+                let l:message = json_decode(l:input)
+                let l:input = ''
+            catch
+                let l:input = ''
+                call s:Debug(string(v:exception))
+                continue
+            endtry
+
             if has_key(l:message, 'method')
                 let l:id = get(l:message, 'id', v:null)
                 let l:method = get(l:message, 'method')
@@ -66,7 +73,7 @@ function! s:HandleMessage(job, lines, event) abort
                                     \ 'result': l:result,
                                     \ }))
                     endif
-                catch /.*/
+                catch
                     if l:id != v:null
                         call LanguageClient#Write(json_encode({
                                     \ 'jsonrpc': '2.0',
@@ -451,7 +458,7 @@ function! LanguageClient_handleBufReadPost() abort
                     \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
-    catch /.*/
+    catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
@@ -468,7 +475,7 @@ function! LanguageClient_handleTextChanged() abort
                     \ 'filename': s:Expand('%:p'),
                     \ 'text': getbufline('', 1, '$'),
                     \ })
-    catch /.*/
+    catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
@@ -486,7 +493,7 @@ function! LanguageClient_handleBufWritePost() abort
                     \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
-    catch /.*/
+    catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
@@ -502,7 +509,7 @@ function! LanguageClient_handleBufDelete() abort
                     \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
-    catch /.*/
+    catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
@@ -525,7 +532,7 @@ function! LanguageClient_handleCursorMoved() abort
                     \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
                     \ })
-    catch /.*/
+    catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
 endfunction
@@ -557,7 +564,7 @@ function! LanguageClient_omniComplete(...) abort
         call extend(l:params, a:0 >= 1 ? a:1 : {})
         let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
         call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
-    catch /.*/
+    catch
         call add(g:LanguageClient_completeResults, v:null)
         call s:Debug(string(v:exception))
     endtry
