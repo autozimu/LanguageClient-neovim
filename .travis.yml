@@ -1,9 +1,9 @@
 # Based on the "trust" template v0.1.1
 # https://github.com/japaric/trust/tree/v0.1.1
 
-dist: xenial
-services: docker
+dist: trusty
 sudo: required
+services: docker
 language: rust
 
 env:
