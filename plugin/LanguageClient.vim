@@ -574,7 +574,7 @@ function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
-        while l:start > 0 && l:line[l:start - 1] =~# '\S'
+        while l:start > 0 && l:line[l:start - 1] =~# '\w'
             let l:start -= 1
         endwhile
         return l:start
