@@ -17,6 +17,13 @@ CompletionItemKind = {
     16: 'Color',
     17: 'File',
     18: 'Reference',
+    19: 'Folder',
+    20: 'EnumMember',
+    21: 'Constant',
+    22: 'Struct',
+    23: 'Event',
+    24: 'Operator',
+    25: 'TypeParameter'
 }
 
 
