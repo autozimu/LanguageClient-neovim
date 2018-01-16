@@ -1,7 +1,7 @@
 > For legacy python implementation, see [branch master](https://github.com/autozimu/LanguageClient-neovim/tree/master).
 
 # LanguageClient-neovim
-[![Build Status](https://travis-ci.org/autozimu/LanguageClient-neovim.svg?branch=next)](https://travis-ci.org/autozimu/LanguageClient-neovim)
+[![CircleCI](https://circleci.com/gh/autozimu/LanguageClient-neovim.svg?style=svg)](https://circleci.com/gh/autozimu/LanguageClient-neovim)
 
 [Language Server Protocol] (LSP) support for [vim] and [neovim].
 
