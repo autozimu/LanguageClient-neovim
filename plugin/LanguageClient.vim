@@ -19,37 +19,37 @@ endfunction
 let s:id = 1
 let s:handlers = {}
 
+" Note: vim execute callback for every line.
+let s:content_length = 0
+let s:input = ''
 function! s:HandleMessage(job, lines, event) abort
     if a:event ==# 'stdout'
-        let l:content_length = 0
-        let l:input = ''
-
         while len(a:lines) > 0
             let l:line = remove(a:lines, 0)
 
             if l:line ==# ''
                 continue
-            elseif l:content_length == 0
-                let l:content_length = str2nr(substitute(l:line, '.*Content-Length:', '', ''))
+            elseif s:content_length == 0
+                let s:content_length = str2nr(substitute(l:line, '.*Content-Length:', '', ''))
                 continue
             endif
 
-            let l:input .= strpart(l:line, 0, l:content_length)
-            if l:content_length < strlen(l:line)
-                call insert(a:lines, strpart(l:line, l:content_length), 0)
-                let l:content_length = 0
+            let s:input .= strpart(l:line, 0, s:content_length)
+            if s:content_length < strlen(l:line)
+                call insert(a:lines, strpart(l:line, s:content_length), 0)
+                let s:content_length = 0
             else
-                let l:content_length = l:content_length - strlen(l:line)
+                let s:content_length = s:content_length - strlen(l:line)
             endif
-            if l:content_length > 0
+            if s:content_length > 0
                 continue
             endif
 
             try
-                let l:message = json_decode(l:input)
-                let l:input = ''
+                let l:message = json_decode(s:input)
+                let s:input = ''
             catch
-                let l:input = ''
+                let s:input = ''
                 call s:Debug(string(v:exception))
                 continue
             endtry
