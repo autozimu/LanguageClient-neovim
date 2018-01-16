@@ -1,0 +1,8 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: autozimu/languageclientneovim
+    steps:
+      - checkout
+      - run: make integration-test

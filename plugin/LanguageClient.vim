@@ -91,9 +91,9 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:result = get(l:message, 'result')
                 let Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                if type(Handle) == v:t_func
+                if type(Handle) == type(function('tr'))
                     call call(Handle, [l:result, {}])
-                elseif type(Handle) == v:t_list
+                elseif type(Handle) == type([])
                     call add(Handle, l:result)
                 else
                     call s:Echoerr('Unknown Handle type: ' . string(Handle))
@@ -103,10 +103,10 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:error = get(l:message, 'error')
                 let Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                if type(Handle) == v:t_func
+                if type(Handle) == type(function('tr'))
                     call s:Echoerr(get(l:error, 'message'))
                     call call(Handle, [{}, l:error])
-                elseif type(Handle) == v:t_list
+                elseif type(Handle) == type([])
                     call add(Handle, v:null)
                 else
                     call s:Echoerr('Unknown Handle type: ' . string(Handle))
@@ -118,7 +118,7 @@ function! s:HandleMessage(job, lines, event) abort
     elseif a:event ==# 'stderr'
         call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
     elseif a:event ==# 'exit'
-        if type(a:lines) == v:t_number && a:lines == 0
+        if type(a:lines) == type(0) && a:lines == 0
             return
         endif
         call s:Echoerr('LanguageClient exited with: ' . string(a:lines))

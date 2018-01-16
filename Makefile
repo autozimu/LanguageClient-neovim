@@ -1,7 +1,9 @@
-all: build fmt clippy
+all: check build fmt clippy
+
+check:
+	cargo check
 
 build:
-	cargo check
 	cargo build
 
 fmt:
@@ -32,10 +34,12 @@ integration-test: build integration-test-lint
 
 integration-test-docker:
 	docker run --volume ${CURDIR}:/root/.config/nvim autozimu/languageclientneovim bash -c "\
-		export PATH=$$PATH:~/.cargo/bin && \
 		export CARGO_TARGET_DIR=/tmp && \
 		cd /root/.config/nvim && \
 		make integration-test"
+
+integration-test-docker-debug:
+	docker run --interactive --tty --volume ${CURDIR}:/root/.config/nvim autozimu/languageclientneovim
 
 cleanup-binary-tags:
 	ci/cleanup-binary-tags.py
