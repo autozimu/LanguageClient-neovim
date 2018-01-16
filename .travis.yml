@@ -20,9 +20,14 @@ matrix:
     - env: TARGETS=x86_64-apple-darwin
       os: osx
 
+if: tag IS present
+
 branches:
   except:
     - /binary-.*/
+
+script:
+    - true
 
 deploy:
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
