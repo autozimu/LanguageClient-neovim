@@ -1,4 +1,9 @@
 version: 2
+general:
+  branches:
+    ignore:
+      - /binary-.*/
+
 jobs:
   build:
     docker:
@@ -6,3 +11,5 @@ jobs:
     steps:
       - checkout
       - run: make integration-test
+
+# vim: tabstop=2

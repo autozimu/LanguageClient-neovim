@@ -24,22 +24,6 @@ branches:
   except:
     - /binary-.*/
 
-before_install:
-  - set -e
-  - rustup self update
-
-install:
-  - source ~/.cargo/env || true
-
-script:
-  - bash ci/script.sh
-
-after_script: set +e
-
-before_deploy:
-  - bash ci/install.sh
-  - bash ci/before_deploy.sh
-
 deploy:
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
   # - Encrypt it: `travis encrypt 0123456789012345678901234567890123456789
@@ -53,6 +37,10 @@ deploy:
     tags: true
   provider: releases
   skip_cleanup: true
+
+before_deploy:
+  - bash ci/install.sh
+  - bash ci/before_deploy.sh
 
 cache:
     cargo: true
