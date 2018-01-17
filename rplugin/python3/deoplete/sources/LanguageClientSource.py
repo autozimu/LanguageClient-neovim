@@ -48,4 +48,7 @@ class Source(Base):
         result = self.vim.funcs.eval("remove({}, 0)".format(CompleteResults))
         if not isinstance(result, list):
             result = []
+        else:
+            for item in result:
+                item["word"] = simplify_snippet(item["word"])
         return result
