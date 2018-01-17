@@ -35,6 +35,7 @@ function download() {
 function try_build() {
     echo "Trying build locally ..."
     make release
+    chmod a+x bin/$name
 }
 
 rm -f bin/languageclient
