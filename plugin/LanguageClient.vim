@@ -589,6 +589,24 @@ function! LanguageClient#complete(findstart, base) abort
     endif
 endfunction
 
+function! LanguageClient_textDocument_signatureHelp(...) abort
+    if &buftype !=# '' || &filetype ==# ''
+        return
+    endif
+
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/signatureHelp', l:params, l:callback)
+endfunction
+
 function! LanguageClient_workspace_applyEdit(...) abort
     if &buftype !=# '' || &filetype ==# ''
         return

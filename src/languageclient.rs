@@ -2249,12 +2249,16 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 .label
                 .split(&active_parameter.label)
                 .collect();
-            for chunk in chunks {
-                cmd += &format!(" | echon {}", chunk);
+            if chunks.len() == 2 {
+                let begin = chunks.get(0).cloned().unwrap_or_default();
+                let end = chunks.get(1).cloned().unwrap_or_default();
                 cmd += &format!(
-                    " | echohl Bold | echon {} | echohl None",
-                    active_parameter.label
+                    " | echon '{}' | echohl WarningMsg | echon '{}' | echohl None | echon '{}'",
+                    begin, active_parameter.label, end
                 );
+            } else {
+                // Active parameter is not part of signature.
+                cmd += &format!(" | echo '{}'", active_signature.label);
             }
             self.command(&cmd)?;
         } else {
