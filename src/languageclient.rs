@@ -1224,14 +1224,15 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 "line": ctx.lnum - 1,
                 "character": ctx.col - 1,
             }).to_params()?))?;
-        let result: CompletionResult = serde_json::from_value(result)?;
+        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
+        let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
-            CompletionResult::Array(_) => false,
-            CompletionResult::Object(ref list) => list.is_incomplete,
+            CompletionResponse::Array(_) => false,
+            CompletionResponse::List(ref list) => list.is_incomplete,
         };
         let matches: Vec<VimCompleteItem> = match result {
-            CompletionResult::Array(arr) => arr,
-            CompletionResult::Object(list) => list.items,
+            CompletionResponse::Array(arr) => arr,
+            CompletionResponse::List(list) => list.items,
         }.into_iter()
             .map(|lspitem| lspitem.into())
             .collect();
@@ -1247,10 +1248,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn languageClient_omniComplete(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
         let result = self.textDocument_completion(params)?;
-        let result: CompletionResult = serde_json::from_value(result)?;
+        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
+        let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let matches: Vec<VimCompleteItem> = match result {
-            CompletionResult::Array(arr) => arr,
-            CompletionResult::Object(list) => list.items,
+            CompletionResponse::Array(arr) => arr,
+            CompletionResponse::List(list) => list.items,
         }.into_iter()
             .map(|lspitem| lspitem.into())
             .collect();

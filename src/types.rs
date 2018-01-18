@@ -287,13 +287,6 @@ pub struct NCMContext {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum CompletionResult {
-    Array(Vec<CompletionItem>),
-    Object(CompletionList),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct VimCompleteItem {
     pub word: String,
     pub icase: u64,
