@@ -302,7 +302,7 @@ Get language server status. 0 for server idle. 1 for server busy.
 
 Get a detail message of server status.
 
-4.14 LangugeClient_statusLine() *LanguageClient_statusLine*
+4.14 LanguageClient_statusLine() *LanguageClient_statusLine*
 
 Example status line making use of LanguageClient_serverStatusMessage.
 
