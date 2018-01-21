@@ -648,13 +648,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
         signs.sort_unstable();
 
         let cmd = self.update(|state| {
-            let cmd: String;
-            {
-                let empty = vec![];
-                let signs_prev = state.signs.get(filename).unwrap_or(&empty);
-                cmd = get_command_update_signs(signs_prev, &signs, filename);
-            }
-            state.signs.insert(filename.to_owned(), signs);
+            let signs_prev = state.signs.remove(filename).unwrap_or_default();
+            let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, filename);
+            state.signs.insert(filename.to_string(), signs_next);
             Ok(cmd)
         })?;
         info!("Command to update signs: {}", cmd);
@@ -2385,7 +2381,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         for (filename, signs) in signsmap {
-            let cmd = get_command_update_signs(&signs, &[], &filename);
+            let (_, cmd) = get_command_update_signs(&signs, &[], &filename);
             self.command(&cmd)?;
         }
 

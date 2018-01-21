@@ -287,7 +287,11 @@ fn test_get_command_delete_sign() {}
 
 use diff;
 
-pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &str) -> String {
+pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &str) -> (Vec<Sign>, String) {
+    // Sign id might become different due to lines shifting. Use sign's existing sign id to
+    // track same sign.
+    let mut signs_next = vec![];
+
     let mut cmd = "echo".to_owned();
     for comp in diff::slice(signs_prev, signs) {
         match comp {
@@ -296,16 +300,28 @@ pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &
             }
             diff::Result::Right(sign) => {
                 cmd += &get_command_add_sign(sign, filename);
+                signs_next.push(sign.clone());
             }
-            diff::Result::Both(_, _) => (),
+            diff::Result::Both(sign, _) => {
+                signs_next.push(sign.clone());
+            }
         }
     }
 
-    cmd
+    (signs_next, cmd)
 }
 
 #[test]
-fn test_get_command_update_signs() {}
+fn test_get_command_update_signs() {
+    let signs_prev = vec![Sign::new(1, "abcde".to_string(), DiagnosticSeverity::Error)];
+    let signs = vec![Sign::new(3, "abcde".to_string(), DiagnosticSeverity::Error)];
+    let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, "f");
+    assert_eq!(
+        serde_json::to_string(&signs_next).unwrap(),
+        "[{\"id\":75000,\"line\":1,\"text\":\"abcde\",\"severity\":1}]"
+    );
+    assert_eq!(cmd, "echo");
+}
 
 pub trait Merge {
     fn merge(&mut self, other: Self) -> ();
