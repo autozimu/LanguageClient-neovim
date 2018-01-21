@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "languageclient"
-version = "0.1.31"
+version = "0.1.32"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diff 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
