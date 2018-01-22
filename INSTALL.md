@@ -8,7 +8,7 @@ None.
 
 # 3. Install this plugin
 
-> For Windows users, replace `bash install.sh` with `install.ps1` in following
+> For Windows users, replace `bash install.sh` with `powershell -executionpolicy bypass -File install.ps1` in following
 > snippets.
 
 > If you don't want to use pre-built binaries, specify branch `next` and `make
