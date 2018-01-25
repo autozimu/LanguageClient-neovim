@@ -1,16 +1,14 @@
 $version = '0.1.32'
 $name = 'languageclient'
-$url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/"
-$filename = "$name-$version-"
+$url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
 if ($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
-    $filename += 'x86_64'
+    $url += 'x86_64'
 } else {
-    $filename += 'i686'
+    $url += 'i686'
 }
 
-$filename += '-pc-windows-gnu.exe'
-$url += $filename
+$url += '-pc-windows-gnu.exe'
 
 $path = "bin\$name.exe"
 if (Test-Path $path) {
