@@ -30,6 +30,10 @@ pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
+pub const REQUEST__CqueryBase: &str = "$cquery/base";
+pub const REQUEST__CqueryCallers: &str = "$cquery/callers";
+pub const REQUEST__CqueryDerived: &str = "$cquery/derived";
+pub const REQUEST__CqueryVars: &str = "$cquery/vars";
 pub const NOTIFICATION__CqueryProgress: &str = "$cquery/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 

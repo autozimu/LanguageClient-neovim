@@ -311,6 +311,22 @@ Example status line making use of LanguageClient_serverStatusMessage.
 
 Apply a workspace edit.
 
+4.16 LanguageClient_cquery_base()                *LanguageClient_cquery_base*
+
+Call $cquery/base.
+
+4.17 LanguageClient_cquery_derived()          *LanguageClient_cquery_derived*
+
+Call $cquery/derived.
+
+4.18 LanguageClient_cquery_callers()          *LanguageClient_cquery_callers*
+
+Call $cquery/callers.
+
+4.19 LanguageClient_cquery_vars()              *LanguageClient_cquery_vars*
+
+Call $cquery/vars.
+
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
 

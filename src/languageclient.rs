@@ -82,6 +82,10 @@ pub trait ILanguageClient {
     fn rust_handleDiagnosticsBegin(&self, params: &Option<Params>) -> Result<()>;
     fn rust_handleDiagnosticsEnd(&self, params: &Option<Params>) -> Result<()>;
     fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()>;
+    fn cquery_base(&self, params: &Option<Params>) -> Result<Value>;
+    fn cquery_derived(&self, params: &Option<Params>) -> Result<Value>;
+    fn cquery_callers(&self, params: &Option<Params>) -> Result<Value>;
+    fn cquery_vars(&self, params: &Option<Params>) -> Result<Value>;
 }
 
 impl ILanguageClient for Arc<Mutex<State>> {
@@ -2444,6 +2448,170 @@ impl ILanguageClient for Arc<Mutex<State>> {
         ))?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
+    }
+
+    fn cquery_base(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__CqueryBase);
+
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__CqueryBase,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
+        self.display_locations(&locations, &languageId)?;
+
+        info!("End {}", REQUEST__CqueryBase);
+        Ok(result)
+    }
+
+    fn cquery_derived(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__CqueryDerived);
+
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__CqueryDerived,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
+        self.display_locations(&locations, &languageId)?;
+
+        info!("End {}", REQUEST__CqueryDerived);
+        Ok(result)
+    }
+
+    fn cquery_callers(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__CqueryCallers);
+
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__CqueryCallers,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
+        self.display_locations(&locations, &languageId)?;
+
+        info!("End {}", REQUEST__CqueryCallers);
+        Ok(result)
+    }
+
+    fn cquery_vars(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__CqueryVars);
+
+        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
+            self.gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                    VimVar::Character,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
+        if !buftype.is_empty() || languageId.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let result = self.call(
+            Some(&languageId),
+            REQUEST__CqueryVars,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
+        self.display_locations(&locations, &languageId)?;
+
+        info!("End {}", REQUEST__CqueryVars);
+        Ok(result)
     }
 
     fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {

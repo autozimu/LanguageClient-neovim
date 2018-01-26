@@ -647,6 +647,62 @@ function! LanguageClient_statusLine() abort
     return '[' . g:LanguageClient_serverStatusMessage . ']'
 endfunction
 
+function! LanguageClient_cquery_base(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('$cquery/base', l:params, l:callback)
+endfunction
+
+function! LanguageClient_cquery_derived(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('$cquery/derived', l:params, l:callback)
+endfunction
+
+function! LanguageClient_cquery_callers(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('$cquery/callers', l:params, l:callback)
+endfunction
+
+function! LanguageClient_cquery_vars(...) abort
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': v:true,
+                \ }
+    call extend(l:params, a:0 >= 1 ? a:1 : {})
+    let l:callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('$cquery/vars', l:params, l:callback)
+endfunction
+
 " When editing a [No Name] file, neovim reports filename as "", while vim reports null.
 function! s:Expand(exp) abort
     let l:result = expand(a:exp)
