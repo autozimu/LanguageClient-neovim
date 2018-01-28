@@ -511,6 +511,7 @@ pub enum VimVar {
     NewName,
     GotoCmd,
     Handle,
+    IncludeDeclaration,
 }
 
 pub trait VimExp {
@@ -531,6 +532,7 @@ impl VimExp for VimVar {
             VimVar::NewName => "newName",
             VimVar::GotoCmd => "gotoCmd",
             VimVar::Handle => "handle",
+            VimVar::IncludeDeclaration => "includeDeclaration",
         }.to_owned()
     }
 
@@ -545,6 +547,7 @@ impl VimExp for VimVar {
             VimVar::Cword => "expand('<cword>')",
             VimVar::NewName | VimVar::GotoCmd => "v:null",
             VimVar::Handle => "v:true",
+            VimVar::IncludeDeclaration => "v:true",
         }.to_owned()
     }
 }

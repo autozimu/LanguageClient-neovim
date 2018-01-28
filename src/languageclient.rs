@@ -1263,18 +1263,26 @@ impl ILanguageClient for Arc<Mutex<State>> {
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::References::METHOD);
 
-        let (buftype, languageId, filename, line, character, handle): (String, String, String, u64, u64, bool) =
-            self.gather_args(
-                &[
-                    VimVar::Buftype,
-                    VimVar::LanguageId,
-                    VimVar::Filename,
-                    VimVar::Line,
-                    VimVar::Character,
-                    VimVar::Handle,
-                ],
-                params,
-            )?;
+        let (buftype, languageId, filename, line, character, handle, include_declaration): (
+            String,
+            String,
+            String,
+            u64,
+            u64,
+            bool,
+            bool,
+        ) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
+                VimVar::Handle,
+                VimVar::IncludeDeclaration,
+            ],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1288,7 +1296,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                 },
                 position: Position { line, character },
                 context: ReferenceContext {
-                    include_declaration: true,
+                    include_declaration,
                 },
             },
         )?;
