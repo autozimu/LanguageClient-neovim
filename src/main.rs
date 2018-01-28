@@ -10,9 +10,9 @@ use std::fs::File;
 use std::env;
 use std::process::{ChildStdin, Stdio};
 
-extern crate log4rs;
 #[macro_use]
 extern crate log;
+extern crate log4rs;
 
 #[macro_use]
 extern crate failure;
