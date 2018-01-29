@@ -336,6 +336,7 @@ function! LanguageClient_textDocument_references(...) abort
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
+                \ 'includeDeclaration': v:true,
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
