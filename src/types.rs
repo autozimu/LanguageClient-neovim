@@ -5,6 +5,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum LCError {
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     #[fail(display = "Language server is not running for: {}", languageId)]
     NoLanguageServer { languageId: String },
 }
