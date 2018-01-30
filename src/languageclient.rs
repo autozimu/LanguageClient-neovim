@@ -255,6 +255,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     REQUEST__RegisterServerCommands => self.languageClient_registerServerCommands(&method_call.params),
                     REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&method_call.params),
                     REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
+                    REQUEST__CqueryBase => self.cquery_base(&method_call.params),
+                    REQUEST__CqueryCallers => self.cquery_callers(&method_call.params),
+                    REQUEST__CqueryDerived => self.cquery_derived(&method_call.params),
+                    REQUEST__CqueryVars => self.cquery_vars(&method_call.params),
                     _ => Err(format_err!("Unknown method call: {}", method_call.method)),
                 };
 
