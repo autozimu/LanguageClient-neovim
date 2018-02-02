@@ -1,10 +1,10 @@
 use super::*;
-use log::LogLevelFilter;
+use log::LevelFilter;
 use log4rs::Handle;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
 
-fn config(level: LogLevelFilter) -> Result<Config> {
+fn config(level: LevelFilter) -> Result<Config> {
     let logfile = FileAppender::builder().build(utils::get_logpath())?;
 
     let config = Config::builder()
@@ -31,17 +31,17 @@ pub fn init() -> Result<Handle> {
         writeln!(f, "")?;
     }
 
-    let handle = log4rs::init_config(config(LogLevelFilter::Warn)?)?;
+    let handle = log4rs::init_config(config(LevelFilter::Warn)?)?;
 
     Ok(handle)
 }
 
 pub fn set_logging_level(handle: &Handle, level: &str) -> Result<()> {
     let level = match level.to_uppercase().as_str() {
-        "DEBUG" => LogLevelFilter::Debug,
-        "INFO" => LogLevelFilter::Info,
-        "WARNING" | "WARN" => LogLevelFilter::Warn,
-        "ERROR" => LogLevelFilter::Error,
+        "DEBUG" => LevelFilter::Debug,
+        "INFO" => LevelFilter::Info,
+        "WARNING" | "WARN" => LevelFilter::Warn,
+        "ERROR" => LevelFilter::Error,
         _ => bail!("Unknown logging level: {}", level),
     };
 

@@ -102,18 +102,18 @@ impl ILanguageClient for Arc<Mutex<State>> {
     where
         F: FnOnce(&mut State) -> Result<T>,
     {
-        use log::LogLevel;
+        use log::Level;
 
         let mut state = self.lock()
             .or_else(|_| Err(err_msg("Failed to lock state")))?;
-        let before = if log_enabled!(LogLevel::Debug) {
+        let before = if log_enabled!(Level::Debug) {
             let s = serde_json::to_string(state.deref())?;
             serde_json::from_str(&s)?
         } else {
             Value::default()
         };
         let result = f(&mut state);
-        let after = if log_enabled!(LogLevel::Debug) {
+        let after = if log_enabled!(Level::Debug) {
             let s = serde_json::to_string(state.deref())?;
             serde_json::from_str(&s)?
         } else {
