@@ -746,7 +746,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                         let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
                         Ok(format!(
                             "{}:{}:{}:\t{}",
-                            relpath.to_str().unwrap_or_default(),
+                            relpath.to_string_lossy(),
                             start.line + 1,
                             start.character + 1,
                             text
@@ -1196,7 +1196,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         let value = self.call(
             None,
             "getbufline",
-            json!([path.as_ref().to_str().unwrap_or_default(), line + 1]),
+            json!([path.as_ref().to_string_lossy(), line + 1]),
         )?;
         let mut texts: Vec<String> = serde_json::from_value(value)?;
         let mut text = texts.pop().unwrap_or_default();
@@ -1758,7 +1758,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
             GotoDefinitionResponse::Scalar(loc) => {
                 self.goto_location(
                     &goto_cmd,
-                    loc.uri.filepath()?.to_str().unwrap_or_default(),
+                    loc.uri.filepath()?,
                     loc.range.start.line,
                     loc.range.start.character,
                 )?;
@@ -1769,7 +1769,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                     let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
                     self.goto_location(
                         &goto_cmd,
-                        loc.uri.filepath()?.to_str().unwrap_or_default(),
+                        loc.uri.filepath()?,
                         loc.range.start.line,
                         loc.range.start.character,
                     )?;
@@ -1948,7 +1948,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
                         let start = sym.location.range.start;
                         Ok(format!(
                             "{}:{}:{}:\t{}",
-                            relpath.to_str().unwrap_or_default(),
+                            relpath.to_string_lossy(),
                             start.line + 1,
                             start.character + 1,
                             sym.name

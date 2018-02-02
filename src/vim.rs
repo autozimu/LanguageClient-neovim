@@ -76,7 +76,7 @@ impl IVim for Arc<Mutex<State>> {
     }
 
     fn getbufline<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
-        let bufexp = bufexp.as_ref().to_str().unwrap_or_default();
+        let bufexp = bufexp.as_ref().to_string_lossy();
         let result = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
         Ok(serde_json::from_value(result)?)
     }
@@ -88,7 +88,7 @@ impl IVim for Arc<Mutex<State>> {
         line: u64,
         character: u64,
     ) -> Result<()> {
-        let path = path.as_ref().to_str().unwrap_or_default();
+        let path = path.as_ref().to_string_lossy();
         let goto_cmd = if let Some(ref goto_cmd) = *goto_cmd {
             goto_cmd
         } else if self.eval::<_, i64>(format!("bufnr('{}')", path))? != -1 {
