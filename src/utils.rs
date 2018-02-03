@@ -1,7 +1,7 @@
 use super::*;
 
-pub fn escape_single_quote(s: &str) -> String {
-    s.replace("'", "''")
+pub fn escape_single_quote<S: AsRef<str>>(s: S) -> String {
+    s.as_ref().replace("'", "''")
 }
 
 #[test]
@@ -9,7 +9,11 @@ fn test_escape_single_quote() {
     assert_eq!(escape_single_quote("my' precious"), "my'' precious");
 }
 
-pub fn get_rootPath<'a>(path: &'a Path, languageId: &str, rootMarkers: &Option<RootMarkers>) -> Result<&'a Path> {
+pub fn get_rootPath<'a>(
+    path: &'a Path,
+    languageId: &str,
+    rootMarkers: &Option<RootMarkers>,
+) -> Result<&'a Path> {
     if let Some(ref rootMarkers) = *rootMarkers {
         let empty = vec![];
         let rootMarkers = match *rootMarkers {
@@ -287,7 +291,11 @@ fn test_get_command_delete_sign() {}
 
 use diff;
 
-pub fn get_command_update_signs(signs_prev: &[Sign], signs: &[Sign], filename: &str) -> (Vec<Sign>, String) {
+pub fn get_command_update_signs(
+    signs_prev: &[Sign],
+    signs: &[Sign],
+    filename: &str,
+) -> (Vec<Sign>, String) {
     // Sign id might become different due to lines shifting. Use sign's existing sign id to
     // track same sign.
     let mut signs_next = vec![];

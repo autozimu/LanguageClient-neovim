@@ -9,6 +9,7 @@ use std::io::{BufReader, BufWriter};
 use std::fs::File;
 use std::env;
 use std::process::{ChildStdin, Stdio};
+pub use std::ops::Deref;
 
 #[macro_use]
 extern crate log;
@@ -35,7 +36,8 @@ extern crate serde_json;
 
 extern crate jsonrpc_core as rpc;
 // TODO: use rpc prefix.
-use rpc::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success, Value, Version};
+use rpc::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success,
+          Value, Version};
 
 extern crate languageserver_types as lsp;
 // TODO: unglob.
@@ -65,8 +67,11 @@ use types::*;
 mod utils;
 use utils::*;
 mod vim;
+use vim::*;
+mod rpchandler;
+use rpchandler::*;
 mod languageclient;
-use languageclient::*;
+pub use languageclient::*;
 mod logger;
 
 #[derive(Debug, StructOpt)]
@@ -77,6 +82,11 @@ lazy_static! {
 }
 
 fn run() -> Result<()> {
+    // Whether should it be Mutex or RwLock?
+    // Even though RwLock allows several readers at the same time, it won't bring too much good in
+    // this use case. As in this project, read and write are almost same amount of short
+    // operations. For RwLock to work, a writer still needs to wait for all readers finish their
+    // work before making the change.
     let state = Arc::new(Mutex::new(State::new()));
 
     let stdin = std::io::stdin();
