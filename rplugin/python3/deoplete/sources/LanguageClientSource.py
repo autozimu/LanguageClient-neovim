@@ -39,6 +39,7 @@ class Source(Base):
     def gather_candidates(self, context):
         if not context["is_async"]:
             context["is_async"] = True
+            self.vim.command("let {} = []".format(CompleteResults))
             self.vim.funcs.LanguageClient_omniComplete()
             return []
         elif self.vim.funcs.eval("len({})".format(CompleteResults)) == 0:
