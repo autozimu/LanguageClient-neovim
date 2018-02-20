@@ -35,12 +35,9 @@ extern crate serde_derive;
 extern crate serde_json;
 
 extern crate jsonrpc_core as rpc;
-// TODO: use rpc prefix.
-use rpc::{Call, Error as RpcError, ErrorCode, Failure, Id, MethodCall, Output, Params, Success,
-          Value, Version};
+pub use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
-// TODO: unglob.
 use lsp::*;
 
 extern crate url;

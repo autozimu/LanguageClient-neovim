@@ -17,15 +17,15 @@ pub trait IVim {
         languageId: Option<String>,
         message: String,
     ) -> Result<()> {
-        if let Ok(output) = serde_json::from_str::<Output>(&message) {
+        if let Ok(output) = serde_json::from_str::<rpc::Output>(&message) {
             let tx = self.update(|state| {
                 state.txs.remove(&output.id().to_int()?).ok_or_else(|| {
                     format_err!("Failed to get channel sender! id: {:?}", output.id())
                 })
             })?;
             let result = match output {
-                Output::Success(success) => Ok(success.result),
-                Output::Failure(failure) => Err(format_err!("{}", failure.error.message)),
+                rpc::Output::Success(success) => Ok(success.result),
+                rpc::Output::Failure(failure) => Err(format_err!("{}", failure.error.message)),
             };
             tx.send(result)?;
             return Ok(());
@@ -36,7 +36,7 @@ pub trait IVim {
 
         let call = serde_json::from_str(&message)?;
         match call {
-            Call::MethodCall(method_call) => {
+            rpc::Call::MethodCall(method_call) => {
                 let result = handler.handle_request(&method_call);
                 if let Err(err) = result.as_ref() {
                     if err.downcast_ref::<LCError>().is_none() {
@@ -52,8 +52,8 @@ pub trait IVim {
                     result,
                 )
             }
-            Call::Notification(notification) => handler.handle_notification(&notification),
-            Call::Invalid(id) => bail!("Invalid message of id: {:?}", id),
+            rpc::Call::Notification(notification) => handler.handle_notification(&notification),
+            rpc::Call::Invalid(id) => bail!("Invalid message of id: {:?}", id),
         }
     }
 
@@ -83,15 +83,15 @@ pub trait IVim {
     }
 
     /// Write an RPC call output.
-    fn output(&self, languageId: Option<&str>, id: Id, result: Result<Value>) -> Result<()> {
+    fn output(&self, languageId: Option<&str>, id: rpc::Id, result: Result<Value>) -> Result<()> {
         let response = match result {
-            Ok(ok) => Output::Success(Success {
-                jsonrpc: Some(Version::V2),
+            Ok(ok) => rpc::Output::Success(rpc::Success {
+                jsonrpc: Some(rpc::Version::V2),
                 id,
                 result: ok,
             }),
-            Err(err) => Output::Failure(Failure {
-                jsonrpc: Some(Version::V2),
+            Err(err) => rpc::Output::Failure(rpc::Failure {
+                jsonrpc: Some(rpc::Version::V2),
                 id,
                 error: err.to_rpc_error(),
             }),
@@ -115,9 +115,9 @@ pub trait IVim {
             Ok(state.id)
         })?;
 
-        let method_call = MethodCall {
-            jsonrpc: Some(Version::V2),
-            id: Id::Num(id),
+        let method_call = rpc::MethodCall {
+            jsonrpc: Some(rpc::Version::V2),
+            id: rpc::Id::Num(id),
             method: method.into(),
             params: Some(params.to_params()?),
         };
@@ -143,7 +143,7 @@ pub trait IVim {
         params: P,
     ) -> Result<()> {
         let notification = rpc::Notification {
-            jsonrpc: Some(Version::V2),
+            jsonrpc: Some(rpc::Version::V2),
             method: method.to_owned(),
             params: Some(params.to_params()?),
         };

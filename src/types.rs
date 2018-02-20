@@ -336,13 +336,13 @@ impl From<CompletionItem> for VimCompleteItem {
 }
 
 pub trait ToRpcError {
-    fn to_rpc_error(&self) -> RpcError;
+    fn to_rpc_error(&self) -> rpc::Error;
 }
 
 impl ToRpcError for Error {
-    fn to_rpc_error(&self) -> RpcError {
-        RpcError {
-            code: ErrorCode::InternalError,
+    fn to_rpc_error(&self) -> rpc::Error {
+        rpc::Error {
+            code: rpc::ErrorCode::InternalError,
             message: self.to_string(),
             data: None,
         }
@@ -399,12 +399,12 @@ impl<'a> ToInt for &'a str {
     }
 }
 
-impl ToInt for Id {
+impl ToInt for rpc::Id {
     fn to_int(&self) -> Result<u64> {
-        match *self {
-            Id::Num(id) => Ok(id),
-            Id::Str(ref s) => s.as_str().to_int(),
-            Id::Null => Err(err_msg("Null id")),
+        match self {
+            &rpc::Id::Num(id) => Ok(id),
+            &rpc::Id::Str(ref s) => s.as_str().to_int(),
+            &rpc::Id::Null => Err(err_msg("Null id")),
         }
     }
 }
