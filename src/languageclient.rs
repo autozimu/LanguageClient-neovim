@@ -1343,18 +1343,19 @@ pub trait ILanguageClient: IVim {
                 )?;
             }
             SelectionUI::LocationList => {
-                let loclist: Vec<_> = symbols
+                let loclist: Result<Vec<_>> = symbols
                     .iter()
                     .map(|sym| {
                         let start = sym.location.range.start;
-                        json!({
-                        "filename": sym.location.uri.to_file_path(),
+                        Ok(json!({
+                        "filename": sym.location.uri.filepath()?,
                         "lnum": start.line + 1,
                         "col": start.character + 1,
                         "text": sym.name,
-                    })
+                    }))
                     })
                     .collect();
+                let loclist = loclist?;
 
                 self.notify(None, "setloclist", json!([0, loclist]))?;
                 self.echo("Workspace symbols populated to location list.")?;
