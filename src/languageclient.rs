@@ -1437,16 +1437,10 @@ pub trait ILanguageClient: IVim {
 
     fn textDocument_didChange(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
-        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) =
-            self.gather_args(
-                &[
-                    VimVar::Buftype,
-                    VimVar::LanguageId,
-                    VimVar::Filename,
-                    VimVar::Text,
-                ],
-                params,
-            )?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
@@ -1454,6 +1448,8 @@ pub trait ILanguageClient: IVim {
             warn!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
+
+        let (text,): (Vec<String>,) = self.gather_args(&[VimVar::Text], params)?;
 
         let text = text.join("\n");
         let text_state = self.get(|state| {
