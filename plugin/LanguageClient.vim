@@ -398,7 +398,6 @@ function! LanguageClient_textDocument_didChange() abort
                 \ 'buftype': &buftype,
                 \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
-                \ 'text': getbufline('', 1, '$'),
                 \ })
 endfunction
 
