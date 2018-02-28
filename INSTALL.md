@@ -78,8 +78,11 @@ nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
 
 # 6. Troubleshooting
 
-1. Begin with something small.
-    - Backup your vimrc and use [min-init.vim](min-init.vim) as vimrc.
-    - Try with [sample projects](tests/data).
-1. Run `:echo &runtimepath` and make sure the plugin path is in the list.
+1. Backup your vimrc and use [min-init.vim](min-init.vim) as vimrc.
+1. Try on [sample projects](tests/data).
+1. Execute `:echo &runtimepath` and make sure the plugin path is in the list.
 1. Make sure language server could be started when invoked manually from shell.
+1. Check content of language server standard error `($TMP || $TEMP |
+   /tmp)/LanguageServer.log` and language client log `($TMP || $TEMP |
+   /tmp)/LanguageClient.log`. Also note language server might have separate
+   log files.
