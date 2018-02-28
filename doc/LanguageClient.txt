@@ -162,7 +162,7 @@ Default: ".vim/settings.json"
 
 Whether to load language server settings.
 
-Default: 0
+Default: 1
 Valid options: 1 | 0
 
 2.13 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
