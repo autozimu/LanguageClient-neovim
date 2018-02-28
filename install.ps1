@@ -14,6 +14,6 @@ $path = "bin\$name.exe"
 if (Test-Path $path) {
     Remove-Item -Force $path
 }
-$downloader = New-Object System.Net.WebClient
 echo "Downloading $url ..."
-$downloader.DownloadFile($url, $path)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri $url -OutFile $path
