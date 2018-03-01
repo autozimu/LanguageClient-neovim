@@ -1907,8 +1907,12 @@ pub trait ILanguageClient: IVim {
         }
 
         let result = self.textDocument_completion(&Some(json!({
+                "buftype": "",
+                "languageId": ctx.filetype,
+                "filename": ctx.filepath,
                 "line": ctx.lnum - 1,
                 "character": ctx.col - 1,
+                "handle": false,
             }).to_params()?))?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
