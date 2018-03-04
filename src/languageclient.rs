@@ -195,9 +195,16 @@ pub trait ILanguageClient: IVim {
     fn apply_TextEdits<P: AsRef<Path>>(&self, path: P, edits: &[TextEdit]) -> Result<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
         let mut edits = edits.to_vec();
-        edits.reverse();
+
+        // Edits must be applied from bottom to top, so that earlier edits will not interfere
+        // with the positioning of later edits. Edits that start with the same position must be
+        // applied in reverse order, so that multiple inserts will have their text appear in the
+        // same order the server sent it, and so that a delete/replace (according to the LSP spec,
+        // there can only be one per start position and it must be after the inserts) will work on
+        // the original document, not on the just-inserted text.
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
+
         self.goto_location(&None, &path, 0, 0)?;
         let mut lines: Vec<String> = self.getbufline(&path)?;
         let lines_len = lines.len();
