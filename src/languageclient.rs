@@ -1606,12 +1606,18 @@ pub trait ILanguageClient: IVim {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
-        self.notify(
+        let result = self.notify(
             Some(&languageId),
             lsp::notification::Exit::METHOD,
             Value::Null,
-        )?;
-        self.cleanup(&languageId)?;
+        );
+        if let Err(err) = result {
+            error!("Error: {:?}", err);
+        }
+        let result = self.cleanup(&languageId);
+        if let Err(err) = result {
+            error!("Error: {:?}", err);
+        }
         info!("End {}", lsp::notification::Exit::METHOD);
         Ok(())
     }
