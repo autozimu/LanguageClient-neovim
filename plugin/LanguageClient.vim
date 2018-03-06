@@ -560,6 +560,7 @@ function! LanguageClient_omniComplete(...) abort
                     \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
                     \ 'character': col('.') - 1,
+                    \ 'handle': v:false,
                     \ }
         call extend(l:params, a:0 >= 1 ? a:1 : {})
         let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
