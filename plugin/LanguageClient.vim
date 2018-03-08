@@ -739,7 +739,7 @@ endfunction
 
 function! s:hasSnippetSupport() abort
     " https://github.com/SirVer/ultisnips
-    if exists('did_plugin_ultisnips') || &cp
+    if exists('g:did_plugin_ultisnips') || &cp
         return 1
     endif
     " https://github.com/Shougo/neosnippet.vim
