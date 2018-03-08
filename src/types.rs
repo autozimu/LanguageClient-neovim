@@ -356,14 +356,31 @@ pub struct VimCompleteItem {
     pub kind: String,
     #[serde(rename = "additionalTextEdits")]
     pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub snippet: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_snippet: Option<bool>,
 }
 
 impl From<CompletionItem> for VimCompleteItem {
     fn from(lspitem: CompletionItem) -> VimCompleteItem {
-        let word = lspitem
+        let mut word = lspitem
             .insert_text
             .clone()
             .unwrap_or_else(|| lspitem.label.clone());
+
+        let snippet = match lspitem.insert_text_format {
+            Some(format) => match format {
+                InsertTextFormat::Snippet => word.clone(),
+                _ => String::default(),
+           },
+           None => String::default(),
+        };
+
+        let is_snippet = if snippet.is_empty() {None} else {Some(true)};
+        if is_snippet.is_some() {
+            word = lspitem.label.clone();
+        }
 
         VimCompleteItem {
             word,
@@ -377,6 +394,8 @@ impl From<CompletionItem> for VimCompleteItem {
                 .unwrap_or_default(),
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
             additional_text_edits: lspitem.additional_text_edits.clone(),
+            snippet,
+            is_snippet
         }
     }
 }
