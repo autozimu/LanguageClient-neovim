@@ -67,6 +67,9 @@ let g:LanguageClient_serverCommands = {
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient_textDocument_rename()<CR>
+
+" To enable <C-o>, <C-i> behavior you can optionally set the default mark
+nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>:normal! m`<CR>
 ```
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
