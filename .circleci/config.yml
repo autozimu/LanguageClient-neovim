@@ -10,6 +10,6 @@ jobs:
       - image: autozimu/languageclientneovim
     steps:
       - checkout
-      - run: make integration-test
+      - run: make test && make integration-test
 
 # vim: tabstop=2
