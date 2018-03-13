@@ -218,16 +218,19 @@ pub trait IVim {
         character: u64,
     ) -> Result<()> {
         let path = path.as_ref().to_string_lossy();
-        let goto_cmd = if let Some(ref goto_cmd) = *goto_cmd {
-            goto_cmd
-        } else if self.eval::<_, i64>(format!("bufnr('{}')", path))? != -1 {
-            "buffer"
+        let mut cmd = "echo | ".to_string();
+        let goto;
+        if let Some(ref goto_cmd) = *goto_cmd {
+            goto = goto_cmd.as_str();
+        } else if self.eval::<_, i64>(format!("bufnr('{}')", path))? == -1 {
+            goto = "edit";
         } else {
-            "edit"
+            cmd += "execute 'normal m`' | ";
+            goto = "buffer";
         };
-        let cmd = format!(
-            "echo | execute '{} +:call\\ cursor({},{}) ' . fnameescape('{}')",
-            goto_cmd,
+        cmd += &format!(
+            "execute 'normal! m`' | execute '{} +:call\\ cursor({},{}) ' . fnameescape('{}')",
+            goto,
             line + 1,
             character + 1,
             path
