@@ -401,10 +401,10 @@ impl<'a> ToInt for &'a str {
 
 impl ToInt for rpc::Id {
     fn to_int(&self) -> Result<u64> {
-        match self {
-            &rpc::Id::Num(id) => Ok(id),
-            &rpc::Id::Str(ref s) => s.as_str().to_int(),
-            &rpc::Id::Null => Err(err_msg("Null id")),
+        match *self {
+            rpc::Id::Num(id) => Ok(id),
+            rpc::Id::Str(ref s) => s.as_str().to_int(),
+            rpc::Id::Null => Err(err_msg("Null id")),
         }
     }
 }
@@ -547,8 +547,7 @@ impl VimExp for VimVar {
             VimVar::Text => "getbufline('', 1, '$')",
             VimVar::Cword => "expand('<cword>')",
             VimVar::NewName | VimVar::GotoCmd => "v:null",
-            VimVar::Handle => "v:true",
-            VimVar::IncludeDeclaration => "v:true",
+            VimVar::Handle | VimVar::IncludeDeclaration => "v:true",
         }.to_owned()
     }
 }

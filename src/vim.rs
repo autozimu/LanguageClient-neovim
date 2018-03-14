@@ -73,7 +73,8 @@ pub trait IVim {
                     message.len(),
                     message
                 )?;
-                Ok(writer.flush()?)
+                writer.flush()?;
+                Ok(())
             })?;
         } else {
             println!("Content-Length: {}\n\n{}", message.len(), message);

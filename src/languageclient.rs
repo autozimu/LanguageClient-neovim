@@ -1657,7 +1657,10 @@ pub trait ILanguageClient: IVim {
             _ => bail!("Unexpected params type!"),
         };
         let map = serde_json::from_value(map)?;
-        self.update(|state| Ok(state.serverCommands.merge(map)))?;
+        self.update(|state| {
+            state.serverCommands.merge(map);
+            Ok(())
+        })?;
         let exp = format!(
             "let g:LanguageClient_serverCommands={}",
             serde_json::to_string(&self.get(|state| Ok(state.serverCommands.clone()))?)?
