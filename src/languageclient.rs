@@ -1838,14 +1838,8 @@ pub trait ILanguageClient: IVim {
                 .pop()
                 .ok_or_else(|| format_err!("Failed to get file path! tokens: {:?}", tokens))?
                 .to_owned();
-            let languageId: String = self.eval(VimVar::LanguageId)?;
-            let root =
-                self.get(|state| {
-                    state.roots.get(&languageId).cloned().ok_or_else(|| {
-                        format_err!("Failed to get root! languageId: {}", languageId)
-                    })
-                })?;
-            Path::new(&root)
+            let cwd: String = self.eval("getcwd()")?;
+            Path::new(&cwd)
                 .join(relpath)
                 .to_str()
                 .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?
