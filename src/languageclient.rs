@@ -294,14 +294,14 @@ pub trait ILanguageClient: IVim {
                     text: Some(dn.message.to_owned()),
                     typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
                 })
-            .collect();
+                .collect();
             match diagnosticsList {
                 DiagnosticsList::Quickfix => {
                     self.call(None, "setqflist", [qflist])?;
                 }
                 DiagnosticsList::Location => {
                     self.call(None, "setloclist", json!([0, qflist]))?;
-                },
+                }
             }
         }
 
