@@ -110,7 +110,7 @@ pub trait ILanguageClient: IVim {
 
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
             u64,
-            DiagnosticsList,
+            Option<DiagnosticsList>,
             Value,
             String,
         ) = self.eval(
@@ -283,26 +283,27 @@ pub trait ILanguageClient: IVim {
         self.command(&cmd)?;
 
         // Quickfix.
-        let qflist: Vec<_> = diagnostics
-            .iter()
-            .map(|dn| QuickfixEntry {
-                filename: filename.to_owned(),
-                lnum: dn.range.start.line + 1,
-                col: Some(dn.range.start.character + 1),
-                nr: dn.code.clone().map(|ns| ns.to_string()),
-                text: Some(dn.message.to_owned()),
-                typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
-            })
+        if let Some(diagnosticsList) = self.get(|state| Ok(state.diagnosticsList.clone()))? {
+            let qflist: Vec<_> = diagnostics
+                .iter()
+                .map(|dn| QuickfixEntry {
+                    filename: filename.to_owned(),
+                    lnum: dn.range.start.line + 1,
+                    col: Some(dn.range.start.character + 1),
+                    nr: dn.code.clone().map(|ns| ns.to_string()),
+                    text: Some(dn.message.to_owned()),
+                    typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
+                })
             .collect();
-        let diagnosticsList = self.get(|state| Ok(state.diagnosticsList.clone()))?;
-        match diagnosticsList {
-            DiagnosticsList::Quickfix => {
-                self.call(None, "setqflist", [qflist])?;
+            match diagnosticsList {
+                DiagnosticsList::Quickfix => {
+                    self.call(None, "setqflist", [qflist])?;
+                }
+                DiagnosticsList::Location => {
+                    self.call(None, "setloclist", json!([0, qflist]))?;
+                },
             }
-            DiagnosticsList::Location => {
-                self.call(None, "setloclist", json!([0, qflist]))?;
-            }
-        };
+        }
 
         let is_nvim: u64 = self.eval("has('nvim')")?;
         if is_nvim != 1 {
