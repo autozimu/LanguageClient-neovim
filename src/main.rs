@@ -51,10 +51,9 @@ extern crate diff;
 extern crate glob;
 extern crate regex;
 
+#[macro_use]
 extern crate structopt;
 use structopt::StructOpt;
-#[macro_use]
-extern crate structopt_derive;
 
 #[macro_use]
 extern crate lazy_static;
