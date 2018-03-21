@@ -1710,22 +1710,11 @@ pub trait ILanguageClient: IVim {
 
         // File opened before.
         if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
+            info!("File is opened before.");
             return Ok(());
         }
 
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
-            // Language server is running but file is not within project root.
-            let is_in_root = self.get(|state| {
-                let root = state
-                    .roots
-                    .get(&languageId)
-                    .ok_or_else(|| format_err!("Failed to get root! languageId: {}", languageId))?;
-                Ok(filename.starts_with(root))
-            })?;
-            if !is_in_root {
-                return Ok(());
-            }
-
             self.textDocument_didOpen(params)?;
 
             let diagnostics = self.get(|state| {
