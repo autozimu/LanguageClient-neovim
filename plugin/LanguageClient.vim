@@ -551,7 +551,7 @@ function! LanguageClient_NCMRefresh(info, context) abort
     return LanguageClient#Notify('LanguageClient_NCMRefresh', [a:info, a:context])
 endfunction
 
-let g:LanguageClient_completeResults = []
+let g:LanguageClient_omniCompleteResults = []
 function! LanguageClient_omniComplete(...) abort
     try
         let l:params = {
@@ -563,14 +563,15 @@ function! LanguageClient_omniComplete(...) abort
                     \ 'handle': v:false,
                     \ }
         call extend(l:params, a:0 >= 1 ? a:1 : {})
-        let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_completeResults
+        let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults
         call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
     catch
-        call add(g:LanguageClient_completeResults, v:null)
+        call add(a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults, v:null)
         call s:Debug(string(v:exception))
     endtry
 endfunction
 
+let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
@@ -582,7 +583,7 @@ function! LanguageClient#complete(findstart, base) abort
     else
         call LanguageClient_omniComplete({
                     \ 'character': col('.') - 1 + len(a:base),
-                    \ })
+                    \ }, g:LanguageClient_completeResults)
         while len(g:LanguageClient_completeResults) == 0
             sleep 100m
         endwhile
