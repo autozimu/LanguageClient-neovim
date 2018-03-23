@@ -292,6 +292,12 @@ pub struct NCMContext {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct NCMRefreshParams {
+    pub info: NCMInfo,
+    pub ctx: NCMContext,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VimCompleteItem {
     pub word: String,
     pub icase: u64,

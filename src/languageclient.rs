@@ -1897,12 +1897,8 @@ pub trait ILanguageClient: IVim {
 
     fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__NCMRefresh);
-        let params = match *params {
-            None | Some(Params::None) => bail!("Empty params!"),
-            Some(Params::Map(_)) => bail!("Expecting array. Got dict."),
-            Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
-        };
-        let (info, ctx): (NCMInfo, NCMContext) = serde_json::from_value(params)?;
+        let params: NCMRefreshParams = serde_json::from_value(params.clone().to_value())?;
+        let NCMRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
             return Ok(());
         }
