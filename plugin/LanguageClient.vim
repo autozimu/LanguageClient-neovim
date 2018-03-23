@@ -203,10 +203,13 @@ function! LanguageClient#Call(method, params, callback) abort
     else
         let s:handlers[l:id] = a:callback
     endif
-    let l:params = extend({
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
-                \ }, a:params)
+    let l:params = a:params
+    if type(a:params) == type({})
+        let l:params = extend({
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ }, l:params)
+    endif
     return LanguageClient#Write(json_encode({
                 \ 'jsonrpc': '2.0',
                 \ 'id': l:id,
@@ -216,10 +219,13 @@ function! LanguageClient#Call(method, params, callback) abort
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
-    let l:params = extend({
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
-                \ }, a:params)
+    let l:params = a:params
+    if type(params) == type({})
+        let l:params = extend({
+                    \ 'buftype': &buftype,
+                    \ 'languageId': &filetype,
+                    \ }, l:params)
+    endif
     return LanguageClient#Write(json_encode({
                 \ 'jsonrpc': '2.0',
                 \ 'method': a:method,
