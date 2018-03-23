@@ -421,6 +421,7 @@ pub trait ILanguageClient: IVim {
             .completion_provider
             .map(|opt| {
                 let strings: Vec<_> = opt.trigger_characters
+                    .unwrap_or_default()
                     .iter()
                     .map(|c| regex::escape(c))
                     .collect();
