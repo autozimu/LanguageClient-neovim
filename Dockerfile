@@ -8,7 +8,7 @@ RUN apt-get install --yes neovim
 RUN apt-get install --yes python3-pip python3-pytest mypy flake8
 RUN pip3 install neovim vim-vint
 
-RUN npm install -g javascript-typescript-langserver
+RUN npm install -g javascript-typescript-langserver@2.5.5
 
 RUN rustup component add rls-preview rust-analysis rust-src
 RUN rls --version
