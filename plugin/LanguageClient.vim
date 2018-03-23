@@ -203,19 +203,27 @@ function! LanguageClient#Call(method, params, callback) abort
     else
         let s:handlers[l:id] = a:callback
     endif
+    let l:params = extend({
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ }, a:params)
     return LanguageClient#Write(json_encode({
                 \ 'jsonrpc': '2.0',
                 \ 'id': l:id,
                 \ 'method': a:method,
-                \ 'params': a:params,
+                \ 'params': l:params,
                 \ }))
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
+    let l:params = extend({
+                \ 'buftype': &buftype,
+                \ 'languageId': &filetype,
+                \ }, a:params)
     return LanguageClient#Write(json_encode({
                 \ 'jsonrpc': '2.0',
                 \ 'method': a:method,
-                \ 'params': a:params,
+                \ 'params': l:params,
                 \ }))
 endfunction
 
@@ -232,8 +240,6 @@ endfunction
 
 function! LanguageClient_textDocument_hover(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -246,8 +252,6 @@ endfunction
 
 function! LanguageClient_textDocument_definition(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -261,8 +265,6 @@ endfunction
 
 function! LanguageClient_textDocument_rename(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -277,8 +279,6 @@ endfunction
 let g:LanguageClient_documentSymbolResults = []
 function! LanguageClient_textDocument_documentSymbol(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'handle': v:true,
                 \ }
@@ -290,8 +290,6 @@ endfunction
 let g:LanguageClient_workspaceSymbolResults = []
 function! LanguageClient_workspace_symbol(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'query': '',
                 \ 'handle': v:true,
                 \ }
@@ -302,8 +300,6 @@ endfunction
 
 function! LanguageClient_textDocument_codeAction(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -316,8 +312,6 @@ endfunction
 
 function! LanguageClient_textDocument_completion(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -331,8 +325,6 @@ endfunction
 let g:LanguageClient_referencesResults = []
 function! LanguageClient_textDocument_references(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -346,8 +338,6 @@ endfunction
 
 function! LanguageClient_textDocument_formatting(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -360,8 +350,6 @@ endfunction
 
 function! LanguageClient_textDocument_rangeFormatting(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -374,8 +362,6 @@ endfunction
 
 function! LanguageClient_rustDocument_implementations(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -387,32 +373,24 @@ endfunction
 
 function! LanguageClient_textDocument_didOpen() abort
     return LanguageClient#Notify('textDocument/didOpen', {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ })
 endfunction
 
 function! LanguageClient_textDocument_didChange() abort
     return LanguageClient#Notify('textDocument/didChange', {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ })
 endfunction
 
 function! LanguageClient_textDocument_didSave() abort
     return LanguageClient#Notify('textDocument/didSave', {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ })
 endfunction
 
 function! LanguageClient_textDocument_didClose() abort
     return LanguageClient#Notify('textDocument/didClose', {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ })
 endfunction
@@ -427,8 +405,6 @@ endfunction
 
 function! LanguageClient_startServer(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'cmdargs': [],
                 \ }
@@ -454,8 +430,6 @@ function! LanguageClient_handleBufReadPost() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufReadPost', {
-                    \ 'buftype': &buftype,
-                    \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch
@@ -470,8 +444,6 @@ function! LanguageClient_handleTextChanged() abort
 
     try
         call LanguageClient#Notify('languageClient/handleTextChanged', {
-                    \ 'buftype': &buftype,
-                    \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ 'text': getbufline('', 1, '$'),
                     \ })
@@ -489,8 +461,6 @@ function! LanguageClient_handleBufWritePost() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufWritePost', {
-                    \ 'buftype': &buftype,
-                    \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch
@@ -505,8 +475,6 @@ function! LanguageClient_handleBufDelete() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufDelete', {
-                    \ 'buftype': &buftype,
-                    \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ })
     catch
@@ -528,8 +496,6 @@ function! LanguageClient_handleCursorMoved() abort
 
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
-                    \ 'buftype': &buftype,
-                    \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
                     \ })
     catch
@@ -555,8 +521,6 @@ let g:LanguageClient_omniCompleteResults = []
 function! LanguageClient_omniComplete(...) abort
     try
         let l:params = {
-                    \ 'buftype': &buftype,
-                    \ 'languageId': &filetype,
                     \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
                     \ 'character': col('.') - 1,
@@ -597,8 +561,6 @@ function! LanguageClient_textDocument_signatureHelp(...) abort
     endif
 
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -651,8 +613,6 @@ endfunction
 
 function! LanguageClient_cquery_base(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -665,8 +625,6 @@ endfunction
 
 function! LanguageClient_cquery_derived(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -679,8 +637,6 @@ endfunction
 
 function! LanguageClient_cquery_callers(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
@@ -693,8 +649,6 @@ endfunction
 
 function! LanguageClient_cquery_vars(...) abort
     let l:params = {
-                \ 'buftype': &buftype,
-                \ 'languageId': &filetype,
                 \ 'filename': s:Expand('%:p'),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,

@@ -54,7 +54,17 @@ impl IRpcHandler for Arc<Mutex<State>> {
             REQUEST__CqueryCallers => self.cquery_callers(&method_call.params),
             REQUEST__CqueryDerived => self.cquery_derived(&method_call.params),
             REQUEST__CqueryVars => self.cquery_vars(&method_call.params),
-            _ => Err(format_err!("Unknown method call: {}", method_call.method)),
+
+            _ => {
+                let (languageId,): (String,) =
+                    self.gather_args(&[VimVar::LanguageId], &method_call.params)?;
+
+                self.call(
+                    Some(languageId.as_str()),
+                    &method_call.method,
+                    &method_call.params,
+                )
+            }
         }
     }
 
@@ -110,7 +120,17 @@ impl IRpcHandler for Arc<Mutex<State>> {
                 self.rust_handleDiagnosticsEnd(&notification.params)?
             }
             NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
-            _ => warn!("Unknown notification: {:?}", notification.method),
+
+            _ => {
+                let (languageId,): (String,) =
+                    self.gather_args(&[VimVar::LanguageId], &notification.params)?;
+
+                self.notify(
+                    Some(languageId.as_str()),
+                    &notification.method,
+                    &notification.params,
+                )?;
+            }
         };
 
         Ok(())
