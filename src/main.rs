@@ -9,7 +9,6 @@ use std::io::{BufReader, BufWriter};
 use std::fs::File;
 use std::env;
 use std::process::{ChildStdin, Stdio};
-pub use std::ops::Deref;
 
 #[macro_use]
 extern crate log;
@@ -22,8 +21,8 @@ use failure::{err_msg, Error};
 extern crate libc;
 
 extern crate chrono;
-pub use chrono::prelude::*;
-pub use chrono::Duration;
+use chrono::prelude::*;
+use chrono::Duration;
 
 #[macro_use]
 extern crate maplit;
@@ -37,7 +36,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 extern crate jsonrpc_core as rpc;
-pub use rpc::{Params, Value};
+use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
 use lsp::*;
@@ -69,7 +68,8 @@ use vim::*;
 mod rpchandler;
 use rpchandler::*;
 mod languageclient;
-pub use languageclient::*;
+#[allow(unused_imports)]
+use languageclient::*;
 mod logger;
 
 #[derive(Debug, StructOpt)]

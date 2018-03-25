@@ -51,10 +51,7 @@ pub trait ILanguageClient: IVim {
     fn sync_settings(&self) -> Result<()> {
         let (loggingLevel,): (String,) =
             self.eval(&["get(g:, 'LanguageClient_loggingLevel', 'WARN')"][..])?;
-        let logger = LOGGER
-            .deref()
-            .as_ref()
-            .or_else(|_| Err(err_msg("No logger")))?;
+        let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
         logger::set_logging_level(logger, &loggingLevel)?;
 
         let (
@@ -1701,10 +1698,7 @@ pub trait ILanguageClient: IVim {
     fn languageClient_setLoggingLevel(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
-        let logger = LOGGER
-            .deref()
-            .as_ref()
-            .or_else(|_| Err(err_msg("No logger")))?;
+        let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
         logger::set_logging_level(logger, &loggingLevel)?;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
