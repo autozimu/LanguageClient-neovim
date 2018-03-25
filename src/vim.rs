@@ -1,5 +1,4 @@
 use super::*;
-use std::str::FromStr;
 
 pub trait IVim {
     fn get<F, T>(&self, f: F) -> Result<T>

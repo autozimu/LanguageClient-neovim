@@ -37,7 +37,7 @@ pub fn init() -> Result<Handle> {
 }
 
 pub fn set_logging_level(handle: &Handle, level: &str) -> Result<()> {
-    let level = match level.to_uppercase().as_str() {
+    let level = match level.to_ascii_uppercase().as_str() {
         "DEBUG" => LevelFilter::Debug,
         "INFO" => LevelFilter::Info,
         "WARNING" | "WARN" => LevelFilter::Warn,

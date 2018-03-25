@@ -1,5 +1,4 @@
 use super::*;
-use std::str::FromStr;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -73,7 +72,7 @@ pub struct State {
     pub selectionUI: SelectionUI,
     pub trace: TraceOption,
     pub diagnosticsEnable: bool,
-    pub diagnosticsList: Option<DiagnosticsList>,
+    pub diagnosticsList: DiagnosticsList,
     pub diagnosticsDisplay: HashMap<u64, DiagnosticsDisplay>,
     pub windowLogMessageLevel: MessageType,
     pub settingsPath: String,
@@ -108,7 +107,7 @@ impl State {
             selectionUI: SelectionUI::LocationList,
             trace: TraceOption::Off,
             diagnosticsEnable: true,
-            diagnosticsList: Some(DiagnosticsList::Quickfix),
+            diagnosticsList: DiagnosticsList::Quickfix,
             diagnosticsDisplay: DiagnosticsDisplay::default(),
             windowLogMessageLevel: MessageType::Warning,
             settingsPath: format!(".vim{}settings.json", std::path::MAIN_SEPARATOR),
@@ -131,10 +130,46 @@ pub enum SelectionUI {
     LocationList,
 }
 
+impl Default for SelectionUI {
+    fn default() -> Self {
+        SelectionUI::LocationList
+    }
+}
+
+impl FromStr for SelectionUI {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_ascii_uppercase().as_str() {
+            "FZF" => Ok(SelectionUI::FZF),
+            "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
+            _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DiagnosticsList {
     Quickfix,
     Location,
+}
+
+impl Default for DiagnosticsList {
+    fn default() -> Self {
+        DiagnosticsList::Quickfix
+    }
+}
+
+impl FromStr for DiagnosticsList {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_ascii_uppercase().as_str() {
+            "QUICKFIX" => Ok(DiagnosticsList::Quickfix),
+            "LOCATION" => Ok(DiagnosticsList::Location),
+            _ => bail!("Invalid option for LanguageClient_diagnosticsList: {}", s),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

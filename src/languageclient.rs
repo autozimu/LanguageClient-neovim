@@ -58,7 +58,7 @@ pub trait ILanguageClient: IVim {
         let (
             autoStart,
             serverCommands,
-            mut selectionUI,
+            selectionUI,
             trace,
             settingsPath,
             loadSettings,
@@ -71,28 +71,28 @@ pub trait ILanguageClient: IVim {
         ): (
             u64,
             HashMap<String, Vec<String>>,
-            String,
+            Option<String>,
             String,
             String,
             u64,
             Option<RootMarkers>,
             Option<f64>,
             u64,
-            Option<DiagnosticsList>,
+            Option<String>,
             Value,
             String,
         ) = self.eval(
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "get(g:, 'LanguageClient_serverCommands', {})",
-                "get(g:, 'LanguageClient_selectionUI', '')",
+                "get(g:, 'LanguageClient_selectionUI', v:null)",
                 "get(g:, 'LanguageClient_trace', 'Off')",
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
-                "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
-                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
+                "!!get(g:, 'LanguageClient_diagnosticsEnable', 1)",
+                "get(g:, 'LanguageClient_diagnosticsList', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
             ].as_ref(),
@@ -101,33 +101,32 @@ pub trait ILanguageClient: IVim {
         let autoStart = autoStart == 1;
         let loadSettings = loadSettings == 1;
 
-        let trace = match trace.to_uppercase().as_str() {
+        let trace = match trace.to_ascii_uppercase().as_str() {
             "OFF" => TraceOption::Off,
             "MESSAGES" => TraceOption::Messages,
             "VERBOSE" => TraceOption::Verbose,
             _ => bail!("Invalid option for LanguageClient_trace: {}", trace),
         };
 
-        if selectionUI == "" {
-            let loaded_fzf: u64 = self.eval("get(g:, 'loaded_fzf')")?;
-            if loaded_fzf == 1 {
-                selectionUI = "FZF".into();
-            }
-        }
-        let selectionUI = match selectionUI.to_uppercase().as_str() {
-            "FZF" => SelectionUI::FZF,
-            "" | "LOCATIONLIST" | "LOCATION-LIST" => SelectionUI::LocationList,
-            _ => bail!(
-                "Invalid option for LanguageClient_selectionUI: {}",
-                selectionUI
-            ),
+        let selectionUI = if let Some(s) = selectionUI {
+            SelectionUI::from_str(&s)?
+        } else if self.eval::<_, i64>("g:loaded_fzf")? == 1 {
+            SelectionUI::FZF
+        } else {
+            SelectionUI::default()
         };
 
-        let change_throttle =
-            change_throttle.and_then(|t| Some(Duration::milliseconds((t * 1000.0) as i64)));
+        let change_throttle = change_throttle.map(|t| Duration::milliseconds((t * 1000.0) as i64));
 
         let diagnosticsEnable = diagnosticsEnable == 1;
-        let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
+
+        let diagnosticsList = if let Some(s) = diagnosticsList {
+            DiagnosticsList::from_str(&s)?
+        } else {
+            DiagnosticsList::default()
+        };
+
+        let windowLogMessageLevel = match windowLogMessageLevel.to_ascii_uppercase().as_str() {
             "ERROR" => MessageType::Error,
             "WARNING" => MessageType::Warning,
             "INFO" => MessageType::Info,
@@ -291,26 +290,24 @@ pub trait ILanguageClient: IVim {
         info!("Command to update signs: {}", cmd);
         self.command(&cmd)?;
 
-        // Quickfix.
-        if let Some(diagnosticsList) = self.get(|state| Ok(state.diagnosticsList.clone()))? {
-            let qflist: Vec<_> = diagnostics
-                .iter()
-                .map(|dn| QuickfixEntry {
-                    filename: filename.to_owned(),
-                    lnum: dn.range.start.line + 1,
-                    col: Some(dn.range.start.character + 1),
-                    nr: dn.code.clone().map(|ns| ns.to_string()),
-                    text: Some(dn.message.to_owned()),
-                    typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
-                })
-                .collect();
-            match diagnosticsList {
-                DiagnosticsList::Quickfix => {
-                    self.call(None, "setqflist", [qflist])?;
-                }
-                DiagnosticsList::Location => {
-                    self.call(None, "setloclist", json!([0, qflist]))?;
-                }
+        let qflist: Vec<_> = diagnostics
+            .iter()
+            .map(|dn| QuickfixEntry {
+                filename: filename.to_owned(),
+                lnum: dn.range.start.line + 1,
+                col: Some(dn.range.start.character + 1),
+                nr: dn.code.clone().map(|ns| ns.to_string()),
+                text: Some(dn.message.to_owned()),
+                typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
+            })
+            .collect();
+
+        match self.get(|state| Ok(state.diagnosticsList.clone()))? {
+            DiagnosticsList::Quickfix => {
+                self.call(None, "setqflist", [qflist])?;
+            }
+            DiagnosticsList::Location => {
+                self.call(None, "setloclist", json!([0, qflist]))?;
             }
         }
 
@@ -1766,13 +1763,9 @@ pub trait ILanguageClient: IVim {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
         let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
         let skip_notification = self.get(|state| {
-            let last_change = state
-                .text_documents_metadata
-                .get(&filename)
-                .and_then(|metadata| Some(metadata.last_change));
-            if let Some(last_change) = last_change {
+            if let Some(metadata) = state.text_documents_metadata.get(&filename) {
                 if let Some(throttle) = state.change_throttle {
-                    if Utc::now().signed_duration_since(last_change) < throttle {
+                    if Utc::now().signed_duration_since(metadata.last_change) < throttle {
                         return Ok(true);
                     }
                 }

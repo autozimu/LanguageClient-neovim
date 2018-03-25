@@ -9,6 +9,7 @@ use std::io::{BufReader, BufWriter};
 use std::fs::File;
 use std::env;
 use std::process::{ChildStdin, Stdio};
+use std::str::FromStr;
 
 #[macro_use]
 extern crate log;
