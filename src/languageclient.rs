@@ -31,7 +31,7 @@ pub trait ILanguageClient: IVim {
                 "Some arguments are not available. Requesting from vim. Keys: {:?}. Exps: {:?}",
                 keys_request, exps_request,
             );
-            self.eval(&exps_request[..])?
+            self.eval::<&[_], _>(exps_request.as_ref())?
         };
         for (k, v) in keys_request.into_iter().zip(values_request.into_iter()) {
             map.insert(k, v);
@@ -49,11 +49,12 @@ pub trait ILanguageClient: IVim {
     }
 
     fn sync_settings(&self) -> Result<()> {
-        let (loggingLevel,): (String,) =
-            self.eval(&["get(g:, 'LanguageClient_loggingLevel', 'WARN')"][..])?;
+        let loggingLevel: String = self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
         let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
         logger::set_logging_level(logger, &loggingLevel)?;
 
+        #[allow(unknown_lints)]
+        #[allow(type_complexity)]
         let (
             autoStart,
             serverCommands,
@@ -63,6 +64,10 @@ pub trait ILanguageClient: IVim {
             loadSettings,
             rootMarkers,
             change_throttle,
+            diagnosticsEnable,
+            diagnosticsList,
+            diagnosticsDisplay,
+            windowLogMessageLevel,
         ): (
             u64,
             HashMap<String, Vec<String>>,
@@ -72,8 +77,12 @@ pub trait ILanguageClient: IVim {
             u64,
             Option<RootMarkers>,
             Option<f64>,
+            u64,
+            Option<DiagnosticsList>,
+            Value,
+            String,
         ) = self.eval(
-            &[
+            [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "get(g:, 'LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', '')",
@@ -82,7 +91,11 @@ pub trait ILanguageClient: IVim {
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
-            ][..],
+                "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
+                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
+                "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
+                "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
+            ].as_ref(),
         )?;
         // vimscript use 1 for true, 0 for false.
         let autoStart = autoStart == 1;
@@ -92,7 +105,7 @@ pub trait ILanguageClient: IVim {
             "OFF" => TraceOption::Off,
             "MESSAGES" => TraceOption::Messages,
             "VERBOSE" => TraceOption::Verbose,
-            _ => bail!("Unknown trace option: {:?}", trace),
+            _ => bail!("Invalid option for LanguageClient_trace: {}", trace),
         };
 
         if selectionUI == "" {
@@ -104,32 +117,25 @@ pub trait ILanguageClient: IVim {
         let selectionUI = match selectionUI.to_uppercase().as_str() {
             "FZF" => SelectionUI::FZF,
             "" | "LOCATIONLIST" | "LOCATION-LIST" => SelectionUI::LocationList,
-            _ => bail!("Unknown selectionUI option: {:?}", selectionUI),
+            _ => bail!(
+                "Invalid option for LanguageClient_selectionUI: {}",
+                selectionUI
+            ),
         };
 
         let change_throttle =
             change_throttle.and_then(|t| Some(Duration::milliseconds((t * 1000.0) as i64)));
 
-        let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
-            u64,
-            Option<DiagnosticsList>,
-            Value,
-            String,
-        ) = self.eval(
-            &[
-                "!!get(g:, 'LanguageClient_diagnosticsEnable', v:true)",
-                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
-                "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
-                "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
-            ][..],
-        )?;
         let diagnosticsEnable = diagnosticsEnable == 1;
         let windowLogMessageLevel = match windowLogMessageLevel.to_uppercase().as_str() {
             "ERROR" => MessageType::Error,
             "WARNING" => MessageType::Warning,
             "INFO" => MessageType::Info,
             "LOG" => MessageType::Log,
-            _ => bail!("Unknown windowLogMessageLevel: {}", windowLogMessageLevel),
+            _ => bail!(
+                "Invalid option for LanguageClient_windowLogMessageLevel: {}",
+                windowLogMessageLevel
+            ),
         };
 
         self.update(|state| {
@@ -1181,7 +1187,7 @@ pub trait ILanguageClient: IVim {
             return Ok(Value::Null);
         }
 
-        let (tab_size, insert_spaces): (u64, u64) = self.eval(&["&tabstop", "&expandtab"][..])?;
+        let (tab_size, insert_spaces): (u64, u64) = self.eval(["&tabstop", "&expandtab"].as_ref())?;
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
@@ -1237,13 +1243,13 @@ pub trait ILanguageClient: IVim {
             u64,
             u64,
         ) = self.eval(
-            &[
+            [
                 "&tabstop",
                 "&expandtab",
                 "v:lnum - 1",
                 "v:lnum - 1 + v:count",
                 "len(getline(v:lnum + v:count)) - 1",
-            ][..],
+            ].as_ref(),
         )?;
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
