@@ -56,6 +56,7 @@ pub struct State {
     pub capabilities: HashMap<String, Value>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
+    pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
@@ -78,6 +79,8 @@ pub struct State {
     pub settingsPath: String,
     pub loadSettings: bool,
     pub rootMarkers: Option<RootMarkers>,
+    #[serde(skip_serializing)]
+    pub change_throttle: Option<Duration>,
 }
 
 impl State {
@@ -90,6 +93,7 @@ impl State {
             capabilities: HashMap::new(),
             roots: HashMap::new(),
             text_documents: HashMap::new(),
+            text_documents_metadata: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
@@ -110,6 +114,7 @@ impl State {
             settingsPath: format!(".vim{}settings.json", std::path::MAIN_SEPARATOR),
             loadSettings: false,
             rootMarkers: None,
+            change_throttle: None,
         }
     }
 }
@@ -640,5 +645,18 @@ impl Filepath for Url {
     fn filepath(&self) -> Result<PathBuf> {
         self.to_file_path()
             .map_err(|_| format_err!("Uri is not valid file path: {:?}", self))
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct TextDocumentItemMetadata {
+    pub last_change: DateTime<Utc>,
+}
+
+impl Default for TextDocumentItemMetadata {
+    fn default() -> Self {
+        Self {
+            last_change: Utc::now(),
+        }
     }
 }

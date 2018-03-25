@@ -451,7 +451,6 @@ function! LanguageClient_handleTextChanged() abort
     try
         call LanguageClient#Notify('languageClient/handleTextChanged', {
                     \ 'filename': s:Expand('%:p'),
-                    \ 'text': getbufline('', 1, '$'),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -502,6 +501,7 @@ function! LanguageClient_handleCursorMoved() abort
 
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
+                    \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
                     \ })
     catch

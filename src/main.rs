@@ -22,6 +22,8 @@ use failure::{err_msg, Error};
 extern crate libc;
 
 extern crate chrono;
+pub use chrono::prelude::*;
+pub use chrono::Duration;
 
 #[macro_use]
 extern crate maplit;
@@ -95,7 +97,7 @@ fn main() {
         "{} ({} {:?})",
         env!("CARGO_PKG_VERSION"),
         option_env!("TRAVIS_COMMIT").unwrap_or("NULL"),
-        chrono::Utc::now(),
+        Utc::now(),
     );
 
     let app = Opt::clap().version(version.as_str());

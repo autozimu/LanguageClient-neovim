@@ -49,6 +49,14 @@ pub trait ILanguageClient: IVim {
     }
 
     fn sync_settings(&self) -> Result<()> {
+        let (loggingLevel,): (String,) =
+            self.eval(&["get(g:, 'LanguageClient_loggingLevel', 'WARN')"][..])?;
+        let logger = LOGGER
+            .deref()
+            .as_ref()
+            .or_else(|_| Err(err_msg("No logger")))?;
+        logger::set_logging_level(logger, &loggingLevel)?;
+
         let (
             autoStart,
             serverCommands,
@@ -56,8 +64,8 @@ pub trait ILanguageClient: IVim {
             trace,
             settingsPath,
             loadSettings,
-            loggingLevel,
             rootMarkers,
+            change_throttle,
         ): (
             u64,
             HashMap<String, Vec<String>>,
@@ -65,8 +73,8 @@ pub trait ILanguageClient: IVim {
             String,
             String,
             u64,
-            String,
             Option<RootMarkers>,
+            Option<f64>,
         ) = self.eval(
             &[
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
@@ -75,8 +83,8 @@ pub trait ILanguageClient: IVim {
                 "get(g:, 'LanguageClient_trace', 'Off')",
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
-                "get(g:, 'LanguageClient_loggingLevel', 'WARN')",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
+                "get(g:, 'LanguageClient_changeThrottle', v:null)",
             ][..],
         )?;
         // vimscript use 1 for true, 0 for false.
@@ -102,11 +110,8 @@ pub trait ILanguageClient: IVim {
             _ => bail!("Unknown selectionUI option: {:?}", selectionUI),
         };
 
-        let logger = LOGGER
-            .deref()
-            .as_ref()
-            .or_else(|_| Err(err_msg("No logger")))?;
-        logger::set_logging_level(logger, &loggingLevel)?;
+        let change_throttle =
+            change_throttle.and_then(|t| Some(Duration::milliseconds((t * 1000.0) as i64)));
 
         let (diagnosticsEnable, diagnosticsList, diagnosticsDisplay, windowLogMessageLevel): (
             u64,
@@ -144,6 +149,7 @@ pub trait ILanguageClient: IVim {
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
             state.rootMarkers = rootMarkers;
+            state.change_throttle = change_throttle;
             Ok(())
         })?;
 
@@ -645,6 +651,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::HoverRequest::METHOD);
         let (languageId, filename, line, character, handle): (
             String,
@@ -689,6 +696,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_definition(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::GotoDefinition::METHOD);
         let (buftype, languageId, filename, line, character, goto_cmd, handle): (
             String,
@@ -764,6 +772,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_rename(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Rename::METHOD);
         let (buftype, languageId, filename, line, character, cword, new_name, handle): (
             String,
@@ -824,6 +833,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
         let (buftype, languageId, filename, handle): (String, String, String, bool) =
@@ -897,6 +907,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
             String,
@@ -978,6 +989,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
 
         let (buftype, languageId, filename, line, character, handle): (
@@ -1022,6 +1034,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_signatureHelp(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::SignatureHelpRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
             String,
@@ -1101,6 +1114,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_references(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::References::METHOD);
 
         let (buftype, languageId, filename, line, character, handle, include_declaration): (
@@ -1153,6 +1167,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
         let (buftype, languageId, filename, handle): (String, String, String, bool) =
             self.gather_args(
@@ -1201,6 +1216,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
         let (buftype, languageId, filename, handle): (String, String, String, bool) =
             self.gather_args(
@@ -1273,6 +1289,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::ResolveCompletionItem::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
@@ -1303,6 +1320,7 @@ pub trait ILanguageClient: IVim {
     }
 
     fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::WorkspaceSymbol::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Handle],
@@ -1482,6 +1500,14 @@ pub trait ILanguageClient: IVim {
             let version = document.version + 1;
             document.version = version;
             document.text = text.clone();
+
+            if state.change_throttle.is_some() {
+                let metadata = state
+                    .text_documents_metadata
+                    .entry(filename.clone())
+                    .or_insert_with(TextDocumentItemMetadata::default);
+                metadata.last_change = Utc::now();
+            }
             Ok(version)
         })?;
 
@@ -1742,6 +1768,26 @@ pub trait ILanguageClient: IVim {
 
     fn languageClient_handleTextChanged(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
+        let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
+        let skip_notification = self.get(|state| {
+            let last_change = state
+                .text_documents_metadata
+                .get(&filename)
+                .and_then(|metadata| Some(metadata.last_change));
+            if let Some(last_change) = last_change {
+                if let Some(throttle) = state.change_throttle {
+                    if Utc::now().signed_duration_since(last_change) < throttle {
+                        return Ok(true);
+                    }
+                }
+            }
+            Ok(false)
+        })?;
+        if skip_notification {
+            info!("Skip didChange notification due to throttling");
+            return Ok(());
+        }
+
         self.textDocument_didChange(params)?;
         info!("End {}", NOTIFICATION__HandleTextChanged);
         Ok(())
