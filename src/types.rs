@@ -471,17 +471,54 @@ impl ToString for lsp::MarkedString {
 
 impl ToString for Hover {
     fn to_string(&self) -> String {
-        let mut message = String::new();
-
         match self.contents {
-            HoverContents::Scalar(ref ms) => message += &ms.to_string(),
-            HoverContents::Array(ref vec) => for item in vec {
-                message += &item.to_string();
-            },
-            HoverContents::Markup(ref mc) => message += &mc.to_string(),
-        };
+            HoverContents::Scalar(ref ms) => ms.to_string(),
+            HoverContents::Array(ref vec) => vec.iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
+            HoverContents::Markup(ref mc) => mc.to_string(),
+        }
+    }
+}
 
-        message
+pub trait ToDisplay {
+    fn to_display(&self) -> Vec<String>;
+}
+
+impl ToDisplay for lsp::MarkedString {
+    fn to_display(&self) -> Vec<String> {
+        match *self {
+            MarkedString::String(ref s) => vec![s.clone()],
+            MarkedString::LanguageString(ref ls) => vec![
+                format!("```{}", ls.language),
+                ls.value.clone(),
+                "```".to_string(),
+            ],
+        }
+    }
+}
+
+impl ToDisplay for Hover {
+    fn to_display(&self) -> Vec<String> {
+        match self.contents {
+            HoverContents::Scalar(ref ms) => ms.to_display(),
+            HoverContents::Array(ref arr) => arr.iter().flat_map(|i| i.to_display()).collect(),
+            HoverContents::Markup(ref mc) => vec![mc.to_string()],
+        }
+    }
+}
+
+pub trait Len {
+    fn len(&self) -> usize;
+}
+
+impl Len for Hover {
+    fn len(&self) -> usize {
+        match self.contents {
+            HoverContents::Scalar(_) | HoverContents::Markup(_) => 1,
+            HoverContents::Array(ref arr) => arr.len(),
+        }
     }
 }
 

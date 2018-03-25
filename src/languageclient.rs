@@ -219,15 +219,14 @@ pub trait ILanguageClient: IVim {
 
         self.goto_location(&None, &path, 0, 0)?;
         let mut lines: Vec<String> = self.getbufline(&path)?;
-        let lines_len = lines.len();
         lines = apply_TextEdits(&lines, &edits)?;
         let fixendofline: u64 = self.eval("&fixendofline")?;
         if fixendofline == 1 && lines[lines.len() - 1].is_empty() {
             lines.pop();
         }
-        self.notify(None, "setline", json!([1, lines]))?;
-        if lines.len() < lines_len {
-            self.command(&format!("{},{}d", lines.len() + 1, lines_len))?;
+        self.command("1,$d")?;
+        if self.call(None, "setline", json!([1, lines]))? != 0 {
+            bail!("Failed to set preview buffer content!");
         }
         debug!("End apply TextEdits");
         Ok(())
@@ -552,6 +551,20 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
+    fn preview(&self, lines: &[String]) -> Result<()> {
+        let mut cmd = String::new();
+        cmd += "pedit! +setlocal\\ buftype=nofile\\ filetype=markdown\\ nobuflisted\\ noswapfile\\ nonumber LanguageClient ";
+        cmd += "| wincmd P ";
+        cmd += "| 1,$d ";
+        self.command(cmd)?;
+
+        if self.call(None, "setline", json!([1, lines]))? != 0 {
+            bail!("Failed to set preview buffer content!");
+        }
+
+        self.command("wincmd p")
+    }
+
     /////// LSP ///////
 
     fn initialize(&self, params: &Option<Params>) -> Result<Value> {
@@ -679,8 +692,11 @@ pub trait ILanguageClient: IVim {
 
         let hover: Option<Hover> = serde_json::from_value(result.clone())?;
         if let Some(hover) = hover {
-            let message = hover.to_string();
-            self.echo(&message)?;
+            if hover.len() <= 1 {
+                self.echo(hover.to_string())?;
+            } else {
+                self.preview(&hover.to_display())?;
+            }
         }
 
         info!("End {}", lsp::request::HoverRequest::METHOD);
@@ -1752,7 +1768,14 @@ pub trait ILanguageClient: IVim {
 
     fn languageClient_handleTextChanged(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
-        let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
+        let (buftype, filename): (String, String) =
+            self.gather_args(&[VimVar::Buftype, VimVar::Filename], params)?;
+        if !buftype.is_empty() {
+            info!(
+                "Skip handleTextChanged as buftype is non-empty: {}",
+                buftype
+            );
+        }
         let skip_notification = self.get(|state| {
             if let Some(metadata) = state.text_documents_metadata.get(&filename) {
                 if let Some(throttle) = state.change_throttle {
@@ -1764,7 +1787,7 @@ pub trait ILanguageClient: IVim {
             Ok(false)
         })?;
         if skip_notification {
-            info!("Skip didChange notification due to throttling");
+            info!("Skip handleTextChanged due to throttling");
             return Ok(());
         }
 

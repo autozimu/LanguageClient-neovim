@@ -41,13 +41,12 @@ def test_textDocument_hover(nvim):
     nvim.command("edit! {}".format(PATH_INDEXJS))
     time.sleep(1)
     nvim.funcs.cursor(13, 19)
-    nvim.command("redir => g:echo")
     nvim.funcs.LanguageClient_textDocument_hover()
     time.sleep(1)
-    nvim.command("redir END")
+    b = next(b for b in nvim.buffers if b.name.endswith('LanguageClient'))
     expect = "function greet(): number"
 
-    assert expect in nvim.vars.get("echo")
+    assert expect in b
 
 
 def test_textDocument_definition(nvim):
