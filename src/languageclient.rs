@@ -562,10 +562,11 @@ pub trait ILanguageClient: IVim {
             Some(r) => r,
             _ => {
                 let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
-                get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
-                    .to_str()
-                    .ok_or_else(|| err_msg("Failed to convert &Path to &str"))?
-                    .to_owned()
+                let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
+                    .to_string_lossy()
+                    .into_owned();
+                self.echomsg(format!("LanguageClient project root: {}", root))?;
+                root
             }
         };
         info!("Project root: {}", root);
@@ -1584,12 +1585,7 @@ pub trait ILanguageClient: IVim {
             return Ok(());
         }
 
-        let mut filename = params
-            .uri
-            .filepath()?
-            .to_str()
-            .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?
-            .to_owned();
+        let mut filename = params.uri.filepath()?.to_string_lossy().into_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
         if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
@@ -1873,11 +1869,7 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| format_err!("Failed to get file path! tokens: {:?}", tokens))?
                 .to_owned();
             let cwd: String = self.eval("getcwd()")?;
-            Path::new(&cwd)
-                .join(relpath)
-                .to_str()
-                .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?
-                .to_owned()
+            Path::new(&cwd).join(relpath).to_string_lossy().into_owned()
         } else {
             self.eval(VimVar::Filename)?
         };
@@ -2305,13 +2297,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         })?;
 
         let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
-        let home = home.to_str()
-            .ok_or_else(|| err_msg("Failed to convert PathBuf to str"))?;
         let command: Vec<_> = command
             .into_iter()
             .map(|cmd| {
                 if cmd.starts_with('~') {
-                    cmd.replacen('~', home, 1)
+                    cmd.replacen('~', &home.to_string_lossy(), 1)
                 } else {
                     cmd
                 }
