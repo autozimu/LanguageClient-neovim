@@ -2,4 +2,4 @@
 
 PATH=$PATH:~/.cargo/bin
 
-cargo check
+cargo build
