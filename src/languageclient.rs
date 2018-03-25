@@ -72,7 +72,7 @@ pub trait ILanguageClient: IVim {
             u64,
             HashMap<String, Vec<String>>,
             Option<String>,
-            String,
+            Option<String>,
             String,
             u64,
             Option<RootMarkers>,
@@ -86,7 +86,7 @@ pub trait ILanguageClient: IVim {
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "get(g:, 'LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', v:null)",
-                "get(g:, 'LanguageClient_trace', 'Off')",
+                "get(g:, 'LanguageClient_trace', v:null)",
                 "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
@@ -101,11 +101,15 @@ pub trait ILanguageClient: IVim {
         let autoStart = autoStart == 1;
         let loadSettings = loadSettings == 1;
 
-        let trace = match trace.to_ascii_uppercase().as_str() {
-            "OFF" => TraceOption::Off,
-            "MESSAGES" => TraceOption::Messages,
-            "VERBOSE" => TraceOption::Verbose,
-            _ => bail!("Invalid option for LanguageClient_trace: {}", trace),
+        let trace = if let Some(t) = trace {
+            match t.to_ascii_uppercase().as_str() {
+                "OFF" => Some(TraceOption::Off),
+                "MESSAGES" => Some(TraceOption::Messages),
+                "VERBOSE" => Some(TraceOption::Verbose),
+                _ => bail!("Invalid option for LanguageClient_trace: {}", t),
+            }
+        } else {
+            None
         };
 
         let selectionUI = if let Some(s) = selectionUI {
@@ -561,16 +565,15 @@ pub trait ILanguageClient: IVim {
             ],
             params,
         )?;
-        let root = match rootPath {
-            Some(r) => r,
-            _ => {
-                let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
-                let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
-                    .to_string_lossy()
-                    .into_owned();
-                self.echomsg(format!("LanguageClient project root: {}", root))?;
-                root
-            }
+        let root = if let Some(r) = rootPath {
+            r
+        } else {
+            let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
+            let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
+                .to_string_lossy()
+                .into_owned();
+            self.echomsg(format!("LanguageClient project root: {}", root))?;
+            root
         };
         info!("Project root: {}", root);
         let has_snippet_support = has_snippet_support > 0;
@@ -596,6 +599,8 @@ pub trait ILanguageClient: IVim {
             serde_json::to_string(&initialization_options)?
         );
 
+        let trace = self.get(|state| Ok(state.trace.clone()))?;
+
         let result = self.call(
             Some(&languageId),
             lsp::request::Initialize::METHOD,
@@ -605,36 +610,22 @@ pub trait ILanguageClient: IVim {
                 root_uri: Some(root.to_url()?),
                 initialization_options,
                 capabilities: ClientCapabilities {
-                    workspace: None,
                     text_document: Some(TextDocumentClientCapabilities {
-                        synchronization: None,
                         completion: Some(CompletionCapability {
-                            dynamic_registration: None,
                             completion_item: Some(CompletionItemCapability {
                                 snippet_support: Some(has_snippet_support),
-                                commit_characters_support: None,
-                                documentation_format: None,
+                                ..CompletionItemCapability::default()
                             }),
+                            ..CompletionCapability::default()
                         }),
-                        hover: None,
-                        signature_help: None,
-                        references: None,
-                        document_highlight: None,
-                        document_symbol: None,
-                        formatting: None,
-                        range_formatting: None,
-                        on_type_formatting: None,
-                        definition: None,
-                        code_action: None,
-                        code_lens: None,
-                        document_link: None,
-                        rename: None,
+                        ..TextDocumentClientCapabilities::default()
                     }),
-                    experimental: None,
+                    ..ClientCapabilities::default()
                 },
-                trace: TraceOption::default(),
+                trace,
             },
         )?;
+
         self.update(|state| {
             state
                 .capabilities
