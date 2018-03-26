@@ -109,12 +109,12 @@ pub trait ILanguageClient: IVim {
                 _ => bail!("Invalid option for LanguageClient_trace: {}", t),
             }
         } else {
-            None
+            Some(TraceOption::default())
         };
 
         let selectionUI = if let Some(s) = selectionUI {
             SelectionUI::from_str(&s)?
-        } else if self.eval::<_, i64>("g:loaded_fzf")? == 1 {
+        } else if self.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1 {
             SelectionUI::FZF
         } else {
             SelectionUI::default()
