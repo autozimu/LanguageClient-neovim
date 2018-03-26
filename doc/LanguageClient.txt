@@ -99,7 +99,8 @@ Default: >
 
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
-Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
+Interval in seconds during which textDocument_didChange is suppressed. For
+example: >
 
     let g:LanguageClient_changeThrottle = 0.5
 
