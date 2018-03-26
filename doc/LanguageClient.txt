@@ -99,15 +99,15 @@ Default: >
 
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
-Interval in seconds during which textDocument_didChange is suppressed. For
-example: >
+Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
 
     let g:LanguageClient_changeThrottle = 0.5
 
-This will make LanguageClient pause 0.5 second to send text changes to server
-after one textDocument_didChange is sent.
+This will make LanguageClient pause 0.5 second to send text changes to
+server after one textDocument_didChange is sent.
 
-Default: 0. No throttling.
+Default: v:null (No throttling)
+Valid options: v:null | number
 
 2.5 g:LanguageClient_autoStart                  *g:LanguageClient_autoStart*
 
@@ -196,18 +196,6 @@ Customize fzf. Check fzf documentation for available options.
 
 Default: v:null
 Valid option: Array<String> | String
-
-2.16 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
-
-Interval in seconds during which textDocument_didChange is suppressed. For exmaple: >
-
-    let g:LanguageClient_changeThrottle = 0.5
-
-This will make LanguageClient pause 0.5 second to send text changes to
-server after one textDocument_didChange is sent.
-
-Default: v:null (No throttling)
-Valid options: v:null | number
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
