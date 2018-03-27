@@ -568,10 +568,8 @@ pub trait ILanguageClient: IVim {
         if self.get(|state| Ok(state.is_nvim))? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
             self.notify(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
-        } else {
-            if self.call(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
-                bail!("Failed to set preview buffer content!");
-            }
+        } else if self.call(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
+            bail!("Failed to set preview buffer content!");
             // TODO: removing existing bottom lines.
         }
 
@@ -705,7 +703,7 @@ pub trait ILanguageClient: IVim {
 
         let hover: Option<Hover> = serde_json::from_value(result.clone())?;
         if let Some(hover) = hover {
-            if hover.len() <= 1 {
+            if hover.lines_len() <= 1 {
                 self.echo(hover.to_string())?;
             } else {
                 self.preview(&hover.to_display())?;

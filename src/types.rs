@@ -465,9 +465,14 @@ impl ToString for lsp::MarkedString {
     fn to_string(&self) -> String {
         match *self {
             MarkedString::String(ref s) => s.clone(),
-            // TODO: display language content properly.
             MarkedString::LanguageString(ref ls) => ls.value.clone(),
         }
+    }
+}
+
+impl ToString for lsp::MarkupContent {
+    fn to_string(&self) -> String {
+        self.value.clone()
     }
 }
 
@@ -481,52 +486,6 @@ impl ToString for Hover {
                 .join("\n"),
             HoverContents::Markup(ref mc) => mc.to_string(),
         }
-    }
-}
-
-pub trait ToDisplay {
-    fn to_display(&self) -> Vec<String>;
-}
-
-impl ToDisplay for lsp::MarkedString {
-    fn to_display(&self) -> Vec<String> {
-        match *self {
-            MarkedString::String(ref s) => vec![s.clone()],
-            MarkedString::LanguageString(ref ls) => vec![
-                format!("```{}", ls.language),
-                ls.value.clone(),
-                "```".to_string(),
-            ],
-        }
-    }
-}
-
-impl ToDisplay for Hover {
-    fn to_display(&self) -> Vec<String> {
-        match self.contents {
-            HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => arr.iter().flat_map(|i| i.to_display()).collect(),
-            HoverContents::Markup(ref mc) => vec![mc.to_string()],
-        }
-    }
-}
-
-pub trait Len {
-    fn len(&self) -> usize;
-}
-
-impl Len for Hover {
-    fn len(&self) -> usize {
-        match self.contents {
-            HoverContents::Scalar(_) | HoverContents::Markup(_) => 1,
-            HoverContents::Array(ref arr) => arr.len(),
-        }
-    }
-}
-
-impl ToString for lsp::MarkupContent {
-    fn to_string(&self) -> String {
-        self.value.clone()
     }
 }
 
@@ -544,6 +503,68 @@ impl ToString for NumberOrString {
         match *self {
             NumberOrString::Number(n) => format!("{}", n),
             NumberOrString::String(ref s) => s.clone(),
+        }
+    }
+}
+
+pub trait ToDisplay {
+    fn to_display(&self) -> Vec<String>;
+}
+
+impl ToDisplay for lsp::MarkedString {
+    fn to_display(&self) -> Vec<String> {
+        match *self {
+            MarkedString::String(ref s) => s.split('\n').map(|i| i.to_string()).collect(),
+            MarkedString::LanguageString(ref ls) => vec![
+                format!("```{}", ls.language),
+                ls.value.split('\n').map(|i| i.to_string()).collect(),
+                "```".to_string(),
+            ],
+        }
+    }
+}
+
+impl ToDisplay for MarkupContent {
+    fn to_display(&self) -> Vec<String> {
+        self.value.split('\n').map(|i| i.to_string()).collect()
+    }
+}
+
+impl ToDisplay for Hover {
+    fn to_display(&self) -> Vec<String> {
+        match self.contents {
+            HoverContents::Scalar(ref ms) => ms.to_display(),
+            HoverContents::Array(ref arr) => arr.iter().flat_map(|i| i.to_display()).collect(),
+            HoverContents::Markup(ref mc) => vec![mc.to_string()],
+        }
+    }
+}
+
+pub trait LinesLen {
+    fn lines_len(&self) -> usize;
+}
+
+impl LinesLen for lsp::MarkedString {
+    fn lines_len(&self) -> usize {
+        match *self {
+            MarkedString::String(ref s) => s.split('\n').count(),
+            MarkedString::LanguageString(ref ls) => ls.value.split('\n').count(),
+        }
+    }
+}
+
+impl LinesLen for MarkupContent {
+    fn lines_len(&self) -> usize {
+        self.value.split('\n').count()
+    }
+}
+
+impl LinesLen for Hover {
+    fn lines_len(&self) -> usize {
+        match self.contents {
+            HoverContents::Scalar(ref c) => c.lines_len(),
+            HoverContents::Array(ref arr) => arr.iter().map(|i| i.lines_len()).sum(),
+            HoverContents::Markup(ref c) => c.lines_len(),
         }
     }
 }
