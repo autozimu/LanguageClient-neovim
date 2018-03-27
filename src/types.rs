@@ -62,6 +62,7 @@ pub struct State {
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
 
+    pub is_nvim: bool,
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_codeAction_commands: Vec<Command>,
@@ -98,6 +99,7 @@ impl State {
             signs: HashMap::new(),
             highlight_source: None,
 
+            is_nvim: false,
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_codeAction_commands: vec![],

@@ -104,6 +104,7 @@ pub trait IVim {
     }
 
     /// RPC method call.
+    /// TODO: make return value generic.
     fn call<P: Serialize>(
         &self,
         languageId: Option<&str>,

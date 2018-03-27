@@ -68,6 +68,7 @@ pub trait ILanguageClient: IVim {
             diagnosticsList,
             diagnosticsDisplay,
             windowLogMessageLevel,
+            is_nvim,
         ): (
             u64,
             HashMap<String, Vec<String>>,
@@ -81,6 +82,7 @@ pub trait ILanguageClient: IVim {
             Option<String>,
             Value,
             String,
+            u64,
         ) = self.eval(
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
@@ -95,6 +97,7 @@ pub trait ILanguageClient: IVim {
                 "get(g:, 'LanguageClient_diagnosticsList', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
+                "has('nvim')",
             ].as_ref(),
         )?;
         // vimscript use 1 for true, 0 for false.
@@ -141,6 +144,8 @@ pub trait ILanguageClient: IVim {
             ),
         };
 
+        let is_nvim = is_nvim == 1;
+
         self.update(|state| {
             state.autoStart = autoStart;
             state.serverCommands.merge(serverCommands);
@@ -156,6 +161,7 @@ pub trait ILanguageClient: IVim {
             state.loadSettings = loadSettings;
             state.rootMarkers = rootMarkers;
             state.change_throttle = change_throttle;
+            state.is_nvim = is_nvim;
             Ok(())
         })?;
 
@@ -552,17 +558,24 @@ pub trait ILanguageClient: IVim {
     }
 
     fn preview(&self, lines: &[String]) -> Result<()> {
+        let bufname = "//LanguageClient";
+
         let mut cmd = String::new();
-        cmd += "pedit! +setlocal\\ buftype=nofile\\ filetype=markdown\\ nobuflisted\\ noswapfile\\ nonumber LanguageClient ";
-        cmd += "| wincmd P ";
-        cmd += "| 1,$d ";
+        cmd += "silent! pedit! +setlocal\\ buftype=nofile\\ filetype=markdown\\ nobuflisted\\ noswapfile\\ nonumber ";
+        cmd += bufname;
         self.command(cmd)?;
 
-        if self.call(None, "setline", json!([1, lines]))? != 0 {
-            bail!("Failed to set preview buffer content!");
+        if self.get(|state| Ok(state.is_nvim))? {
+            let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
+            self.notify(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
+        } else {
+            if self.call(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
+                bail!("Failed to set preview buffer content!");
+            }
+            // TODO: removing existing bottom lines.
         }
 
-        self.command("wincmd p")
+        Ok(())
     }
 
     /////// LSP ///////
