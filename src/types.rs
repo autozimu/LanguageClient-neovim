@@ -515,11 +515,15 @@ impl ToDisplay for lsp::MarkedString {
     fn to_display(&self) -> Vec<String> {
         match *self {
             MarkedString::String(ref s) => s.split('\n').map(|i| i.to_string()).collect(),
-            MarkedString::LanguageString(ref ls) => vec![
-                format!("```{}", ls.language),
-                ls.value.split('\n').map(|i| i.to_string()).collect(),
-                "```".to_string(),
-            ],
+            MarkedString::LanguageString(ref ls) => {
+                let mut buf = Vec::new();
+
+                buf.push(format!("```{}", ls.language));
+                buf.extend(ls.value.split('\n').map(|i| i.to_string()));
+                buf.push("```".to_string());
+
+                buf
+            },
         }
     }
 }
