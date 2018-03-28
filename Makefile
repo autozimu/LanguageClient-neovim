@@ -18,6 +18,7 @@ vint:
 release:
 	cargo build --release
 	cp -f target/release/languageclient bin/
+	chmod a+x bin/languageclient
 
 bump-version:
 	cargo release --level=patch
