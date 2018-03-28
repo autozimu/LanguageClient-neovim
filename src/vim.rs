@@ -104,13 +104,12 @@ pub trait IVim {
     }
 
     /// RPC method call.
-    /// TODO: make return value generic.
-    fn call<P: Serialize>(
+    fn call<P: Serialize, V: DeserializeOwned>(
         &self,
         languageId: Option<&str>,
         method: &str,
         params: P,
-    ) -> Result<Value> {
+    ) -> Result<V> {
         let id = self.update(|state| {
             state.id += 1;
             Ok(state.id)
@@ -133,7 +132,8 @@ pub trait IVim {
         info!("=> {}", message);
         self.write(languageId, &message)?;
 
-        cx.recv_timeout(std::time::Duration::from_secs(60 * 5))?
+        let value = cx.recv_timeout(std::time::Duration::from_secs(60 * 5))??;
+        Ok(serde_json::from_value(value)?)
     }
 
     /// RPC notification.

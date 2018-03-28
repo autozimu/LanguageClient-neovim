@@ -231,7 +231,7 @@ pub trait ILanguageClient: IVim {
             lines.pop();
         }
         self.command("1,$d")?;
-        if self.call(None, "setline", json!([1, lines]))? != 0 {
+        if self.call::<_, i64>(None, "setline", json!([1, lines]))? != 0 {
             bail!("Failed to set preview buffer content!");
         }
         debug!("End apply TextEdits");
@@ -313,10 +313,14 @@ pub trait ILanguageClient: IVim {
 
         match self.get(|state| Ok(state.diagnosticsList.clone()))? {
             DiagnosticsList::Quickfix => {
-                self.call(None, "setqflist", [qflist])?;
+                if self.call::<_, i64>(None, "setqflist", [qflist])? != 0 {
+                    bail!("Failed to set quickfix list!");
+                }
             }
             DiagnosticsList::Location => {
-                self.call(None, "setloclist", json!([0, qflist]))?;
+                if self.call::<_, i64>(None, "setloclist", json!([0, qflist]))? != 0 {
+                    bail!("Failed to set location list!");
+                }
             }
         }
 
@@ -342,7 +346,7 @@ pub trait ILanguageClient: IVim {
 
         // Highlight.
         // TODO: Optimize.
-        self.call(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
+        self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
         for dn in diagnostics.iter() {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
@@ -542,7 +546,7 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| err_msg("No highlight source"))
         });
         if let Ok(hlsource) = hlsource {
-            self.call(
+            self.notify(
                 None,
                 "nvim_buf_clear_highlight",
                 json!([0, hlsource, 1, -1]),
@@ -568,7 +572,7 @@ pub trait ILanguageClient: IVim {
         if self.get(|state| Ok(state.is_nvim))? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
             self.notify(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
-        } else if self.call(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
+        } else if self.call::<_, i64>(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
             bail!("Failed to set preview buffer content!");
             // TODO: removing existing bottom lines.
         }
@@ -625,7 +629,7 @@ pub trait ILanguageClient: IVim {
 
         let trace = self.get(|state| Ok(state.trace.clone()))?;
 
-        let result = self.call(
+        let result: Value = self.call(
             Some(&languageId),
             lsp::request::Initialize::METHOD,
             InitializeParams {
