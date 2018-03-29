@@ -2074,6 +2074,50 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
+    fn window_handleProgress(&self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__WindowProgress);
+        let params: WindowProgressParams = serde_json::from_value(params.clone().to_value())?;
+
+        let busy = !params.done.unwrap_or(false);
+
+        let mut buf = "LS: ".to_owned();
+
+        if busy {
+            // For RLS this can be "Build" or "Diagnostics" or "Indexing".
+            buf.push_str(
+                params
+                    .title
+                    .as_ref()
+                    .map(|title| title.as_ref())
+                    .unwrap_or("Busy"),
+            );
+
+            // For RLS this is the crate name, present only if the progress isn't known.
+            if let Some(message) = params.message {
+                buf.push_str(&format!(" ({})", &message));
+            }
+            // For RLS this is the progress percentage, present only if the it's known.
+            if let Some(percentage) = params.percentage {
+                buf.push_str(&format!(" ({:.1}% done)", percentage));
+            }
+        } else {
+            buf.push_str("Idle");
+        }
+
+        // Sanitize before sending to vim.
+        buf.replace('\'', "''");
+
+        self.command(&format!(
+            "let {}={} | let {}='{}'",
+            VIM__ServerStatus,
+            if busy { 1 } else { 0 },
+            VIM__ServerStatusMessage,
+            &buf
+        ))?;
+        info!("End {}", NOTIFICATION__WindowProgress);
+        Ok(())
+    }
+
     fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
         let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;

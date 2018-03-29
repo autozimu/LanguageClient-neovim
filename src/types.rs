@@ -30,6 +30,9 @@ pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
+// This is an RLS extension but the name is general enough to assume it might be implemented by
+// other language servers or planned for inclusion in the base protocol.
+pub const NOTIFICATION__WindowProgress: &str = "window/progress";
 pub const REQUEST__CqueryBase: &str = "$cquery/base";
 pub const REQUEST__CqueryCallers: &str = "$cquery/callers";
 pub const REQUEST__CqueryDerived: &str = "$cquery/derived";
@@ -523,7 +526,7 @@ impl ToDisplay for lsp::MarkedString {
                 buf.push("```".to_string());
 
                 buf
-            },
+            }
         }
     }
 }
@@ -725,6 +728,14 @@ pub struct LanguageStatusParams {
 pub enum RootMarkers {
     Array(Vec<String>),
     Map(HashMap<String, Vec<String>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WindowProgressParams {
+    pub title: Option<String>,
+    pub message: Option<String>,
+    pub percentage: Option<f64>,
+    pub done: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
