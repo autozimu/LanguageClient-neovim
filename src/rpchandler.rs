@@ -119,6 +119,7 @@ impl IRpcHandler for Arc<Mutex<State>> {
             NOTIFICATION__RustDiagnosticsEnd => {
                 self.rust_handleDiagnosticsEnd(&notification.params)?
             }
+            NOTIFICATION__WindowProgress => self.window_progress(&notification.params)?,
             NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
 
             _ => {
