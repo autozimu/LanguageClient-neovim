@@ -361,14 +361,6 @@ impl From<CompletionItem> for VimCompleteItem {
             .insert_text
             .clone()
             .unwrap_or_else(|| lspitem.label.clone());
-        let kind = match lspitem.kind {
-            Some(CompletionItemKind::Variable) => "v".to_owned(),
-            Some(CompletionItemKind::Method) | Some(CompletionItemKind::Function) => "f".to_owned(),
-            Some(CompletionItemKind::Field) | Some(CompletionItemKind::Property) => "m".to_owned(),
-            Some(CompletionItemKind::Class) => "t".to_owned(),
-            Some(kind) => format!("{:?}", kind),
-            None => "".to_owned(),
-        };
 
         VimCompleteItem {
             word,
@@ -380,7 +372,7 @@ impl From<CompletionItem> for VimCompleteItem {
                 .documentation
                 .map(|d| d.to_string())
                 .unwrap_or_default(),
-            kind,
+            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
             additional_text_edits: lspitem.additional_text_edits.clone(),
         }
     }
