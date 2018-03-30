@@ -1694,17 +1694,11 @@ pub trait ILanguageClient: IVim {
 
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value>;
 
-    // TODO: verify.
     fn languageClient_registerServerCommands(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
-        let params = params.clone().ok_or_else(|| err_msg("Empty params!"))?;
-        let map = match params {
-            Params::Map(map) => Value::Object(map),
-            _ => bail!("Unexpected params type!"),
-        };
-        let map = serde_json::from_value(map)?;
+        let commands = serde_json::from_value(params.clone().to_value())?;
         self.update(|state| {
-            state.serverCommands.merge(map);
+            state.serverCommands.merge(commands);
             Ok(())
         })?;
         let exp = format!(

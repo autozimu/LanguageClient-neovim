@@ -195,7 +195,7 @@ function! LanguageClient#Write(message) abort
     endif
 endfunction
 
-function! LanguageClient#Call(method, params, callback) abort
+function! LanguageClient#Call(method, params, callback, ...) abort
     let l:id = s:id
     let s:id = s:id + 1
     if a:callback is v:null
@@ -203,8 +203,9 @@ function! LanguageClient#Call(method, params, callback) abort
     else
         let s:handlers[l:id] = a:callback
     endif
+    let l:skipAddParams = a:0 > 0 && a:1
     let l:params = a:params
-    if type(a:params) == type({})
+    if type(a:params) == type({}) && !skipAddParams
         let l:params = extend({
                     \ 'buftype': &buftype,
                     \ 'languageId': &filetype,
@@ -419,7 +420,7 @@ function! LanguageClient_startServer(...) abort
 endfunction
 
 function! LanguageClient_registerServerCommands(cmds) abort
-    return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null)
+    return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null, v:true)
 endfunction
 
 function! LanguageClient_setLoggingLevel(level) abort
