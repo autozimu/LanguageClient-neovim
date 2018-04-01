@@ -328,6 +328,19 @@ Call $cquery/callers.
 
 Call $cquery/vars.
 
+4.20 LanguageClient_registerHandlers(handlers: Map)    *LanguageClient_registerHandlers*
+
+Register/Override method/notification handlers.
+
+Example >
+    function! HandleWindowProgress(params) abort
+        echomsg json_encode(a:params)
+    endfunction
+
+    call LanguageClient_registerHandlers({
+        \ 'window/progress': 'HandleWindowProgress',
+        \ })
+
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
 

@@ -64,6 +64,7 @@ function! s:HandleMessage(job, lines, event) abort
                             execute l:cmd
                         endfor
                     else
+                        let l:params = type(l:params) == type([]) ? l:params : [l:params]
                         let l:result = call(l:method, l:params)
                     endif
                     if l:id != v:null
@@ -429,6 +430,11 @@ function! LanguageClient_setLoggingLevel(level) abort
                 \ 'loggingLevel': a:level,
                 \ }
     return LanguageClient#Call('languageClient/setLoggingLevel', l:params, v:null)
+endfunction
+
+function! LanguageClient_registerHandlers(handlers, ...) abort
+    let l:handle = a:0 > 0 ? a:1 : v:null
+    return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)
 endfunction
 
 function! LanguageClient_handleBufReadPost() abort

@@ -16,6 +16,7 @@ pub const REQUEST__StartServer: &str = "languageClient/startServer";
 pub const REQUEST__RegisterServerCommands: &str = "languageClient/registerServerCommands";
 pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
 pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
+pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
@@ -64,6 +65,7 @@ pub struct State {
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
+    pub user_handlers: HashMap<String, String>,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
@@ -101,6 +103,7 @@ impl State {
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
             highlight_source: None,
+            user_handlers: HashMap::new(),
 
             is_nvim: false,
             last_cursor_line: 0,

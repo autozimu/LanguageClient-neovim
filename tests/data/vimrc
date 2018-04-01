@@ -14,3 +14,7 @@ let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'stable', 'rls'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
+
+function! HandleWindowProgress(params) abort
+    echomsg json_encode(a:params)
+endfunction

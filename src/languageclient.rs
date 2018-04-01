@@ -1719,6 +1719,17 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
+    fn languageClient_registerHandlers(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__RegisterHandlers);
+        let handlers = serde_json::from_value(params.clone().to_value())?;
+        self.update(|state| {
+            state.user_handlers.merge(handlers);
+            Ok(())
+        })?;
+        info!("End {}", REQUEST__RegisterHandlers);
+        Ok(Value::Null)
+    }
+
     fn languageClient_omniComplete(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
         let result = self.textDocument_completion(params)?;

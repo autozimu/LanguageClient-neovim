@@ -9,6 +9,17 @@ pub trait IRpcHandler {
 
 impl IRpcHandler for Arc<Mutex<State>> {
     fn handle_request(&self, method_call: &rpc::MethodCall) -> Result<Value> {
+        let user_handler = self.get(|state| {
+            state
+                .user_handlers
+                .get(&method_call.method)
+                .cloned()
+                .ok_or_else(|| err_msg("No user handler"))
+        });
+        if let Ok(user_handler) = user_handler {
+            return self.call(None, &user_handler, method_call.params.clone());
+        }
+
         match method_call.method.as_str() {
             lsp::request::HoverRequest::METHOD => self.textDocument_hover(&method_call.params),
             lsp::request::GotoDefinition::METHOD => {
@@ -49,6 +60,7 @@ impl IRpcHandler for Arc<Mutex<State>> {
                 self.languageClient_registerServerCommands(&method_call.params)
             }
             REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&method_call.params),
+            REQUEST__RegisterHandlers => self.languageClient_registerHandlers(&method_call.params),
             REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
             REQUEST__CqueryBase => self.cquery_base(&method_call.params),
             REQUEST__CqueryCallers => self.cquery_callers(&method_call.params),
@@ -69,6 +81,17 @@ impl IRpcHandler for Arc<Mutex<State>> {
     }
 
     fn handle_notification(&self, notification: &rpc::Notification) -> Result<()> {
+        let user_handler = self.get(|state| {
+            state
+                .user_handlers
+                .get(&notification.method)
+                .cloned()
+                .ok_or_else(|| err_msg("No user handler"))
+        });
+        if let Ok(user_handler) = user_handler {
+            return self.notify(None, &user_handler, notification.params.clone());
+        }
+
         match notification.method.as_str() {
             lsp::notification::DidOpenTextDocument::METHOD => {
                 self.textDocument_didOpen(&notification.params)?
