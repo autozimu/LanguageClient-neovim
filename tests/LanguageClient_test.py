@@ -169,6 +169,7 @@ def test_languageClient_registerServerCommands(nvim):
 
 def test_languageClient_registerHandlers(nvim):
     nvim.command('let g:responses = []')
-    nvim.command("call LanguageClient_registerHandlers({'window/progress': 'HandleWindowProgress'}, g:responses)")
+    nvim.command("call LanguageClient_registerHandlers("
+                 "{'window/progress': 'HandleWindowProgress'}, g:responses)")
     time.sleep(1)
     assert nvim.vars['responses'] == [None]
