@@ -208,9 +208,8 @@ pub trait IVim {
     fn getlines<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
         let bufexp = bufexp.as_ref().to_string_lossy();
         let mut lines: Vec<String> = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
-        let fixendofline: u8 = self.eval("&fixendofline")?;
-        if fixendofline == 1 {
-            lines.push("\n".to_owned());
+        if !lines[lines.len() - 1].is_empty() && self.eval::<_, u8>("&fixendofline")? == 1 {
+            lines.push("".to_owned());
         }
         Ok(lines)
     }

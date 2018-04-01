@@ -652,7 +652,7 @@ impl VimExp for VimVar {
             VimVar::Filename => "s:Expand('%:p')",
             VimVar::Line => "line('.') - 1",
             VimVar::Character => "col('.') - 1",
-            VimVar::Text => "getbufline('', 1, '$') + (&fixendofline ? ['\n'] : [])",
+            VimVar::Text => "getbufline('', 1, '$') + (&fixendofline ? [''] : [])",
             VimVar::Cword => "expand('<cword>')",
             VimVar::NewName | VimVar::GotoCmd => "v:null",
             VimVar::Handle | VimVar::IncludeDeclaration => "v:true",

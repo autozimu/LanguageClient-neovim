@@ -224,8 +224,11 @@ pub trait ILanguageClient: IVim {
         edits.reverse();
 
         self.goto_location(&None, &path, 0, 0)?;
-        let mut lines: Vec<String> = self.getlines(&path)?;
-        lines = apply_TextEdits(&lines, &edits)?;
+        let lines = self.getlines(&path)?;
+        let mut lines = apply_TextEdits(&lines, &edits)?;
+        if lines[lines.len() - 1].is_empty() && self.eval::<_, u8>("&fixendofline")? == 1 {
+            lines.pop();
+        }
         self.command("1,$d")?;
         if self.call::<_, i64>(None, "setline", json!([1, lines]))? != 0 {
             bail!("Failed to set preview buffer content!");
