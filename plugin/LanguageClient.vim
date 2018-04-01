@@ -419,8 +419,9 @@ function! LanguageClient_startServer(...) abort
     return LanguageClient#Call('languageClient/startServer', l:params, v:null)
 endfunction
 
-function! LanguageClient_registerServerCommands(cmds) abort
-    return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, v:null, v:true)
+function! LanguageClient_registerServerCommands(cmds, ...) abort
+    let l:handle = a:0 > 0 ? a:1 : v:null
+    return LanguageClient#Call('languageClient/registerServerCommands', a:cmds, l:handle, v:true)
 endfunction
 
 function! LanguageClient_setLoggingLevel(level) abort

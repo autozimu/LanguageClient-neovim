@@ -158,3 +158,10 @@ def test_textDocument_references_modified_buffer(nvim):
     assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
 
     nvim.command("edit! {}".format(PATH_INDEXJS))
+
+
+def test_languageClient_registerServerCommands(nvim):
+    nvim.command('let g:responses = []')
+    nvim.command("call LanguageClient_registerServerCommands({'bash': ['bash']}, g:responses)")
+    time.sleep(1)
+    assert nvim.vars['responses'] == [None]
