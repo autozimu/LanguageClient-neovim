@@ -205,10 +205,14 @@ pub trait IVim {
         self.command(cmd)
     }
 
-    fn getbufline<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
+    fn getlines<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
         let bufexp = bufexp.as_ref().to_string_lossy();
-        let result = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
-        Ok(serde_json::from_value(result)?)
+        let mut lines: Vec<String> = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
+        let fixendofline: u8 = self.eval("&fixendofline")?;
+        if fixendofline == 1 {
+            lines.push("\n".to_owned());
+        }
+        Ok(lines)
     }
 
     fn goto_location<P: AsRef<Path>>(
