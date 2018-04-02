@@ -1947,10 +1947,10 @@ pub trait ILanguageClient: IVim {
             return Ok(());
         }
 
-        self.workspace_executeCommand(&Some(json!({
+        self.workspace_executeCommand(&json!({
                 "command": entry.command,
                 "arguments": entry.arguments,
-            }).to_params()?))?;
+            }).to_params()?)?;
 
         self.update(|state| {
             state.stashed_codeAction_commands = vec![];
@@ -1969,14 +1969,14 @@ pub trait ILanguageClient: IVim {
             return Ok(());
         }
 
-        let result = self.textDocument_completion(&Some(json!({
+        let result = self.textDocument_completion(&json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": ctx.filepath,
                 "line": ctx.lnum - 1,
                 "character": ctx.col - 1,
                 "handle": false,
-            }).to_params()?))?;
+            }).to_params()?)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
@@ -2337,10 +2337,10 @@ impl ILanguageClient for Arc<Mutex<State>> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
-        let params = &Some(params.clone().to_value().combine(cmdparams).to_params()?);
+        let params = params.clone().to_value().combine(cmdparams).to_params()?;
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
-            params,
+            &params,
         )?;
 
         if !buftype.is_empty() || filename.is_empty() {
@@ -2425,9 +2425,9 @@ impl ILanguageClient for Arc<Mutex<State>> {
             self.define_signs()?;
         }
 
-        self.initialize(params)?;
-        self.textDocument_didOpen(params)?;
-        self.textDocument_didChange(params)?;
+        self.initialize(&params)?;
+        self.textDocument_didOpen(&params)?;
+        self.textDocument_didChange(&params)?;
 
         if self.eval::<_, u64>("exists('#User#LanguageClientStarted')")? == 1 {
             self.command("doautocmd User LanguageClientStarted")?;

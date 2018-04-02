@@ -80,9 +80,10 @@ command! LanguageClientStop :call LanguageClient#exit()
 augroup languageClient
     autocmd!
     autocmd BufReadPost * call LanguageClient#handleBufReadPost()
-    autocmd TextChanged * call LanguageClient#handleTextChanged()
-    autocmd TextChangedI * call LanguageClient#handleTextChanged()
     autocmd BufWritePost * call LanguageClient#handleBufWritePost()
     autocmd BufDelete * call LanguageClient#handleBufDelete()
+    autocmd TextChanged * call LanguageClient#handleTextChanged()
+    autocmd TextChangedI * call LanguageClient#handleTextChanged()
     autocmd CursorMoved * call LanguageClient#handleCursorMoved()
+    autocmd VimLeavePre * call LanguageClient#exit()
 augroup END

@@ -119,7 +119,7 @@ pub trait IVim {
             jsonrpc: Some(rpc::Version::V2),
             id: rpc::Id::Num(id),
             method: method.into(),
-            params: Some(params.to_params()?),
+            params: params.to_params()?,
         };
 
         let (tx, cx) = channel();
@@ -146,7 +146,7 @@ pub trait IVim {
         let notification = rpc::Notification {
             jsonrpc: Some(rpc::Version::V2),
             method: method.to_owned(),
-            params: Some(params.to_params()?),
+            params: params.to_params()?,
         };
 
         let message = serde_json::to_string(&notification)?;
