@@ -50,6 +50,14 @@ function! LanguageClient_registerHandlers(...)
     return call('LanguageClient#registerHandlers', a:000)
 endfunction
 
+function! LanguageClient_omniComplete(...)
+    return call('LanguageClient#omniComplete', a:000)
+endfunction
+
+function! LanguageClient_complete(...)
+    return call('LanguageClient#complete', a:000)
+endfunction
+
 function! LanguageClient_serverStatus(...)
     return call('LanguageClient#serverStatus', a:000)
 endfunction
