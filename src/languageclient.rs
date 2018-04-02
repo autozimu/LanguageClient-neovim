@@ -226,7 +226,9 @@ pub trait ILanguageClient: IVim {
         self.goto_location(&None, &path, 0, 0)?;
         let lines = self.getlines(&path)?;
         let mut lines = apply_TextEdits(&lines, &edits)?;
-        if lines[lines.len() - 1].is_empty() && self.eval::<_, u8>("&fixendofline")? == 1 {
+        if lines.last().map(|l| l.is_empty()).unwrap_or_default()
+            && self.eval::<_, u8>("&fixendofline")? == 1
+        {
             lines.pop();
         }
         self.command("1,$d")?;
@@ -274,7 +276,7 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))?;
             Ok(text_document.text.clone())
         })?;
-        let texts: Vec<&str> = texts.split('\n').collect();
+        let texts: Vec<&str> = texts.lines().collect();
         let mut signs: Vec<_> = diagnostics
             .iter()
             .map(|dn| {
@@ -346,7 +348,7 @@ pub trait ILanguageClient: IVim {
         // Highlight.
         // TODO: Optimize.
         self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
-        for dn in diagnostics.iter() {
+        for dn in diagnostics {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
                 .get(&severity.to_int()?)

@@ -528,12 +528,12 @@ pub trait ToDisplay {
 impl ToDisplay for lsp::MarkedString {
     fn to_display(&self) -> Vec<String> {
         match *self {
-            MarkedString::String(ref s) => s.split('\n').map(|i| i.to_string()).collect(),
+            MarkedString::String(ref s) => s.lines().map(|i| i.to_string()).collect(),
             MarkedString::LanguageString(ref ls) => {
                 let mut buf = Vec::new();
 
                 buf.push(format!("```{}", ls.language));
-                buf.extend(ls.value.split('\n').map(|i| i.to_string()));
+                buf.extend(ls.value.lines().map(|i| i.to_string()));
                 buf.push("```".to_string());
 
                 buf
@@ -544,7 +544,7 @@ impl ToDisplay for lsp::MarkedString {
 
 impl ToDisplay for MarkupContent {
     fn to_display(&self) -> Vec<String> {
-        self.value.split('\n').map(|i| i.to_string()).collect()
+        self.value.lines().map(|i| i.to_string()).collect()
     }
 }
 
@@ -565,15 +565,15 @@ pub trait LinesLen {
 impl LinesLen for lsp::MarkedString {
     fn lines_len(&self) -> usize {
         match *self {
-            MarkedString::String(ref s) => s.split('\n').count(),
-            MarkedString::LanguageString(ref ls) => ls.value.split('\n').count(),
+            MarkedString::String(ref s) => s.lines().count(),
+            MarkedString::LanguageString(ref ls) => ls.value.lines().count(),
         }
     }
 }
 
 impl LinesLen for MarkupContent {
     fn lines_len(&self) -> usize {
-        self.value.split('\n').count()
+        self.value.lines().count()
     }
 }
 

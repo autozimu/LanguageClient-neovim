@@ -192,7 +192,7 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<Strin
         text = String::new() + &text[..start] + new_text + &text[end..];
     }
 
-    Ok(text.split('\n').map(|l| l.to_owned()).collect())
+    Ok(text.lines().map(|l| l.to_owned()).collect())
 }
 
 #[test]
@@ -200,14 +200,14 @@ fn test_apply_TextEdit() {
     let lines: Vec<String> = r#"fn main() {
 0;
 }
-"#.split('\n')
+"#.lines()
         .map(|l| l.to_owned())
         .collect();
 
     let expect: Vec<String> = r#"fn main() {
     0;
 }
-"#.split('\n')
+"#.lines()
         .map(|l| l.to_owned())
         .collect();
 
@@ -233,9 +233,9 @@ fn test_apply_TextEdit() {
 
 #[test]
 fn test_apply_TextEdit_overlong_end() {
-    let lines: Vec<String> = r#"abc = 123"#.split('\n').map(|l| l.to_owned()).collect();
+    let lines: Vec<String> = r#"abc = 123"#.lines().map(|l| l.to_owned()).collect();
 
-    let expect: Vec<String> = r#"nb = 123"#.split('\n').map(|l| l.to_owned()).collect();
+    let expect: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
 
     let edit = TextEdit {
         range: Range {
