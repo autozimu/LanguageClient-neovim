@@ -137,30 +137,17 @@ function! s:HandleMessage(job, lines, event) abort
                     endif
                     call s:Debug(string(v:exception))
                 endtry
-            elseif has_key(l:message, 'result')
+            elseif has_key(l:message, 'result') || has_key(l:message, 'error')
                 let l:id = get(l:message, 'id')
-                let l:result = get(l:message, 'result')
-                let Handle = get(s:handlers, l:id)
+                " Function name needs to begin with uppercase letter.
+                let l:Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                if type(Handle) == type(function('tr'))
-                    call call(Handle, [l:result, {}])
-                elseif type(Handle) == type([])
-                    call add(Handle, l:result)
+                if type(l:Handle) == type(function('tr')) || type(l:Handle) == type('')
+                    call call(l:Handle, [l:message])
+                elseif type(l:Handle) == type([])
+                    call add(l:Handle, l:message)
                 else
-                    call s:Echoerr('Unknown Handle type: ' . string(Handle))
-                endif
-            elseif has_key(l:message, 'error')
-                let l:id = get(l:message, 'id')
-                let l:error = get(l:message, 'error')
-                let Handle = get(s:handlers, l:id)
-                unlet s:handlers[l:id]
-                if type(Handle) == type(function('tr'))
-                    call s:Echoerr(get(l:error, 'message'))
-                    call call(Handle, [{}, l:error])
-                elseif type(Handle) == type([])
-                    call add(Handle, v:null)
-                else
-                    call s:Echoerr('Unknown Handle type: ' . string(Handle))
+                    call s:Echoerr('Unknown Handle type: ' . string(l:Handle))
                 endif
             else
                 call s:Echoerr('Unknown message: ' . string(l:message))
@@ -190,14 +177,21 @@ function! s:HandleExitVim(job, data) abort
     return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
-function! s:HandleOutput(result, error) abort
-    if len(a:error) > 0
-        call s:Echoerr(get(a:error, 'message'))
-    else
-        let l:result = string(a:result)
-        if l:result !=# 'v:null'
+function! s:HandleOutput(output) abort
+    if has_key(a:output, 'result')
+        " let l:result = string(a:result)
+        " if l:result !=# 'v:null'
             " echomsg l:result
-        endif
+        " endif
+        return get(a:output, 'result')
+    elseif has_key(a:output, 'error')
+        let l:error = get(a:output, 'error')
+        let l:message = get(l:error, 'message')
+        call s:Echoerr(l:message)
+        return v:null
+    else
+        call s:Echoerr('Unknown output type: ' . json_encode(a:output))
+        return v:null
     endif
 endfunction
 
@@ -616,7 +610,9 @@ function! LanguageClient#complete(findstart, base) abort
         while len(g:LanguageClient_completeResults) == 0
             sleep 100m
         endwhile
-        return remove(g:LanguageClient_completeResults, 0)
+        let l:output = remove(g:LanguageClient_completeResults, 0)
+        let l:result = s:HandleOutput(l:output)
+        return l:result is v:null ? [] : l:result
     endif
 endfunction
 

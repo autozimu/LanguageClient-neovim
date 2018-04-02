@@ -24,7 +24,7 @@ pub const NOTIFICATION__HandleBufDelete: &str = "languageClient/handleBufDelete"
 pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMoved";
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
-pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
+pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient/NCMRefresh";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";

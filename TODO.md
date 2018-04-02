@@ -5,4 +5,3 @@
 - Check server capabilities before calling RPC API.
 - TCP.
 - Replace echodoc functionality.
-- Merge handle result and error.
