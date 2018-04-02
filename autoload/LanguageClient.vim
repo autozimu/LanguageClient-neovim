@@ -190,7 +190,7 @@ function! s:HandleExitVim(job, data) abort
     return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
-function! HandleOutput(result, error) abort
+function! s:HandleOutput(result, error) abort
     if len(a:error) > 0
         call s:Echoerr(get(a:error, 'message'))
     else
@@ -261,7 +261,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     let l:id = s:id
     let s:id = s:id + 1
     if a:callback is v:null
-        let s:handlers[l:id] = function('HandleOutput')
+        let s:handlers[l:id] = function('s:HandleOutput')
     else
         let s:handlers[l:id] = a:callback
     endif
