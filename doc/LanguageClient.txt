@@ -212,23 +212,42 @@ Stop current language server.
 ==============================================================================
 4. Functions                                          *LanguageClientFunctions*
 
-4.1 LanguageClient_textDocument_hover()
-*LanguageClient_textDocument_hover*
+*LanguageClient#Call()*
+*LanguageClient_Call()*
+Signature: LanguageClient#Call(method: String, params: Map | List, callback: Function | List | Null)
+
+Call a method of current language server. After receiving response, if
+callback is a function, it is invoked with response as params, if the callback
+is a list, the response is pushed at the end of it, if callback is null, it is
+handled by this plugin default handler.
+
+*LanguageClient#Notify()*
+*LanguageClient_Notify()*
+Signature: LanguageClient#Notify(method: String, params: Map | List)
+
+Send a notification to the current language server.
+
+*LanguageClient#textDocument_hover()*
+*LanguageClient_textDocument_hover()*
+Signature: LanguageClient#textDocument_hover(...)
 
 Show type info (and short doc) of identifier under cursor.
 
-4.2 LanguageClient_textDocument_definition()
-*LanguageClient_textDocument_definition*
+*LanguageClient#textDocument_definition()*
+*LanguageClient_textDocument_definition()*
+Signature: LanguageClient#textDocument_definition(...)
 
 Goto definition of identifier under cursor.
 
-4.3 LanguageClient_textDocument_rename()
-*LanguageClient_textDocument_rename*
+*LanguageClient#textDocument_rename()*
+*LanguageClient_textDocument_rename()*
+Signature: LanguageClient#textDocument_rename(...)
 
 Rename identifier under cursor.
 
-4.4 LanguageClient_textDocument_documentSymbol()
-*LanguageClient_textDocument_documentSymbol*
+*LanguageClient#textDocument_documentSymbol()*
+*LanguageClient_textDocument_documentSymbol()*
+Signature: LanguageClient#textDocument_documentSymbol(...)
 
 List of current buffer's symbols.
 
@@ -237,8 +256,9 @@ prompt, selecting one of the symbol will then goto the symbol's definition.
 
 For Denite users, a source with name 'documentSymbol' is provided.
 
-4.5 LanguageClient_textDocument_references()
-*LanguageClient_textDocument_references*
+*LanguageClient#textDocument_references()*
+*LanguageClient_textDocument_references()*
+Signature: LanguageClient#textDocument_references(...)
 
 List all references of identifier under cursor.
 
@@ -247,8 +267,31 @@ prompt, selecting one of the entry will then goto the reference location.
 
 For Denite users, a source with name 'references' is provided.
 
-4.6 LanguageClient_workspace_symbol()
-*LanguageClient_workspace_symbol*
+*LanguageClient#textDocument_completion()*
+*LanguageClient_textDocument_completion()*
+Signature: LanguageClient#textDocument_completion(...)
+
+Get a list of completion items at current editing location. Note, this is an
+synchronous call.
+
+When using a supported completion manager (deoplete and
+nvim-completion-manager are supported), completion should work out of the box.
+
+*LanguageClient#textDocument_formatting()*
+*LanguageClient_textDocument_formatting()*
+Signature: LanguageClient#textDocument_formatting(...)
+
+Format current document.
+
+*LanguageClient#textDocument_rangeFormatting()*
+*LanguageClient_textDocument_rangeFormatting()*
+Signature: LanguageClient#textDocument_rangeFormatting(...)
+
+Format selected lines.
+
+*LanguageClient#workspace_symbol()*
+*LanguageClient_workspace_symbol()*
+Signature: LanguageClient#workspace_symbol(...)
 
 List of project's symbols.
 
@@ -257,78 +300,30 @@ prompt, selecting one of the symbol will then goto the symbol's definition.
 
 For Denite users, a source with name 'workspaceSymbol' is provided.
 
-4.7 LanguageClient_textDocument_completion()
-*LanguageClient_textDocument_completion*
+*LanguageClient#workspace_applyEdit()*
+*LanguageClient_workspace_applyEdit()*
+Signature: LanguageClient_workspace_applyEdit(params: Dict, callback: Function | List | Null)
 
-Get a list of completion items at current editing location. Note, this is an
-synchronous call.
+Apply a workspace edit.
 
-When using a supported completion manager (deoplete and
-nvim-completion-manager are supported), completion should work out of the box.
-
-4.8 LanguageClient_setLoggingLevel(level: str)
-*LanguageClient_setLoggingLevel*
+*LanguageClient#setLoggingLevel()*
+*LanguageClient_setLoggingLevel()*
+Signature: LanguageClient#setLoggingLevel(level: String)
 
 Set the plugin logging level. By default, only errors are logged into
 /tmp/LanguageClient.log (%TMP%/LanguageClient.log for Windows).
 
 Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
 
-4.9 LanguageClient_textDocument_formatting()
-*LanguageClient_textDocument_formatting*
+*LanguageClient#registerServerCommands()*
+*LanguageClient_registerServerCommands()*
+Signature: LanguageClient#registerServerCommands(commands: Map)
 
-Format current document.
+Register/Override commands to start language servers.
 
-4.10 LanguageClient_textDocument_rangeFormatting()
-*LanguageClient_textDocument_rangeFormatting*
-
-Format selected lines.
-
-4.11 LanguageClient#Notify(method: str, params: Dict)
-*LanguageClient#Notify*
-
-Send a notification to the current language server.
-
-4.12 LanguageClient#Call(method: str, params: Dict, callback: function | list)
-*LanguageClient#Call*
-
-Call a method to the current language server.
-
-4.12 LanguageClient_serverStatus()           *LanguageClient_serverStatus*
-
-Get language server status. 0 for server idle. 1 for server busy.
-
-4.13 LanguageClient_serverStatusMessage()
-*LanguageClient_serverStatusMessage*
-
-Get a detail message of server status.
-
-4.14 LanguageClient_statusLine() *LanguageClient_statusLine*
-
-Example status line making use of LanguageClient_serverStatusMessage.
-
-4.15 LanguageClient_workspace_applyEdit(params: Dict, callback: function | list)
-*LanguageClient_workspace_applyEdit*
-
-Apply a workspace edit.
-
-4.16 LanguageClient_cquery_base()                *LanguageClient_cquery_base*
-
-Call $cquery/base.
-
-4.17 LanguageClient_cquery_derived()          *LanguageClient_cquery_derived*
-
-Call $cquery/derived.
-
-4.18 LanguageClient_cquery_callers()          *LanguageClient_cquery_callers*
-
-Call $cquery/callers.
-
-4.19 LanguageClient_cquery_vars()              *LanguageClient_cquery_vars*
-
-Call $cquery/vars.
-
-4.20 LanguageClient_registerHandlers(handlers: Map)    *LanguageClient_registerHandlers*
+*LanguageClient#registerHandlers*
+*LanguageClient_registerHandlers*
+Signature: LanguageClient#registerHandlers(handlers: Map)
 
 Register/Override method/notification handlers.
 
@@ -337,9 +332,51 @@ Example >
         echomsg json_encode(a:params)
     endfunction
 
-    call LanguageClient_registerHandlers({
+    call LanguageClient#registerHandlers({
         \ 'window/progress': 'HandleWindowProgress',
         \ })
+
+*LanguageClient#serverStatus()*
+*LanguageClient_serverStatus()*
+Signature: LanguageClient#serverStatus()
+
+Get language server status. 0 for server idle. 1 for server busy.
+
+*LanguageClient#serverStatusMessage()*
+*LanguageClient_serverStatusMessage()*
+Signature: LanguageClient#serverStatusMessage()
+
+Get a detail message of server status.
+
+*LanguageClient#statusLine()*
+*LanguageClient_statusLine()*
+Signature: LanguageClient#statusLine()
+
+Example status line making use of |LanguageClient_serverStatusMessage|.
+
+*LanguageClient#cquery_base*
+*LanguageClient_cquery_base*
+Signature: LanguageClient#cquery_base(...)
+
+Call $cquery/base.
+
+*LanguageClient#cquery_derived*
+*LanguageClient_cquery_derived*
+Signature: LanguageClient#cquery_derived(...)
+
+Call $cquery/derived.
+
+*LanguageClient#cquery_callers*
+*LanguageClient_cquery_callers*
+Signature: LanguageClient#cquery_callers(...)
+
+Call $cquery/callers.
+
+*LanguageClient#cquery_vars*
+*LanguageClient_cquery_vars*
+Signature: LanguageClient#cquery_vars(...)
+
+Call $cquery/vars.
 
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
