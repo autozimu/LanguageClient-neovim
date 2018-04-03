@@ -2,8 +2,6 @@ from typing import List, Dict
 
 from .base import Base
 
-DocumentSymbolOutputs = "g:LanguageClient_documentSymbolResults"
-
 
 def convert_to_candidate(symbol: Dict, bufname: str) -> Dict:
     name = symbol["name"]
@@ -26,18 +24,9 @@ class Source(Base):
         self.kind = 'file'
 
     def gather_candidates(self, context: Dict) -> List[Dict]:
-        if context["is_async"]:
-            outputs = self.vim.eval(DocumentSymbolOutputs)
-            if len(outputs) != 0:
-                context["is_async"] = False
-                result = outputs[0].get("result", [])
-                bufname = self.vim.current.buffer.name
-                return [convert_to_candidate(symbol, bufname) for
-                        symbol in result]
-        else:
-            context["is_async"] = True
-            self.vim.command("let {0} = []".format(DocumentSymbolOutputs))
-            self.vim.funcs.LanguageClient_textDocument_documentSymbol({
-                "handle": False,
-            })
-        return []
+        bufname = self.vim.current.buffer.name
+        result = self.vim.funcs.LanguageClient_runSync(
+            'LanguageClient_textDocument_documentSymbol',
+            {"handle": False}) or []
+        return [convert_to_candidate(symbol, bufname) for
+                symbol in result]

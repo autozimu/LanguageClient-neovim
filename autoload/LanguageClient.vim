@@ -378,12 +378,12 @@ function! LanguageClient#textDocument_codeAction(...) abort
 endfunction
 
 function! LanguageClient#textDocument_completion(...) abort
+    " Note: do not add 'text' as it might be huge.
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ 'handle': v:true,
+                \ 'handle': v:false,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
@@ -502,6 +502,16 @@ function! LanguageClient#registerHandlers(handlers, ...) abort
     return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)
 endfunction
 
+function! LanguageClient_runSync(fn, params) abort
+    let g:LanguageClient_runSync_outputs = []
+    call call(a:fn, [a:params, g:LanguageClient_runSync_outputs])
+    while len(g:LanguageClient_runSync_outputs) == 0
+        sleep 100m
+    endwhile
+    let l:output = remove(g:LanguageClient_runSync_outputs, 0)
+    return s:HandleOutput(l:output)
+endfunction
+
 function! LanguageClient#handleBufReadPost() abort
     if &buftype !=# '' || &filetype ==# ''
         return
@@ -600,6 +610,7 @@ endfunction
 let g:LanguageClient_omniCompleteResults = []
 function! LanguageClient#omniComplete(...) abort
     try
+        " Note: do not add 'text' as it might be huge.
         let l:params = {
                     \ 'filename': s:Expand('%:p'),
                     \ 'line': line('.') - 1,
@@ -610,7 +621,7 @@ function! LanguageClient#omniComplete(...) abort
         let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults
         call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
     catch
-        call add(a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults, v:null)
+        call add(a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults, [])
         call s:Debug(string(v:exception))
     endtry
 endfunction
@@ -625,14 +636,10 @@ function! LanguageClient#complete(findstart, base) abort
         endwhile
         return l:start
     else
-        call LanguageClient_omniComplete({
-                    \ 'character': col('.') - 1 + len(a:base),
-                    \ }, g:LanguageClient_completeResults)
-        while len(g:LanguageClient_completeResults) == 0
-            sleep 100m
-        endwhile
-        let l:output = remove(g:LanguageClient_completeResults, 0)
-        let l:result = s:HandleOutput(l:output)
+        let l:result = LanguageClient_runSync(
+                    \ 'LanguageClient#omniComplete', {
+                    \ 'character': col('.') - 1 + len(a:base) })
+        echomsg string(l:result)
         return l:result is v:null ? [] : l:result
     endif
 endfunction

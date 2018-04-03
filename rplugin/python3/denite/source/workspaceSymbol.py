@@ -4,8 +4,6 @@ from typing import List, Dict
 
 from .base import Base
 
-WorkspaceSymbolOutputs = "g:LanguageClient_workspaceSymbolResults"
-
 
 def uri_to_path(uri: str) -> str:
     return request.url2pathname(parse.urlparse(uri).path)
@@ -41,16 +39,7 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        if context["is_async"]:
-            outputs = self.vim.eval(WorkspaceSymbolOutputs)
-            if len(outputs) != 0:
-                context["is_async"] = False
-                result = outputs[0].get("result", [])
-                return self.convert_to_candidates(result)
-        else:
-            context["is_async"] = True
-            self.vim.command("let {0} = []".format(WorkspaceSymbolOutputs))
-            self.vim.funcs.LanguageClient_workspace_symbol({
-                "handle": False,
-            })
-        return []
+        result = self.vim.funcs.LanguageClient_runSync(
+            'LanguageClient#workspace_symbol',
+            {"handle": False}) or []
+        return self.convert_to_candidates(result)

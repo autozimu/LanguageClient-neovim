@@ -1013,7 +1013,8 @@ pub trait ILanguageClient: IVim {
     }
 
     fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value> {
-        self.textDocument_didChange(params)?;
+        // Vim will change buffer content temporarily when executing omnifunc (?).
+        // self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
 
         let (buftype, languageId, filename, line, character, handle): (
