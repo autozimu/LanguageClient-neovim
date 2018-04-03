@@ -151,6 +151,9 @@ function! s:HandleMessage(job, lines, event) abort
                     call call(l:Handle, [l:message])
                 elseif type(l:Handle) == type([])
                     call add(l:Handle, l:message)
+                elseif type(l:Handle) == type('') && exists(l:Handle)
+                    let l:outputs = eval(l:Handle)
+                    call add(l:outputs, l:message)
                 else
                     call s:Echoerr('Unknown Handle type: ' . string(l:Handle))
                 endif

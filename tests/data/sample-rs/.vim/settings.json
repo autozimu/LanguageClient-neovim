@@ -1,0 +1,4 @@
+{
+    "cfg_test": true,
+    "clippy_preferences": "on"
+}
