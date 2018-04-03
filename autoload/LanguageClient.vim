@@ -639,7 +639,6 @@ function! LanguageClient#complete(findstart, base) abort
         let l:result = LanguageClient_runSync(
                     \ 'LanguageClient#omniComplete', {
                     \ 'character': col('.') - 1 + len(a:base) })
-        echomsg string(l:result)
         return l:result is v:null ? [] : l:result
     endif
 endfunction
