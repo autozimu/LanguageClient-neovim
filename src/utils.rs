@@ -45,9 +45,7 @@ pub fn get_rootPath<'a>(
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
         "javascript" | "typescript" => traverse_up(path, |dir| dir.join("package.json").exists()),
-        "python" => traverse_up(path, |dir| {
-            dir.join("__init__.py").exists() || dir.join("setup.py").exists()
-        }),
+        "python" => traverse_up(path, |dir| dir.join("setup.py").exists()),
         "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
         "cs" => traverse_up(path, is_dotnet_root),
         "java" => traverse_up(path, |dir| {
