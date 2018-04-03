@@ -24,7 +24,7 @@ GREP_LINE_HIGHLIGHT = 'highlight default link deniteSource_grepLineNR LineNR'
 
 GREP_PATTERNS_HIGHLIGHT = 'highlight default link deniteGrepPatterns Function'
 
-ReferencesResults = "g:LanguageClient_referencesResults"
+ReferencesOutputs = "g:LanguageClient_referencesResults"
 
 
 def uri_to_path(uri: str) -> str:
@@ -84,19 +84,15 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        if not context["is_async"]:
+        if context["is_async"]:
+            outputs = self.vim.funcs.eval(ReferencesOutputs)
+            if len(outputs) != 0:
+                context["is_async"] = False
+                return self.convert_to_candidates(outputs[0].get("result", []))
+        else:
             context["is_async"] = True
+            self.vim.command("let {0} = []".format(ReferencesOutputs))
             self.vim.funcs.LanguageClient_textDocument_references({
                 "handle": False
             })
-            return []
-        elif self.vim.funcs.eval("len({})".format(ReferencesResults)) == 0:
-            return []
-
-        context["is_async"] = False
-        locations = self.vim.funcs.eval("remove({}, 0)".format(ReferencesResults))
-
-        if locations is None:
-            return []
-
-        return self.convert_to_candidates(locations)
+        return []

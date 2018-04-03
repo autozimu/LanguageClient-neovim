@@ -2,7 +2,7 @@ from .base import Base
 import re
 
 
-CompleteResults = "g:LanguageClient_omniCompleteResults"
+CompleteOutputs = "g:LanguageClient_omniCompleteResults"
 
 
 class Source(Base):
@@ -25,15 +25,15 @@ class Source(Base):
 
     def gather_candidates(self, context):
         if context["is_async"]:
-            results = self.vim.eval(CompleteResults)
-            if len(results) != 0:
+            outputs = self.vim.eval(CompleteOutputs)
+            if len(outputs) != 0:
                 context["is_async"] = False
                 # TODO: error handling.
-                return results[0].get("result", [])
+                return outputs[0].get("result", [])
         else:
             context["is_async"] = True
-            self.vim.command("let {0} = []".format(CompleteResults))
-            self.vim.funcs.LanguageClient_omniComplete(
-                    {"character": context["complete_position"]}
-            )
+            self.vim.command("let {0} = []".format(CompleteOutputs))
+            self.vim.funcs.LanguageClient_omniComplete({
+                "character": context["complete_position"],
+            })
         return []

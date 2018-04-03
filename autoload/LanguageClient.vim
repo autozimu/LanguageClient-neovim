@@ -39,6 +39,10 @@ function! s:Expand(exp) abort
     return l:result ==# '' ? '' : l:result
 endfunction
 
+function! s:Text() abort
+    return getbufline('', 1, '$') + (&fixendofline ? [''] : [])
+endfunction
+
 " Get all listed buffer file names.
 function! s:Bufnames() abort
     return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
@@ -142,7 +146,8 @@ function! s:HandleMessage(job, lines, event) abort
                 " Function name needs to begin with uppercase letter.
                 let l:Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                if type(l:Handle) == type(function('tr')) || type(l:Handle) == type('')
+                if type(l:Handle) == type(function('tr')) ||
+                            \ (type(l:Handle) == type('') && exists('*' . l:Handle))
                     call call(l:Handle, [l:message])
                 elseif type(l:Handle) == type([])
                     call add(l:Handle, l:message)
@@ -293,6 +298,7 @@ endfunction
 function! LanguageClient#textDocument_hover(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
@@ -305,6 +311,7 @@ endfunction
 function! LanguageClient#textDocument_definition(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'gotoCmd': v:null,
@@ -318,6 +325,7 @@ endfunction
 function! LanguageClient#textDocument_rename(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'cword': expand('<cword>'),
@@ -332,6 +340,7 @@ let g:LanguageClient_documentSymbolResults = []
 function! LanguageClient#textDocument_documentSymbol(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
@@ -342,6 +351,8 @@ endfunction
 let g:LanguageClient_workspaceSymbolResults = []
 function! LanguageClient#workspace_symbol(...) abort
     let l:params = {
+                \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'query': '',
                 \ 'handle': v:true,
                 \ }
@@ -353,6 +364,7 @@ endfunction
 function! LanguageClient#textDocument_codeAction(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
@@ -365,6 +377,7 @@ endfunction
 function! LanguageClient#textDocument_completion(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
@@ -378,6 +391,7 @@ let g:LanguageClient_referencesResults = []
 function! LanguageClient#textDocument_references(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'includeDeclaration': v:true,
@@ -391,6 +405,7 @@ endfunction
 function! LanguageClient#textDocument_formatting(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
@@ -403,6 +418,7 @@ endfunction
 function! LanguageClient#textDocument_rangeFormatting(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
@@ -415,6 +431,7 @@ endfunction
 function! LanguageClient#rustDocument_implementations(...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ }
@@ -426,6 +443,7 @@ endfunction
 function! LanguageClient#textDocument_didOpen() abort
     return LanguageClient#Notify('textDocument/didOpen', {
                 \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
                 \ })
 endfunction
 
