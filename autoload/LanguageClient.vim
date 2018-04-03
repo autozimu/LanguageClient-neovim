@@ -451,6 +451,7 @@ function! LanguageClient#textDocument_didOpen() abort
 endfunction
 
 function! LanguageClient#textDocument_didChange() abort
+    " Note: do not add 'text' as it might be huge.
     return LanguageClient#Notify('textDocument/didChange', {
                 \ 'filename': s:Expand('%:p'),
                 \ })
@@ -532,6 +533,7 @@ function! LanguageClient#handleTextChanged() abort
     endif
 
     try
+        " Note: do not add 'text' as it might be huge.
         call LanguageClient#Notify('languageClient/handleTextChanged', {
                     \ 'filename': s:Expand('%:p'),
                     \ })
