@@ -504,12 +504,12 @@ function! LanguageClient#registerHandlers(handlers, ...) abort
 endfunction
 
 function! LanguageClient_runSync(fn, params) abort
-    let g:LanguageClient_runSync_outputs = []
-    call call(a:fn, [a:params, g:LanguageClient_runSync_outputs])
-    while len(g:LanguageClient_runSync_outputs) == 0
+    let s:LanguageClient_runSync_outputs = []
+    call call(a:fn, [a:params, s:LanguageClient_runSync_outputs])
+    while len(s:LanguageClient_runSync_outputs) == 0
         sleep 100m
     endwhile
-    let l:output = remove(g:LanguageClient_runSync_outputs, 0)
+    let l:output = remove(s:LanguageClient_runSync_outputs, 0)
     return s:HandleOutput(l:output)
 endfunction
 
@@ -694,7 +694,7 @@ endfunction
 
 " Example function usable for status line.
 function! LanguageClient#statusLine() abort
-    if 'g:LanguageClient_serverStatusMessage' ==# ''
+    if g:LanguageClient_serverStatusMessage ==# ''
         return ''
     endif
 
