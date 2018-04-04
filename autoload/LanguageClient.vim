@@ -205,14 +205,19 @@ endfunction
 
 let s:root = expand('<sfile>:p:h:h')
 function! s:Launch() abort
+    let l:bin = 'languageclient'
+    if has('win32')
+        let l:bin .= '.exe'
+    endif
+
     if exists('g:LanguageClient_devel')
         if exists('$CARGO_TARGET_DIR')
-            let l:command = [$CARGO_TARGET_DIR . '/debug/languageclient']
+            let l:command = [$CARGO_TARGET_DIR . '/debug/' . l:bin]
         else
-            let l:command = [s:root . '/target/debug/languageclient']
+            let l:command = [s:root . '/target/debug/' . l:bin]
         endif
     else
-        let l:command = [s:root . '/bin/languageclient']
+        let l:command = [s:root . '/bin/' . l:bin]
     endif
 
     if has('nvim')
