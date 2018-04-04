@@ -1,4 +1,4 @@
-$version = '0.1.61'
+$version = '0.1.62'
 $name = 'languageclient'
 $url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
