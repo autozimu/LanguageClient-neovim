@@ -46,8 +46,7 @@ pub fn get_rootPath<'a>(
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
         "javascript" | "typescript" => traverse_up(path, |dir| dir.join("package.json").exists()),
         "python" => traverse_up(path, |dir| {
-            dir.join("setup.py").exists()
-                || dir.join("Pipfile").exists()
+            dir.join("setup.py").exists() || dir.join("Pipfile").exists()
                 || dir.join("requirements.txt").exists()
         }),
         "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),

@@ -2,10 +2,15 @@ use super::*;
 use log::LevelFilter;
 use log4rs::Handle;
 use log4rs::append::file::FileAppender;
+use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
 
 fn config(level: LevelFilter) -> Result<Config> {
-    let logfile = FileAppender::builder().build(utils::get_logpath())?;
+    let encoder =
+        PatternEncoder::new("{date(%H:%M:%S)} {level} {thread} {file}:{line} {message}{n}");
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(encoder))
+        .build(utils::get_logpath())?;
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
