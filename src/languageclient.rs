@@ -325,8 +325,7 @@ pub trait ILanguageClient: IVim {
             }
         }
 
-        let is_nvim: u64 = self.eval("has('nvim')")?;
-        if is_nvim != 1 {
+        if !self.get(|state| Ok(state.is_nvim))? {
             return Ok(());
         }
 
@@ -554,9 +553,11 @@ pub trait ILanguageClient: IVim {
             )?;
         }
 
-        if self.eval::<_, u64>("exists('#User#LanguageClientStopped')")? == 1 {
-            self.command("doautocmd User LanguageClientStopped")?;
-        }
+        self.notify(
+            None,
+            "s:ExecuteAutocmd",
+            "LanguageClientStopped",
+        )?;
         self.command(&format!("let {}=0", VIM__ServerStatus))?;
         self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
         Ok(())
@@ -1634,11 +1635,11 @@ pub trait ILanguageClient: IVim {
         }
 
         self.display_diagnostics(&current_filename, &params.diagnostics)?;
-        self.languageClient_handleCursorMoved(&None)?;
-
-        if self.eval::<_, u64>("exists('#User#LanguageClientDiagnosticsChanged')")? == 1 {
-            self.command("doautocmd User LanguageClientDiagnosticsChanged")?;
-        }
+        self.notify(
+            None,
+            "s:ExecuteAutocmd",
+            "LanguageClientDiagnosticsChanged",
+        )?;
 
         Ok(())
     }
@@ -2430,9 +2431,11 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 
-        if self.eval::<_, u64>("exists('#User#LanguageClientStarted')")? == 1 {
-            self.command("doautocmd User LanguageClientStarted")?;
-        }
+        self.notify(
+            None,
+            "s:ExecuteAutocmd",
+            "LanguageClientStarted",
+        )?;
         Ok(Value::Null)
     }
 }

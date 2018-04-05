@@ -525,6 +525,12 @@ function! LanguageClient#registerHandlers(handlers, ...) abort
     return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)
 endfunction
 
+function! s:ExecuteAutocmd(event) abort
+    if exists('#User#' . a:event)
+        execute 'doautocmd <nomodeline> User ' . a:event
+    endif
+endfunction
+
 function! LanguageClient_runSync(fn, ...) abort
     let s:LanguageClient_runSync_outputs = []
     let l:arguments = add(a:000[:], s:LanguageClient_runSync_outputs)
@@ -783,11 +789,6 @@ function! LanguageClient#cquery_vars(...) abort
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('$cquery/vars', l:params, l:callback)
-endfunction
-
-function! LanguageClient#registerHandlers(handlers, ...) abort
-    let l:handle = a:0 > 0 ? a:1 : v:null
-    return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()
