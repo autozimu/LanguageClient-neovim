@@ -267,6 +267,12 @@ prompt, selecting one of the entry will then goto the reference location.
 
 For Denite users, a source with name 'references' is provided.
 
+*LanguageClient#textDocument_codeAction()*
+*LanguageClient_textDocument_codeAction()*
+Signature: LanguageClient#textDocument_codeAction(...)
+
+Show code actions at current location.
+
 *LanguageClient#textDocument_completion()*
 *LanguageClient_textDocument_completion()*
 Signature: LanguageClient#textDocument_completion(...)

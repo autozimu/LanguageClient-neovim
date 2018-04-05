@@ -18,6 +18,10 @@ function! LanguageClient_textDocument_references(...)
     return call('LanguageClient#textDocument_references', a:000)
 endfunction
 
+function! LanguageClient_textDocument_codeAction(...)
+    return call('LanguageClient#textDocument_codeAction', a:000)
+endfunction
+
 function! LanguageClient_textDocument_completion(...)
     return call('LanguageClient#textDocument_completion', a:000)
 endfunction

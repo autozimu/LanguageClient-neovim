@@ -377,8 +377,8 @@ function! LanguageClient#textDocument_codeAction(...) abort
                 \ 'character': col('.') - 1,
                 \ 'handle': v:true,
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    call extend(l:params, get(a:000, 0, {}))
+    let l:callback = get(a:000, 1, v:null)
     return LanguageClient#Call('textDocument/codeAction', l:params, l:callback)
 endfunction
 
