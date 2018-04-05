@@ -102,4 +102,9 @@ augroup languageClient
     autocmd TextChangedI * call LanguageClient#handleTextChanged()
     autocmd CursorMoved * call LanguageClient#handleCursorMoved()
     autocmd VimLeavePre * call LanguageClient#exit()
+
+    if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 1)
+        autocmd CompleteDone *
+                    \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
+    endif
 augroup END

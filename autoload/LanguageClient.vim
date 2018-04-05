@@ -199,6 +199,9 @@ function! s:HandleExitVim(job, data) abort
     return s:HandleMessage(a:job, [a:data], 'exit')
 endfunction
 
+function! s:HandleOutputNothing(output) abort
+endfunction
+
 function! s:HandleOutput(output) abort
     if has_key(a:output, 'result')
         " let l:result = string(a:result)
