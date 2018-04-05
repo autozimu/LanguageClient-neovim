@@ -12,11 +12,11 @@ pub trait IVim {
     /// Handle an incoming message.
     fn handle_message<H: IRpcHandler>(
         &self,
-        handler: H,
-        languageId: Option<String>,
-        message: String,
+        handler: &H,
+        languageId: Option<&str>,
+        message: &str,
     ) -> Result<()> {
-        if let Ok(output) = serde_json::from_str::<rpc::Output>(&message) {
+        if let Ok(output) = serde_json::from_str::<rpc::Output>(message) {
             let tx = self.update(|state| {
                 state.txs.remove(&output.id().to_int()?).ok_or_else(|| {
                     format_err!("Failed to get channel sender! id: {:?}", output.id())
@@ -37,7 +37,7 @@ pub trait IVim {
         match call {
             rpc::Call::MethodCall(method_call) => {
                 let result = handler.handle_request(&method_call);
-                if let Err(err) = result.as_ref() {
+                if let Err(ref err) = result {
                     if err.downcast_ref::<LCError>().is_none() {
                         error!(
                             "Error handling message. Message: {}. Error: {:?}",
@@ -45,11 +45,7 @@ pub trait IVim {
                         );
                     }
                 }
-                self.output(
-                    languageId.as_ref().map(|s| s.as_str()),
-                    method_call.id,
-                    result,
-                )
+                self.output(languageId, method_call.id, result)
             }
             rpc::Call::Notification(notification) => handler.handle_notification(&notification),
             rpc::Call::Invalid(id) => bail!("Invalid message of id: {:?}", id),
@@ -294,7 +290,7 @@ impl IVim for Arc<Mutex<State>> {
             let mut line = String::new();
             if let Some(languageId) = languageId.clone() {
                 input.read_line(&mut line)?;
-                line = line.strip();
+                let line = line.trim();
                 if line.is_empty() {
                     count_empty_lines += 1;
                     if count_empty_lines > 5 {
@@ -337,21 +333,25 @@ impl IVim for Arc<Mutex<State>> {
                 break;
             }
 
-            message = message.strip();
+            let message = message.trim();
             if message.is_empty() {
                 continue;
             }
             info!("<= {}", message);
-            let state = self.clone();
+            let state_clone = self.clone();
             let languageId_clone = languageId.clone();
+            let message_clone = message.to_string();
             let spawn_result = std::thread::Builder::new()
                 .name(format!(
                     "Handler-{}",
-                    languageId.clone().unwrap_or_else(|| "main".to_owned())
+                    languageId.as_ref().map_or("main", String::as_str)
                 ))
                 .spawn(move || {
-                    if let Err(err) =
-                        state.handle_message(state.clone(), languageId_clone, message.clone())
+                    let state = state_clone;
+                    let languageId = languageId_clone;
+                    let message = message_clone;
+
+                    if let Err(err) = state.handle_message(&state, languageId.as_deref(), &message)
                     {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(

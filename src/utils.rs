@@ -126,19 +126,21 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
 }
 
 pub fn get_logpath() -> PathBuf {
-    let dir = env::var("TMP")
+    let dir: Cow<_> = env::var("TMP")
         .or_else(|_| env::var("TEMP"))
-        .unwrap_or_else(|_| "/tmp".to_owned());
+        .map(|t| t.into())
+        .unwrap_or_else(|_| "/tmp".into());
 
-    Path::new(&dir).join("LanguageClient.log")
+    Path::new(&*dir).join("LanguageClient.log")
 }
 
 pub fn get_logpath_server() -> PathBuf {
-    let dir = env::var("TMP")
+    let dir: Cow<_> = env::var("TMP")
         .or_else(|_| env::var("TEMP"))
-        .unwrap_or_else(|_| "/tmp".to_owned());
+        .map(|t| t.into())
+        .unwrap_or_else(|_| "/tmp".into());
 
-    Path::new(&dir).join("LanguageServer.log")
+    Path::new(&*dir).join("LanguageServer.log")
 }
 
 pub fn get_log_server() -> Result<String> {
@@ -148,22 +150,6 @@ pub fn get_log_server() -> Result<String> {
     let mut buffer = String::new();
     f.read_to_string(&mut buffer)?;
     Ok(buffer)
-}
-
-pub trait Strip {
-    fn strip(&self) -> Self;
-}
-
-impl<'a> Strip for &'a str {
-    fn strip(&self) -> Self {
-        self.trim().trim_matches(|c| c == '\r' || c == '\n')
-    }
-}
-
-impl Strip for String {
-    fn strip(&self) -> Self {
-        self.as_str().strip().to_owned()
-    }
 }
 
 pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<String>> {

@@ -10,6 +10,8 @@ use std::fs::File;
 use std::env;
 use std::process::{ChildStdin, Stdio};
 use std::str::FromStr;
+use std::borrow::Cow;
+use std::ops::Deref;
 
 #[macro_use]
 extern crate log;

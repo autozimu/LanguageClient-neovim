@@ -481,7 +481,7 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| format_err!("Failed to get line! line: {}", line))??;
         }
 
-        Ok(text.strip())
+        Ok(text.trim().into())
     }
 
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
@@ -553,11 +553,7 @@ pub trait ILanguageClient: IVim {
             )?;
         }
 
-        self.notify(
-            None,
-            "s:ExecuteAutocmd",
-            "LanguageClientStopped",
-        )?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
         self.command(&format!("let {}=0", VIM__ServerStatus))?;
         self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
         Ok(())
@@ -1635,11 +1631,7 @@ pub trait ILanguageClient: IVim {
         }
 
         self.display_diagnostics(&current_filename, &params.diagnostics)?;
-        self.notify(
-            None,
-            "s:ExecuteAutocmd",
-            "LanguageClientDiagnosticsChanged",
-        )?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         Ok(())
     }
@@ -2431,11 +2423,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 
-        self.notify(
-            None,
-            "s:ExecuteAutocmd",
-            "LanguageClientStarted",
-        )?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
     }
 }
