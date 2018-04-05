@@ -218,21 +218,27 @@ function! s:HandleOutput(output) abort
 endfunction
 
 let s:root = expand('<sfile>:p:h:h')
-function! s:Launch() abort
-    let l:bin = 'languageclient'
+function! LanguageClient#binaryPath() abort
+    let l:filename = 'languageclient'
     if has('win32')
-        let l:bin .= '.exe'
+        let l:filename .= '.exe'
     endif
 
     if exists('g:LanguageClient_devel')
         if exists('$CARGO_TARGET_DIR')
-            let l:command = [$CARGO_TARGET_DIR . '/debug/' . l:bin]
+            let l:path = $CARGO_TARGET_DIR . '/debug/'
         else
-            let l:command = [s:root . '/target/debug/' . l:bin]
+            let l:path = s:root . '/target/debug/'
         endif
     else
-        let l:command = [s:root . '/bin/' . l:bin]
+        let l:path = s:root . '/bin/'
     endif
+
+    return l:path . l:filename
+endfunction
+
+function! s:Launch() abort
+    let l:command = [LanguageClient#binaryPath()]
 
     if has('nvim')
         let s:job = jobstart(l:command, {
