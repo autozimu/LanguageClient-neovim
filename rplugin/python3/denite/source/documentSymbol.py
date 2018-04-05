@@ -26,7 +26,6 @@ class Source(Base):
     def gather_candidates(self, context: Dict) -> List[Dict]:
         bufname = self.vim.current.buffer.name
         result = self.vim.funcs.LanguageClient_runSync(
-            'LanguageClient_textDocument_documentSymbol',
-            {"handle": False}) or []
+            'LanguageClient_textDocument_documentSymbol', {}) or []
         return [convert_to_candidate(symbol, bufname) for
                 symbol in result]

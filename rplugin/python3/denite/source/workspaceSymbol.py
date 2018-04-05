@@ -40,6 +40,5 @@ class Source(Base):
 
     def gather_candidates(self, context):
         result = self.vim.funcs.LanguageClient_runSync(
-            'LanguageClient#workspace_symbol',
-            {"handle": False}) or []
+            'LanguageClient#workspace_symbol', '', {}) or []
         return self.convert_to_candidates(result)

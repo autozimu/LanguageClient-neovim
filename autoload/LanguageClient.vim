@@ -33,6 +33,20 @@ function! s:hasSnippetSupport() abort
     return 0
 endfunction
 
+function! s:IsTrue(v) abort
+    if type(a:v) ==# type(0)
+        return a:v ==# 0 ? v:false : v:true
+    elseif a:v is v:null
+        return v:false
+    else
+        return v:true
+    endif
+endfunction
+
+function! s:IsFalse(v) abort
+    return s:IsTrue(a:v) ? v:false : v:true
+endfunction
+
 " When editing a [No Name] file, neovim reports filename as "", while vim reports null.
 function! s:Expand(exp) abort
     let l:result = expand(a:exp)
@@ -272,7 +286,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     else
         let s:handlers[l:id] = a:callback
     endif
-    let l:skipAddParams = a:0 > 0 && a:1
+    let l:skipAddParams = get(a:000, 0, v:false)
     let l:params = a:params
     if type(a:params) == type({}) && !skipAddParams
         let l:params = extend({
@@ -304,15 +318,15 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('textDocument/hover', l:params, l:callback)
 endfunction
 
@@ -344,28 +358,26 @@ function! LanguageClient#textDocument_rename(...) abort
     return LanguageClient#Call('textDocument/rename', l:params, v:null)
 endfunction
 
-let g:LanguageClient_documentSymbolResults = []
 function! LanguageClient#textDocument_documentSymbol(...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_documentSymbolResults
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('textDocument/documentSymbol', l:params, l:callback)
 endfunction
 
-let g:LanguageClient_workspaceSymbolResults = []
 function! LanguageClient#workspace_symbol(...) abort
+    let l:callback = get(a:000, 2, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
-                \ 'query': '',
-                \ 'handle': v:true,
+                \ 'query': get(a:000, 0, ''),
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_workspaceSymbolResults
+    call extend(l:params, get(a:000, 1, {}))
     return LanguageClient#Call('workspace/symbol', l:params, l:callback)
 endfunction
 
@@ -395,18 +407,17 @@ function! LanguageClient#textDocument_completion(...) abort
     return LanguageClient#Call('textDocument/completion', l:params, l:callback)
 endfunction
 
-let g:LanguageClient_referencesResults = []
 function! LanguageClient#textDocument_references(...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
                 \ 'includeDeclaration': v:true,
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_referencesResults
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('textDocument/references', l:params, l:callback)
 endfunction
 
@@ -508,9 +519,10 @@ function! LanguageClient#registerHandlers(handlers, ...) abort
     return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)
 endfunction
 
-function! LanguageClient_runSync(fn, params) abort
+function! LanguageClient_runSync(fn, ...) abort
     let s:LanguageClient_runSync_outputs = []
-    call call(a:fn, [a:params, s:LanguageClient_runSync_outputs])
+    let l:arguments = add(a:000[:], s:LanguageClient_runSync_outputs)
+    call call(a:fn, l:arguments)
     while len(s:LanguageClient_runSync_outputs) == 0
         sleep 100m
     endwhile

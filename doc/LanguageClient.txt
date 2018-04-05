@@ -297,7 +297,7 @@ Format selected lines.
 
 *LanguageClient#workspace_symbol()*
 *LanguageClient_workspace_symbol()*
-Signature: LanguageClient#workspace_symbol(...)
+Signature: LanguageClient#workspace_symbol([query: String], ...)
 
 List of project's symbols.
 

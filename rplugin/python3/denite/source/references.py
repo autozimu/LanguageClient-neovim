@@ -83,6 +83,5 @@ class Source(Base):
 
     def gather_candidates(self, context):
         result = self.vim.funcs.LanguageClient_runSync(
-            "LanguageClient#textDocument_references",
-            {"handle": False}) or []
+            "LanguageClient#textDocument_references", {}) or []
         return self.convert_to_candidates(result)
