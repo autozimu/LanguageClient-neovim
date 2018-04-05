@@ -302,9 +302,15 @@ For Denite users, a source with name 'workspaceSymbol' is provided.
 
 *LanguageClient#workspace_applyEdit()*
 *LanguageClient_workspace_applyEdit()*
-Signature: LanguageClient_workspace_applyEdit(params: Dict, callback: Function | List | Null)
+Signature: LanguageClient#workspace_applyEdit(params: Dict, callback: Function | List | Null)
 
 Apply a workspace edit.
+
+*LanguageClient#workspace_executeCommand()*
+*LanguageClient_workspace_executeCommand()*
+Signature: LanguageClient#workspace_executeCommand(command: String, [arguments: Any], [callback: Function | List | Null])
+
+Execute a workspace command.
 
 *LanguageClient#setLoggingLevel()*
 *LanguageClient_setLoggingLevel()*

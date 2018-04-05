@@ -38,6 +38,10 @@ function! LanguageClient_workspace_applyEdit(...)
     return call('LanguageClient#workspace_applyEdit', a:000)
 endfunction
 
+function! LanguageClient_workspace_executeCommand(...)
+    return call('LanguageClient#workspace_executeCommand', a:000)
+endfunction
+
 function! LanguageClient_setLoggingLevel(...)
     return call('LanguageClient#setLoggingLevel', a:000)
 endfunction

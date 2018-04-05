@@ -679,6 +679,19 @@ function! LanguageClient#workspace_applyEdit(...) abort
     return LanguageClient#Call('workspace/applyEdit', l:params, l:callback)
 endfunction
 
+function! LanguageClient#workspace_executeCommand(command, ...) abort
+    if &buftype !=# '' || &filetype ==# ''
+        return
+    endif
+
+    let l:params = {
+                \ 'command': a:command,
+                \ 'arguments': get(a:000, 0, v:null),
+                \ }
+    let callback = get(a:000, 1, v:null)
+    return LanguageClient#Call('workspace/executeCommand', l:params, l:callback)
+endfunction
+
 function! LanguageClient#exit() abort
     return LanguageClient#Notify('exit', {
                 \ 'languageId': &filetype,
