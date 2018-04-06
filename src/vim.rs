@@ -174,13 +174,9 @@ pub trait IVim {
     }
 
     fn echo_ellipsis<S: AsRef<str>>(&self, message: S) -> Result<()> {
-        let columns: usize = self.eval("&columns")?;
-        let mut message = message.as_ref().replace('\n', ". ");
-        if message.len() > columns - 12 {
-            message = message[..columns - 15].to_owned();
-            message += "...";
-        }
-        self.echo(message)
+        let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
+        self.call::<_, u8>(None, "s:EchoEllipsis", message)?;
+        Ok(())
     }
 
     fn echomsg<S: AsRef<str>>(&self, message: S) -> Result<()> {

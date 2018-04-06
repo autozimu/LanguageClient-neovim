@@ -2,6 +2,20 @@ if get(g:,"LanguageClient_loaded", 0)
     finish
 endif
 
+" Echo message without trigger |hit-enter|
+function! s:EchoEllipsis(message) abort
+    let l:maxlen = &columns * &cmdheight - 2
+    if &showcmd
+        let maxlen -= 11
+    endif
+    if len(a:message) < l:maxlen
+        let l:message = a:message
+    else
+        let l:message = a:message[:l:maxlen - 3] . '...'
+    endif
+    echo l:message
+endfunction
+
 function! s:Echoerr(message) abort
     echohl Error | echomsg a:message | echohl None
 endfunction

@@ -448,7 +448,7 @@ pub trait ILanguageClient: IVim {
             })
             .unwrap_or_default();
 
-        self.notify(
+        self.call::<_, u8>(
             None,
             "cm#register_source",
             json!([{
@@ -661,8 +661,8 @@ pub trait ILanguageClient: IVim {
 
         info!("End {}", lsp::request::Initialize::METHOD);
         if let Err(e) = self.registerCMSource(&languageId, &result) {
-            let message = "LanguageClient: failed to register as NCM source!";
-            debug!("{}: {:?}", message, e);
+            let message = format!("LanguageClient: failed to register as NCM source: {}", e);
+            error!("{}\n{:?}", message, e);
             self.echoerr(message)?;
         }
         Ok(result)
