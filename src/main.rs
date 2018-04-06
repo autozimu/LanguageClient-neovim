@@ -97,10 +97,9 @@ fn run() -> Result<()> {
 
 fn main() {
     let version = format!(
-        "{} ({} {:?})",
+        "{} {}",
         env!("CARGO_PKG_VERSION"),
-        option_env!("TRAVIS_COMMIT").unwrap_or("NULL"),
-        Utc::now(),
+        env!("GIT_HASH"),
     );
 
     let app = Opt::clap().version(version.as_str());
