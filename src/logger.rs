@@ -27,7 +27,12 @@ pub fn init() -> Result<Handle> {
             .write(true)
             .truncate(true)
             .open(utils::get_logpath())?;
-        writeln!(f, "")?;
+        writeln!(
+            f,
+            "#######\nLanguageClient {} {}\n#######",
+            env!("CARGO_PKG_VERSION"),
+            env!("GIT_HASH")
+        )?;
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .write(true)

@@ -96,11 +96,7 @@ fn run() -> Result<()> {
 }
 
 fn main() {
-    let version = format!(
-        "{} {}",
-        env!("CARGO_PKG_VERSION"),
-        env!("GIT_HASH"),
-    );
+    let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"),);
 
     let app = Opt::clap().version(version.as_str());
     let _ = app.get_matches();

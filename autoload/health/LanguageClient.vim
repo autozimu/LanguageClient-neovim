@@ -2,7 +2,7 @@ function! s:checkJobFeature() abort
     if !has('nvim') && !has('job')
         call health#report_error('Not supported: not nvim nor vim with +job.')
     endif
-function
+endfunction
 
 function! s:checkBinary() abort
     let l:path = LanguageClient#binaryPath()
@@ -14,6 +14,9 @@ function! s:checkBinary() abort
                     \ 'Try reinstall it with install.sh or install.ps1: ' .
                     \ l:path)
     endif
+
+    let output = system([l:path, '--version'])
+    call health#report_ok(output)
 endfunction
 
 function! health#LanguageClient#check() abort
