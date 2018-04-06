@@ -1,24 +1,37 @@
 > If you are reporting a bug, please read following FAQ first. If you are
-requesting new features or other types of questions, you can ignore it.
+requesting other types of issue, please ignore.
 
-# Not editor command: LanguageClientStart?
-Have you followed the instructions at
-[INSTALL.md](https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md)?
+- Did you upgrade to latest plugin version?
+- Did you upgrade to/compile latest binary? Run shell command
+  `bin/languageclient --version` to get its version number.
+- (Neovim users) Did you check output of `:checkhealth LanguageClient`?
+- Did you check [troubleshooting
+  steps](https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting)?
 
-If not, please try follow the instructions there first.
+## If you are still experiencing an issue, please create ticket with
 
-# If you are still seeing an error or other types of issue, please create ticket with
-- neovim/vim version
-- Plugin version (git SHA)
-- Minimal vimrc (e.g. <https://github.com/autozimu/LanguageClient-neovim/blob/next/min-init.vim>)
-- Language server name/link and version
-- Reproduction steps (from clean state)
+## Summary
+
+(placeholder)
+
+## Reproduction
+- neovim/vim version (`nvim --version` or `vim --version`)
+- Plugin version (`git rev-parse --short HEAD`)
+- binary version (`bin/languageclient --version`)
+- Minimal vimrc that able to reproduce the issue (Refer to
+  <https://github.com/autozimu/LanguageClient-neovim/blob/next/min-init.vim>)
+- Language server link and version
+- Steps to reproduce the issue from clean state
     1.
     2.
     3.
-- Logs. Ensure `let g:LanguageClient_loggingLevel = 'DEBUG'` is in minimal
-  vimrc. Follow previous provided reproduction steps to reproduce the bug.
-  Attach contents of `/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
+- Logs. Paste or attach `/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
+
+## Current Behavior
+(placeholder)
+
+## Expected Behavior
+(placeholder)
 
 (Please understand the more detailed information provided, the sooner a issue
 could be resolved. Low quality bug reports might be closed directly.)
