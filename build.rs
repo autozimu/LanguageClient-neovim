@@ -1,8 +1,8 @@
 use std::process::Command;
 
 fn git_hash() -> String {
-    let output = Command::new("git")
-        .args(&["rev-parse", "--short", "HEAD"])
+    let output = Command::new("cat")
+        .args(&[".git/refs/heads/next"])
         .output()
         .unwrap();
     String::from_utf8_lossy(&output.stdout).into()
