@@ -346,7 +346,7 @@ pub trait ILanguageClient: IVim {
 
         // Highlight.
         // TODO: Optimize.
-        self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
+        self.call::<_, Option<u8>>(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
         for dn in diagnostics {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
             let hl_group = diagnosticsDisplay
@@ -354,7 +354,7 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| err_msg("Failed to get display"))?
                 .texthl
                 .clone();
-            self.notify(
+            self.call::<_, u8>(
                 None,
                 "nvim_buf_add_highlight",
                 json!([
@@ -393,7 +393,7 @@ pub trait ILanguageClient: IVim {
                     .collect();
                 let source = source?;
 
-                self.notify(
+                self.call::<_, u8>(
                     None,
                     "s:FZF",
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
@@ -416,7 +416,7 @@ pub trait ILanguageClient: IVim {
                     .collect();
                 let loclist = loclist?;
 
-                self.notify(None, "setloclist", json!([0, loclist]))?;
+                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
                 self.echo("Location list updated.")?;
             }
         }
@@ -546,14 +546,14 @@ pub trait ILanguageClient: IVim {
                 .ok_or_else(|| err_msg("No highlight source"))
         });
         if let Ok(hlsource) = hlsource {
-            self.notify(
+            self.call::<_, Option<u8>>(
                 None,
                 "nvim_buf_clear_highlight",
                 json!([0, hlsource, 1, -1]),
             )?;
         }
 
-        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
+        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
         self.command(&format!("let {}=0", VIM__ServerStatus))?;
         self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
         Ok(())
@@ -569,7 +569,7 @@ pub trait ILanguageClient: IVim {
 
         if self.get(|state| Ok(state.is_nvim))? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
-            self.notify(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
+            self.call::<_, u8>(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
         } else if self.call::<_, i64>(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
             bail!("Failed to set preview buffer content!");
             // TODO: removing existing bottom lines.
@@ -898,7 +898,7 @@ pub trait ILanguageClient: IVim {
                     })
                     .collect();
 
-                self.notify(
+                self.call::<_, u8>(
                     None,
                     "s:FZF",
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
@@ -918,7 +918,7 @@ pub trait ILanguageClient: IVim {
                     })
                     .collect();
 
-                self.notify(None, "setloclist", json!([0, loclist]))?;
+                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -999,7 +999,7 @@ pub trait ILanguageClient: IVim {
             Ok(())
         })?;
 
-        self.notify(
+        self.call::<_, u8>(
             None,
             "s:FZF",
             json!([source, format!("s:{}", NOTIFICATION__FZFSinkCommand)]),
@@ -1385,7 +1385,7 @@ pub trait ILanguageClient: IVim {
                     .collect();
                 let source = source?;
 
-                self.notify(
+                self.call::<_, u8>(
                     None,
                     "s:FZF",
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
@@ -1406,7 +1406,7 @@ pub trait ILanguageClient: IVim {
                     .collect();
                 let loclist = loclist?;
 
-                self.notify(None, "setloclist", json!([0, loclist]))?;
+                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
@@ -1631,7 +1631,7 @@ pub trait ILanguageClient: IVim {
         }
 
         self.display_diagnostics(&current_filename, &params.diagnostics)?;
-        self.notify(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
+        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         Ok(())
     }
@@ -1983,7 +1983,7 @@ pub trait ILanguageClient: IVim {
         }.into_iter()
             .map(|lspitem| lspitem.into())
             .collect();
-        self.notify(
+        self.call::<_, u8>(
             None,
             "cm#complete",
             json!([info.name, ctx, ctx.startcol, matches, is_incomplete]),
@@ -2423,7 +2423,7 @@ impl ILanguageClient for Arc<Mutex<State>> {
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 
-        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
+        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
     }
 }

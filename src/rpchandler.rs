@@ -90,7 +90,8 @@ impl IRpcHandler for Arc<Mutex<State>> {
                 .ok_or_else(|| err_msg("No user handler"))
         });
         if let Ok(user_handler) = user_handler {
-            return self.notify(None, &user_handler, notification.params.clone());
+            self.call::<_, u8>(None, &user_handler, notification.params.clone())?;
+            return Ok(());
         }
 
         match notification.method.as_str() {

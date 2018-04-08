@@ -162,7 +162,8 @@ pub trait IVim {
     }
 
     fn command<S: AsRef<str>>(&self, cmd: S) -> Result<()> {
-        self.notify(None, "execute", cmd.as_ref())
+        self.call::<_, u8>(None, "execute", cmd.as_ref())?;
+        Ok(())
     }
 
     ////// Vim builtin function wrappers ///////

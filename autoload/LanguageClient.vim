@@ -148,6 +148,7 @@ function! s:HandleMessage(job, lines, event) abort
                         for l:cmd in l:params
                             execute l:cmd
                         endfor
+                        let l:result = 0
                     else
                         let l:params = type(l:params) == type([]) ? l:params : [l:params]
                         let l:result = call(l:method, l:params)
@@ -160,17 +161,22 @@ function! s:HandleMessage(job, lines, event) abort
                                     \ }))
                     endif
                 catch
+                    let l:exception = v:exception
                     if l:id != v:null
-                        call LanguageClient#Write(json_encode({
-                                    \ 'jsonrpc': '2.0',
-                                    \ 'id': l:id,
-                                    \ 'error': {
-                                    \   'code': -32603,
-                                    \   'message': string(v:exception)
-                                    \   }
-                                    \ }))
+                        try
+                            call LanguageClient#Write(json_encode({
+                                        \ 'jsonrpc': '2.0',
+                                        \ 'id': l:id,
+                                        \ 'error': {
+                                        \   'code': -32603,
+                                        \   'message': string(v:exception)
+                                        \   }
+                                        \ }))
+                        catch
+                            " TODO
+                        endtry
                     endif
-                    call s:Debug(string(v:exception))
+                    call s:Debug(string(l:exception))
                 endtry
             elseif has_key(l:message, 'result') || has_key(l:message, 'error')
                 let l:id = get(l:message, 'id')
