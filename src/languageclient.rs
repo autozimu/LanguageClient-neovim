@@ -457,7 +457,7 @@ pub trait ILanguageClient: IVim {
                 "scopes": [languageId],
                 "cm_refresh_patterns": trigger_patterns,
                 "abbreviation": "LC",
-                "cm_refresh": NOTIFICATION__NCMRefresh.replace('/', "#"),
+                "cm_refresh": NOTIFICATION__NCMRefresh,
             }]),
         )?;
         info!("End register NCM source");

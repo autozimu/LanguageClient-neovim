@@ -648,7 +648,7 @@ function! s:LanguageClient_FZFSinkCommand(selection) abort
                 \ })
 endfunction
 
-function! LanguageClient#NCMRefresh(info, context) abort
+function! LanguageClient_NCMRefresh(info, context) abort
     return LanguageClient#Notify('LanguageClient_NCMRefresh', {
                 \ 'info': a:info,
                 \ 'ctx': a:context,
