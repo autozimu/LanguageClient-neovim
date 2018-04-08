@@ -12,6 +12,9 @@ augroup filetype_rust
     autocmd BufReadPost *.rs setlocal filetype=rust
 augroup END
 
+" Always draw sign column. Prevent buffer moving when adding/deleting sign.
+set signcolumn=yes
+
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'stable', 'rls'],
     \ }
