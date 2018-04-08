@@ -5,3 +5,4 @@
 - Check server capabilities before calling RPC API.
 - TCP.
 - Replace echodoc functionality.
+- Turn all possible notifications to calls.

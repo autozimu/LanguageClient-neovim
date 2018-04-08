@@ -61,6 +61,7 @@ impl IRpcHandler for Arc<Mutex<State>> {
             }
             REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&method_call.params),
             REQUEST__RegisterHandlers => self.languageClient_registerHandlers(&method_call.params),
+            REQUEST__NCMRefresh => self.NCM_refresh(&method_call.params),
             REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
             REQUEST__CqueryBase => self.cquery_base(&method_call.params),
             REQUEST__CqueryCallers => self.cquery_callers(&method_call.params),
@@ -132,7 +133,6 @@ impl IRpcHandler for Arc<Mutex<State>> {
             NOTIFICATION__FZFSinkCommand => {
                 self.languageClient_FZFSinkCommand(&notification.params)?
             }
-            NOTIFICATION__NCMRefresh => self.NCM_refresh(&notification.params)?,
             // Extensions by language servers.
             NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,
             NOTIFICATION__RustBeginBuild => self.rust_handleBeginBuild(&notification.params)?,

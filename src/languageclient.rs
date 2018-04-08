@@ -457,7 +457,7 @@ pub trait ILanguageClient: IVim {
                 "scopes": [languageId],
                 "cm_refresh_patterns": trigger_patterns,
                 "abbreviation": "LC",
-                "cm_refresh": NOTIFICATION__NCMRefresh,
+                "cm_refresh": REQUEST__NCMRefresh,
             }]),
         )?;
         info!("End register NCM source");
@@ -1955,12 +1955,12 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn NCM_refresh(&self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__NCMRefresh);
+    fn NCM_refresh(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__NCMRefresh);
         let params: NCMRefreshParams = serde_json::from_value(params.clone().to_value())?;
         let NCMRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
-            return Ok(());
+            return Ok(Value::Null);
         }
 
         let result = self.textDocument_completion(&json!({
@@ -1988,8 +1988,8 @@ pub trait ILanguageClient: IVim {
             "cm#complete",
             json!([info.name, ctx, ctx.startcol, matches, is_incomplete]),
         )?;
-        info!("End {}", NOTIFICATION__NCMRefresh);
-        Ok(())
+        info!("End {}", REQUEST__NCMRefresh);
+        Ok(Value::Null)
     }
 
     // Extensions by languge servers.

@@ -16,6 +16,7 @@ pub const REQUEST__RegisterServerCommands: &str = "languageClient/registerServer
 pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
 pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
 pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
+pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
@@ -23,7 +24,6 @@ pub const NOTIFICATION__HandleBufDelete: &str = "languageClient/handleBufDelete"
 pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMoved";
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
-pub const NOTIFICATION__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";

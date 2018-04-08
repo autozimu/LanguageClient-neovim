@@ -649,10 +649,10 @@ function! s:LanguageClient_FZFSinkCommand(selection) abort
 endfunction
 
 function! LanguageClient_NCMRefresh(info, context) abort
-    return LanguageClient#Notify('LanguageClient_NCMRefresh', {
+    return LanguageClient#Call('LanguageClient_NCMRefresh', {
                 \ 'info': a:info,
                 \ 'ctx': a:context,
-                \ })
+                \ }, v:null)
 endfunction
 
 let g:LanguageClient_omniCompleteResults = []
