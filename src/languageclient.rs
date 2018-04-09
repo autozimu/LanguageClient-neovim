@@ -331,11 +331,7 @@ pub trait ILanguageClient: IVim {
 
         let mut source: Option<u64> = self.get(|state| Ok(state.highlight_source))?;
         if source.is_none() {
-            let exp = format!(
-                "nvim_buf_add_highlight({}, {}, {}, {}, {}, {})",
-                0, 0, "''", 1, 1, 1
-            );
-            source = Some(self.eval(exp)?);
+            source = Some(self.call(None, "nvim_buf_add_highlight", json!([0, 0, "''", 1, 1, 1]))?);
             self.update(|state| {
                 state.highlight_source = source;
                 Ok(())
@@ -569,7 +565,11 @@ pub trait ILanguageClient: IVim {
 
         if self.get(|state| Ok(state.is_nvim))? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
-            self.call::<_, u8>(None, "nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
+            self.call::<_, Option<u8>>(
+                None,
+                "nvim_buf_set_lines",
+                json!([bufnr, 0, -1, 0, lines]),
+            )?;
         } else if self.call::<_, i64>(None, "setbufline", json!([bufname, 1, lines]))? != 0 {
             bail!("Failed to set preview buffer content!");
             // TODO: removing existing bottom lines.
@@ -1769,10 +1769,12 @@ pub trait ILanguageClient: IVim {
             self.display_diagnostics(&filename, &diagnostics)?;
             self.languageClient_handleCursorMoved(params)?;
         } else {
-            let autoStart: i32 = self.eval("!!get(g:, 'LanguageClient_autoStart', v:true)")?;
+            let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
             if autoStart == 1 {
-                if let Err(err) = self.languageClient_startServer(params) {
-                    warn!("{}", err);
+                let ret = self.languageClient_startServer(params);
+                if ret.is_err() {
+                    // TODO: there is an issue recovering from error here. failure simply report
+                    // "Internal error".
                 }
             }
         }
