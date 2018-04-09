@@ -8,6 +8,9 @@ function! s:EchoEllipsis(message) abort
     if &showcmd
         let maxlen -= 11
     endif
+    if &ruler
+        let maxlen -= 18
+    endif
     if len(a:message) < l:maxlen
         let l:message = a:message
     else
