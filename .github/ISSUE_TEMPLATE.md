@@ -5,7 +5,7 @@ requesting other types of issue, please ignore.
 - Did you upgrade to/compile latest binary? Run shell command
   `bin/languageclient --version` to get its version number.
 - (Neovim users only) Did you check output of `:checkhealth LanguageClient`?
-- Did you check [troubleshooting](../INSTALL.md#6-troubleshooting)?
+- Did you check [troubleshooting]?
 
 ## If you are still experiencing an issue, please create ticket with
 
@@ -18,7 +18,7 @@ requesting other types of issue, please ignore.
 - This plugin version (`git rev-parse --short HEAD`):
 - This plugin's binary version (`bin/languageclient --version`):
 - Minimal vimrc content. A minimal vimrc is the smallest vimrc that could
-  reproduce the issue. Refer to example [here](../min-init.vim).  Make sure
+  reproduce the issue. Refer to an example [here][min-init.vim].  Make sure
   your vimrc contains `let g:LanguageClient_loggingLevel = 'DEBUG'` to have
   full log:
 - Language server link and version:
@@ -36,3 +36,6 @@ requesting other types of issue, please ignore.
 
 > Please understand the more detailed information provided, the sooner a issue
 could be resolved. Low quality bug reports might be closed directly.)
+
+[troubleshooting]: https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting
+[min-init.vim]: https://github.com/autozimu/LanguageClient-neovim/blob/next/min-init.vim
