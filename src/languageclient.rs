@@ -2334,7 +2334,7 @@ pub trait ILanguageClient: IVim {
     }
 }
 
-impl ILanguageClient for Arc<Mutex<State>> {
+impl ILanguageClient for Arc<RwLock<State>> {
     fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;

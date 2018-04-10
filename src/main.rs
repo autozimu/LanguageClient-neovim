@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
@@ -83,12 +83,7 @@ lazy_static! {
 }
 
 fn run() -> Result<()> {
-    // Whether should it be Mutex or RwLock?
-    // Even though RwLock allows several readers at the same time, it won't bring too much good in
-    // this use case. As in this project, read and write are almost same amount of short
-    // operations. For RwLock to work, a writer still needs to wait for all readers finish their
-    // work before making the change.
-    let state = Arc::new(Mutex::new(State::new()));
+    let state = Arc::new(RwLock::new(State::new()));
 
     let stdin = std::io::stdin();
     let stdin = stdin.lock();

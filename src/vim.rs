@@ -18,9 +18,14 @@ pub trait IVim {
     ) -> Result<()> {
         if let Ok(output) = serde_json::from_str::<rpc::Output>(message) {
             let tx = self.update(|state| {
-                state.txs.remove(&output.id().to_int()?).ok_or_else(|| {
-                    format_err!("Failed to get channel sender! id: {:?}", output.id())
-                })
+                state
+                    .txs
+                    .remove(&output.id().to_int()?)
+                    .ok_or_else(|| {
+                        format_err!("Failed to get channel sender! id: {:?}", output.id())
+                    })?
+                    .into_inner()
+                    .map_err(|e| format_err!("{:?}", e))
             })?;
             let result = match output {
                 rpc::Output::Success(success) => Ok(success.result),
@@ -120,7 +125,7 @@ pub trait IVim {
 
         let (tx, cx) = channel();
         self.update(|state| {
-            state.txs.insert(id, tx);
+            state.txs.insert(id, Mutex::new(tx));
             Ok(())
         })?;
 
@@ -239,12 +244,12 @@ pub trait IVim {
     }
 }
 
-impl IVim for Arc<Mutex<State>> {
+impl IVim for Arc<RwLock<State>> {
     fn get<F, T>(&self, f: F) -> Result<T>
     where
         F: FnOnce(&State) -> Result<T>,
     {
-        let state = self.lock()
+        let state = self.read()
             .or_else(|_| Err(err_msg("Failed to lock state")))?;
         f(&state)
     }
@@ -255,8 +260,7 @@ impl IVim for Arc<Mutex<State>> {
     {
         use log::Level;
 
-        let mut state = self.lock()
-            .or_else(|_| Err(err_msg("Failed to lock state")))?;
+        let mut state = RwLock::write(self).or_else(|_| Err(err_msg("Failed to lock state")))?;
         let before = if log_enabled!(Level::Debug) {
             let s = serde_json::to_string(&*state)?;
             serde_json::from_str(&s)?

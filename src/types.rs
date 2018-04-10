@@ -51,7 +51,7 @@ pub struct State {
     // Program state.
     pub id: u64,
     #[serde(skip_serializing)]
-    pub txs: HashMap<u64, Sender<Result<Value>>>,
+    pub txs: HashMap<u64, Mutex<Sender<Result<Value>>>>,
     pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)]
     pub writers: HashMap<String, BufWriter<ChildStdin>>,

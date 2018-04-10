@@ -7,7 +7,7 @@ pub trait IRpcHandler {
     fn handle_notification(&self, notification: &rpc::Notification) -> Result<()>;
 }
 
-impl IRpcHandler for Arc<Mutex<State>> {
+impl IRpcHandler for Arc<RwLock<State>> {
     fn handle_request(&self, method_call: &rpc::MethodCall) -> Result<Value> {
         let user_handler = self.get(|state| {
             state
