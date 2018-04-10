@@ -300,31 +300,6 @@ pub trait ILanguageClient: IVim {
         info!("Command to update signs: {}", cmd);
         self.command(&cmd)?;
 
-        let qflist: Vec<_> = diagnostics
-            .iter()
-            .map(|dn| QuickfixEntry {
-                filename: filename.to_owned(),
-                lnum: dn.range.start.line + 1,
-                col: Some(dn.range.start.character + 1),
-                nr: dn.code.clone().map(|ns| ns.to_string()),
-                text: Some(dn.message.to_owned()),
-                typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
-            })
-            .collect();
-
-        match self.get(|state| Ok(state.diagnosticsList.clone()))? {
-            DiagnosticsList::Quickfix => {
-                if self.call::<_, i64>(None, "setqflist", [qflist])? != 0 {
-                    bail!("Failed to set quickfix list!");
-                }
-            }
-            DiagnosticsList::Location => {
-                if self.call::<_, i64>(None, "setloclist", json!([0, qflist]))? != 0 {
-                    bail!("Failed to set location list!");
-                }
-            }
-        }
-
         if !self.get(|state| Ok(state.is_nvim))? {
             return Ok(());
         }
@@ -1623,16 +1598,47 @@ pub trait ILanguageClient: IVim {
             Ok(())
         })?;
 
-        info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
+        let qflist: Vec<_> = self.get(|state| {
+            Ok(state
+                .diagnostics
+                .iter()
+                .flat_map(|(filename, diagnostics)| {
+                    diagnostics
+                        .iter()
+                        .map(|dn| QuickfixEntry {
+                            filename: filename.to_owned(),
+                            lnum: dn.range.start.line + 1,
+                            col: Some(dn.range.start.character + 1),
+                            nr: dn.code.clone().map(|ns| ns.to_string()),
+                            text: Some(dn.message.to_owned()),
+                            typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect())
+        })?;
+
+        match self.get(|state| Ok(state.diagnosticsList.clone()))? {
+            DiagnosticsList::Quickfix => {
+                if self.call::<_, u8>(None, "setqflist", json!([qflist, "r"]))? != 0 {
+                    bail!("Failed to set quickfix list!");
+                }
+            }
+            DiagnosticsList::Location => {
+                if self.call::<_, u8>(None, "setloclist", json!([0, qflist, "r"]))? != 0 {
+                    bail!("Failed to set location list!");
+                }
+            }
+        }
 
         let current_filename: String = self.eval(VimVar::Filename)?;
         if filename != current_filename.canonicalize() {
             return Ok(());
         }
-
         self.display_diagnostics(&current_filename, &params.diagnostics)?;
         self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
+        info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
         Ok(())
     }
 
