@@ -1470,7 +1470,7 @@ pub trait ILanguageClient: IVim {
             return Ok(());
         }
         if !self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
-            warn!("Not opened yet. Switching to didOpen.");
+            info!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
 
@@ -1778,9 +1778,9 @@ pub trait ILanguageClient: IVim {
             let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
             if autoStart == 1 {
                 let ret = self.languageClient_startServer(params);
-                if ret.is_err() {
-                    // TODO: there is an issue recovering from error here. failure simply report
-                    // "Internal error".
+                // This is triggerred from autocmd, silent all errors.
+                if let Err(err) = ret {
+                    info!("{}", err);
                 }
             }
         }
