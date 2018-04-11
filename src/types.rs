@@ -364,8 +364,10 @@ pub struct VimCompleteItem {
 impl From<CompletionItem> for VimCompleteItem {
     fn from(lspitem: CompletionItem) -> VimCompleteItem {
         let word = lspitem
-            .insert_text
+            .text_edit
             .clone()
+            .map(|edit| edit.new_text)
+            .or_else(|| lspitem.insert_text.clone())
             .unwrap_or_else(|| lspitem.label.clone());
 
         let is_snippet;
