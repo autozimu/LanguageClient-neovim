@@ -942,7 +942,7 @@ pub trait ILanguageClient: IVim {
                 .cloned()
                 .collect())
         })?;
-        let result = self.call(
+        let result: Value = self.call(
             Some(&languageId),
             lsp::request::CodeActionRequest::METHOD,
             CodeActionParams {
@@ -958,10 +958,6 @@ pub trait ILanguageClient: IVim {
             },
         )?;
 
-        if !handle {
-            return Ok(result);
-        }
-
         let commands: Vec<Command> = serde_json::from_value(result.clone())?;
 
         let source: Vec<_> = commands
@@ -974,10 +970,14 @@ pub trait ILanguageClient: IVim {
             Ok(())
         })?;
 
+        if !handle {
+            return Ok(result);
+        }
+
         self.call::<_, u8>(
             None,
             "s:FZF",
-            json!([source, format!("s:{}", NOTIFICATION__FZFSinkCommand)]),
+            json!([source, format!("{}", NOTIFICATION__FZFSinkCommand)]),
         )?;
 
         info!("End {}", lsp::request::CodeActionRequest::METHOD);
@@ -1937,12 +1937,15 @@ pub trait ILanguageClient: IVim {
             .cloned()
             .ok_or_else(|| format_err!("Failed to get title! tokens: {:?}", tokens))?;
         let entry = self.get(|state| {
-            state
-                .stashed_codeAction_commands
+            let commands = &state.stashed_codeAction_commands;
+
+            commands
                 .iter()
                 .find(|e| e.command == command && e.title == title)
                 .cloned()
-                .ok_or_else(|| err_msg("No stashed command found!"))
+                .ok_or_else(|| {
+                    format_err!("No stashed command found! stashed commands: {:?}", commands)
+                })
         })?;
 
         if self.try_handle_command_by_client(&entry)? {

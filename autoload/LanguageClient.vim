@@ -87,6 +87,11 @@ function! s:getInput(prompt, default) abort
 endfunction
 
 function! s:FZF(source, sink) abort
+    if !get(g:, 'loaded_fzf')
+        call s:Echoerr('FZF not loaded!')
+        return
+    endif
+
     let l:options = get(g:, 'LanguageClient_fzfOptions', v:null)
     if l:options == v:null
         let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
@@ -414,15 +419,15 @@ function! LanguageClient#workspace_symbol(...) abort
 endfunction
 
 function! LanguageClient#textDocument_codeAction(...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    let l:callback = get(a:000, 1, v:null)
     return LanguageClient#Call('textDocument/codeAction', l:params, l:callback)
 endfunction
 
@@ -651,7 +656,7 @@ function! s:LanguageClient_FZFSinkLocation(line) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkLocation', [a:line])
 endfunction
 
-function! s:LanguageClient_FZFSinkCommand(selection) abort
+function! LanguageClient_FZFSinkCommand(selection) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkCommand', {
                 \ 'selection': a:selection,
                 \ })
