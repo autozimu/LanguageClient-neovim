@@ -223,17 +223,26 @@ pub trait ILanguageClient: IVim {
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
 
+        // FIXME: do not move cursor!
         self.goto_location(&None, &path, 0, 0)?;
-        let lines = self.getlines(&path)?;
+
+        let mut lines: Vec<String> = self.call(None, "getline", json!([1, '$']))?;
+        let lines_len_prev = lines.len();
+        let fixendofline = self.eval::<_, u8>("&fixendofline")? == 1;
+        if lines.last().map(String::is_empty) == Some(false) && fixendofline {
+            lines.push("".to_owned());
+        }
+
         let mut lines = apply_TextEdits(&lines, &edits)?;
-        if lines.last().map(|l| l.is_empty()).unwrap_or_default()
-            && self.eval::<_, u8>("&fixendofline")? == 1
-        {
+
+        if lines.last().map(String::is_empty) == Some(true) && fixendofline {
             lines.pop();
         }
-        self.command("1,$d")?;
+        if lines.len() < lines_len_prev {
+            self.command(format!("{},{}d", lines.len() + 1, lines_len_prev))?;
+        }
         if self.call::<_, i64>(None, "setline", json!([1, lines]))? != 0 {
-            bail!("Failed to set preview buffer content!");
+            bail!("Failed to set buffer content!");
         }
         debug!("End apply TextEdits");
         Ok(())

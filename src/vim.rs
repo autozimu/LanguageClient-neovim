@@ -206,7 +206,7 @@ pub trait IVim {
     fn getlines<P: AsRef<Path>>(&self, bufexp: P) -> Result<Vec<String>> {
         let bufexp = bufexp.as_ref().to_string_lossy();
         let mut lines: Vec<String> = self.call(None, "getbufline", json!([bufexp, 1, '$']))?;
-        if !lines.last().map(|l| l.is_empty()).unwrap_or_default()
+        if lines.last().map(String::is_empty) == Some(false)
             && self.eval::<_, u8>("&fixendofline")? == 1
         {
             lines.push("".to_owned());
