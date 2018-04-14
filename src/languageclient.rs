@@ -315,7 +315,11 @@ pub trait ILanguageClient: IVim {
 
         let mut source: Option<u64> = self.get(|state| Ok(state.highlight_source))?;
         if source.is_none() {
-            source = Some(self.call(None, "nvim_buf_add_highlight", json!([0, 0, "''", 1, 1, 1]))?);
+            source = Some(self.call(
+                None,
+                "nvim_buf_add_highlight",
+                json!([0, 0, "Error", 1, 1, 1]),
+            )?);
             self.update(|state| {
                 state.highlight_source = source;
                 Ok(())
