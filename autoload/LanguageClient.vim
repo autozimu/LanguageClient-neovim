@@ -71,7 +71,11 @@ function! s:Expand(exp) abort
 endfunction
 
 function! s:Text() abort
-    return getbufline('', 1, '$') + (&fixendofline ? [''] : [])
+    let l:lines = getline(1, '$')
+    if l:lines[-1] !=# '' && &fixendofline
+        let l:lines += ['']
+    endif
+    return l:lines
 endfunction
 
 " Get all listed buffer file names.
