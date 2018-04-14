@@ -3,3 +3,4 @@ __pycache__
 .idea
 target
 rplugin/python3/tests
+tests/data/.vim/plugged

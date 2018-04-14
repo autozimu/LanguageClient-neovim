@@ -21,7 +21,21 @@ def join_path(path: str) -> str:
 
 PATH_INDEXJS = join_path("data/sample-js/src/index.js")
 PATH_LIBSJS = join_path("data/sample-js/src/libs.js")
+PATH_CODEACTION = join_path("data/sample-ts/src/codeAction.ts")
 print(PATH_INDEXJS)
+
+
+def assertRetry(predicate, retry_max=100):
+    retry_delay = 0.1
+    retry_count = 0
+
+    while retry_count < retry_max:
+        if predicate():
+            return
+        else:
+            retry_count += 1
+            time.sleep(retry_delay)
+    assert predicate()
 
 
 @pytest.fixture(scope="module")
@@ -173,3 +187,23 @@ def test_languageClient_registerHandlers(nvim):
                  "{'window/progress': 'HandleWindowProgress'}, g:responses)")
     time.sleep(1)
     assert nvim.vars['responses'][0]['result'] is None
+
+
+def test_languageClient_textDocument_codeAction(nvim):
+    nvim.command("edit {}".format(PATH_CODEACTION))
+    nvim.funcs.cursor(4, 14)
+    assertRetry(lambda: len(nvim.funcs.getqflist()) == 1)
+
+    nvim.funcs.LanguageClient_textDocument_codeAction()
+    # Wait for fzf window showup.
+    assertRetry(lambda:
+                next((b for b in nvim.buffers
+                      if b.name.startswith('term://')), None) is not None)
+    time.sleep(0.2)
+    nvim.eval('feedkeys("\<CR>")')
+    # Wait for fzf window dismiss.
+    assertRetry(lambda:
+                next((b for b in nvim.buffers
+                      if b.name.startswith('term://')), None) is None)
+
+    assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)

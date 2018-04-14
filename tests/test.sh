@@ -8,8 +8,13 @@ cd $dir
 LOG="${TMP:-/tmp}"/LanguageClient.log
 LOG_SERVER="${TMP:-/tmp}"/LanguageServer.log
 
+nvim -n -u tests/data/vimrc --headless +PlugInstall +qa
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
-NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless &
+if [[ "$TMUX" ]]; then
+    tmux split-window 'NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc'
+else
+    NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless &
+fi
 PID=$!
 sleep 1s
 
