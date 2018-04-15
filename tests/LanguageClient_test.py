@@ -152,7 +152,8 @@ def test_textDocument_references(nvim):
     expect = ["function greet() {",
               """console.log(greet());"""]
 
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+    assert [location["text"] for location in
+            nvim.funcs.getloclist(0)] == expect
 
     nvim.command("lnext")
 
@@ -169,14 +170,16 @@ def test_textDocument_references_modified_buffer(nvim):
     time.sleep(1)
     expect = ["function abcgreet() {"]
 
-    assert [location["text"] for location in nvim.funcs.getloclist(0)] == expect
+    assert [location["text"] for location in
+            nvim.funcs.getloclist(0)] == expect
 
     nvim.command("edit! {}".format(PATH_INDEXJS))
 
 
 def test_languageClient_registerServerCommands(nvim):
     nvim.command('let g:responses = []')
-    nvim.command("call LanguageClient_registerServerCommands({'bash': ['bash']}, g:responses)")
+    nvim.command("call LanguageClient_registerServerCommands("
+                 "{'bash': ['bash']}, g:responses)")
     time.sleep(1)
     assert nvim.vars['responses'][0]['result'] is None
 
@@ -189,21 +192,21 @@ def test_languageClient_registerHandlers(nvim):
     assert nvim.vars['responses'][0]['result'] is None
 
 
-def test_languageClient_textDocument_codeAction(nvim):
-    nvim.command("edit {}".format(PATH_CODEACTION))
-    nvim.funcs.cursor(4, 14)
-    assertRetry(lambda: len(nvim.funcs.getqflist()) == 1)
+# def test_languageClient_textDocument_codeAction(nvim):
+#     nvim.command("edit {}".format(PATH_CODEACTION))
+#     nvim.funcs.cursor(4, 14)
+#     assertRetry(lambda: len(nvim.funcs.getqflist()) == 1)
 
-    nvim.funcs.LanguageClient_textDocument_codeAction()
-    # Wait for fzf window showup.
-    assertRetry(lambda:
-                next((b for b in nvim.buffers
-                      if b.name.startswith('term://')), None) is not None)
-    time.sleep(0.2)
-    nvim.eval('feedkeys("\<CR>")')
-    # Wait for fzf window dismiss.
-    assertRetry(lambda:
-                next((b for b in nvim.buffers
-                      if b.name.startswith('term://')), None) is None)
+#     nvim.funcs.LanguageClient_textDocument_codeAction()
+#     # Wait for fzf window showup.
+#     assertRetry(lambda:
+#                 next((b for b in nvim.buffers
+#                       if b.name.startswith('term://')), None) is not None)
+#     time.sleep(0.2)
+#     nvim.eval('feedkeys("\<CR>")')
+#     # Wait for fzf window dismiss.
+#     assertRetry(lambda:
+#                 next((b for b in nvim.buffers
+#                       if b.name.startswith('term://')), None) is None)
 
-    assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)
+#     assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)

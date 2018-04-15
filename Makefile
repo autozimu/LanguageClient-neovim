@@ -27,7 +27,10 @@ test:
 	cargo test
 
 integration-test-lint:
-	mypy tests rplugin/python3/denite/source rplugin/python3/deoplete/sources
+	mypy --ignore-missing-imports \
+		tests \
+		rplugin/python3/denite/source \
+		rplugin/python3/deoplete/sources
 	flake8 .
 
 integration-test: build integration-test-lint

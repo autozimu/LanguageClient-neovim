@@ -19,5 +19,6 @@ def convert_to_candidate(cmd: Dict) -> Dict:
     cmd_str = '{}: {}'.format(cmd['command'], cmd['title'])
     return {
         'word': cmd_str,
-        'action__command': 'call LanguageClient_FZFSinkCommand("{}")'.format(cmd_str),
+        'action__command': 'call '
+        'LanguageClient_FZFSinkCommand("{}")'.format(cmd_str),
     }

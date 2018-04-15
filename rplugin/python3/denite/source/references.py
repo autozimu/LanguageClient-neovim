@@ -39,8 +39,9 @@ class Source(Base):
 
     def define_syntax(self):
         self.vim.command(
-                'syntax region ' + self.syntax_name + ' start=// end=/$/ '
-                'contains=deniteSource_grepHeader,deniteMatchedRange contained')
+            'syntax region ' + self.syntax_name + ' start=// end=/$/ '
+            'contains=deniteSource_grepHeader,deniteMatchedRange'
+            ' contained')
         # TODO: make this match the 'range' on each location
         # self.vim.command(
         #         'syntax match deniteGrepPatterns ' +

@@ -15,7 +15,8 @@ def tag_to_version(tag):
 subprocess.check_call('git pull --tags', shell=True)
 tags = subprocess.check_output(
     'git tag --list | grep binary', shell=True).decode('UTF-8').splitlines()
-versions = sorted(list(set([tag_to_version(tag) for tag in tags])), key=semver.parse_version_info)
+versions = sorted(list(set([tag_to_version(tag) for tag in tags])),
+                  key=semver.parse_version_info)
 versions_to_delete = versions[:-3]
 
 cmd_delete_local = 'git tag --delete'
