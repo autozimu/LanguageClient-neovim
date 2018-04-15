@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach",
+            "type": "lldb",
+            "request": "attach",
+            "program": "${workspaceFolder}/target/debug/languageclient"
+        }
+    ]
+}
