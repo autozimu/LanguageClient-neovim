@@ -11,8 +11,7 @@ pub trait ILanguageClient: IVim {
         map: &Option<Params>,
     ) -> Result<T> {
         let mut map = match *map {
-            None | Some(Params::None) => serde_json::map::Map::new(),
-            Some(Params::Array(_)) => bail!("Params should be dict!"),
+            None | Some(Params::None) | Some(Params::Array(_)) => serde_json::map::Map::new(),
             Some(Params::Map(ref map)) => map.clone(),
         };
         let mut keys_request = vec![];
