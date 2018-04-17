@@ -636,15 +636,15 @@ endfunction
 
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
-    let l:cursor_line = line('.')
+    let l:cursor_line = getcurpos()[1]
     if l:cursor_line == s:last_cursor_line
         return
     endif
     let s:last_cursor_line = l:cursor_line
+
+    if &buftype !=# '' || &filetype ==# ''
+        return
+    endif
 
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
