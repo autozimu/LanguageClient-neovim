@@ -41,7 +41,7 @@ pub trait IVim {
         let call = serde_json::from_str(&message)?;
         match call {
             rpc::Call::MethodCall(method_call) => {
-                let result = handler.handle_request(&method_call);
+                let result = handler.handle_request(languageId, &method_call);
                 if let Err(ref err) = result {
                     if err.downcast_ref::<LCError>().is_none() {
                         error!(
@@ -52,7 +52,9 @@ pub trait IVim {
                 }
                 self.output(languageId, method_call.id, result)
             }
-            rpc::Call::Notification(notification) => handler.handle_notification(&notification),
+            rpc::Call::Notification(notification) => {
+                handler.handle_notification(languageId, &notification)
+            }
             rpc::Call::Invalid(id) => bail!("Invalid message of id: {:?}", id),
         }
     }

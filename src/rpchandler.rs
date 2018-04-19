@@ -3,12 +3,24 @@ use lsp::request::Request;
 use lsp::notification::Notification;
 
 pub trait IRpcHandler {
-    fn handle_request(&self, method_call: &rpc::MethodCall) -> Result<Value>;
-    fn handle_notification(&self, notification: &rpc::Notification) -> Result<()>;
+    fn handle_request(
+        &self,
+        languageId: Option<&str>,
+        method_call: &rpc::MethodCall,
+    ) -> Result<Value>;
+    fn handle_notification(
+        &self,
+        languageId: Option<&str>,
+        notification: &rpc::Notification,
+    ) -> Result<()>;
 }
 
 impl IRpcHandler for Arc<RwLock<State>> {
-    fn handle_request(&self, method_call: &rpc::MethodCall) -> Result<Value> {
+    fn handle_request(
+        &self,
+        languageId: Option<&str>,
+        method_call: &rpc::MethodCall,
+    ) -> Result<Value> {
         let user_handler = self.get(|state| {
             state
                 .user_handlers
@@ -69,19 +81,29 @@ impl IRpcHandler for Arc<RwLock<State>> {
             REQUEST__CqueryVars => self.cquery_vars(&method_call.params),
 
             _ => {
-                let (languageId,): (String,) =
-                    self.gather_args(&[VimVar::LanguageId], &method_call.params)?;
+                if languageId.is_none() {
+                    // Request from vim, pass through.
+                    let (languageId,): (String,) =
+                        self.gather_args(&[VimVar::LanguageId], &method_call.params)?;
 
-                self.call(
-                    Some(languageId.as_str()),
-                    &method_call.method,
-                    &method_call.params,
-                )
+                    self.call(
+                        Some(languageId.as_str()),
+                        &method_call.method,
+                        &method_call.params,
+                    )
+                } else {
+                    // Request from language servers.
+                    Err(format_err!("No handler found for: {:?}", method_call))
+                }
             }
         }
     }
 
-    fn handle_notification(&self, notification: &rpc::Notification) -> Result<()> {
+    fn handle_notification(
+        &self,
+        languageId: Option<&str>,
+        notification: &rpc::Notification,
+    ) -> Result<()> {
         let user_handler = self.get(|state| {
             state
                 .user_handlers
@@ -147,14 +169,20 @@ impl IRpcHandler for Arc<RwLock<State>> {
             NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
 
             _ => {
-                let (languageId,): (String,) =
-                    self.gather_args(&[VimVar::LanguageId], &notification.params)?;
+                if languageId.is_none() {
+                    // Notification from vim, pass through.
+                    let (languageId,): (String,) =
+                        self.gather_args(&[VimVar::LanguageId], &notification.params)?;
 
-                self.notify(
-                    Some(languageId.as_str()),
-                    &notification.method,
-                    &notification.params,
-                )?;
+                    self.notify(
+                        Some(languageId.as_str()),
+                        &notification.method,
+                        &notification.params,
+                    )?;
+                } else {
+                    // Notification from language servers.
+                    warn!("No handler found for: {:?}", notification);
+                }
             }
         };
 
