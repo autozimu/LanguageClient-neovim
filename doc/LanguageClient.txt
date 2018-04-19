@@ -63,7 +63,13 @@ filetype. For example: >
         \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
         \ }
 
+Or tcp connection string to the server, >
+    let g:LanguageCLient_servercommands = {
+        \ 'javascript': ['tcp://127.0.0.1:2089'],
+        \ }
+
 Default: {}
+Valid Option: Map<String, List<String>>
 
 2.2 g:LanguageClient_diagnosticsDisplay  *g:LanguageClient_diagnosticsDisplay*
 

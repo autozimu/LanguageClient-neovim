@@ -5,13 +5,15 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufRead, BufReader, BufWriter};
 use std::fs::File;
 use std::env;
-use std::process::{ChildStdin, Stdio};
+use std::process::{ChildStdin, ChildStdout, Stdio};
 use std::str::FromStr;
 use std::borrow::Cow;
 use std::ops::Deref;
+use std::fmt::Debug;
+use std::net::TcpStream;
 
 #[macro_use]
 extern crate log;

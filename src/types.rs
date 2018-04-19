@@ -46,6 +46,16 @@ pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
 pub const VIM__ServerStatus: &str = "g:LanguageClient_serverStatus";
 pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
 
+/// Thread safe read.
+pub trait SyncRead: BufRead + Sync + Send + Debug {}
+impl SyncRead for BufReader<ChildStdout> {}
+impl SyncRead for BufReader<TcpStream> {}
+
+/// Thread safe write.
+pub trait SyncWrite: Write + Sync + Send + Debug {}
+impl SyncWrite for BufWriter<ChildStdin> {}
+impl SyncWrite for BufWriter<TcpStream> {}
+
 #[derive(Debug, Serialize)]
 pub struct State {
     // Program state.
@@ -54,7 +64,7 @@ pub struct State {
     pub txs: HashMap<u64, Mutex<Sender<Result<Value>>>>,
     pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)]
-    pub writers: HashMap<String, BufWriter<ChildStdin>>,
+    pub writers: HashMap<String, Box<SyncWrite>>,
     pub capabilities: HashMap<String, Value>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
