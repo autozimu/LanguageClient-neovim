@@ -34,9 +34,11 @@ impl IRpcHandler for Arc<RwLock<State>> {
 
         match method_call.method.as_str() {
             lsp::request::HoverRequest::METHOD => self.textDocument_hover(&method_call.params),
-            lsp::request::GotoDefinition::METHOD => {
-                self.textDocument_definition(&method_call.params)
-            }
+            m @ lsp::request::GotoDefinition::METHOD
+            | m @ REQUEST__CqueryBase
+            | m @ REQUEST__CqueryCallers
+            | m @ REQUEST__CqueryDerived
+            | m @ REQUEST__CqueryVars => self.find_locations(m, &method_call.params),
             lsp::request::Rename::METHOD => self.textDocument_rename(&method_call.params),
             lsp::request::DocumentSymbol::METHOD => {
                 self.textDocument_documentSymbol(&method_call.params)
@@ -75,10 +77,6 @@ impl IRpcHandler for Arc<RwLock<State>> {
             REQUEST__RegisterHandlers => self.languageClient_registerHandlers(&method_call.params),
             REQUEST__NCMRefresh => self.NCM_refresh(&method_call.params),
             REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
-            REQUEST__CqueryBase => self.cquery_base(&method_call.params),
-            REQUEST__CqueryCallers => self.cquery_callers(&method_call.params),
-            REQUEST__CqueryDerived => self.cquery_derived(&method_call.params),
-            REQUEST__CqueryVars => self.cquery_vars(&method_call.params),
 
             _ => {
                 if languageId.is_none() {
