@@ -1,4 +1,4 @@
-if get(g:,"LanguageClient_loaded", 0)
+if get(g:, 'LanguageClient_loaded')
     finish
 endif
 
@@ -371,7 +371,8 @@ function! LanguageClient#textDocument_hover(...) abort
     return LanguageClient#Call('textDocument/hover', l:params, l:callback)
 endfunction
 
-function! LanguageClient#textDocument_definition(...) abort
+" Meta methods to go to various places.
+function! LanguageClient#find_locations(method_name, ...) abort
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
@@ -382,7 +383,33 @@ function! LanguageClient#textDocument_definition(...) abort
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('textDocument/definition', l:params, l:callback)
+    return LanguageClient#Call(a:method_name, l:params, l:callback)
+endfunction
+
+function! LanguageClient#textDocument_definition(...) abort
+    return call('LanguageClient#find_locations', ['textDocument/definition'] + a:000)
+endfunction
+
+function! LanguageClient#textDocument_typeDefinition(...) abort
+    return call('LanguageClient#find_locations', ['textDocument/typeDefinition'] + a:000)
+endfunction
+
+function! LanguageClient#textDocument_implementation(...) abort
+    return call('LanguageClient#find_locations', ['textDocument/implementation'] + a:000)
+endfunction
+
+function! LanguageClient#textDocument_references(...) abort
+    let l:callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': s:Expand('%:p'),
+                \ 'text': s:Text(),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'includeDeclaration': v:true,
+                \ 'handle': s:IsFalse(l:callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/references', l:params, l:callback)
 endfunction
 
 function! LanguageClient#textDocument_rename(...) abort
@@ -446,20 +473,6 @@ function! LanguageClient#textDocument_completion(...) abort
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/completion', l:params, l:callback)
-endfunction
-
-function! LanguageClient#textDocument_references(...) abort
-    let l:callback = get(a:000, 1, v:null)
-    let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ 'includeDeclaration': v:true,
-                \ 'handle': s:IsFalse(l:callback),
-                \ }
-    call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/references', l:params, l:callback)
 endfunction
 
 function! LanguageClient#textDocument_formatting(...) abort
@@ -779,51 +792,19 @@ function! LanguageClient#statusLine() abort
 endfunction
 
 function! LanguageClient#cquery_base(...) abort
-    let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ 'handle': v:true,
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('$cquery/base', l:params, l:callback)
+    return call('LanguageClient#find_locations', ['$cquery/base'] + a:000)
 endfunction
 
 function! LanguageClient#cquery_derived(...) abort
-    let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ 'handle': v:true,
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('$cquery/derived', l:params, l:callback)
+    return call('LanguageClient#find_locations', ['$cquery/derived'] + a:000)
 endfunction
 
 function! LanguageClient#cquery_callers(...) abort
-    let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ 'handle': v:true,
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('$cquery/callers', l:params, l:callback)
+    return call('LanguageClient#find_locations', ['$cquery/callers'] + a:000)
 endfunction
 
 function! LanguageClient#cquery_vars(...) abort
-    let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
-                \ 'handle': v:true,
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('$cquery/vars', l:params, l:callback)
+    return call('LanguageClient#find_locations', ['$cquery/vars'] + a:000)
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()

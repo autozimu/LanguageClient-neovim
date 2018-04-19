@@ -38,7 +38,11 @@ impl IRpcHandler for Arc<RwLock<State>> {
             | m @ REQUEST__CqueryBase
             | m @ REQUEST__CqueryCallers
             | m @ REQUEST__CqueryDerived
-            | m @ REQUEST__CqueryVars => self.find_locations(m, &method_call.params),
+            | m @ REQUEST__CqueryVars
+            | m @ lsp::request::GotoTypeDefinition::METHOD
+            | m @ lsp::request::GotoImplementation::METHOD => {
+                self.find_locations(m, &method_call.params)
+            }
             lsp::request::Rename::METHOD => self.textDocument_rename(&method_call.params),
             lsp::request::DocumentSymbol::METHOD => {
                 self.textDocument_documentSymbol(&method_call.params)

@@ -243,7 +243,19 @@ Show type info (and short doc) of identifier under cursor.
 *LanguageClient_textDocument_definition()*
 Signature: LanguageClient#textDocument_definition(...)
 
-Goto definition of identifier under cursor.
+Goto definition under cursor.
+
+*LanguageClient#textDocument_typeDefinition()*
+*LanguageClient_textDocument_typeDefinition()*
+Signature: LanguageClient#textDocument_typeDefinition(...)
+
+Goto type definition under cursor.
+
+*LanguageClient#textDocument_implementation()*
+*LanguageClient_textDocument_implementation()*
+Signature: LanguageClient#textDocument_implementation(...)
+
+Goto implementation under cursor.
 
 *LanguageClient#textDocument_rename()*
 *LanguageClient_textDocument_rename()*

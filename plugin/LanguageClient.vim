@@ -6,6 +6,14 @@ function! LanguageClient_textDocument_definition(...)
     return call('LanguageClient#textDocument_definition', a:000)
 endfunction
 
+function! LanguageClient_textDocument_typeDefinition(...)
+    return call('LanguageClient#textDocument_typeDefinition', a:000)
+endfunction
+
+function! LanguageClient_textDocument_implementation(...)
+    return call('LanguageClient#textDocument_implementation', a:000)
+endfunction
+
 function! LanguageClient_textDocument_rename(...)
     return call('LanguageClient#textDocument_rename', a:000)
 endfunction
