@@ -1790,9 +1790,10 @@ pub trait ILanguageClient: IVim {
             let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
             if autoStart == 1 {
                 let ret = self.languageClient_startServer(params);
-                // This is triggerred from autocmd, silent all errors.
+                // This is triggered from autocmd, silent all errors.
                 if let Err(err) = ret {
-                    info!("{}", err);
+                    warn!("Failed to start language server automatically: {}", err);
+                    info!("{:?}", err);
                 }
             }
         }
