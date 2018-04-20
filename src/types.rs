@@ -775,8 +775,7 @@ pub trait Filepath {
 
 impl Filepath for Url {
     fn filepath(&self) -> Result<PathBuf> {
-        self.to_file_path()
-            .map_err(|_| format_err!("Uri is not valid file path: {:?}", self))
+        self.to_file_path().or_else(|_| Ok(self.as_str().into()))
     }
 }
 
