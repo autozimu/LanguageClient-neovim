@@ -33,6 +33,13 @@ impl IRpcHandler for Arc<RwLock<State>> {
         }
 
         match method_call.method.as_str() {
+            lsp::request::RegisterCapability::METHOD => {
+                self.client_registerCapability(languageId.unwrap_or_default(), &method_call.params)
+            }
+            lsp::request::UnregisterCapability::METHOD => self.client_unregisterCapability(
+                languageId.unwrap_or_default(),
+                &method_call.params,
+            ),
             lsp::request::HoverRequest::METHOD => self.textDocument_hover(&method_call.params),
             m @ lsp::request::GotoDefinition::METHOD
             | m @ REQUEST__CqueryBase

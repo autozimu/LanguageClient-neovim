@@ -66,6 +66,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub writers: HashMap<String, Box<SyncWrite>>,
     pub capabilities: HashMap<String, Value>,
+    pub method_registrations: MethodRegistrations,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
@@ -105,6 +106,7 @@ impl State {
             child_ids: HashMap::new(),
             writers: HashMap::new(),
             capabilities: HashMap::new(),
+            method_registrations: MethodRegistrations::default(),
             roots: HashMap::new(),
             text_documents: HashMap::new(),
             text_documents_metadata: HashMap::new(),
@@ -799,5 +801,45 @@ pub trait OptionDeref<T: Deref> {
 impl<T: Deref> OptionDeref<T> for Option<T> {
     fn as_deref(&self) -> Option<&T::Target> {
         self.as_ref().map(Deref::deref)
+    }
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct MethodRegistrations {
+    // (languageId, Id) => Options.
+    pub didChangeWatchedFiles:
+        HashMap<(String, String), Vec<DidChangeWatchedFilesRegistrationOptions>>,
+}
+
+impl MethodRegistrations {
+    pub fn register(&mut self, languageId: &str, r: &Registration) -> Result<()> {
+        match r.method.as_str() {
+            lsp::notification::DidChangeWatchedFiles::METHOD => {
+                let opt: DidChangeWatchedFilesRegistrationOptions =
+                    serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                self.didChangeWatchedFiles
+                    .entry((languageId.into(), r.id.clone()))
+                    .or_insert(vec![])
+                    .push(opt);
+            }
+            _ => {
+                Err(format_err!("Unknown registration: {:?}", r))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn unregister(&mut self, languageId: &str, r: &Unregistration) -> Result<()> {
+        match r.method.as_str() {
+            lsp::notification::DidChangeWatchedFiles::METHOD => {
+                self.didChangeWatchedFiles
+                    .remove(&(languageId.into(), r.id.clone()));
+            }
+            _ => {
+                Err(format_err!("Unknown unregistration: {:?}", r))?;
+            }
+        }
+        Ok(())
     }
 }

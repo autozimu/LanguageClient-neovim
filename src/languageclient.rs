@@ -1677,6 +1677,40 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
+    fn client_registerCapability(
+        &self,
+        languageId: &str,
+        params: &Option<Params>,
+    ) -> Result<Value> {
+        info!("Begin {}", lsp::request::RegisterCapability::METHOD);
+        let params: RegistrationParams = serde_json::from_value(params.clone().to_value())?;
+        self.update(|state| {
+            for r in &params.registrations {
+                state.method_registrations.register(languageId, r)?;
+            }
+            Ok(())
+        })?;
+        info!("End {}", lsp::request::RegisterCapability::METHOD);
+        Ok(Value::Null)
+    }
+
+    fn client_unregisterCapability(
+        &self,
+        languageId: &str,
+        params: &Option<Params>,
+    ) -> Result<Value> {
+        info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
+        let params: UnregistrationParams = serde_json::from_value(params.clone().to_value())?;
+        self.update(|state| {
+            for r in params.unregisterations {
+                state.method_registrations.unregister(languageId, &r)?;
+            }
+            Ok(())
+        })?;
+        info!("End {}", lsp::request::UnregisterCapability::METHOD);
+        Ok(Value::Null)
+    }
+
     fn exit(&self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;

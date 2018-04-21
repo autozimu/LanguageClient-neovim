@@ -45,6 +45,8 @@ use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
 use lsp::*;
+#[allow(unused_imports)]
+use lsp::notification::Notification;
 
 extern crate url;
 use url::Url;
