@@ -38,7 +38,7 @@ pub fn init() -> Result<Handle> {
             .write(true)
             .truncate(true)
             .open(utils::get_logpath_server())?;
-        writeln!(f, "")?;
+        writeln!(f)?;
     }
 
     let handle = log4rs::init_config(config(LevelFilter::Warn)?)?;

@@ -999,11 +999,7 @@ pub trait ILanguageClient: IVim {
             return Ok(result);
         }
 
-        self.call::<_, u8>(
-            None,
-            "s:FZF",
-            json!([source, format!("{}", NOTIFICATION__FZFSinkCommand)]),
-        )?;
+        self.call::<_, u8>(None, "s:FZF", json!([source, NOTIFICATION__FZFSinkCommand]))?;
 
         info!("End {}", lsp::request::CodeActionRequest::METHOD);
         Ok(result)
