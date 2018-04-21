@@ -655,6 +655,18 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
+    fn initialized(&self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", lsp::notification::Initialized::METHOD);
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+        self.notify(
+            Some(&languageId),
+            lsp::notification::Initialized::METHOD,
+            InitializedParams {},
+        )?;
+        info!("End {}", lsp::notification::Initialized::METHOD);
+        Ok(())
+    }
+
     fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::HoverRequest::METHOD);
@@ -2272,6 +2284,7 @@ impl ILanguageClient for Arc<RwLock<State>> {
         }
 
         self.initialize(&params)?;
+        self.initialized(&params)?;
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 
