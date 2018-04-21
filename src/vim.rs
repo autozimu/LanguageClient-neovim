@@ -45,8 +45,8 @@ pub trait IVim {
                 if let Err(ref err) = result {
                     if err.downcast_ref::<LCError>().is_none() {
                         error!(
-                            "Error handling message. Message: {}. Error: {:?}",
-                            message, result
+                            "Error handling message: {}\nMessage: {}\nError: {:?}",
+                            err, message, err
                         );
                     }
                 }
@@ -347,8 +347,8 @@ impl IVim for Arc<RwLock<State>> {
                     {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
-                                "Error handling message. Message: {}. Error: {:?}",
-                                message, err
+                                "Error handling message: {}\nMessage: {}\nError: {:?}",
+                                err, message, err
                             );
                         }
                     }
