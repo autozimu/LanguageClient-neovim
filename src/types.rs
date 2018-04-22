@@ -17,6 +17,7 @@ pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
 pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
 pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
+pub const REQUEST__ExplainErrorAtPoint: &str = "$languageClient/explainErrorAtPoint";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
@@ -70,6 +71,7 @@ pub struct State {
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
+    // filename => diagnostics.
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
@@ -819,7 +821,7 @@ impl MethodRegistrations {
                     serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
                 self.didChangeWatchedFiles
                     .entry((languageId.into(), r.id.clone()))
-                    .or_insert(vec![])
+                    .or_insert_with(|| vec![])
                     .push(opt);
             }
             _ => {

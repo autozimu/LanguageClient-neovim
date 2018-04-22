@@ -661,8 +661,9 @@ function! LanguageClient#handleCursorMoved() abort
 
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
+                    \ 'buftype': &buftype,
                     \ 'filename': s:Expand('%:p'),
-                    \ 'line': line('.') - 1,
+                    \ 'line': l:cursor_line,
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -684,6 +685,23 @@ function! LanguageClient_NCMRefresh(info, context) abort
                 \ 'info': a:info,
                 \ 'ctx': a:context,
                 \ }, v:null)
+endfunction
+
+function! LanguageClient#explainErrorAtPoint(...) abort
+    if &buftype !=# '' || &filetype ==# ''
+        return
+    endif
+
+    let l:callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'buftype': &buftype,
+                \ 'filename': s:Expand('%:p'),
+                \ 'line': line('.') - 1,
+                \ 'character': col('.') - 1,
+                \ 'handle': s:IsFalse(l:callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('$languageClient/explainErrorAtPoint', l:params, l:callback)
 endfunction
 
 let g:LanguageClient_omniCompleteResults = []

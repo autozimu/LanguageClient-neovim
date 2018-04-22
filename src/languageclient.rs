@@ -542,7 +542,10 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn preview(&self, lines: &[String]) -> Result<()> {
+    fn preview<S>(&self, lines: &[S]) -> Result<()>
+    where
+        S: AsRef<str> + Serialize,
+    {
         let bufname = "//LanguageClient";
 
         let mut cmd = String::new();
@@ -2076,6 +2079,47 @@ pub trait ILanguageClient: IVim {
             json!([info.name, ctx, ctx.startcol, matches, is_incomplete]),
         )?;
         info!("End {}", REQUEST__NCMRefresh);
+        Ok(Value::Null)
+    }
+
+    fn languageClient_explainErrorAtPoint(&self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__ExplainErrorAtPoint);
+        let (buftype, filename, line, character): (String, String, u64, u64) = self.gather_args(
+            &[
+                VimVar::Buftype,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
+            ],
+            params,
+        )?;
+        if !buftype.is_empty() {
+            return Ok(Value::Null);
+        }
+        let diag = self.get(|state| {
+            state
+                .diagnostics
+                .get(&filename)
+                .ok_or_else(|| format_err!("No diagnostics found: filename: {}", filename,))?
+                .iter()
+                .find(|d| {
+                    (line, character) >= (d.range.start.line, d.range.start.character)
+                        && (line, character) < (d.range.end.line, d.range.end.character)
+                })
+                .cloned()
+                .ok_or_else(|| {
+                    format_err!(
+                        "No diagnostics found: filename: {}, line: {}, character: {}",
+                        filename,
+                        line,
+                        character
+                    )
+                })
+        })?;
+        let message: Vec<_> = diag.message.lines().collect();
+        self.preview(&message)?;
+
+        info!("End {}", REQUEST__ExplainErrorAtPoint);
         Ok(Value::Null)
     }
 
