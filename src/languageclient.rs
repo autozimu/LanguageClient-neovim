@@ -1560,14 +1560,34 @@ pub trait ILanguageClient: IVim {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
+        let uri = filename.to_url()?;
+
+        // TODO: use notify library to generate file event sources.
+        let lang_ids = self.get(|state| {
+            state
+                .method_registrations
+                .get_didChangeWatchedFiles_languageIds(&filename)
+        })?;
+        for lang_id in &lang_ids {
+            self.notify(
+                Some(lang_id.as_str()),
+                lsp::notification::DidChangeWatchedFiles::METHOD,
+                DidChangeWatchedFilesParams {
+                    changes: vec![
+                        FileEvent {
+                            uri: uri.clone(),
+                            typ: FileChangeType::Changed,
+                        },
+                    ],
+                },
+            )?;
+        }
 
         self.notify(
             Some(&languageId),
             lsp::notification::DidSaveTextDocument::METHOD,
             DidSaveTextDocumentParams {
-                text_document: TextDocumentIdentifier {
-                    uri: filename.to_url()?,
-                },
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
             },
         )?;
 

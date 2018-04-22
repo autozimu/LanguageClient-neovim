@@ -823,7 +823,7 @@ impl MethodRegistrations {
                     .push(opt);
             }
             _ => {
-                Err(format_err!("Unknown registration: {:?}", r))?;
+                warn!("Unknown registration: {:?}", r);
             }
         }
 
@@ -837,9 +837,25 @@ impl MethodRegistrations {
                     .remove(&(languageId.into(), r.id.clone()));
             }
             _ => {
-                Err(format_err!("Unknown unregistration: {:?}", r))?;
+                warn!("Unknown unregistration: {:?}", r);
             }
         }
         Ok(())
+    }
+
+    pub fn get_didChangeWatchedFiles_languageIds(&self, path: &str) -> Result<Vec<String>> {
+        let mut lang_ids = vec![];
+        // TODO: optimize the structure.
+        for (&(ref lang_id, _), opts) in &self.didChangeWatchedFiles {
+            for opt in opts {
+                for watch in &opt.watchers {
+                    // TODO: match event.
+                    if glob::Pattern::new(watch.glob_pattern.as_str())?.matches(path) {
+                        lang_ids.push(lang_id.clone());
+                    }
+                }
+            }
+        }
+        Ok(lang_ids)
     }
 }
