@@ -191,8 +191,7 @@ pub trait ILanguageClient: IVim {
             "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
             edit, params
         );
-        let (filename, line, character): (String, u64, u64) =
-            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
+        let curpos: Vec<u64> = self.call(None, "getcurpos", json!([]))?;
 
         if let Some(ref changes) = edit.document_changes {
             for e in changes {
@@ -204,8 +203,8 @@ pub trait ILanguageClient: IVim {
                 self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
         }
+        self.call::<_, u8>(None, "setpos", json!([".", curpos]))?;
         debug!("End apply WorkspaceEdit");
-        self.goto_location(&Some("buffer".to_string()), &filename, line, character)?;
         Ok(())
     }
 
@@ -2306,53 +2305,52 @@ impl ILanguageClient for Arc<RwLock<State>> {
                 })
         })?;
 
-        let child_id;
-        let reader: Box<SyncRead>;
-        let writer: Box<SyncWrite>;
-        if command.get(0).map(|c| c.starts_with("tcp://")) == Some(true) {
-            let addr = command
-                .get(0)
-                .map(|s| s.replace("tcp://", ""))
-                .ok_or_else(|| err_msg("Server command can't be empty!"))?;
-            let stream = TcpStream::connect(addr)?;
-            child_id = None;
-            reader = Box::new(BufReader::new(stream.try_clone()?));
-            writer = Box::new(BufWriter::new(stream));
-        } else {
-            let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
-            let command: Vec<_> = command
-                .into_iter()
-                .map(|cmd| {
-                    if cmd.starts_with('~') {
-                        cmd.replacen('~', &home.to_string_lossy(), 1)
-                    } else {
-                        cmd
-                    }
-                })
-                .collect();
+        let (child_id, reader, writer): (_, Box<SyncRead>, Box<SyncWrite>) =
+            if command.get(0).map(|c| c.starts_with("tcp://")) == Some(true) {
+                let addr = command
+                    .get(0)
+                    .map(|s| s.replace("tcp://", ""))
+                    .ok_or_else(|| err_msg("Server command can't be empty!"))?;
+                let stream = TcpStream::connect(addr)?;
+                let reader = Box::new(BufReader::new(stream.try_clone()?));
+                let writer = Box::new(BufWriter::new(stream));
+                (None, reader, writer)
+            } else {
+                let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
+                let command: Vec<_> = command
+                    .into_iter()
+                    .map(|cmd| {
+                        if cmd.starts_with('~') {
+                            cmd.replacen('~', &home.to_string_lossy(), 1)
+                        } else {
+                            cmd
+                        }
+                    })
+                    .collect();
 
-            let stderr = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&get_logpath_server())?;
+                let stderr = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&get_logpath_server())?;
 
-            let process = std::process::Command::new(command
-                .get(0)
-                .ok_or_else(|| err_msg("Empty command!"))?)
-                .args(&command[1..])
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(stderr)
-                .spawn()?;
+                let process = std::process::Command::new(command
+                    .get(0)
+                    .ok_or_else(|| err_msg("Empty command!"))?)
+                    .args(&command[1..])
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(stderr)
+                    .spawn()?;
 
-            child_id = Some(process.id());
-            reader = Box::new(BufReader::new(process
-                .stdout
-                .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?));
-            writer = Box::new(BufWriter::new(process
-                .stdin
-                .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?));
-        }
+                let child_id = Some(process.id());
+                let reader = Box::new(BufReader::new(process
+                    .stdout
+                    .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?));
+                let writer = Box::new(BufWriter::new(process
+                    .stdin
+                    .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?));
+                (child_id, reader, writer)
+            };
 
         self.update(|state| {
             child_id.map(|id| state.child_ids.insert(languageId.clone(), id));
