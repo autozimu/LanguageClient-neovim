@@ -1863,6 +1863,10 @@ pub trait ILanguageClient: IVim {
             }
         }
 
+        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
+            self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
+        }
+
         info!("End {}", NOTIFICATION__HandleBufReadPost);
         Ok(())
     }

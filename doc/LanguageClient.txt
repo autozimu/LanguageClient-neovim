@@ -435,6 +435,11 @@ Example: >
 
 This event is triggered when diagnostics changed.
 
+5.4 LanguageClientBufReadPost
+*LanguageClientBufReadPost*
+
+Triggered after BufReadPost is successfully handled by language client.
+
 ==============================================================================
 6. License                                             *LanguageClientLicense*
 
