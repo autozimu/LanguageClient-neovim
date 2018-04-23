@@ -191,7 +191,8 @@ pub trait ILanguageClient: IVim {
             "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
             edit, params
         );
-        let curpos: Vec<u64> = self.call(None, "getcurpos", json!([]))?;
+        let (filename, line, character): (String, u64, u64) =
+            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
 
         if let Some(ref changes) = edit.document_changes {
             for e in changes {
@@ -203,7 +204,7 @@ pub trait ILanguageClient: IVim {
                 self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
         }
-        self.call::<_, u8>(None, "setpos", json!([".", curpos]))?;
+        self.goto_location(&Some("buffer".to_string()), &filename, line, character)?;
         debug!("End apply WorkspaceEdit");
         Ok(())
     }

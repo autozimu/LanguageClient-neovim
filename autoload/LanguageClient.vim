@@ -141,11 +141,15 @@ function! s:HandleMessage(job, lines, event) abort
 
             try
                 let l:message = json_decode(s:input)
-                let s:input = ''
+                if type(l:message) !=# type({})
+                    throw 'Messsage is not dict.'
+                endif
             catch
-                let s:input = ''
-                call s:Debug(string(v:exception))
+                call s:Debug('Error decoding message: ' . string(v:exception) .
+                            \ ' Message: ' . s:input)
                 continue
+            finally
+                let s:input = ''
             endtry
 
             if has_key(l:message, 'method')
