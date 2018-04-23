@@ -649,7 +649,7 @@ endfunction
 
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
-    let l:cursor_line = getcurpos()[1]
+    let l:cursor_line = getcurpos()[1] - 1
     if l:cursor_line == s:last_cursor_line
         return
     endif
