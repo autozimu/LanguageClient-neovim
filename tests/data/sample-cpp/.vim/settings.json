@@ -1,6 +1,5 @@
 {
     "initializationOptions": {
-        "cacheDirectory": "/tmp/cquery",
-        "resourceDirectory": "/Users/ljunf/repo/etc/cquery/clang_resource_dir"
+        "cacheDirectory": "/tmp/cquery"
     }
 }
