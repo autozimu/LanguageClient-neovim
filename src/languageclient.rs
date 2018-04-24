@@ -1676,6 +1676,7 @@ pub trait ILanguageClient: IVim {
                     bail!("Failed to set location list!");
                 }
             }
+            DiagnosticsList::Disabled => {}
         }
 
         let current_filename: String = self.eval(VimVar::Filename)?;

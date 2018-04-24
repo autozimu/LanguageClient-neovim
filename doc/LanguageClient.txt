@@ -142,7 +142,7 @@ Valid options: "off" | "messages" | "verbose"
 List used to fill diagnostic messages.
 
 Default: "Quickfix"
-Valid options: "Quickfix" | "Location" | |v:null|
+Valid options: "Quickfix" | "Location" | "Disabled"
 
 2.9 g:LanguageClient_diagnosticsEnable    *g:LanguageClient_diagnosticsEnable*
 
