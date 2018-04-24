@@ -173,6 +173,7 @@ impl FromStr for SelectionUI {
 pub enum DiagnosticsList {
     Quickfix,
     Location,
+    Disabled,
 }
 
 impl Default for DiagnosticsList {
@@ -188,6 +189,7 @@ impl FromStr for DiagnosticsList {
         match s.to_ascii_uppercase().as_str() {
             "QUICKFIX" => Ok(DiagnosticsList::Quickfix),
             "LOCATION" => Ok(DiagnosticsList::Location),
+            "DISABLED" => Ok(DiagnosticsList::Disabled),
             _ => bail!("Invalid option for LanguageClient_diagnosticsList: {}", s),
         }
     }
