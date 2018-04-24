@@ -1479,6 +1479,9 @@ pub trait ILanguageClient: IVim {
         )?;
 
         self.command("setlocal omnifunc=LanguageClient#complete")?;
+        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
+            self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
+        }
 
         info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
@@ -1862,10 +1865,6 @@ pub trait ILanguageClient: IVim {
                     info!("{:?}", err);
                 }
             }
-        }
-
-        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
-            self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
         }
 
         info!("End {}", NOTIFICATION__HandleBufReadPost);
