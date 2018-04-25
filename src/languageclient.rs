@@ -93,7 +93,7 @@ pub trait ILanguageClient: IVim {
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', 1)",
-                "get(g:, 'LanguageClient_diagnosticsList', v:null)",
+                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
                 "has('nvim')",
@@ -129,7 +129,7 @@ pub trait ILanguageClient: IVim {
         let diagnosticsList = if let Some(s) = diagnosticsList {
             DiagnosticsList::from_str(&s)?
         } else {
-            DiagnosticsList::default()
+            DiagnosticsList::Disabled
         };
 
         let windowLogMessageLevel = match windowLogMessageLevel.to_ascii_uppercase().as_str() {
