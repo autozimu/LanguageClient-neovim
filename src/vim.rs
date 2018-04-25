@@ -358,6 +358,27 @@ impl IVim for Arc<RwLock<State>> {
             }
         }
 
+        if languageId.is_some() {
+            loop {
+                let event = self.update(|state| {
+                    Ok(state
+                        .watcher_rx
+                        .lock()
+                        .map_err(|_| err_msg("Failed to lock watcher_rx"))?
+                        .try_recv()?)
+                });
+                let event = match event {
+                    Ok(event) => event,
+                    Err(err) => {
+                        error!("{}", err);
+                        break;
+                    }
+                };
+
+                warn!("File system event: {:?}", event);
+            }
+        }
+
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 #![allow(non_snake_case, non_upper_case_globals)]
 
 use std::collections::{HashMap, HashSet};
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
@@ -58,6 +58,8 @@ extern crate diff;
 
 extern crate glob;
 extern crate regex;
+
+extern crate notify;
 
 #[macro_use]
 extern crate structopt;

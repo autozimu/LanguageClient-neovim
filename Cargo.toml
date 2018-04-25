@@ -26,6 +26,7 @@ pathdiff = "0"
 diff = "0"
 regex = "0"
 glob = "0"
+notify = "4"
 
 [package.metadata.release]
 no-dev-version = true

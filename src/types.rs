@@ -78,6 +78,10 @@ pub struct State {
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
     pub user_handlers: HashMap<String, String>,
+    #[serde(skip_serializing)]
+    pub watcher_rx: Mutex<Receiver<notify::DebouncedEvent>>,
+    #[serde(skip_serializing)]
+    pub watcher: Watcher,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
@@ -102,6 +106,17 @@ pub struct State {
 
 impl State {
     pub fn new() -> State {
+        // TODO: move this into LanguageClientStart.
+        let (watcher_tx, watcher_rx) = channel();
+        // TODO: duration configurable.
+        let watcher = match notify::watcher(watcher_tx, std::time::Duration::from_secs(2)) {
+            Ok(watcher) => Watcher::Some(watcher),
+            Err(err) => {
+                error!("{:?}", err);
+                Watcher::None
+            }
+        };
+
         State {
             id: 0,
             txs: HashMap::new(),
@@ -117,6 +132,8 @@ impl State {
             signs: HashMap::new(),
             highlight_source: None,
             user_handlers: HashMap::new(),
+            watcher_rx: watcher_rx.into(),
+            watcher,
 
             is_nvim: false,
             last_cursor_line: 0,
@@ -871,5 +888,20 @@ impl MethodRegistrations {
             }
         }
         Ok(lang_ids)
+    }
+}
+
+pub enum Watcher {
+    None,
+    Some(notify::RecommendedWatcher),
+}
+
+impl std::fmt::Debug for Watcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let msg = match *self {
+            Watcher::None => "None",
+            Watcher::Some(_) => "Some Watcher",
+        };
+        write!(f, "{}", msg)
     }
 }
