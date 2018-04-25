@@ -718,11 +718,11 @@ function! LanguageClient#omniComplete(...) abort
                     \ 'character': col('.') - 1,
                     \ 'handle': v:false,
                     \ }
-        call extend(l:params, a:0 >= 1 ? a:1 : {})
-        let l:callback = a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults
+        call extend(l:params, get(a:000, 0, {}))
+        let l:callback = get(a:000, 1, g:LanguageClient_omniCompleteResults)
         call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
     catch
-        call add(a:0 >= 2 ? a:2 : g:LanguageClient_omniCompleteResults, [])
+        call add(l:callback, [])
         call s:Debug(string(v:exception))
     endtry
 endfunction
