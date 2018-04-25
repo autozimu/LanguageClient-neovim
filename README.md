@@ -83,9 +83,9 @@ Please see <http://langserver.org> and/or <https://microsoft.github.io/language-
 
 [LanguageClient.txt]: doc/LanguageClient.txt
 
-# Development
+# Contributing
 
-[DEVELOPMENT](DEVELOPMENT.md)
+[CONTRIBUTING](.github/CONTRIBUTING.md)
 
 # License
 
