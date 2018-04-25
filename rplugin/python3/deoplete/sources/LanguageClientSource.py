@@ -29,7 +29,9 @@ class Source(Base):
             if len(outputs) != 0:
                 context["is_async"] = False
                 # TODO: error handling.
-                return outputs[0].get("result", [])
+                candidates = outputs[0].get("result", [])
+                # log(str(candidates))
+                return candidates
         else:
             context["is_async"] = True
             self.vim.command("let {} = []".format(CompleteOutputs))
@@ -37,3 +39,11 @@ class Source(Base):
                 "character": context["complete_position"],
             })
         return []
+
+
+# f = open("/tmp/deoplete.log", "w")
+
+
+# def log(message):
+#     f.writelines([message])
+#     f.flush()
