@@ -96,9 +96,12 @@ function! s:FZF(source, sink) abort
         return
     endif
 
-    let l:options = get(g:, 'LanguageClient_fzfOptions', v:null)
-    if l:options == v:null
+    if exists('LanguageClient_fzfOptions')
+        let l:options = LanguageClient_fzfOptions
+    elseif exists('*fzf#vim#with_preview')
         let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
+    else
+        let l:options = []
     endif
     call fzf#run(fzf#wrap({
                 \ 'source': a:source,
