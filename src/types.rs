@@ -57,12 +57,32 @@ pub trait SyncWrite: Write + Sync + Send + Debug {}
 impl SyncWrite for BufWriter<ChildStdin> {}
 impl SyncWrite for BufWriter<TcpStream> {}
 
+pub type Id = u64;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Message {
+    MethodCall(Option<String>, rpc::MethodCall),
+    Notification(Option<String>, rpc::Notification),
+    Output(rpc::Output),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Call {
+    MethodCall(Option<String>, rpc::MethodCall),
+    Notification(Option<String>, rpc::Notification),
+}
+
 #[derive(Debug, Serialize)]
 pub struct State {
     // Program state.
-    pub id: u64,
+    pub id: Id,
     #[serde(skip_serializing)]
-    pub txs: HashMap<u64, Mutex<Sender<Result<Value>>>>,
+    pub tx: Sender<Message>,
+    #[serde(skip_serializing)]
+    pub rx: Receiver<Message>,
+    pub pending_calls: VecDeque<Call>,
+    pub pending_outputs: HashMap<Id, rpc::Output>,
+
     pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)]
     pub writers: HashMap<String, Box<SyncWrite>>,
@@ -79,7 +99,7 @@ pub struct State {
     pub highlight_source: Option<u64>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
-    pub watcher_rx: Mutex<Receiver<notify::DebouncedEvent>>,
+    pub watcher_rx: Receiver<notify::DebouncedEvent>,
     #[serde(skip_serializing)]
     pub watcher: Watcher,
 
@@ -117,9 +137,15 @@ impl State {
             }
         };
 
+        let (tx, rx) = channel();
+
         State {
             id: 0,
-            txs: HashMap::new(),
+            tx,
+            rx,
+            pending_calls: VecDeque::new(),
+            pending_outputs: HashMap::new(),
+
             child_ids: HashMap::new(),
             writers: HashMap::new(),
             capabilities: HashMap::new(),
@@ -132,7 +158,7 @@ impl State {
             signs: HashMap::new(),
             highlight_source: None,
             user_handlers: HashMap::new(),
-            watcher_rx: watcher_rx.into(),
+            watcher_rx: watcher_rx,
             watcher,
 
             is_nvim: false,

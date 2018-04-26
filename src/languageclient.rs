@@ -2,11 +2,11 @@ use super::*;
 use lsp::request::Request;
 use lsp::notification::Notification;
 
-pub trait ILanguageClient: IVim {
+impl State {
     /////// Utils ///////
 
-    fn gather_args<E: VimExp + std::fmt::Debug, T: DeserializeOwned>(
-        &self,
+    pub fn gather_args<E: VimExp + std::fmt::Debug, T: DeserializeOwned>(
+        &mut self,
         exps: &[E],
         map: &Option<Params>,
     ) -> Result<T> {
@@ -47,7 +47,7 @@ pub trait ILanguageClient: IVim {
         Ok(serde_json::from_value(Value::Array(result))?)
     }
 
-    fn sync_settings(&self) -> Result<()> {
+    fn sync_settings(&mut self) -> Result<()> {
         let loggingLevel: String = self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
         let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
         logger::set_logging_level(logger, &loggingLevel)?;
@@ -167,7 +167,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn define_signs(&self) -> Result<()> {
+    fn define_signs(&mut self) -> Result<()> {
         info!("Define signs");
         let cmd = self.get(|state| {
             let mut cmd = "echo".to_owned();
@@ -186,7 +186,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()> {
+    fn apply_WorkspaceEdit(&mut self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()> {
         debug!(
             "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
             edit, params
@@ -209,7 +209,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn apply_TextEdits<P: AsRef<Path>>(&self, path: P, edits: &[TextEdit]) -> Result<()> {
+    fn apply_TextEdits<P: AsRef<Path>>(&mut self, path: P, edits: &[TextEdit]) -> Result<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
         let mut edits = edits.to_vec();
 
@@ -247,7 +247,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn display_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+    fn display_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
         // Line diagnostics.
         self.update(|state| {
             state
@@ -354,7 +354,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn display_locations(&self, locations: &[Location], _languageId: &str) -> Result<()> {
+    fn display_locations(&mut self, locations: &[Location], _languageId: &str) -> Result<()> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
@@ -406,7 +406,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn registerCMSource(&self, languageId: &str, result: &Value) -> Result<()> {
+    fn registerCMSource(&mut self, languageId: &str, result: &Value) -> Result<()> {
         info!("Begin register NCM source");
         let exists_CMRegister: u64 = self.eval("exists('g:cm_matcher')")?;
         if exists_CMRegister == 0 {
@@ -447,7 +447,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn get_line<P: AsRef<Path>>(&self, path: P, line: u64) -> Result<String> {
+    fn get_line<P: AsRef<Path>>(&mut self, path: P, line: u64) -> Result<String> {
         let value = self.call(
             None,
             "getbufline",
@@ -467,7 +467,7 @@ pub trait ILanguageClient: IVim {
         Ok(text.trim().into())
     }
 
-    fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
+    fn try_handle_command_by_client(&mut self, cmd: &Command) -> Result<bool> {
         if !CommandsClient.contains(&cmd.command.as_str()) {
             return Ok(false);
         }
@@ -486,7 +486,7 @@ pub trait ILanguageClient: IVim {
         Ok(true)
     }
 
-    fn cleanup(&self, languageId: &str) -> Result<()> {
+    fn cleanup(&mut self, languageId: &str) -> Result<()> {
         self.update(|state| {
             state.child_ids.remove(languageId);
             state.last_cursor_line = 0;
@@ -542,7 +542,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn preview<S>(&self, lines: &[S]) -> Result<()>
+    fn preview<S>(&mut self, lines: &[S]) -> Result<()>
     where
         S: AsRef<str> + Serialize,
     {
@@ -570,7 +570,7 @@ pub trait ILanguageClient: IVim {
 
     /////// LSP ///////
 
-    fn initialize(&self, params: &Option<Params>) -> Result<Value> {
+    fn initialize(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::Initialize::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -658,7 +658,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn initialized(&self, params: &Option<Params>) -> Result<()> {
+    fn initialized(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         self.notify(
@@ -670,7 +670,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn textDocument_hover(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_hover(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::HoverRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -719,7 +719,7 @@ pub trait ILanguageClient: IVim {
     }
 
     /// Generic find locations, e.g, definitions, references.
-    fn find_locations(&self, method_name: &str, params: &Option<Params>) -> Result<Value> {
+    pub fn find_locations(&mut self, method_name: &str, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", method_name);
         let (buftype, languageId, filename, line, character, goto_cmd, handle): (
@@ -795,7 +795,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_rename(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_rename(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Rename::METHOD);
         let (buftype, languageId, filename, line, character, cword, new_name, handle): (
@@ -856,7 +856,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_documentSymbol(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_documentSymbol(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
@@ -930,7 +930,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_codeAction(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_codeAction(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
@@ -1008,7 +1008,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_completion(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_completion(&mut self, params: &Option<Params>) -> Result<Value> {
         // Vim will change buffer content temporarily when executing omnifunc (?).
         // self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
@@ -1054,7 +1054,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_signatureHelp(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_signatureHelp(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::SignatureHelpRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
@@ -1134,7 +1134,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn textDocument_references(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_references(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::References::METHOD);
 
@@ -1187,7 +1187,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_formatting(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_formatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
         let (buftype, languageId, filename, handle): (String, String, String, bool) =
@@ -1236,7 +1236,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn textDocument_rangeFormatting(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_rangeFormatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
         let (buftype, languageId, filename, handle): (String, String, String, bool) =
@@ -1309,7 +1309,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn completionItem_resolve(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn completionItem_resolve(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::ResolveCompletionItem::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
@@ -1340,7 +1340,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn workspace_symbol(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_symbol(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::WorkspaceSymbol::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
@@ -1414,7 +1414,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn workspace_executeCommand(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_executeCommand(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::ExecuteCommand::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (command, arguments): (String, Vec<Value>) =
@@ -1429,7 +1429,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn workspace_applyEdit(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_applyEdit(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         let params: ApplyWorkspaceEditParams = serde_json::from_value(params.clone().to_value())?;
@@ -1442,7 +1442,7 @@ pub trait ILanguageClient: IVim {
         })?)
     }
 
-    fn textDocument_didOpen(&self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didOpen(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) =
             self.gather_args(
@@ -1487,7 +1487,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn textDocument_didChange(&self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didChange(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1557,7 +1557,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn textDocument_didSave(&self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didSave(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidSaveTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1601,7 +1601,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn textDocument_didClose(&self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didClose(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidCloseTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1624,7 +1624,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn textDocument_publishDiagnostics(&self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_publishDiagnostics(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::PublishDiagnostics::METHOD);
         let params: PublishDiagnosticsParams = serde_json::from_value(params.clone().to_value())?;
         if !self.get(|state| Ok(state.diagnosticsEnable))? {
@@ -1690,7 +1690,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn window_logMessage(&self, params: &Option<Params>) -> Result<()> {
+    pub fn window_logMessage(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::LogMessage::METHOD);
         let params: LogMessageParams = serde_json::from_value(params.clone().to_value())?;
         let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
@@ -1704,8 +1704,8 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn client_registerCapability(
-        &self,
+    pub fn client_registerCapability(
+        &mut self,
         languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
@@ -1721,8 +1721,8 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn client_unregisterCapability(
-        &self,
+    pub fn client_unregisterCapability(
+        &mut self,
         languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
@@ -1738,7 +1738,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn exit(&self, params: &Option<Params>) -> Result<()> {
+    pub fn exit(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
@@ -1760,14 +1760,14 @@ pub trait ILanguageClient: IVim {
 
     /////// Extensions by this plugin ///////
 
-    fn languageClient_getState(&self, _params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_getState(&mut self, _params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__GetState);
         let s = self.get(|state| Ok(serde_json::to_string(state)?))?;
         info!("End {}", REQUEST__GetState);
         Ok(Value::String(s))
     }
 
-    fn languageClient_isAlive(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_isAlive(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__IsAlive);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let is_alive = self.get(|state| Ok(state.writers.contains_key(&languageId)))?;
@@ -1775,9 +1775,10 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Bool(is_alive))
     }
 
-    fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value>;
-
-    fn languageClient_registerServerCommands(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_registerServerCommands(
+        &mut self,
+        params: &Option<Params>,
+    ) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
         let commands = serde_json::from_value(params.clone().to_value())?;
         self.update(|state| {
@@ -1793,7 +1794,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn languageClient_setLoggingLevel(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_setLoggingLevel(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
         let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
@@ -1802,7 +1803,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn languageClient_registerHandlers(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_registerHandlers(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
         let handlers = serde_json::from_value(params.clone().to_value())?;
         self.update(|state| {
@@ -1813,7 +1814,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn languageClient_omniComplete(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_omniComplete(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
@@ -1828,7 +1829,7 @@ pub trait ILanguageClient: IVim {
         Ok(serde_json::to_value(matches)?)
     }
 
-    fn languageClient_handleBufReadPost(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufReadPost(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufReadPost);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1872,7 +1873,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn languageClient_handleTextChanged(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleTextChanged(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
         let (buftype, filename): (String, String) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename], params)?;
@@ -1902,14 +1903,14 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn languageClient_handleBufWritePost(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufWritePost(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         self.textDocument_didSave(params)?;
         info!("End {}", NOTIFICATION__HandleBufWritePost);
         Ok(())
     }
 
-    fn languageClient_handleBufDelete(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufDelete(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
         self.update(|state| {
@@ -1924,7 +1925,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn languageClient_handleCursorMoved(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleCursorMoved(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
         let (buftype, filename, line): (String, String, u64) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
@@ -1963,7 +1964,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn languageClient_FZFSinkLocation(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
         let params = match *params {
             None | Some(Params::None) | Some(Params::Map(_)) => {
@@ -2007,7 +2008,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn languageClient_FZFSinkCommand(&self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_FZFSinkCommand(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkCommand);
         let (selection,): (String,) = self.gather_args(&["selection"], params)?;
         let tokens: Vec<&str> = selection.split(": ").collect();
@@ -2049,7 +2050,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn NCM_refresh(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn NCM_refresh(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__NCMRefresh);
         let params: NCMRefreshParams = serde_json::from_value(params.clone().to_value())?;
         let NCMRefreshParams { info, ctx } = params;
@@ -2086,7 +2087,7 @@ pub trait ILanguageClient: IVim {
         Ok(Value::Null)
     }
 
-    fn languageClient_explainErrorAtPoint(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_explainErrorAtPoint(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__ExplainErrorAtPoint);
         let (buftype, filename, line, character): (String, String, u64, u64) = self.gather_args(
             &[
@@ -2128,7 +2129,7 @@ pub trait ILanguageClient: IVim {
     }
 
     // Extensions by languge servers.
-    fn language_status(&self, params: &Option<Params>) -> Result<()> {
+    pub fn language_status(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__LanguageStatus);
         let params: LanguageStatusParams = serde_json::from_value(params.clone().to_value())?;
         let msg = format!("{} {}", params.typee, params.message);
@@ -2137,7 +2138,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn rustDocument_implementations(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn rustDocument_implementations(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RustImplementations);
         let (buftype, languageId, filename, line, character, handle): (
             String,
@@ -2183,7 +2184,7 @@ pub trait ILanguageClient: IVim {
         Ok(result)
     }
 
-    fn rust_handleBeginBuild(&self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleBeginBuild(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(&format!(
             "let {}=1 | let {}='Rust: build begin'",
@@ -2193,7 +2194,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn rust_handleDiagnosticsBegin(&self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
         self.command(&format!(
             "let {}=1 | let {}='Rust: diagnostics begin'",
@@ -2203,7 +2204,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn rust_handleDiagnosticsEnd(&self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.command(&format!(
             "let {}=0 | let {}='Rust: diagnostics end'",
@@ -2213,7 +2214,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn window_progress(&self, params: &Option<Params>) -> Result<()> {
+    pub fn window_progress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__WindowProgress);
         let params: WindowProgressParams = serde_json::from_value(params.clone().to_value())?;
 
@@ -2252,7 +2253,7 @@ pub trait ILanguageClient: IVim {
         Ok(())
     }
 
-    fn cquery_handleProgress(&self, params: &Option<Params>) -> Result<()> {
+    pub fn cquery_handleProgress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
         let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
         let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
@@ -2271,10 +2272,8 @@ pub trait ILanguageClient: IVim {
         info!("End {}", NOTIFICATION__CqueryProgress);
         Ok(())
     }
-}
 
-impl ILanguageClient for Arc<RwLock<State>> {
-    fn languageClient_startServer(&self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_startServer(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
@@ -2363,14 +2362,14 @@ impl ILanguageClient for Arc<RwLock<State>> {
             Ok(())
         })?;
 
-        let state = Arc::clone(self);
         let languageId_clone = languageId.clone();
-        let thread_name = format!("RPC-{}", languageId);
+        let thread_name = format!("reader-{}", languageId);
+        let tx = self.tx.clone();
         std::thread::Builder::new()
             .name(thread_name.clone())
             .spawn(move || {
-                if let Err(err) = state.loop_message(reader, Some(languageId_clone)) {
-                    error!("{} thread error: {}", thread_name, err);
+                if let Err(err) = loop_reader(reader, &Some(languageId_clone), &tx) {
+                    error!("{} reader loop exited: {:?}", thread_name, err);
                 }
             })?;
 

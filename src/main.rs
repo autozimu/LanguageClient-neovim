@@ -1,19 +1,20 @@
 #![allow(non_snake_case, non_upper_case_globals)]
 
-use std::collections::{HashMap, HashSet};
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::{Arc, Mutex, RwLock};
-use std::path::{Path, PathBuf};
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::env;
+use std::fmt::Debug;
+use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufRead, BufReader, BufWriter};
-use std::fs::File;
-use std::env;
+use std::net::TcpStream;
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, ChildStdout, Stdio};
 use std::str::FromStr;
-use std::borrow::Cow;
-use std::ops::Deref;
-use std::fmt::Debug;
-use std::net::TcpStream;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
+use std::time;
 
 #[macro_use]
 extern crate log;
@@ -33,8 +34,8 @@ use chrono::Duration;
 extern crate maplit;
 
 extern crate serde;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
@@ -44,9 +45,9 @@ extern crate jsonrpc_core as rpc;
 use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
-use lsp::*;
 #[allow(unused_imports)]
 use lsp::notification::Notification;
+use lsp::*;
 
 extern crate url;
 use url::Url;
@@ -75,7 +76,6 @@ use utils::*;
 mod vim;
 use vim::*;
 mod rpchandler;
-use rpchandler::*;
 mod languageclient;
 #[allow(unused_imports)]
 use languageclient::*;
@@ -89,11 +89,21 @@ lazy_static! {
 }
 
 fn run() -> Result<()> {
-    let state = Arc::new(RwLock::new(State::new()));
+    let mut state = State::new();
 
-    let stdin = std::io::stdin();
-    let stdin = stdin.lock();
-    state.loop_message(stdin, None)
+    let tx = state.tx.clone();
+    let reader_thread_name: String = "reader-main".into();
+    thread::Builder::new()
+        .name(reader_thread_name.clone())
+        .spawn(move || {
+            let stdin = std::io::stdin();
+            let stdin = stdin.lock();
+            if let Err(err) = loop_reader(stdin, &None, &tx) {
+                error!("{} exited: {:?}", reader_thread_name, err);
+            }
+        })?;
+
+    state.loop_message()
 }
 
 fn main() {
@@ -101,6 +111,9 @@ fn main() {
 
     let app = Opt::clap().version(version.as_str());
     let _ = app.get_matches();
+
+    let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e)).unwrap();
+    logger::set_logging_level(logger, "info").unwrap();
 
     if let Err(err) = run() {
         eprintln!("{:?}", err);

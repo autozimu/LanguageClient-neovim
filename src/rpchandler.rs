@@ -2,22 +2,9 @@ use super::*;
 use lsp::request::Request;
 use lsp::notification::Notification;
 
-pub trait IRpcHandler {
-    fn handle_request(
-        &self,
-        languageId: Option<&str>,
-        method_call: &rpc::MethodCall,
-    ) -> Result<Value>;
-    fn handle_notification(
-        &self,
-        languageId: Option<&str>,
-        notification: &rpc::Notification,
-    ) -> Result<()>;
-}
-
-impl IRpcHandler for Arc<RwLock<State>> {
-    fn handle_request(
-        &self,
+impl State {
+    pub fn handle_method_call(
+        &mut self,
         languageId: Option<&str>,
         method_call: &rpc::MethodCall,
     ) -> Result<Value> {
@@ -111,8 +98,8 @@ impl IRpcHandler for Arc<RwLock<State>> {
         }
     }
 
-    fn handle_notification(
-        &self,
+    pub fn handle_notification(
+        &mut self,
         languageId: Option<&str>,
         notification: &rpc::Notification,
     ) -> Result<()> {
