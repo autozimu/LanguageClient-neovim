@@ -66,9 +66,6 @@ extern crate notify;
 extern crate structopt;
 use structopt::StructOpt;
 
-#[macro_use]
-extern crate lazy_static;
-
 mod types;
 use types::*;
 mod utils;
@@ -84,12 +81,8 @@ mod logger;
 #[derive(Debug, StructOpt)]
 struct Opt {}
 
-lazy_static! {
-    pub static ref LOGGER: Result<log4rs::Handle> = logger::init();
-}
-
 fn run() -> Result<()> {
-    let mut state = State::new();
+    let mut state = State::new()?;
 
     let tx = state.tx.clone();
     let reader_thread_name: String = "reader-main".into();
@@ -111,9 +104,6 @@ fn main() {
 
     let app = Opt::clap().version(version.as_str());
     let _ = app.get_matches();
-
-    let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e)).unwrap();
-    logger::set_logging_level(logger, "info").unwrap();
 
     if let Err(err) = run() {
         eprintln!("{:?}", err);

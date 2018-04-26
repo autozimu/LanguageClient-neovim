@@ -72,7 +72,7 @@ pub enum Call {
     Notification(Option<String>, rpc::Notification),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct State {
     // Program state.
     pub id: Id,
@@ -122,10 +122,13 @@ pub struct State {
     pub rootMarkers: Option<RootMarkers>,
     #[serde(skip_serializing)]
     pub change_throttle: Option<Duration>,
+
+    #[serde(skip_serializing)]
+    pub logger: log4rs::Handle,
 }
 
 impl State {
-    pub fn new() -> State {
+    pub fn new() -> Result<State> {
         // TODO: move this into LanguageClientStart.
         let (watcher_tx, watcher_rx) = channel();
         // TODO: duration configurable.
@@ -139,7 +142,9 @@ impl State {
 
         let (tx, rx) = channel();
 
-        State {
+        let logger = logger::init()?;
+
+        Ok(State {
             id: 0,
             tx,
             rx,
@@ -158,7 +163,7 @@ impl State {
             signs: HashMap::new(),
             highlight_source: None,
             user_handlers: HashMap::new(),
-            watcher_rx: watcher_rx,
+            watcher_rx,
             watcher,
 
             is_nvim: false,
@@ -178,13 +183,9 @@ impl State {
             loadSettings: false,
             rootMarkers: None,
             change_throttle: None,
-        }
-    }
-}
 
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
+            logger,
+        })
     }
 }
 

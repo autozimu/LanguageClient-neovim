@@ -49,8 +49,7 @@ impl State {
 
     fn sync_settings(&mut self) -> Result<()> {
         let loggingLevel: String = self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
-        let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
-        logger::set_logging_level(logger, &loggingLevel)?;
+        logger::set_logging_level(&self.logger, &loggingLevel)?;
 
         #[allow(unknown_lints)]
         #[allow(type_complexity)]
@@ -1797,8 +1796,7 @@ impl State {
     pub fn languageClient_setLoggingLevel(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
-        let logger = LOGGER.as_ref().map_err(|e| format_err!("{:?}", e))?;
-        logger::set_logging_level(logger, &loggingLevel)?;
+        logger::set_logging_level(&self.logger, &loggingLevel)?;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
     }
