@@ -1696,7 +1696,6 @@ impl State {
                         serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
                     if let Some(ref mut watcher) = self.watcher {
                         for w in opt.watchers {
-                            warn!("Start watching {}", w.glob_pattern);
                             watcher.watch(w.glob_pattern, notify::RecursiveMode::NonRecursive)?;
                         }
                     }
@@ -2425,22 +2424,54 @@ impl State {
         Ok(())
     }
 
-    pub fn check_fs_notify(&mut self) -> () {
+    pub fn check_fs_notify(&mut self) -> Result<()> {
         if self.watcher.is_some() {
+            let mut events = vec![];
             loop {
                 let result = self.watcher_rx.try_recv();
                 let event = match result {
                     Ok(event) => event,
                     Err(err) => {
                         if let TryRecvError::Disconnected = err {
-                            warn!("File system notification channel disconnected!");
+                            bail!("File system notification channel disconnected!");
                         }
                         break;
                     }
                 };
-
-                warn!("File system event: {:?}", event);
+                events.push(event);
             }
+
+            if events.is_empty() {
+                return Ok(());
+            }
+
+            let mut changes = vec![];
+            for e in events {
+                if let Ok(c) = e.to_lsp() {
+                    changes.extend(c);
+                }
+            }
+
+            use DidChangeWatchedFilesParams as P;
+            self.workspace_didChangeWatchedFiles(&P { changes }.to_params()?)?;
         }
+
+        Ok(())
+    }
+
+    pub fn workspace_didChangeWatchedFiles(&mut self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", lsp::notification::DidChangeWatchedFiles::METHOD);
+        let (languageId,): (String,) = self.gather_args([VimVar::LanguageId].as_ref(), params)?;
+
+        let params: DidChangeWatchedFilesParams =
+            serde_json::from_value(params.clone().to_value())?;
+        self.notify(
+            Some(&languageId),
+            lsp::notification::DidChangeWatchedFiles::METHOD,
+            params,
+        )?;
+
+        info!("End {}", lsp::notification::DidChangeWatchedFiles::METHOD);
+        Ok(())
     }
 }

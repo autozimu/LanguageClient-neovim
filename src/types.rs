@@ -861,3 +861,48 @@ impl<T: Deref> OptionDeref<T> for Option<T> {
         self.as_ref().map(Deref::deref)
     }
 }
+
+pub trait ToLSP<T> {
+    fn to_lsp(&self) -> Result<T>;
+}
+
+impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
+    fn to_lsp(&self) -> Result<Vec<FileEvent>> {
+        match *self {
+            notify::DebouncedEvent::Create(ref p) => Ok(vec![
+                FileEvent {
+                    uri: p.to_url()?,
+                    typ: FileChangeType::Created,
+                },
+            ]),
+            notify::DebouncedEvent::NoticeWrite(ref p) | notify::DebouncedEvent::Write(ref p) => {
+                Ok(vec![
+                    FileEvent {
+                        uri: p.to_url()?,
+                        typ: FileChangeType::Changed,
+                    },
+                ])
+            }
+            notify::DebouncedEvent::NoticeRemove(ref p) | notify::DebouncedEvent::Remove(ref p) => {
+                Ok(vec![
+                    FileEvent {
+                        uri: p.to_url()?,
+                        typ: FileChangeType::Deleted,
+                    },
+                ])
+            }
+            notify::DebouncedEvent::Rename(ref p1, ref p2) => Ok(vec![
+                FileEvent {
+                    uri: p1.to_url()?,
+                    typ: FileChangeType::Deleted,
+                },
+                FileEvent {
+                    uri: p2.to_url()?,
+                    typ: FileChangeType::Created,
+                },
+            ]),
+            notify::DebouncedEvent::Chmod(_) | notify::DebouncedEvent::Rescan => Ok(vec![]),
+            ref e @ notify::DebouncedEvent::Error(_, _) => Err(format_err!("{:?}", e)),
+        }
+    }
+}
