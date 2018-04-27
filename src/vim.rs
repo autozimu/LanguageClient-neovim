@@ -312,24 +312,12 @@ pub fn loop_reader<T: BufRead>(
             if line.is_empty() {
                 count_empty_lines += 1;
                 if count_empty_lines > 5 {
-                    // TODO
-                    // if let Err(err) = self.cleanup(&languageId) {
-                    //     error!("Error when cleanup: {:?}", err);
-                    // }
-
-                    let mut message =
-                        format!("Language server ({}) exited unexpectedly!", languageId);
-                    match get_log_server() {
-                        Ok(log_server) => {
-                            message += "\n\nlanguage server stderr:\n";
-                            message += &log_server;
-                        }
-                        Err(err) => error!("Error when get_log_server: {:?}", err),
+                    let mut message = "".to_string();
+                    if let Ok(log_server) = get_log_server() {
+                        message += "\n\nlanguage server stderr:\n";
+                        message += &log_server;
                     }
-                    // TODO
-                    // if let Err(err) = self.echoerr(&message) {
-                    //     error!("Error in echoerr: {:?}", err);
-                    // };
+
                     bail!("{}", message);
                 }
 

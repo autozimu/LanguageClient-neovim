@@ -2360,14 +2360,24 @@ impl State {
             Ok(())
         })?;
 
-        let languageId_clone = languageId.clone();
         let thread_name = format!("reader-{}", languageId);
         let tx = self.tx.clone();
         std::thread::Builder::new()
             .name(thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_reader(reader, &Some(languageId_clone), &tx) {
-                    error!("{} reader loop exited: {:?}", thread_name, err);
+                if let Err(err) = loop_reader(reader, &Some(languageId.clone()), &tx) {
+                    let _ = tx.send(Message::Notification(
+                        Some(languageId.clone()),
+                        rpc::Notification {
+                            jsonrpc: None,
+                            method: NOTIFICATION__ServerExited.into(),
+                            params: json!({
+                                "languageId": languageId,
+                                "message": format!("{}", err),
+                            }).to_params()
+                                .unwrap_or_default(),
+                        },
+                    ));
                 }
             })?;
 
@@ -2384,5 +2394,22 @@ impl State {
 
         self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
+    }
+
+    pub fn languageClient_serverExited(&mut self, params: &Option<Params>) -> Result<()> {
+        let (languageId, message): (String, String) = self.gather_args(
+            [VimVar::LanguageId.to_key().as_str(), "message"].as_ref(),
+            params,
+        )?;
+
+        if self.writers.contains_key(&languageId) {
+            let _ = self.cleanup(languageId.as_str());
+            let _ = self.echoerr(format!(
+                "Language server {} exited unexpectedly: {}",
+                languageId, message
+            ));
+        }
+
+        Ok(())
     }
 }

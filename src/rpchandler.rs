@@ -80,20 +80,21 @@ impl State {
             REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
 
             _ => {
-                if languageId.is_none() {
-                    // Request from vim, pass through.
-                    let (languageId,): (String,) =
-                        self.gather_args(&[VimVar::LanguageId], &method_call.params)?;
-
-                    self.call(
-                        Some(languageId.as_str()),
-                        &method_call.method,
-                        &method_call.params,
-                    )
+                let languageId_target = if languageId.is_some() {
+                    // Message from language server. Proxy to vim.
+                    None
                 } else {
-                    // Request from language servers.
-                    Err(format_err!("No handler found for: {:?}", method_call))
-                }
+                    // Message from vim. Proxy to language server.
+                    let (languageId_target,): (String,) =
+                        self.gather_args(&[VimVar::LanguageId], &method_call.params)?;
+                    Some(languageId_target)
+                };
+
+                self.call(
+                    languageId_target.as_deref(),
+                    &method_call.method,
+                    &method_call.params,
+                )
             }
         }
     }
@@ -166,22 +167,24 @@ impl State {
             }
             NOTIFICATION__WindowProgress => self.window_progress(&notification.params)?,
             NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
+            NOTIFICATION__ServerExited => self.languageClient_serverExited(&notification.params)?,
 
             _ => {
-                if languageId.is_none() {
-                    // Notification from vim, pass through.
-                    let (languageId,): (String,) =
-                        self.gather_args(&[VimVar::LanguageId], &notification.params)?;
-
-                    self.notify(
-                        Some(languageId.as_str()),
-                        &notification.method,
-                        &notification.params,
-                    )?;
+                let languageId_target = if languageId.is_some() {
+                    // Message from language server. Proxy to vim.
+                    None
                 } else {
-                    // Notification from language servers.
-                    warn!("No handler found for: {:?}", notification);
-                }
+                    // Message from vim. Proxy to language server.
+                    let (languageId_target,): (String,) =
+                        self.gather_args(&[VimVar::LanguageId], &notification.params)?;
+                    Some(languageId_target)
+                };
+
+                self.notify(
+                    languageId_target.as_deref(),
+                    &notification.method,
+                    &notification.params,
+                )?;
             }
         };
 
