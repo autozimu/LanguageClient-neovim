@@ -12,7 +12,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, ChildStdout, Stdio};
 use std::str::FromStr;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 use std::time;
 
@@ -61,6 +61,8 @@ extern crate glob;
 extern crate regex;
 
 extern crate notify;
+#[allow(unused_imports)]
+use notify::Watcher;
 
 #[macro_use]
 extern crate structopt;
@@ -71,11 +73,8 @@ use types::*;
 mod utils;
 use utils::*;
 mod vim;
-use vim::*;
 mod rpchandler;
 mod languageclient;
-#[allow(unused_imports)]
-use languageclient::*;
 mod logger;
 
 #[derive(Debug, StructOpt)]
@@ -91,7 +90,7 @@ fn run() -> Result<()> {
         .spawn(move || {
             let stdin = std::io::stdin();
             let stdin = stdin.lock();
-            if let Err(err) = loop_reader(stdin, &None, &tx) {
+            if let Err(err) = vim::loop_reader(stdin, &None, &tx) {
                 error!("{} exited: {:?}", reader_thread_name, err);
             }
         })?;

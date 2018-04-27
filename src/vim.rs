@@ -55,7 +55,7 @@ impl State {
                     if let Err(ref err) = result {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
-                                "Error handling message: {}\nMessage: {:?}\nError: {:?}",
+                                "Error handling message: {}\n\nMessage: {:?}\n\nError: {:?}",
                                 err, method_call, err
                             );
                         }
@@ -69,7 +69,7 @@ impl State {
                     if let Err(ref err) = result {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
-                                "Error handling message: {}\nMessage: {:?}\nError: {:?}",
+                                "Error handling message: {}\n\nMessage: {:?}\n\nError: {:?}",
                                 err, notification, err
                             );
                         }
@@ -80,6 +80,8 @@ impl State {
                     }
                 }
             }
+
+            self.check_fs_notify();
         }
     }
 
@@ -306,7 +308,7 @@ pub fn loop_reader<T: BufRead>(
     loop {
         let mut message = String::new();
         let mut line = String::new();
-        if let Some(languageId) = languageId.clone() {
+        if languageId.is_some() {
             input.read_line(&mut line)?;
             let line = line.trim();
             if line.is_empty() {
@@ -361,26 +363,4 @@ pub fn loop_reader<T: BufRead>(
     }
 
     Ok(())
-
-    // TODO: notify.
-    // if languageId.is_some() {
-    //     loop {
-    //         let event = self.update(|state| {
-    //             Ok(state
-    //                 .watcher_rx
-    //                 .lock()
-    //                 .map_err(|_| err_msg("Failed to lock watcher_rx"))?
-    //                 .try_recv()?)
-    //         });
-    //         let event = match event {
-    //             Ok(event) => event,
-    //             Err(err) => {
-    //                 error!("{}", err);
-    //                 break;
-    //             }
-    //         };
-
-    //         warn!("File system event: {:?}", event);
-    //     }
-    // }
 }

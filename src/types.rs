@@ -88,7 +88,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub writers: HashMap<String, Box<SyncWrite>>,
     pub capabilities: HashMap<String, Value>,
-    pub method_registrations: MethodRegistrations,
+    pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
@@ -102,7 +102,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub watcher_rx: Receiver<notify::DebouncedEvent>,
     #[serde(skip_serializing)]
-    pub watcher: Watcher,
+    pub watcher: Option<notify::RecommendedWatcher>,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
@@ -130,20 +130,19 @@ pub struct State {
 
 impl State {
     pub fn new() -> Result<State> {
-        // TODO: move this into LanguageClientStart.
-        let (watcher_tx, watcher_rx) = channel();
-        // TODO: duration configurable.
-        let watcher = match notify::watcher(watcher_tx, std::time::Duration::from_secs(2)) {
-            Ok(watcher) => Watcher::Some(watcher),
-            Err(err) => {
-                error!("{:?}", err);
-                Watcher::None
-            }
-        };
+        let logger = logger::init()?;
 
         let (tx, rx) = channel();
 
-        let logger = logger::init()?;
+        let (watcher_tx, watcher_rx) = channel();
+        // TODO: duration configurable.
+        let watcher = match notify::watcher(watcher_tx, std::time::Duration::from_secs(2)) {
+            Ok(watcher) => Some(watcher),
+            Err(err) => {
+                warn!("{:?}", err);
+                None
+            }
+        };
 
         Ok(State {
             id: 0,
@@ -155,7 +154,7 @@ impl State {
             child_ids: HashMap::new(),
             writers: HashMap::new(),
             capabilities: HashMap::new(),
-            method_registrations: MethodRegistrations::default(),
+            registrations: vec![],
             roots: HashMap::new(),
             text_documents: HashMap::new(),
             text_documents_metadata: HashMap::new(),
@@ -860,76 +859,5 @@ pub trait OptionDeref<T: Deref> {
 impl<T: Deref> OptionDeref<T> for Option<T> {
     fn as_deref(&self) -> Option<&T::Target> {
         self.as_ref().map(Deref::deref)
-    }
-}
-
-#[derive(Debug, Serialize, Default)]
-pub struct MethodRegistrations {
-    // (languageId, Id) => Options.
-    pub didChangeWatchedFiles:
-        HashMap<(String, String), Vec<DidChangeWatchedFilesRegistrationOptions>>,
-}
-
-impl MethodRegistrations {
-    pub fn register(&mut self, languageId: &str, r: &Registration) -> Result<()> {
-        match r.method.as_str() {
-            lsp::notification::DidChangeWatchedFiles::METHOD => {
-                let opt: DidChangeWatchedFilesRegistrationOptions =
-                    serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
-                self.didChangeWatchedFiles
-                    .entry((languageId.into(), r.id.clone()))
-                    .or_insert_with(|| vec![])
-                    .push(opt);
-            }
-            _ => {
-                warn!("Unknown registration: {:?}", r);
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn unregister(&mut self, languageId: &str, r: &Unregistration) -> Result<()> {
-        match r.method.as_str() {
-            lsp::notification::DidChangeWatchedFiles::METHOD => {
-                self.didChangeWatchedFiles
-                    .remove(&(languageId.into(), r.id.clone()));
-            }
-            _ => {
-                warn!("Unknown unregistration: {:?}", r);
-            }
-        }
-        Ok(())
-    }
-
-    pub fn get_didChangeWatchedFiles_languageIds(&self, path: &str) -> Result<Vec<String>> {
-        let mut lang_ids = vec![];
-        // TODO: optimize the structure.
-        for (&(ref lang_id, _), opts) in &self.didChangeWatchedFiles {
-            for opt in opts {
-                for watch in &opt.watchers {
-                    // TODO: match event.
-                    if glob::Pattern::new(watch.glob_pattern.as_str())?.matches(path) {
-                        lang_ids.push(lang_id.clone());
-                    }
-                }
-            }
-        }
-        Ok(lang_ids)
-    }
-}
-
-pub enum Watcher {
-    None,
-    Some(notify::RecommendedWatcher),
-}
-
-impl std::fmt::Debug for Watcher {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let msg = match *self {
-            Watcher::None => "None",
-            Watcher::Some(_) => "Some Watcher",
-        };
-        write!(f, "{}", msg)
     }
 }

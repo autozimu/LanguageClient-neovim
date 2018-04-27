@@ -1567,27 +1567,6 @@ impl State {
         }
         let uri = filename.to_url()?;
 
-        // TODO: use notify library to generate file event sources.
-        let lang_ids = self.get(|state| {
-            state
-                .method_registrations
-                .get_didChangeWatchedFiles_languageIds(&filename)
-        })?;
-        for lang_id in &lang_ids {
-            self.notify(
-                Some(lang_id.as_str()),
-                lsp::notification::DidChangeWatchedFiles::METHOD,
-                DidChangeWatchedFilesParams {
-                    changes: vec![
-                        FileEvent {
-                            uri: uri.clone(),
-                            typ: FileChangeType::Changed,
-                        },
-                    ],
-                },
-            )?;
-        }
-
         self.notify(
             Some(&languageId),
             lsp::notification::DidSaveTextDocument::METHOD,
@@ -1705,34 +1684,68 @@ impl State {
 
     pub fn client_registerCapability(
         &mut self,
-        languageId: &str,
+        _languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
         let params: RegistrationParams = serde_json::from_value(params.clone().to_value())?;
-        self.update(|state| {
-            for r in &params.registrations {
-                state.method_registrations.register(languageId, r)?;
+        for r in &params.registrations {
+            match r.method.as_str() {
+                lsp::notification::DidChangeWatchedFiles::METHOD => {
+                    let opt: DidChangeWatchedFilesRegistrationOptions =
+                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                    if let Some(ref mut watcher) = self.watcher {
+                        for w in opt.watchers {
+                            warn!("Start watching {}", w.glob_pattern);
+                            watcher.watch(w.glob_pattern, notify::RecursiveMode::NonRecursive)?;
+                        }
+                    }
+                }
+                _ => {
+                    warn!("Unknown registration: {:?}", r);
+                }
             }
-            Ok(())
-        })?;
+        }
+
+        self.registrations.extend(params.registrations);
         info!("End {}", lsp::request::RegisterCapability::METHOD);
         Ok(Value::Null)
     }
 
     pub fn client_unregisterCapability(
         &mut self,
-        languageId: &str,
+        _languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
         let params: UnregistrationParams = serde_json::from_value(params.clone().to_value())?;
-        self.update(|state| {
-            for r in params.unregisterations {
-                state.method_registrations.unregister(languageId, &r)?;
+        let mut regs_removed = vec![];
+        for r in &params.unregisterations {
+            if let Some(idx) = self.registrations
+                .iter()
+                .position(|i| i.id == r.id && i.method == r.method)
+            {
+                regs_removed.push(self.registrations.swap_remove(idx));
             }
-            Ok(())
-        })?;
+        }
+
+        for r in &regs_removed {
+            match r.method.as_str() {
+                lsp::notification::DidChangeWatchedFiles::METHOD => {
+                    let opt: DidChangeWatchedFilesRegistrationOptions =
+                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                    if let Some(ref mut watcher) = self.watcher {
+                        for w in opt.watchers {
+                            watcher.unwatch(w.glob_pattern)?;
+                        }
+                    }
+                }
+                _ => {
+                    warn!("Unknown registration: {:?}", r);
+                }
+            }
+        }
+
         info!("End {}", lsp::request::UnregisterCapability::METHOD);
         Ok(Value::Null)
     }
@@ -2365,7 +2378,7 @@ impl State {
         std::thread::Builder::new()
             .name(thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_reader(reader, &Some(languageId.clone()), &tx) {
+                if let Err(err) = vim::loop_reader(reader, &Some(languageId.clone()), &tx) {
                     let _ = tx.send(Message::Notification(
                         Some(languageId.clone()),
                         rpc::Notification {
@@ -2411,5 +2424,24 @@ impl State {
         }
 
         Ok(())
+    }
+
+    pub fn check_fs_notify(&mut self) -> () {
+        if self.watcher.is_some() {
+            loop {
+                let result = self.watcher_rx.try_recv();
+                let event = match result {
+                    Ok(event) => event,
+                    Err(err) => {
+                        if let TryRecvError::Disconnected = err {
+                            warn!("File system notification channel disconnected!");
+                        }
+                        break;
+                    }
+                };
+
+                warn!("File system event: {:?}", event);
+            }
+        }
     }
 }
