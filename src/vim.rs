@@ -55,27 +55,25 @@ impl State {
                     if let Err(ref err) = result {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
-                                "Error handling message: {}\n\nMessage: {:?}\n\nError: {:?}",
-                                err, method_call, err
+                                "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
+                                err,
+                                serde_json::to_string(&method_call).unwrap_or_default(),
+                                err
                             );
                         }
                     }
-                    if let Err(err) = self.output(lang_id.as_deref(), method_call.id, result) {
-                        error!("Error writing output to vim: {:?}", err);
-                    }
+                    let _ = self.output(lang_id.as_deref(), method_call.id, result);
                 }
                 Call::Notification(lang_id, notification) => {
                     let result = self.handle_notification(lang_id.as_deref(), &notification);
                     if let Err(ref err) = result {
                         if err.downcast_ref::<LCError>().is_none() {
                             error!(
-                                "Error handling message: {}\n\nMessage: {:?}\n\nError: {:?}",
-                                err, notification, err
+                                "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
+                                err,
+                                serde_json::to_string(&notification).unwrap_or_default(),
+                                err
                             );
-                        }
-
-                        if let Err(err) = self.echowarn(format!("{}", err)) {
-                            error!("Error making request to vim: {:?}", err);
                         }
                     }
                 }
@@ -87,6 +85,7 @@ impl State {
 
     /// Send message to RPC server.
     fn write(&mut self, languageId: Option<&str>, message: &str) -> Result<()> {
+        info!("=> {:?} {}", languageId, message);
         if let Some(languageId) = languageId {
             let writer = self.writers
                 .get_mut(languageId)
@@ -124,7 +123,6 @@ impl State {
         };
 
         let message = serde_json::to_string(&method_call)?;
-        info!("=> {}", message);
         self.write(languageId, &message)?;
 
         match self.poll_output(id)? {
@@ -145,7 +143,6 @@ impl State {
         };
 
         let message = serde_json::to_string(&notification)?;
-        info!("=> {}", message);
         self.write(languageId, &message)?;
 
         Ok(())
@@ -172,7 +169,6 @@ impl State {
         };
 
         let message = serde_json::to_string(&response)?;
-        info!("=> {}", message);
         self.write(languageId, &message)?;
         Ok(())
     }
@@ -347,7 +343,7 @@ pub fn loop_reader<T: BufRead>(
         if message.is_empty() {
             continue;
         }
-        info!("<= {}", message);
+        info!("<= {:?} {}", languageId, message);
         // let message = message.replace(r#","meta":{}"#, "");
         let message: RawMessage = serde_json::from_str(message)?;
         let message = match message {

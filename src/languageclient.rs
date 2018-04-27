@@ -1874,8 +1874,7 @@ impl State {
                 let ret = self.languageClient_startServer(params);
                 // This is triggered from autocmd, silent all errors.
                 if let Err(err) = ret {
-                    warn!("Failed to start language server automatically: {}", err);
-                    info!("{:?}", err);
+                    warn!("Failed to start language server automatically. {}", err);
                 }
             }
         }
@@ -2314,7 +2313,7 @@ impl State {
                 .cloned()
                 .ok_or_else(|| {
                     format_err!(
-                        "No language server command found for type: {}.",
+                        "No language server command found for file type: {}.",
                         &languageId
                     )
                 })
