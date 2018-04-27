@@ -760,14 +760,14 @@ impl State {
             return Ok(result);
         }
 
-        let response: GotoDefinitionResponse = serde_json::from_value(result.clone())?;
+        let response: Option<GotoDefinitionResponse> = result.clone().to_lsp()?;
 
         match response {
-            GotoDefinitionResponse::None => {
+            None => {
                 self.echowarn("Not found!")?;
                 return Ok(Value::Null);
             }
-            GotoDefinitionResponse::Scalar(loc) => {
+            Some(GotoDefinitionResponse::Scalar(loc)) => {
                 self.goto_location(
                     &goto_cmd,
                     loc.uri.filepath()?,
@@ -775,7 +775,7 @@ impl State {
                     loc.range.start.character,
                 )?;
             }
-            GotoDefinitionResponse::Array(arr) => match arr.len() {
+            Some(GotoDefinitionResponse::Array(arr)) => match arr.len() {
                 0 => self.echowarn("Not found!")?,
                 1 => {
                     let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
@@ -1431,7 +1431,7 @@ impl State {
     pub fn workspace_applyEdit(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
-        let params: ApplyWorkspaceEditParams = serde_json::from_value(params.clone().to_value())?;
+        let params: ApplyWorkspaceEditParams = params.clone().to_lsp()?;
         self.apply_WorkspaceEdit(&params.edit, &None)?;
 
         info!("End {}", lsp::request::ApplyWorkspaceEdit::METHOD);
@@ -1604,7 +1604,7 @@ impl State {
 
     pub fn textDocument_publishDiagnostics(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::PublishDiagnostics::METHOD);
-        let params: PublishDiagnosticsParams = serde_json::from_value(params.clone().to_value())?;
+        let params: PublishDiagnosticsParams = params.clone().to_lsp()?;
         if !self.get(|state| Ok(state.diagnosticsEnable))? {
             return Ok(());
         }
@@ -1670,7 +1670,7 @@ impl State {
 
     pub fn window_logMessage(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::LogMessage::METHOD);
-        let params: LogMessageParams = serde_json::from_value(params.clone().to_value())?;
+        let params: LogMessageParams = params.clone().to_lsp()?;
         let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
         if params.typ.to_int()? > threshold {
             return Ok(());
@@ -1688,7 +1688,7 @@ impl State {
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
-        let params: RegistrationParams = serde_json::from_value(params.clone().to_value())?;
+        let params: RegistrationParams = params.clone().to_lsp()?;
         for r in &params.registrations {
             match r.method.as_str() {
                 lsp::notification::DidChangeWatchedFiles::METHOD => {
@@ -1717,7 +1717,7 @@ impl State {
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
-        let params: UnregistrationParams = serde_json::from_value(params.clone().to_value())?;
+        let params: UnregistrationParams = params.clone().to_lsp()?;
         let mut regs_removed = vec![];
         for r in &params.unregisterations {
             if let Some(idx) = self.registrations
@@ -1791,7 +1791,7 @@ impl State {
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
-        let commands = serde_json::from_value(params.clone().to_value())?;
+        let commands = params.clone().to_lsp()?;
         self.update(|state| {
             state.serverCommands.merge(commands);
             Ok(())
@@ -1815,7 +1815,7 @@ impl State {
 
     pub fn languageClient_registerHandlers(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
-        let handlers = serde_json::from_value(params.clone().to_value())?;
+        let handlers = params.clone().to_lsp()?;
         self.update(|state| {
             state.user_handlers.merge(handlers);
             Ok(())
@@ -2061,7 +2061,7 @@ impl State {
 
     pub fn NCM_refresh(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__NCMRefresh);
-        let params: NCMRefreshParams = serde_json::from_value(params.clone().to_value())?;
+        let params: NCMRefreshParams = serde_json::from_value(rpc::to_value(params.clone())?)?;
         let NCMRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
@@ -2140,7 +2140,7 @@ impl State {
     // Extensions by languge servers.
     pub fn language_status(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__LanguageStatus);
-        let params: LanguageStatusParams = serde_json::from_value(params.clone().to_value())?;
+        let params: LanguageStatusParams = params.clone().to_lsp()?;
         let msg = format!("{} {}", params.typee, params.message);
         self.echomsg(&msg)?;
         info!("End {}", NOTIFICATION__LanguageStatus);
@@ -2225,7 +2225,7 @@ impl State {
 
     pub fn window_progress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__WindowProgress);
-        let params: WindowProgressParams = serde_json::from_value(params.clone().to_value())?;
+        let params: WindowProgressParams = params.clone().to_lsp()?;
 
         let done = params.done.unwrap_or(false);
 
@@ -2264,7 +2264,7 @@ impl State {
 
     pub fn cquery_handleProgress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
-        let params: CqueryProgressParams = serde_json::from_value(params.clone().to_value())?;
+        let params: CqueryProgressParams = params.clone().to_lsp()?;
         let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
             + params.onIdMappedCount + params.onIndexedCount;
         if total != 0 {
@@ -2286,7 +2286,8 @@ impl State {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
-        let params = params.clone().to_value().combine(cmdparams).to_params()?;
+        let params = rpc::to_value(params.clone())?;
+        let params = params.combine(cmdparams).to_params()?;
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             &params,
@@ -2431,11 +2432,11 @@ impl State {
                 let result = self.watcher_rx.try_recv();
                 let event = match result {
                     Ok(event) => event,
-                    Err(err) => {
-                        if let TryRecvError::Disconnected = err {
-                            bail!("File system notification channel disconnected!");
-                        }
+                    Err(TryRecvError::Empty) => {
                         break;
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        bail!("File system notification channel disconnected!");
                     }
                 };
                 events.push(event);
@@ -2463,8 +2464,7 @@ impl State {
         info!("Begin {}", lsp::notification::DidChangeWatchedFiles::METHOD);
         let (languageId,): (String,) = self.gather_args([VimVar::LanguageId].as_ref(), params)?;
 
-        let params: DidChangeWatchedFilesParams =
-            serde_json::from_value(params.clone().to_value())?;
+        let params: DidChangeWatchedFilesParams = params.clone().to_lsp()?;
         self.notify(
             Some(&languageId),
             lsp::notification::DidChangeWatchedFiles::METHOD,

@@ -344,14 +344,6 @@ impl Hash for Sign {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum GotoDefinitionResponse {
-    None,
-    Scalar(Location),
-    Array(Vec<Location>),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct QuickfixEntry {
     pub filename: String,
     pub lnum: u64,
@@ -503,22 +495,6 @@ where
         };
 
         Ok(params)
-    }
-}
-
-pub trait ToValue {
-    fn to_value(self) -> Value;
-}
-
-impl ToValue for Option<Params> {
-    fn to_value(self) -> Value {
-        let params = self.unwrap_or(Params::None);
-
-        match params {
-            Params::None => Value::Null,
-            Params::Array(vec) => Value::Array(vec),
-            Params::Map(map) => Value::Object(map),
-        }
     }
 }
 
@@ -863,27 +839,25 @@ impl<T: Deref> OptionDeref<T> for Option<T> {
 }
 
 pub trait ToLSP<T> {
-    fn to_lsp(&self) -> Result<T>;
+    fn to_lsp(self) -> Result<T>;
 }
 
 impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
-    fn to_lsp(&self) -> Result<Vec<FileEvent>> {
-        match *self {
-            notify::DebouncedEvent::Create(ref p) => Ok(vec![
+    fn to_lsp(self) -> Result<Vec<FileEvent>> {
+        match self {
+            notify::DebouncedEvent::Create(p) => Ok(vec![
                 FileEvent {
                     uri: p.to_url()?,
                     typ: FileChangeType::Created,
                 },
             ]),
-            notify::DebouncedEvent::NoticeWrite(ref p) | notify::DebouncedEvent::Write(ref p) => {
-                Ok(vec![
-                    FileEvent {
-                        uri: p.to_url()?,
-                        typ: FileChangeType::Changed,
-                    },
-                ])
-            }
-            notify::DebouncedEvent::NoticeRemove(ref p) | notify::DebouncedEvent::Remove(ref p) => {
+            notify::DebouncedEvent::NoticeWrite(p) | notify::DebouncedEvent::Write(p) => Ok(vec![
+                FileEvent {
+                    uri: p.to_url()?,
+                    typ: FileChangeType::Changed,
+                },
+            ]),
+            notify::DebouncedEvent::NoticeRemove(p) | notify::DebouncedEvent::Remove(p) => {
                 Ok(vec![
                     FileEvent {
                         uri: p.to_url()?,
@@ -891,7 +865,7 @@ impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
                     },
                 ])
             }
-            notify::DebouncedEvent::Rename(ref p1, ref p2) => Ok(vec![
+            notify::DebouncedEvent::Rename(p1, p2) => Ok(vec![
                 FileEvent {
                     uri: p1.to_url()?,
                     typ: FileChangeType::Deleted,
@@ -902,7 +876,25 @@ impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
                 },
             ]),
             notify::DebouncedEvent::Chmod(_) | notify::DebouncedEvent::Rescan => Ok(vec![]),
-            ref e @ notify::DebouncedEvent::Error(_, _) => Err(format_err!("{:?}", e)),
+            e @ notify::DebouncedEvent::Error(_, _) => Err(format_err!("{:?}", e)),
         }
+    }
+}
+
+impl<T> ToLSP<T> for Value
+where
+    T: DeserializeOwned,
+{
+    fn to_lsp(self) -> Result<T> {
+        Ok(serde_json::from_value(self)?)
+    }
+}
+
+impl<T> ToLSP<T> for Option<Params>
+where
+    T: DeserializeOwned,
+{
+    fn to_lsp(self) -> Result<T> {
+        serde_json::to_value(self)?.to_lsp()
     }
 }

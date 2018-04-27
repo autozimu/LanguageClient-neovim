@@ -45,9 +45,8 @@ extern crate jsonrpc_core as rpc;
 use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
-#[allow(unused_imports)]
-use lsp::notification::Notification;
 use lsp::*;
+use lsp::request::GotoDefinitionResponse;
 
 extern crate url;
 use url::Url;
