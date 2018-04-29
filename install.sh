@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 # Try install by
 #   - download binary
 #   - build with cargo
