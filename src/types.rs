@@ -424,7 +424,7 @@ impl From<CompletionItem> for VimCompleteItem {
                 // EXTREMELY HACKY.
                 abbr = "".into();
                 edit.new_text.split_whitespace().last().unwrap_or(&edit.new_text)
-                    .trim_matches(|c| !char::is_alphanumeric(c))
+                    .trim_left_matches(|c| !char::is_alphanumeric(c))
                     .into()
             })
             // Or else insertText.
