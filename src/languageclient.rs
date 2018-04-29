@@ -1203,7 +1203,8 @@ impl State {
             return Ok(Value::Null);
         }
 
-        let (tab_size, insert_spaces): (u64, u64) = self.eval(["&tabstop", "&expandtab"].as_ref())?;
+        let (tab_size, insert_spaces): (u64, u64) =
+            self.eval(["shiftwidth()", "&expandtab"].as_ref())?;
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
