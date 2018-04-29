@@ -591,7 +591,7 @@ impl ToDisplay for lsp::MarkedString {
 
 impl ToDisplay for MarkupContent {
     fn to_display(&self) -> Vec<String> {
-        self.value.lines().map(|i| i.to_string()).collect()
+        self.value.lines().map(str::to_string).collect()
     }
 }
 
@@ -599,8 +599,8 @@ impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => arr.iter().flat_map(|i| i.to_display()).collect(),
-            HoverContents::Markup(ref mc) => vec![mc.to_string()],
+            HoverContents::Array(ref arr) => arr.iter().flat_map(ToDisplay::to_display).collect(),
+            HoverContents::Markup(ref mc) => mc.to_display(),
         }
     }
 }
