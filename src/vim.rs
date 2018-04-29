@@ -177,6 +177,7 @@ impl State {
 
     /////// Vim wrappers ///////
 
+    #[allow(needless_pass_by_value)]
     pub fn eval<E, T>(&mut self, exp: E) -> Result<T>
     where
         E: VimExp,

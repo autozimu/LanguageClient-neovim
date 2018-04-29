@@ -27,6 +27,7 @@ pub fn init() -> Result<Handle> {
             .write(true)
             .truncate(true)
             .open(utils::get_logpath())?;
+        #[allow(write_literal)]
         writeln!(
             f,
             "#######\nLanguageClient {} {}\n#######",
