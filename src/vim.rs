@@ -193,10 +193,14 @@ impl State {
 
     ////// Vim builtin function wrappers ///////
 
-    pub fn echo<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
-        let message = escape_single_quote(message.as_ref());
-        let cmd = format!("echo '{}'", message);
-        self.command(cmd)
+    pub fn echo<S>(&mut self, message: S) -> Result<()>
+    where
+        S: AsRef<str> + Serialize,
+    {
+        if self.call::<_, u8>(None, "s:Echo", message)? != 0 {
+            bail!("return value is failure");
+        }
+        Ok(())
     }
 
     pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
@@ -205,22 +209,34 @@ impl State {
         Ok(())
     }
 
-    pub fn echomsg<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
-        let message = escape_single_quote(message);
-        let cmd = format!("echomsg '{}'", message);
-        self.command(cmd)
+    pub fn echomsg<S>(&mut self, message: S) -> Result<()>
+    where
+        S: AsRef<str> + Serialize,
+    {
+        if self.call::<_, u8>(None, "s:Echomsg", message)? != 0 {
+            bail!("return value is failure");
+        }
+        Ok(())
     }
 
-    pub fn echoerr<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
-        let message = escape_single_quote(message);
-        let cmd = format!("echohl Error | echomsg '{}' | echohl None", message);
-        self.command(cmd)
+    pub fn echoerr<S>(&mut self, message: S) -> Result<()>
+    where
+        S: AsRef<str> + Serialize,
+    {
+        if self.call::<_, u8>(None, "s:Echoerr", message)? != 0 {
+            bail!("return value is failure");
+        }
+        Ok(())
     }
 
-    pub fn echowarn<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
-        let message = escape_single_quote(message);
-        let cmd = format!("echohl WarningMsg | echomsg '{}' | echohl None", message);
-        self.command(cmd)
+    pub fn echowarn<S>(&mut self, message: S) -> Result<()>
+    where
+        S: AsRef<str> + Serialize,
+    {
+        if self.call::<_, u8>(None, "s:Echowarn", message)? != 0 {
+            bail!("return value is failure");
+        }
+        Ok(())
     }
 
     pub fn goto_location<P: AsRef<Path>>(

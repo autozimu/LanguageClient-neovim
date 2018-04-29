@@ -2,6 +2,10 @@ if get(g:, 'LanguageClient_loaded')
     finish
 endif
 
+function! s:Echo(message) abort
+    echo a:message
+endfunction
+
 " Echo message without trigger |hit-enter|
 function! s:EchoEllipsis(message) abort
     let l:maxlen = &columns * &cmdheight - 2
@@ -19,8 +23,16 @@ function! s:EchoEllipsis(message) abort
     echo l:message
 endfunction
 
+function! s:Echomsg(message) abort
+    echomsg a:message
+endfunction
+
 function! s:Echoerr(message) abort
     echohl Error | echomsg a:message | echohl None
+endfunction
+
+function! s:Echowarn(message) abort
+    echohl WarningMsg | echomsg a:message | echohl None
 endfunction
 
 function! s:Debug(message) abort
