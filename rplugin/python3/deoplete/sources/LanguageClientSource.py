@@ -12,7 +12,6 @@ class Source(Base):
         self.name = "LanguageClient"
         self.mark = "[LC]"
         self.rank = 1000
-        self.sorters = ["sorter_word"]
         self.min_pattern_length = 1
         self.filetypes = vim.eval(
             "get(g:, 'LanguageClient_serverCommands', {})").keys()
