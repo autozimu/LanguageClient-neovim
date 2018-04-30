@@ -46,6 +46,10 @@ function! s:Debug(message) abort
 endfunction
 
 function! s:hasSnippetSupport() abort
+    if get(g:, 'LanguageClient_hasSnippetSupport', 1) !=# 1
+        return 0
+    endif
+
     " https://github.com/SirVer/ultisnips
     if exists('g:did_plugin_ultisnips')
         return 1

@@ -204,6 +204,13 @@ Customize fzf. Check fzf documentation for available options.
 Default: v:null
 Valid option: Array<String> | String
 
+2.16 g:LanguageClient_hasSnippetSupport   *g:LanguageClient_hasSnippetSupport*
+
+Override detection of snippet support.
+
+Default: 1
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
