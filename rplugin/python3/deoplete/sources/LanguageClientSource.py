@@ -12,7 +12,7 @@ class Source(Base):
         self.name = "LanguageClient"
         self.mark = "[LC]"
         self.rank = 1000
-        self.min_pattern_length = 0
+        self.min_pattern_length = 1
         self.filetypes = vim.eval(
             "get(g:, 'LanguageClient_serverCommands', {})").keys()
         self.input_pattern += r'(\.|::|->)\w*$'
