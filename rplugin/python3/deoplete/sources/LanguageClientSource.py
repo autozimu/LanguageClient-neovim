@@ -12,7 +12,7 @@ class Source(Base):
         self.name = "LanguageClient"
         self.mark = "[LC]"
         self.rank = 1000
-        self.min_pattern_length = 1
+        self.min_pattern_length = 0
         self.filetypes = vim.eval(
             "get(g:, 'LanguageClient_serverCommands', {})").keys()
         self.input_pattern += r'(\.|::|->)\w*$'
@@ -35,7 +35,7 @@ class Source(Base):
             context["is_async"] = True
             self.vim.command("let {} = []".format(CompleteOutputs))
             self.vim.funcs.LanguageClient_omniComplete({
-                "character": context["complete_position"],
+                "character": context["complete_position"] + len(context["complete_str"]),
             })
         return []
 
