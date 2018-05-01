@@ -12,7 +12,7 @@ class Source(Base):
         self.name = "LanguageClient"
         self.mark = "[LC]"
         self.rank = 1000
-        self.min_pattern_length = 0
+        self.min_pattern_length = 1
         self.filetypes = vim.eval(
             "get(g:, 'LanguageClient_serverCommands', {})").keys()
         self.input_pattern += r'(\.|::|->)\w*$'
@@ -20,7 +20,7 @@ class Source(Base):
 
     def get_complete_position(self, context):
         m = self.complete_pos.search(context['input'])
-        return m.end() if m else -1
+        return m.start() if m else -1
 
     def gather_candidates(self, context):
         if context["is_async"]:
