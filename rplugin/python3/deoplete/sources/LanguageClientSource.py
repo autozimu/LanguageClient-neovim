@@ -34,8 +34,10 @@ class Source(Base):
         else:
             context["is_async"] = True
             self.vim.command("let {} = []".format(CompleteOutputs))
+            character = (context["complete_position"]
+                         + len(context["complete_str"]))
             self.vim.funcs.LanguageClient_omniComplete({
-                "character": context["complete_position"] + len(context["complete_str"]),
+                "character": character,
             })
         return []
 
