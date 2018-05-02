@@ -23,7 +23,7 @@ languageserver-types = "0"
 url = "1"
 pathdiff = "0"
 diff = "0"
-regex = "0"
+regex = "1"
 glob = "0"
 notify = "4"
 
