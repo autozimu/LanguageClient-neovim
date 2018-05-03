@@ -354,7 +354,7 @@ pub struct QuickfixEntry {
     pub nr: Option<String>,
     pub text: Option<String>,
     #[serde(rename = "type")]
-    pub typee: Option<char>,
+    pub typ: Option<char>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -920,7 +920,7 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
             col: Some(start.character + 1),
             text: Some(sym.name.clone()),
             nr: None,
-            typee: None,
+            typ: None,
         })
     }
 }

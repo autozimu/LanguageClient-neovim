@@ -359,22 +359,23 @@ impl State {
         Ok(())
     }
 
-    fn location_to_quickfix_entry(&mut self, loc: &Location) -> Result<QuickfixEntry> {
-        let filename = loc.uri.filepath()?;
-        let start = loc.range.start;
-        let text = self.get_line(&filename, start.line).unwrap_or_default();
+    fn display_locations(&mut self, locations: &[Location]) -> Result<()> {
+        let location_to_quickfix_entry =
+            |state: &mut Self, loc: &Location| -> Result<QuickfixEntry> {
+                let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
+                let start = loc.range.start;
+                let text = state.get_line(&filename, start.line).unwrap_or_default();
 
-        Ok(QuickfixEntry {
-            filename: filename.to_string_lossy().into_owned(),
-            lnum: start.line + 1,
-            col: Some(start.character + 1),
-            text: Some(text),
-            nr: None,
-            typee: None,
-        })
-    }
+                Ok(QuickfixEntry {
+                    filename,
+                    lnum: start.line + 1,
+                    col: Some(start.character + 1),
+                    text: Some(text),
+                    nr: None,
+                    typ: None,
+                })
+            };
 
-    fn display_locations(&mut self, locations: &[Location], _languageId: &str) -> Result<()> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
@@ -405,7 +406,7 @@ impl State {
             SelectionUI::Quickfix => {
                 let list: Result<Vec<_>> = locations
                     .iter()
-                    .map(|loc| self.location_to_quickfix_entry(loc))
+                    .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
                 self.setqflist(&list)?;
@@ -414,7 +415,7 @@ impl State {
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = locations
                     .iter()
-                    .map(|loc| self.location_to_quickfix_entry(loc))
+                    .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
                 self.setloclist(&list)?;
@@ -805,7 +806,7 @@ impl State {
                         loc.range.start.character,
                     )?;
                 }
-                _ => self.display_locations(&arr, &languageId)?,
+                _ => self.display_locations(&arr)?,
             },
         };
 
@@ -1194,7 +1195,7 @@ impl State {
         }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations, &languageId)?;
+        self.display_locations(&locations)?;
 
         info!("End {}", lsp::request::References::METHOD);
         Ok(result)
@@ -1645,7 +1646,7 @@ impl State {
                             col: Some(dn.range.start.character + 1),
                             nr: dn.code.clone().map(|ns| ns.to_string()),
                             text: Some(dn.message.to_owned()),
-                            typee: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
+                            typ: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
                         })
                         .collect::<Vec<_>>()
                 })
@@ -2192,7 +2193,7 @@ impl State {
         }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations, &languageId)?;
+        self.display_locations(&locations)?;
 
         info!("End {}", REQUEST__RustImplementations);
         Ok(result)
