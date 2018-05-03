@@ -353,6 +353,21 @@ impl State {
         Ok(())
     }
 
+    fn location_to_quickfix_entry(&mut self, loc: &Location) -> Result<QuickfixEntry> {
+        let filename = loc.uri.filepath()?;
+        let start = loc.range.start;
+        let text = self.get_line(&filename, start.line).unwrap_or_default();
+
+        Ok(QuickfixEntry {
+            filename: filename.to_string_lossy().into_owned(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(text),
+            nr: None,
+            typee: None,
+        })
+    }
+
     fn display_locations(&mut self, locations: &[Location], _languageId: &str) -> Result<()> {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
@@ -381,24 +396,22 @@ impl State {
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
                 )?;
             }
-            SelectionUI::LocationList => {
-                let loclist: Result<Vec<_>> = locations
+            SelectionUI::Quickfix => {
+                let list: Result<Vec<_>> = locations
                     .iter()
-                    .map(|loc| {
-                        let filename = loc.uri.filepath()?;
-                        let start = loc.range.start;
-                        let text = self.get_line(&filename, start.line).unwrap_or_default();
-                        Ok(json!({
-                            "filename": filename,
-                            "lnum": start.line + 1,
-                            "col": start.character + 1,
-                            "text": text,
-                        }))
-                    })
+                    .map(|loc| self.location_to_quickfix_entry(loc))
                     .collect();
-                let loclist = loclist?;
-
-                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
+                let list = list?;
+                self.setqflist(&list)?;
+                self.echo("Quickfix list updated.")?;
+            }
+            SelectionUI::LocationList => {
+                let list: Result<Vec<_>> = locations
+                    .iter()
+                    .map(|loc| self.location_to_quickfix_entry(loc))
+                    .collect();
+                let list = list?;
+                self.setloclist(&list)?;
                 self.echo("Location list updated.")?;
             }
         }
@@ -906,21 +919,16 @@ impl State {
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
                 )?;
             }
+            SelectionUI::Quickfix => {
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list = list?;
+                self.setqflist(&list)?;
+                self.echo("Document symbols populated to quickfix list.")?;
+            }
             SelectionUI::LocationList => {
-                let loclist: Vec<_> = symbols
-                    .iter()
-                    .map(|sym| {
-                        let start = sym.location.range.start;
-                        json!({
-                            "filename": filename,
-                            "lnum": start.line + 1,
-                            "col": start.character + 1,
-                            "text": sym.name,
-                        })
-                    })
-                    .collect();
-
-                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list = list?;
+                self.setloclist(&list)?;
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -1390,22 +1398,16 @@ impl State {
                     json!([source, format!("s:{}", NOTIFICATION__FZFSinkLocation)]),
                 )?;
             }
+            SelectionUI::Quickfix => {
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list = list?;
+                self.setqflist(&list)?;
+                self.echo("Workspace symbols populated to quickfix list.")?;
+            }
             SelectionUI::LocationList => {
-                let loclist: Result<Vec<_>> = symbols
-                    .iter()
-                    .map(|sym| {
-                        let start = sym.location.range.start;
-                        Ok(json!({
-                        "filename": sym.location.uri.filepath()?,
-                        "lnum": start.line + 1,
-                        "col": start.character + 1,
-                        "text": sym.name,
-                    }))
-                    })
-                    .collect();
-                let loclist = loclist?;
-
-                self.call::<_, u8>(None, "setloclist", json!([0, loclist]))?;
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list = list?;
+                self.setloclist(&list)?;
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
@@ -1646,14 +1648,10 @@ impl State {
 
         match self.get(|state| Ok(state.diagnosticsList.clone()))? {
             DiagnosticsList::Quickfix => {
-                if self.call::<_, u8>(None, "setqflist", json!([qflist, "r"]))? != 0 {
-                    bail!("Failed to set quickfix list!");
-                }
+                self.setqflist(&qflist)?;
             }
             DiagnosticsList::Location => {
-                if self.call::<_, u8>(None, "setloclist", json!([0, qflist, "r"]))? != 0 {
-                    bail!("Failed to set location list!");
-                }
+                self.setloclist(&qflist)?;
             }
             DiagnosticsList::Disabled => {}
         }

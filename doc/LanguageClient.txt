@@ -128,7 +128,7 @@ Default: 1.
 Selection UI used when there are multiple entries.
 
 Default: If fzf is loaded, use "fzf", otherwise use "location-list".
-Valid options: "fzf" | "location-list"
+Valid options: "fzf" | "quickfix" | "location-list"
 
 2.7 g:LanguageClient_trace                           *g:LanguageClient_trace*
 

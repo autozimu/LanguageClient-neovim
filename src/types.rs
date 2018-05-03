@@ -192,6 +192,7 @@ impl State {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SelectionUI {
     FZF,
+    Quickfix,
     LocationList,
 }
 
@@ -207,6 +208,7 @@ impl FromStr for SelectionUI {
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "FZF" => Ok(SelectionUI::FZF),
+            "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
             _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
         }
@@ -896,5 +898,27 @@ where
 {
     fn to_lsp(self) -> Result<T> {
         serde_json::to_value(self)?.to_lsp()
+    }
+}
+
+pub trait FromLSP<F>
+where
+    Self: Sized,
+{
+    fn from_lsp(f: &F) -> Result<Self>;
+}
+
+impl FromLSP<SymbolInformation> for QuickfixEntry {
+    fn from_lsp(sym: &SymbolInformation) -> Result<Self> {
+        let start = sym.location.range.start;
+
+        Ok(QuickfixEntry {
+            filename: sym.location.uri.filepath()?.to_string_lossy().into_owned(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(sym.name.clone()),
+            nr: None,
+            typee: None,
+        })
     }
 }

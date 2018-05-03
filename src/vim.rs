@@ -269,6 +269,20 @@ impl State {
         self.command(cmd)
     }
 
+    pub fn setqflist(&mut self, list: &[QuickfixEntry]) -> Result<()> {
+        if self.call::<_, u8>(None, "setqflist", json!([list, "r"]))? != 0 {
+            bail!("Failed to set quickfix list!");
+        }
+        Ok(())
+    }
+
+    pub fn setloclist(&mut self, list: &[QuickfixEntry]) -> Result<()> {
+        if self.call::<_, u8>(None, "setloclist", json!([0, list, "r"]))? != 0 {
+            bail!("Failed to set location list!");
+        }
+        Ok(())
+    }
+
     pub fn get<F, T>(&self, f: F) -> Result<T>
     where
         F: FnOnce(&State) -> Result<T>,
