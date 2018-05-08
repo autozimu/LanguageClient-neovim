@@ -117,6 +117,9 @@ impl State {
         }
 
         match notification.method.as_str() {
+            lsp::notification::DidChangeConfiguration::METHOD => {
+                self.workspace_didChangeConfiguration(&notification.params)?
+            }
             lsp::notification::DidOpenTextDocument::METHOD => {
                 self.textDocument_didOpen(&notification.params)?
             }

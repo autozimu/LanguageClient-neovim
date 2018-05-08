@@ -5,7 +5,7 @@ if test -z "$TMP"; then
     TMP=/tmp
 fi
 
-LOG="$TMP/LanguageServer.log"
+LOG="$TMP/wrapper-server.log"
 
 tee -a $LOG | RUST_LOG=rls rls 2>>$LOG | tee -a $LOG
 

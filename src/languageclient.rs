@@ -172,6 +172,17 @@ impl State {
         Ok(())
     }
 
+    fn get_workspace_settings(&self, root: &String) -> Result<Value> {
+        if !self.get(|state| Ok(state.loadSettings))? {
+            return Err(err_msg("No load settings"));
+        }
+
+        let mut f = File::open(Path::new(&root).join(self.settingsPath.clone()))?;
+        let mut buffer = String::new();
+        f.read_to_string(&mut buffer)?;
+        Ok(serde_json::from_str(&buffer)?)
+    }
+
     fn define_signs(&mut self) -> Result<()> {
         info!("Define signs");
         let cmd = self.get(|state| {
@@ -614,25 +625,11 @@ impl State {
         let has_snippet_support = has_snippet_support > 0;
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
-        let settings = || -> Result<Value> {
-            if !self.get(|state| Ok(state.loadSettings))? {
-                return Ok(json!({}));
-            }
-
-            let mut f = File::open(
-                Path::new(&root).join(self.get(|state| Ok(state.settingsPath.clone()))?),
-            )?;
-            let mut buffer = String::new();
-            f.read_to_string(&mut buffer)?;
-            Ok(serde_json::from_str(&buffer)?)
-        }()
-            .unwrap_or_else(|_| json!({}));
-        debug!("Project settings: {}", serde_json::to_string(&settings)?);
-        let initialization_options = Some(settings["initializationOptions"].clone());
-        debug!(
-            "Project settings.initializationOptions: {}",
-            serde_json::to_string(&initialization_options)?
-        );
+        let initialization_options = self.get_workspace_settings(&root)
+            .map(|s| s["initializationOptions"].clone());
+        if let Err(ref err) = initialization_options {
+            info!("Failed to load settings.initializationOptions: {}", err);
+        }
 
         let trace = self.get(|state| Ok(state.trace.clone()))?;
 
@@ -643,7 +640,7 @@ impl State {
                 process_id: Some(unsafe { libc::getpid() } as u64),
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
-                initialization_options,
+                initialization_options: initialization_options.ok(),
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
                         completion: Some(CompletionCapability {
@@ -674,6 +671,7 @@ impl State {
             error!("{}\n{:?}", message, e);
             self.echoerr(message)?;
         }
+
         Ok(result)
     }
 
@@ -1449,6 +1447,23 @@ impl State {
         Ok(serde_json::to_value(ApplyWorkspaceEditResponse {
             applied: true,
         })?)
+    }
+
+    pub fn workspace_didChangeConfiguration(&mut self, params: &Option<Params>) -> Result<()> {
+        info!(
+            "Begin {}",
+            lsp::notification::DidChangeConfiguration::METHOD
+        );
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+        let (settings,): (Value,) = self.gather_args(&["settings"], params)?;
+
+        self.notify(
+            Some(languageId.as_str()),
+            lsp::notification::DidChangeConfiguration::METHOD,
+            DidChangeConfigurationParams { settings },
+        )?;
+        info!("End {}", lsp::notification::DidChangeConfiguration::METHOD);
+        Ok(())
     }
 
     pub fn textDocument_didOpen(&mut self, params: &Option<Params>) -> Result<()> {
@@ -2386,18 +2401,19 @@ impl State {
         })?;
 
         let thread_name = format!("reader-{}", languageId);
+        let languageId_clone = languageId.clone();
         let tx = self.tx.clone();
         std::thread::Builder::new()
             .name(thread_name.clone())
             .spawn(move || {
-                if let Err(err) = vim::loop_reader(reader, &Some(languageId.clone()), &tx) {
+                if let Err(err) = vim::loop_reader(reader, &Some(languageId_clone.clone()), &tx) {
                     let _ = tx.send(Message::Notification(
-                        Some(languageId.clone()),
+                        Some(languageId_clone.clone()),
                         rpc::Notification {
                             jsonrpc: None,
                             method: NOTIFICATION__ServerExited.into(),
                             params: json!({
-                                "languageId": languageId,
+                                "languageId": languageId_clone,
                                 "message": format!("{}", err),
                             }).to_params()
                                 .unwrap_or_default(),
@@ -2414,6 +2430,15 @@ impl State {
 
         self.initialize(&params)?;
         self.initialized(&params)?;
+
+        let root = self.roots.get(&languageId).cloned().unwrap_or_default();
+        let params = rpc::to_value(params.clone())?
+            .combine(json!({
+            "settings": self.get_workspace_settings(&root)?
+        }))
+            .to_params()?;
+        self.workspace_didChangeConfiguration(&params)?;
+
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 

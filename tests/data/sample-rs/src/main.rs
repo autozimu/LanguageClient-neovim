@@ -16,3 +16,8 @@ use libs::yo;
 fn ref_in_main() -> i32 {
     yo() + 1
 }
+
+#[cfg(feature = "f42")]
+fn conditional_fn() -> i32 {
+    42
+}
