@@ -1835,12 +1835,19 @@ impl State {
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
-        let matches: Vec<VimCompleteItem> = match result {
+        let mut matches = match result {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
-        }.into_iter()
-            .map(|lspitem| lspitem.into())
-            .collect();
+        };
+        if !matches.iter().any(|m| m.sort_text.is_none()) {
+            matches.sort_by(|m1, m2| {
+                m1.sort_text
+                    .as_ref()
+                    .unwrap()
+                    .cmp(m2.sort_text.as_ref().unwrap())
+            });
+        }
+        let matches: Vec<VimCompleteItem> = matches.into_iter().map(Into::into).collect();
         info!("End {}", REQUEST__OmniComplete);
         Ok(serde_json::to_value(matches)?)
     }

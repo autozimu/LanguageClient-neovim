@@ -15,6 +15,7 @@ use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 use std::time::{Duration, Instant};
+use std::convert::Into;
 
 #[macro_use]
 extern crate log;
