@@ -172,12 +172,12 @@ impl State {
         Ok(())
     }
 
-    fn get_workspace_settings(&self, root: &String) -> Result<Value> {
-        if !self.get(|state| Ok(state.loadSettings))? {
-            return Err(err_msg("No load settings"));
+    fn get_workspace_settings(&self, root: &str) -> Result<Value> {
+        if !self.loadSettings {
+            return Ok(json!({}));
         }
 
-        let mut f = File::open(Path::new(&root).join(self.settingsPath.clone()))?;
+        let mut f = File::open(Path::new(root).join(self.settingsPath.clone()))?;
         let mut buffer = String::new();
         f.read_to_string(&mut buffer)?;
         Ok(serde_json::from_str(&buffer)?)
@@ -628,7 +628,7 @@ impl State {
         let initialization_options = self.get_workspace_settings(&root)
             .map(|s| s["initializationOptions"].clone());
         if let Err(ref err) = initialization_options {
-            info!("Failed to load settings.initializationOptions: {}", err);
+            warn!("Failed to get initializationOptions: {}", err);
         }
 
         let trace = self.get(|state| Ok(state.trace.clone()))?;
@@ -2432,12 +2432,14 @@ impl State {
         self.initialized(&params)?;
 
         let root = self.roots.get(&languageId).cloned().unwrap_or_default();
-        let params = rpc::to_value(params.clone())?
-            .combine(json!({
-            "settings": self.get_workspace_settings(&root)?
-        }))
-            .to_params()?;
-        self.workspace_didChangeConfiguration(&params)?;
+        let settings = self.get_workspace_settings(&root);
+        if let Err(ref err) = settings {
+            warn!("Failed to get workspace settings: {}", err);
+        }
+        self.workspace_didChangeConfiguration(&json!({
+            VimVar::LanguageId.to_key(): languageId,
+            "settings": settings.unwrap_or_default(),
+        }).to_params()?)?;
 
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
