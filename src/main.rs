@@ -14,7 +14,7 @@ use std::process::{ChildStdin, ChildStdout, Stdio};
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
-use std::time;
+use std::time::{Duration, Instant};
 
 #[macro_use]
 extern crate log;
@@ -25,10 +25,6 @@ extern crate failure;
 use failure::{err_msg, Error};
 
 extern crate libc;
-
-extern crate chrono;
-use chrono::prelude::*;
-use chrono::Duration;
 
 #[macro_use]
 extern crate maplit;

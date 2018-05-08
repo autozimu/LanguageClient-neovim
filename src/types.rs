@@ -136,7 +136,7 @@ impl State {
 
         let (watcher_tx, watcher_rx) = channel();
         // TODO: duration configurable.
-        let watcher = match notify::watcher(watcher_tx, std::time::Duration::from_secs(2)) {
+        let watcher = match notify::watcher(watcher_tx, Duration::from_secs(2)) {
             Ok(watcher) => Some(watcher),
             Err(err) => {
                 warn!("{:?}", err);
@@ -819,13 +819,14 @@ impl Filepath for Url {
 
 #[derive(Debug, Serialize)]
 pub struct TextDocumentItemMetadata {
-    pub last_change: DateTime<Utc>,
+    #[serde(skip_serializing)]
+    pub last_change: Instant,
 }
 
 impl Default for TextDocumentItemMetadata {
     fn default() -> Self {
         Self {
-            last_change: Utc::now(),
+            last_change: Instant::now(),
         }
     }
 }

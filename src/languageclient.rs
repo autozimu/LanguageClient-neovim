@@ -121,7 +121,7 @@ impl State {
             SelectionUI::default()
         };
 
-        let change_throttle = change_throttle.map(|t| Duration::milliseconds((t * 1000.0) as i64));
+        let change_throttle = change_throttle.map(|t| Duration::from_millis((t * 1000.0) as u64));
 
         let diagnosticsEnable = diagnosticsEnable == 1;
 
@@ -1532,7 +1532,7 @@ impl State {
                     .text_documents_metadata
                     .entry(filename.clone())
                     .or_insert_with(TextDocumentItemMetadata::default);
-                metadata.last_change = Utc::now();
+                metadata.last_change = Instant::now();
             }
             Ok(version)
         })?;
@@ -1894,7 +1894,7 @@ impl State {
         let skip_notification = self.get(|state| {
             if let Some(metadata) = state.text_documents_metadata.get(&filename) {
                 if let Some(throttle) = state.change_throttle {
-                    if Utc::now().signed_duration_since(metadata.last_change) < throttle {
+                    if metadata.last_change.elapsed() < throttle {
                         return Ok(true);
                     }
                 }

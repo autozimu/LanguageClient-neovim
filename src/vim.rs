@@ -29,7 +29,7 @@ impl State {
         }
 
         loop {
-            let msg = self.rx.recv_timeout(time::Duration::from_secs(60 * 5))?;
+            let msg = self.rx.recv_timeout(Duration::from_secs(60 * 5))?;
             match msg {
                 Message::MethodCall(lang_id, method_call) => self.pending_calls
                     .push_back(Call::MethodCall(lang_id, method_call)),
