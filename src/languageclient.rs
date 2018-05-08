@@ -62,6 +62,7 @@ impl State {
             loadSettings,
             rootMarkers,
             change_throttle,
+            wait_output_timeout,
             diagnosticsEnable,
             diagnosticsList,
             diagnosticsDisplay,
@@ -75,6 +76,7 @@ impl State {
             String,
             u64,
             Option<RootMarkers>,
+            Option<f64>,
             Option<f64>,
             u64,
             Option<String>,
@@ -91,6 +93,7 @@ impl State {
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
+                "get(g:, 'LanguageClient_waitOutputTimeout', v:null)",
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', 1)",
                 "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
@@ -122,6 +125,8 @@ impl State {
         };
 
         let change_throttle = change_throttle.map(|t| Duration::from_millis((t * 1000.0) as u64));
+        let wait_output_timeout =
+            Duration::from_millis((wait_output_timeout.unwrap_or(10.0) * 1000.0) as u64);
 
         let diagnosticsEnable = diagnosticsEnable == 1;
 
@@ -159,6 +164,7 @@ impl State {
             state.loadSettings = loadSettings;
             state.rootMarkers = rootMarkers;
             state.change_throttle = change_throttle;
+            state.wait_output_timeout = wait_output_timeout;
             state.is_nvim = is_nvim;
             Ok(())
         })?;

@@ -211,6 +211,14 @@ Override detection of snippet support.
 Default: 1
 Valid options: 1 | 0
 
+2.17 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*
+
+Duration of time (in seconds) to wait for language server to return output
+before timing out.
+
+Default: 10
+Valid options: number
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

@@ -121,8 +121,8 @@ pub struct State {
     pub settingsPath: String,
     pub loadSettings: bool,
     pub rootMarkers: Option<RootMarkers>,
-    #[serde(skip_serializing)]
     pub change_throttle: Option<Duration>,
+    pub wait_output_timeout: Duration,
 
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
@@ -183,6 +183,7 @@ impl State {
             loadSettings: false,
             rootMarkers: None,
             change_throttle: None,
+            wait_output_timeout: Duration::from_secs(10),
 
             logger,
         })
