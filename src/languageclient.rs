@@ -967,21 +967,21 @@ impl State {
             return Ok(Value::Null);
         }
 
-        let diagnostics: Vec<_> = self.get(|state| {
-            Ok(state
-                .diagnostics
-                .get(&filename)
-                .ok_or_else(|| err_msg("No diagnostics found!"))?
-                .iter()
-                .filter(|dn| {
-                    let start = dn.range.start;
-                    let end = dn.range.end;
-                    start.line <= line && start.character <= character && end.line >= line
-                        && end.character >= character
-                })
-                .cloned()
-                .collect())
-        })?;
+        // Unify filename.
+        let filename = filename.canonicalize();
+
+        let diagnostics: Vec<_> = self.diagnostics
+            .get(&filename)
+            .unwrap_or(&vec![])
+            .iter()
+            .filter(|dn| {
+                let start = dn.range.start;
+                let end = dn.range.end;
+                (line, character) >= (start.line, start.character)
+                    && (line, character) < (end.line, end.character)
+            })
+            .cloned()
+            .collect();
         let result: Value = self.call(
             Some(&languageId),
             lsp::request::CodeActionRequest::METHOD,
@@ -989,11 +989,10 @@ impl State {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
-                //TODO: is this correct?
-                range: diagnostics
-                    .get(0)
-                    .ok_or_else(|| err_msg("No diagnostics found!"))?
-                    .range,
+                range: Range {
+                    start: Position { line, character },
+                    end: Position { line, character },
+                },
                 context: CodeActionContext { diagnostics },
             },
         )?;
