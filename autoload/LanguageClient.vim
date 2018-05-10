@@ -257,7 +257,9 @@ endfunction
 function! s:HandleOutputNothing(output) abort
 endfunction
 
-function! s:HandleOutput(output) abort
+function! s:HandleOutput(output, ...) abort
+    let l:quiet = get(a:000, 0)
+
     if has_key(a:output, 'result')
         " let l:result = string(a:result)
         " if l:result !=# 'v:null'
@@ -267,10 +269,14 @@ function! s:HandleOutput(output) abort
     elseif has_key(a:output, 'error')
         let l:error = get(a:output, 'error')
         let l:message = get(l:error, 'message')
-        call s:Echoerr(l:message)
+        if !l:quiet
+            call s:Echoerr(l:message)
+        endif
         return v:null
     else
-        call s:Echoerr('Unknown output type: ' . json_encode(a:output))
+        if !l:quiet
+            call s:Echoerr('Unknown output type: ' . json_encode(a:output))
+        endif
         return v:null
     endif
 endfunction
@@ -610,7 +616,7 @@ function! LanguageClient_runSync(fn, ...) abort
         sleep 100m
     endwhile
     let l:output = remove(s:LanguageClient_runSync_outputs, 0)
-    return s:HandleOutput(l:output)
+    return s:HandleOutput(l:output, v:true)
 endfunction
 
 function! LanguageClient#handleBufReadPost() abort
