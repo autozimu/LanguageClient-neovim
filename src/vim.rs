@@ -377,8 +377,18 @@ pub fn loop_reader<T: BufRead>(
             continue;
         }
         info!("<= {:?} {}", languageId, message);
-        // let message = message.replace(r#","meta":{}"#, "");
-        let message: RawMessage = serde_json::from_str(message)?;
+        // FIXME: Remove extra `meta` property from javascript-typescript-langserver.
+        let s = message.replace(r#","meta":{}"#, "");
+        let message = serde_json::from_str(&s);
+        if let Err(ref err) = message {
+            error!(
+                "Failed to deserialize output: {}\n\n Message: {}\n\nError: {:?}",
+                err, s, err
+            );
+            continue;
+        }
+        // TODO: cleanup.
+        let message = message.unwrap();
         let message = match message {
             RawMessage::MethodCall(method_call) => {
                 Message::MethodCall(languageId.clone(), method_call)
