@@ -340,7 +340,8 @@ endfunction
 function! LanguageClient#Write(message) abort
     let l:message = a:message . "\n"
     if has('nvim')
-        return jobsend(s:job, l:message)
+        " jobsend respond 1 for success.
+        return !jobsend(s:job, l:message)
     elseif has('channel')
         return ch_sendraw(s:job, l:message)
     else
