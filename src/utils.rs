@@ -143,15 +143,6 @@ pub fn get_logpath_server() -> PathBuf {
     Path::new(&*dir).join("LanguageServer.log")
 }
 
-pub fn get_log_server() -> Result<String> {
-    let mut f = std::fs::OpenOptions::new()
-        .read(true)
-        .open(get_logpath_server())?;
-    let mut buffer = String::new();
-    f.read_to_string(&mut buffer)?;
-    Ok(buffer)
-}
-
 pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<String>> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];

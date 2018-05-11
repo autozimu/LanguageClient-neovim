@@ -344,7 +344,7 @@ pub fn loop_reader<T: BufRead>(
                 count_empty_lines += 1;
                 if count_empty_lines > 5 {
                     let mut message = "".to_string();
-                    if let Ok(log_server) = get_log_server() {
+                    if let Ok(log_server) = read_to_string(get_logpath_server()) {
                         message += "\n\nlanguage server stderr:\n";
                         message += &log_server;
                     }

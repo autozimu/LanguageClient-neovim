@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::env;
 use std::fmt::Debug;
-use std::fs::File;
+use std::fs::{read_to_string, File};
 use std::io::prelude::*;
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::TcpStream;
@@ -74,9 +74,13 @@ mod languageclient;
 mod logger;
 
 #[derive(Debug, StructOpt)]
-struct Opt {}
+struct Arguments {}
 
-fn run() -> Result<()> {
+fn main() -> Result<()> {
+    let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"));
+    let args = Arguments::clap().version(version.as_str());
+    let _ = args.get_matches();
+
     let mut state = State::new()?;
 
     let tx = state.tx.clone();
@@ -92,15 +96,4 @@ fn run() -> Result<()> {
         })?;
 
     state.loop_message()
-}
-
-fn main() {
-    let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"),);
-
-    let app = Opt::clap().version(version.as_str());
-    let _ = app.get_matches();
-
-    if let Err(err) = run() {
-        eprintln!("{:?}", err);
-    }
 }

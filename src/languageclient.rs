@@ -177,9 +177,7 @@ impl State {
             return Ok(json!({}));
         }
 
-        let mut f = File::open(Path::new(root).join(self.settingsPath.clone()))?;
-        let mut buffer = String::new();
-        f.read_to_string(&mut buffer)?;
+        let buffer = read_to_string(Path::new(root).join(self.settingsPath.clone()))?;
         Ok(serde_json::from_str(&buffer)?)
     }
 
