@@ -1,0 +1,5 @@
+{
+    "rust": {
+        "clippy_preference": "on"
+    }
+}
