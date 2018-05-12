@@ -136,6 +136,9 @@ impl State {
                 self.textDocument_publishDiagnostics(&notification.params)?
             }
             lsp::notification::LogMessage::METHOD => self.window_logMessage(&notification.params)?,
+            lsp::notification::ShowMessage::METHOD => {
+                self.window_showMessage(&notification.params)?
+            }
             lsp::notification::Exit::METHOD => self.exit(&notification.params)?,
             // Extensions.
             NOTIFICATION__HandleBufReadPost => {

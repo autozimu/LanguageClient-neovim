@@ -1700,6 +1700,15 @@ impl State {
         Ok(())
     }
 
+    pub fn window_showMessage(&mut self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", lsp::notification::ShowMessage::METHOD);
+        let params: ShowMessageParams = params.clone().to_lsp()?;
+        let msg = format!("[{:?}] {}", params.typ, params.message);
+        self.echomsg(&msg)?;
+        info!("End {}", lsp::notification::ShowMessage::METHOD);
+        Ok(())
+    }
+
     pub fn client_registerCapability(
         &mut self,
         _languageId: &str,
