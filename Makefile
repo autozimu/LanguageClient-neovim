@@ -54,8 +54,8 @@ clean:
 	cargo clean
 	rm -rf bin/languageclient
 
-build-docker-image: Dockerfile
-	docker build --tag autozimu/languageclientneovim .
+build-docker-image: ci/Dockerfile
+	docker build --tag autozimu/languageclientneovim ci
 
 publish-docker-image:
 	docker push autozimu/languageclientneovim
