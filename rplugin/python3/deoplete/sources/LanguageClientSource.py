@@ -16,11 +16,9 @@ class Source(Base):
         self.filetypes = vim.eval(
             "get(g:, 'LanguageClient_serverCommands', {})").keys()
         self.input_pattern += r'(\.|::|->)\w*$'
-        self.complete_pos = re.compile(r"\w*$")
 
     def get_complete_position(self, context):
-        m = self.complete_pos.search(context['input'])
-        return m.start() if m else -1
+        return self.vim.call('LanguageClient#complete', 1, 0)
 
     def gather_candidates(self, context):
         if context["is_async"]:

@@ -757,10 +757,9 @@ let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
-        let l:start = col('.') - 1
-        while l:start > 0 && l:line[l:start - 1] =~# '\w'
-            let l:start -= 1
-        endwhile
+        let l:cursor = col('.') - 1
+        let l:input = l:line[:l:cursor]
+        let l:start = match(l:input, '\k*$')
         return l:start
     else
         let l:result = LanguageClient_runSync(
