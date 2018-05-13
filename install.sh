@@ -27,14 +27,17 @@ function download() {
         chmod a+x bin/$name
         return
     else
-        echo "Failed to download with curl and wget"
-        try_build
+        try_build || echo "Prebuilt binary might not be ready yet. Please check minutes later."
     fi
 }
 
 function try_build() {
-    echo "Trying build locally ..."
-    make release
+    if which cargo > /dev/null; then
+        echo "Trying build locally ..."
+        make release
+    else
+        return 1
+    fi
 }
 
 rm -f bin/languageclient
