@@ -1,5 +1,4 @@
 from .base import Base
-import re
 
 
 CompleteOutputs = "g:LanguageClient_omniCompleteResults"
