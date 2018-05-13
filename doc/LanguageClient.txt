@@ -48,7 +48,7 @@ those info are populated into quickfix list (or location list), which can be
 accessed by regular quickfix/location list operations.
 
 To use the language server with Vim's formatting operator |gq|, set 'formatexpr': >
-    set formatexpr=LanguageClient#textDocument_rangeFormatting()
+    set formatexpr=LanguageClient#textDocument_rangeFormatting_sync()
 <
 
 ==============================================================================

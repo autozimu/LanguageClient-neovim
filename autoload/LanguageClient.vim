@@ -519,16 +519,22 @@ function! LanguageClient#textDocument_formatting(...) abort
 endfunction
 
 function! LanguageClient#textDocument_rangeFormatting(...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': s:Expand('%:p'),
                 \ 'text': s:Text(),
                 \ 'line': line('.') - 1,
                 \ 'character': col('.') - 1,
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:callback)
+endfunction
+
+function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
+    return !LanguageClient_runSync('LanguageClient#textDocument_rangeFormatting', {
+                \ 'handle': v:true,
+                \ })
 endfunction
 
 function! LanguageClient#rustDocument_implementations(...) abort

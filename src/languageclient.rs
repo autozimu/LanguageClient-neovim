@@ -1274,8 +1274,8 @@ impl State {
                 "&tabstop",
                 "&expandtab",
                 "v:lnum - 1",
-                "v:lnum - 1 + v:count",
-                "len(getline(v:lnum + v:count)) - 1",
+                "v:lnum - 1 + v:count - 1",
+                "len(getline(v:lnum + v:count - 1))",
             ].as_ref(),
         )?;
         let insert_spaces = insert_spaces == 1;
