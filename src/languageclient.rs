@@ -2444,7 +2444,7 @@ impl State {
         }
         self.workspace_didChangeConfiguration(&json!({
             VimVar::LanguageId.to_key(): languageId,
-            "settings": settings.unwrap_or_default(),
+            "settings": settings.unwrap_or_else(|_| json!({})),
         }).to_params()?)?;
 
         self.textDocument_didOpen(&params)?;
