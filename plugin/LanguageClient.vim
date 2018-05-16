@@ -109,7 +109,9 @@ augroup languageClient
     autocmd TextChanged * call LanguageClient#handleTextChanged()
     autocmd TextChangedI * call LanguageClient#handleTextChanged()
     autocmd CursorMoved * call LanguageClient#handleCursorMoved()
-    autocmd VimLeavePre * call LanguageClient#exit()
+    if get(g:, 'LanguageClient_autoStop', 1)
+      autocmd VimLeavePre * call LanguageClient#exit()
+    endif
 
     if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
         autocmd CompleteDone *
