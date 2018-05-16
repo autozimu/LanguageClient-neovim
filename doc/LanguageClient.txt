@@ -123,28 +123,35 @@ associated filetype.
 
 Default: 1.
 
-2.6 g:LanguageClient_selectionUI                *g:LanguageClient_selectionUI*
+2.6 g:LanguageClient_autoStop                   *g:LanguageClient_autoStop*
+
+Whether to stop language servers automatically when closing vim.
+associated filetype.
+
+Default: 1.
+
+2.7 g:LanguageClient_selectionUI                *g:LanguageClient_selectionUI*
 
 Selection UI used when there are multiple entries.
 
 Default: If fzf is loaded, use "fzf", otherwise use "location-list".
 Valid options: "fzf" | "quickfix" | "location-list"
 
-2.7 g:LanguageClient_trace                           *g:LanguageClient_trace*
+2.8 g:LanguageClient_trace                           *g:LanguageClient_trace*
 
 Trace setting passed to server.
 
 Default: "off"
 Valid options: "off" | "messages" | "verbose"
 
-2.8 g:LanguageClient_diagnosticsList        *g:LanguageClient_diagnosticsList*
+2.9 g:LanguageClient_diagnosticsList        *g:LanguageClient_diagnosticsList*
 
 List used to fill diagnostic messages.
 
 Default: "Quickfix"
 Valid options: "Quickfix" | "Location" | "Disabled"
 
-2.9 g:LanguageClient_diagnosticsEnable    *g:LanguageClient_diagnosticsEnable*
+2.10 g:LanguageClient_diagnosticsEnable    *g:LanguageClient_diagnosticsEnable*
 
 Whether to handle diagnostic messages, including gutter, highlight and
 quickfix/location list.
@@ -152,34 +159,34 @@ quickfix/location list.
 Default: 1
 Valid options: 1 | 0
 
-2.10 g:LanguageClient_windowLogMessageLevel  *g:LanguageClient_windowLogMessageLevel*
+2.11 g:LanguageClient_windowLogMessageLevel  *g:LanguageClient_windowLogMessageLevel*
 
 Maximum MessageType to show messages from window/logMessage notifications.
 
 Default: "Warning"
 Valid options: "Error" | "Warning" | "Info" | "Log"
 
-2.11 g:LanguageClient_settingsPath              *g:LanguageClient_settingsPath*
+2.12 g:LanguageClient_settingsPath              *g:LanguageClient_settingsPath*
 
 Default path for language server settings
 
 Default: ".vim/settings.json"
 
-2.12 g:LanguageClient_loadSettings             *g:LanguageClient_loadSettings*
+2.13 g:LanguageClient_loadSettings             *g:LanguageClient_loadSettings*
 
 Whether to load language server settings.
 
 Default: 1
 Valid options: 1 | 0
 
-2.13 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
+2.14 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
 
 Logging level.
 
 Default: 'WARN'
 Valid options: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 
-2.14 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
+2.15 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
 
 Customized project root markers. Generally a heuristic algorithm within this
 plugin should be able to detect project root automatically. This option is
@@ -197,21 +204,21 @@ Example setting 2. Map filetype to string array. >
 Default: v:null
 Valid option: Array<String> | Map<String, Array<String>>
 
-2.15 g:LanguageClient_fzfOptions                *g:LanguageClient_fzfOptions*
+2.16 g:LanguageClient_fzfOptions                *g:LanguageClient_fzfOptions*
 
 Customize fzf. Check fzf documentation for available options.
 
 Default: v:null
 Valid option: Array<String> | String
 
-2.16 g:LanguageClient_hasSnippetSupport   *g:LanguageClient_hasSnippetSupport*
+2.17 g:LanguageClient_hasSnippetSupport   *g:LanguageClient_hasSnippetSupport*
 
 Override detection of snippet support.
 
 Default: 1
 Valid options: 1 | 0
 
-2.17 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*
+2.18 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*
 
 Duration of time (in seconds) to wait for language server to return output
 before timing out.
