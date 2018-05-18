@@ -82,7 +82,7 @@ nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 1. Try on [sample projects](tests/data).
 1. Execute `:echo &runtimepath` and make sure the plugin path is in the list.
 1. Make sure language server could be started when invoked manually from shell.
-1. Check content of language server standard error `($TMP || $TEMP |
-   /tmp)/LanguageServer.log` and language client log `($TMP || $TEMP |
-   /tmp)/LanguageClient.log`. Also note language server might have separate
-   log files.
+1. Check content of language server standard error `($TMPDIR || $TMP || $TEMP
+   || $TEMPDIR || /tmp)/LanguageServer.log` and language client log `($TMPDIR
+   || $TMP || $TEMP || $TEMPDIR || /tmp)/LanguageClient.log`. Also note language
+   server might have separate log files.
