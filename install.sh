@@ -3,9 +3,9 @@
 #   - download binary
 #   - build with cargo
 
+set -o pipefail
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
-set -o pipefail
 
 version=0.1.79
 name=languageclient
