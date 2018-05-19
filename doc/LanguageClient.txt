@@ -68,8 +68,10 @@ Or tcp connection string to the server, >
         \ 'javascript': ['tcp://127.0.0.1:2089'],
         \ }
 
+Note: environmental variables are not supported except home directory alias `~`.
+
 Default: {}
-Valid Option: Map<String, List<String>>
+Valid Option: Map<String, List<String> | String>
 
 2.2 g:LanguageClient_diagnosticsDisplay  *g:LanguageClient_diagnosticsDisplay*
 
