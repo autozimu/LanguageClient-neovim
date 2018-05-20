@@ -81,8 +81,14 @@ impl State {
 
             _ => {
                 let languageId_target = if languageId.is_some() {
-                    // Message from language server. Proxy to vim.
-                    None
+                    // Message from language server. No handler found.
+                    let msg = format!("Message not handled: {:?}", method_call);
+                    if method_call.method.starts_with('$') {
+                        warn!("{}", msg);
+                        return Ok(Value::default());
+                    } else {
+                        return Err(err_msg(msg));
+                    }
                 } else {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
@@ -177,8 +183,14 @@ impl State {
 
             _ => {
                 let languageId_target = if languageId.is_some() {
-                    // Message from language server. Proxy to vim.
-                    None
+                    // Message from language server. No handler found.
+                    let msg = format!("Message not handled: {:?}", notification);
+                    if notification.method.starts_with('$') {
+                        warn!("{}", msg);
+                        return Ok(());
+                    } else {
+                        return Err(err_msg(msg));
+                    }
                 } else {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
