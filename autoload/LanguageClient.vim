@@ -80,20 +80,6 @@ function! s:IsFalse(v) abort
     return s:IsTrue(a:v) ? v:false : v:true
 endfunction
 
-" When editing a [No Name] file, neovim reports filename as "", while vim reports null.
-function! s:Expand(exp) abort
-    let l:result = expand(a:exp)
-    return l:result ==# '' ? '' : l:result
-endfunction
-
-function! s:Text() abort
-    let l:lines = getline(1, '$')
-    if l:lines[-1] !=# '' && &fixendofline
-        let l:lines += ['']
-    endif
-    return l:lines
-endfunction
-
 " Get all listed buffer file names.
 function! s:Bufnames() abort
     return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
@@ -391,10 +377,10 @@ endfunction
 function! LanguageClient#textDocument_hover(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -404,10 +390,10 @@ endfunction
 " Meta methods to go to various places.
 function! LanguageClient#find_locations(method_name, ...) abort
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'gotoCmd': v:null,
                 \ 'handle': v:true,
                 \ }
@@ -431,10 +417,10 @@ endfunction
 function! LanguageClient#textDocument_references(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'includeDeclaration': v:true,
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
@@ -444,10 +430,10 @@ endfunction
 
 function! LanguageClient#textDocument_rename(...) abort
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'cword': expand('<cword>'),
                 \ 'handle': v:true,
                 \ }
@@ -459,8 +445,8 @@ endfunction
 function! LanguageClient#textDocument_documentSymbol(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -470,8 +456,8 @@ endfunction
 function! LanguageClient#workspace_symbol(...) abort
     let l:callback = get(a:000, 2, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
                 \ 'query': get(a:000, 0, ''),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
@@ -482,10 +468,10 @@ endfunction
 function! LanguageClient#textDocument_codeAction(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -495,9 +481,9 @@ endfunction
 function! LanguageClient#textDocument_completion(...) abort
     " Note: do not add 'text' as it might be huge.
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': v:false,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
@@ -507,10 +493,10 @@ endfunction
 
 function! LanguageClient#textDocument_formatting(...) abort
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
@@ -521,10 +507,10 @@ endfunction
 function! LanguageClient#textDocument_rangeFormatting(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -539,10 +525,10 @@ endfunction
 
 function! LanguageClient#rustDocument_implementations(...) abort
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
     let l:callback = a:0 >= 2 ? a:2 : v:null
@@ -551,27 +537,27 @@ endfunction
 
 function! LanguageClient#textDocument_didOpen() abort
     return LanguageClient#Notify('textDocument/didOpen', {
-                \ 'filename': s:Expand('%:p'),
-                \ 'text': s:Text(),
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
                 \ })
 endfunction
 
 function! LanguageClient#textDocument_didChange() abort
     " Note: do not add 'text' as it might be huge.
     return LanguageClient#Notify('textDocument/didChange', {
-                \ 'filename': s:Expand('%:p'),
+                \ 'filename': LSP#filename(),
                 \ })
 endfunction
 
 function! LanguageClient#textDocument_didSave() abort
     return LanguageClient#Notify('textDocument/didSave', {
-                \ 'filename': s:Expand('%:p'),
+                \ 'filename': LSP#filename(),
                 \ })
 endfunction
 
 function! LanguageClient#textDocument_didClose() abort
     return LanguageClient#Notify('textDocument/didClose', {
-                \ 'filename': s:Expand('%:p'),
+                \ 'filename': LSP#filename(),
                 \ })
 endfunction
 
@@ -585,7 +571,7 @@ endfunction
 
 function! LanguageClient#startServer(...) abort
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
+                \ 'filename': LSP#filename(),
                 \ 'cmdargs': [],
                 \ }
     call extend(l:params, a:0 > 0 ? {'cmdargs': a:000} : {})
@@ -633,7 +619,7 @@ function! LanguageClient#handleBufReadPost() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufReadPost', {
-                    \ 'filename': s:Expand('%:p'),
+                    \ 'filename': LSP#filename(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -648,7 +634,7 @@ function! LanguageClient#handleTextChanged() abort
     try
         " Note: do not add 'text' as it might be huge.
         call LanguageClient#Notify('languageClient/handleTextChanged', {
-                    \ 'filename': s:Expand('%:p'),
+                    \ 'filename': LSP#filename(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -662,7 +648,7 @@ function! LanguageClient#handleBufWritePost() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufWritePost', {
-                    \ 'filename': s:Expand('%:p'),
+                    \ 'filename': LSP#filename(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -676,7 +662,7 @@ function! LanguageClient#handleBufDelete() abort
 
     try
         call LanguageClient#Notify('languageClient/handleBufDelete', {
-                    \ 'filename': s:Expand('%:p'),
+                    \ 'filename': LSP#filename(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -698,7 +684,7 @@ function! LanguageClient#handleCursorMoved() abort
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
                     \ 'buftype': &buftype,
-                    \ 'filename': s:Expand('%:p'),
+                    \ 'filename': LSP#filename(),
                     \ 'line': l:cursor_line,
                     \ })
     catch
@@ -731,9 +717,9 @@ function! LanguageClient#explainErrorAtPoint(...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'buftype': &buftype,
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -745,9 +731,9 @@ function! LanguageClient#omniComplete(...) abort
     try
         " Note: do not add 'text' as it might be huge.
         let l:params = {
-                    \ 'filename': s:Expand('%:p'),
-                    \ 'line': line('.') - 1,
-                    \ 'character': col('.') - 1,
+                    \ 'filename': LSP#filename(),
+                    \ 'line': LSP#line(),
+                    \ 'character': LSP#character(),
                     \ 'handle': v:false,
                     \ }
         call extend(l:params, get(a:000, 0, {}))
@@ -763,14 +749,14 @@ let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:line = getline('.')
-        let l:cursor = col('.') - 1
+        let l:cursor = LSP#character()
         let l:input = l:line[:l:cursor]
         let l:start = match(l:input, '\k*$')
         return l:start
     else
         let l:result = LanguageClient_runSync(
                     \ 'LanguageClient#omniComplete', {
-                    \ 'character': col('.') - 1 + len(a:base) })
+                    \ 'character': LSP#character() + len(a:base) })
         return l:result is v:null ? [] : l:result
     endif
 endfunction
@@ -781,9 +767,9 @@ function! LanguageClient#textDocument_signatureHelp(...) abort
     endif
 
     let l:params = {
-                \ 'filename': s:Expand('%:p'),
-                \ 'line': line('.') - 1,
-                \ 'character': col('.') - 1,
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
