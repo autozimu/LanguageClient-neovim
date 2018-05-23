@@ -78,6 +78,7 @@ impl State {
                 self.languageClient_explainErrorAtPoint(&method_call.params)
             }
             REQUEST__OmniComplete => self.languageClient_omniComplete(&method_call.params),
+            REQUEST__ClassFileContents => self.java_classFileContents(&method_call.params),
 
             _ => {
                 let languageId_target = if languageId.is_some() {

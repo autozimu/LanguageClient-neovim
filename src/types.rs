@@ -41,6 +41,7 @@ pub const REQUEST__CqueryDerived: &str = "$cquery/derived";
 pub const REQUEST__CqueryVars: &str = "$cquery/vars";
 pub const NOTIFICATION__CqueryProgress: &str = "$cquery/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
+pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 
 pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
 

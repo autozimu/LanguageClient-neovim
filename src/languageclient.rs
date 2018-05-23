@@ -2532,4 +2532,18 @@ impl State {
         info!("End {}", lsp::notification::DidChangeWatchedFiles::METHOD);
         Ok(())
     }
+
+    pub fn java_classFileContents(&mut self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__ClassFileContents);
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+
+        let content: String = self.call(
+            Some(languageId.as_str()),
+            REQUEST__ClassFileContents,
+            params,
+        )?;
+
+        info!("End {}", REQUEST__ClassFileContents);
+        Ok(Value::String(content))
+    }
 }
