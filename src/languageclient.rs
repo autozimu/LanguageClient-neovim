@@ -720,14 +720,17 @@ impl State {
             return Ok(result);
         }
 
+        let hover_preview: u8 = self.eval("get(g:, 'LanguageClient_hoverPreview', 1)")?;
+
         let hover: Option<Hover> = serde_json::from_value(result.clone())?;
         if let Some(hover) = hover {
-            if hover.lines_len() <= 1 {
-                self.echo(hover.to_string())?;
-            } else {
+            if hover_preview == 2 || (hover_preview == 1 && hover.lines_len() > 1) {
                 self.preview(&hover.to_display())?;
+            } else {
+                self.echo(hover.to_string().lines().last().unwrap_or_default())?;
             }
         }
+
 
         info!("End {}", lsp::request::HoverRequest::METHOD);
         Ok(result)
