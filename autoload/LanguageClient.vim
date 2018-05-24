@@ -860,4 +860,50 @@ function! LanguageClient#cquery_vars(...) abort
     return call('LanguageClient#find_locations', ['$cquery/vars'] + a:000)
 endfunction
 
+function! LanguageClient_contextMenuItems() abort
+    return {
+                \ 'Code Action': 'LanguageClient#textDocument_codeAction',
+                \ 'Definition': 'LanguageClient#textDocument_definition',
+                \ 'Document Symbol': 'LanguageClient#textDocument_documentSymbol',
+                \ 'Formatting': 'LanguageClient#textDocument_formatting',
+                \ 'Hover': 'LanguageClient#textDocument_hover',
+                \ 'Implementation': 'LanguageClient#textDocument_implementation',
+                \ 'Range Formatting': 'LanguageClient#textDocument_rangeFormatting',
+                \ 'References': 'LanguageClient#textDocument_references',
+                \ 'Rename': 'LanguageClient#textDocument_rename',
+                \ 'Signature Help': 'LanguageClient#textDocument_signatureHelp',
+                \ 'Type Definition': 'LanguageClient#textDocument_typeDefinition',
+                \ 'Workspace Symbol': 'LanguageClient#workspace_symbol',
+                \ }
+endfunction
+
+function! LanguageClient_handleContextMenuItem(item) abort
+    let l:items = LanguageClient_contextMenuItems()
+    silent! exe 'redraw'
+    return call(l:items[a:item], [])
+endfunction
+
+function! LanguageClient_contextMenu() abort
+    let l:options = keys(LanguageClient_contextMenuItems())
+
+    if get(g:, 'loaded_fzf') && get(g:, 'LanguageClient_fzfContextMenu', 1)
+        return fzf#run(fzf#wrap({
+                    \ 'source': l:options,
+                    \ 'sink': function('LanguageClient_handleContextMenuItem'),
+                    \ }))
+    endif
+
+    let l:selections = map(copy(l:options), { key, val -> printf('%d) %s', key + 1, val ) })
+
+    call inputsave()
+    let l:selection = inputlist(l:selections)
+    call inputrestore()
+
+    if !l:selection || l:selection > len(l:selections)
+        return
+    endif
+
+    return LanguageClient_handleContextMenuItem(l:options[l:selection - 1])
+endfunction
+
 let g:LanguageClient_loaded = s:Launch()
