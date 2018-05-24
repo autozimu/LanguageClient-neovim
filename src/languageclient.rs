@@ -67,6 +67,7 @@ impl State {
             diagnosticsList,
             diagnosticsDisplay,
             windowLogMessageLevel,
+            hoverPreview,
             is_nvim,
         ): (
             u64,
@@ -82,6 +83,7 @@ impl State {
             Option<String>,
             Value,
             String,
+            Option<String>,
             u64,
         ) = self.eval(
             [
@@ -98,6 +100,7 @@ impl State {
                 "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
+                "get(g:, 'LanguageClient_hoverPreview', 'Auto')",
                 "has('nvim')",
             ].as_ref(),
         )?;
@@ -147,6 +150,12 @@ impl State {
             ),
         };
 
+        let hoverPreview = if let Some(s) = hoverPreview {
+            HoverPreviewOption::from_str(&s)?
+        } else {
+            HoverPreviewOption::Auto
+        };
+
         let is_nvim = is_nvim == 1;
 
         self.update(|state| {
@@ -165,6 +174,7 @@ impl State {
             state.rootMarkers = rootMarkers;
             state.change_throttle = change_throttle;
             state.wait_output_timeout = wait_output_timeout;
+            state.hoverPreview = hoverPreview;
             state.is_nvim = is_nvim;
             Ok(())
         })?;
@@ -722,12 +732,14 @@ impl State {
 
         let hover: Option<Hover> = serde_json::from_value(result.clone())?;
         if let Some(hover) = hover {
-            if hover.lines_len() <= 1 {
-                self.echo(hover.to_string())?;
-            } else {
-                self.preview(&hover.to_display())?;
+            match (&self.hoverPreview, hover.lines_len()) {
+                (HoverPreviewOption::Always, _) => self.preview(&hover.to_display())?,
+                (HoverPreviewOption::Auto, 1) => self.echo_ellipsis(hover.to_string())?,
+                (HoverPreviewOption::Auto, _) => self.preview(&hover.to_display())?,
+                (HoverPreviewOption::Never, _) => self.echo_ellipsis(hover.to_string())?,
             }
         }
+
 
         info!("End {}", lsp::request::HoverRequest::METHOD);
         Ok(result)

@@ -228,6 +228,16 @@ before timing out.
 Default: 10
 Valid options: number
 
+2.19 g:LanguageClient_hoverPreview             *g:LanguageClient_hoverPreview*
+
+Controls how hover output is displayed. Must be one of the following:
+    Never  - Never use preview window, always echo hover output
+    Auto   - Use preview window for hover entries longer than one line (default)
+    Always - Always use preview window, never echo hover output
+
+Default: "Auto"
+Valid options: "Never", "Auto", "Always"
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
