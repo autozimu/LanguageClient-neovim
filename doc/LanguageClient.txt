@@ -238,6 +238,13 @@ Controls how hover output is displayed. Must be one of the following:
 Default: "Auto"
 Valid options: "Never", "Auto", "Always"
 
+2.20 g:LanguageClient_fzfContextMenu         *g:LanguageClient_fzfContextMenu*
+
+Should FZF be used for `LanguageClient_contextMenu()`.
+
+Default: 1
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
@@ -266,6 +273,20 @@ handled by this plugin default handler.
 Signature: LanguageClient#Notify(method: String, params: Map | List)
 
 Send a notification to the current language server.
+
+*LanguageClient_contextMenu()*
+Signature: LanguageClient#contextMenu(...)
+
+Show list of all available actions.
+
+If optional dependency FZF is installed, actions will be displayed in a FZF
+prompt, selecting one of the action will then call the action's function.
+
+To skip FZF prompt even if FZF is installed and use native numbered list,
+add this variable to vimrc:
+`let g:LanguageClient_fzfContextMenu = 0`
+
+For Denite users, a source with name 'contextMenu' is provided.
 
 *LanguageClient#textDocument_hover()*
 *LanguageClient_textDocument_hover()*

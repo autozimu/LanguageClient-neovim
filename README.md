@@ -17,7 +17,7 @@ More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/Lan
 
 - Non-blocking asynchronous calls.
 - [Sensible completion](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731936).
-  Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim) 
+  Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim)
   or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager). Or with vim built-in `omnifunc`.
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288732042)
 - [Rename.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731403)
@@ -56,6 +56,8 @@ let g:LanguageClient_serverCommands = {
     \ 'javascript.jsx': ['tcp://127.0.0.1:2089'],
     \ }
 
+nnoremap <F5> :call LanguageClient_contextMenu()<CR>
+" Or map each action separately
 nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
