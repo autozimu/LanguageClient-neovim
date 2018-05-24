@@ -573,7 +573,8 @@ impl ToString for Hover {
     fn to_string(&self) -> String {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_string(),
-            HoverContents::Array(ref vec) => vec.iter()
+            HoverContents::Array(ref vec) => vec
+                .iter()
                 .map(|i| i.to_string())
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -878,25 +879,21 @@ pub trait ToLSP<T> {
 impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
     fn to_lsp(self) -> Result<Vec<FileEvent>> {
         match self {
-            notify::DebouncedEvent::Create(p) => Ok(vec![
-                FileEvent {
-                    uri: p.to_url()?,
-                    typ: FileChangeType::Created,
-                },
-            ]),
-            notify::DebouncedEvent::NoticeWrite(p) | notify::DebouncedEvent::Write(p) => Ok(vec![
-                FileEvent {
+            notify::DebouncedEvent::Create(p) => Ok(vec![FileEvent {
+                uri: p.to_url()?,
+                typ: FileChangeType::Created,
+            }]),
+            notify::DebouncedEvent::NoticeWrite(p) | notify::DebouncedEvent::Write(p) => {
+                Ok(vec![FileEvent {
                     uri: p.to_url()?,
                     typ: FileChangeType::Changed,
-                },
-            ]),
+                }])
+            }
             notify::DebouncedEvent::NoticeRemove(p) | notify::DebouncedEvent::Remove(p) => {
-                Ok(vec![
-                    FileEvent {
-                        uri: p.to_url()?,
-                        typ: FileChangeType::Deleted,
-                    },
-                ])
+                Ok(vec![FileEvent {
+                    uri: p.to_url()?,
+                    typ: FileChangeType::Deleted,
+                }])
             }
             notify::DebouncedEvent::Rename(p1, p2) => Ok(vec![
                 FileEvent {

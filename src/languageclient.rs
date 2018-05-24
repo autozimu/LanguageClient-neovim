@@ -1,6 +1,6 @@
 use super::*;
-use lsp::request::Request;
 use lsp::notification::Notification;
+use lsp::request::Request;
 
 impl State {
     /////// Utils ///////
@@ -39,7 +39,8 @@ impl State {
         let mut result = vec![];
         for e in exps {
             let k = e.to_key();
-            result.push(map.remove(&k)
+            result.push(map
+                .remove(&k)
                 .ok_or_else(|| format_err!("Failed to get value! k: {}", k))?);
         }
 
@@ -460,7 +461,8 @@ impl State {
             .capabilities
             .completion_provider
             .map(|opt| {
-                let strings: Vec<_> = opt.trigger_characters
+                let strings: Vec<_> = opt
+                    .trigger_characters
                     .unwrap_or_default()
                     .iter()
                     .map(|c| regex::escape(c))
@@ -633,7 +635,8 @@ impl State {
         let has_snippet_support = has_snippet_support > 0;
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
-        let initialization_options = self.get_workspace_settings(&root)
+        let initialization_options = self
+            .get_workspace_settings(&root)
             .map(|s| s["initializationOptions"].clone());
         if let Err(ref err) = initialization_options {
             warn!("Failed to get initializationOptions: {}", err);
@@ -887,8 +890,8 @@ impl State {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
-        let (buftype, languageId, filename, handle): (String, String, String, bool) =
-            self.gather_args(
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self
+            .gather_args(
                 &[
                     VimVar::Buftype,
                     VimVar::LanguageId,
@@ -980,7 +983,8 @@ impl State {
         // Unify filename.
         let filename = filename.canonicalize();
 
-        let diagnostics: Vec<_> = self.diagnostics
+        let diagnostics: Vec<_> = self
+            .diagnostics
             .get(&filename)
             .unwrap_or(&vec![])
             .iter()
@@ -1119,7 +1123,8 @@ impl State {
         if help.signatures.is_empty() {
             return Ok(Value::Null);
         }
-        let active_signature = help.signatures
+        let active_signature = help
+            .signatures
             .get(help.active_signature.unwrap_or(0).to_usize()?)
             .ok_or_else(|| err_msg("Failed to get active signature"))?;
         let active_parameter: Option<&ParameterInformation>;
@@ -1211,8 +1216,8 @@ impl State {
     pub fn textDocument_formatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
-        let (buftype, languageId, filename, handle): (String, String, String, bool) =
-            self.gather_args(
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self
+            .gather_args(
                 &[
                     VimVar::Buftype,
                     VimVar::LanguageId,
@@ -1261,8 +1266,8 @@ impl State {
     pub fn textDocument_rangeFormatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
-        let (buftype, languageId, filename, handle): (String, String, String, bool) =
-            self.gather_args(
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self
+            .gather_args(
                 &[
                     VimVar::Buftype,
                     VimVar::LanguageId,
@@ -1477,8 +1482,8 @@ impl State {
 
     pub fn textDocument_didOpen(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
-        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) =
-            self.gather_args(
+        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self
+            .gather_args(
                 &[
                     VimVar::Buftype,
                     VimVar::LanguageId,
@@ -1537,13 +1542,16 @@ impl State {
         let (text,): (Vec<String>,) = self.gather_args(&[VimVar::Text], params)?;
 
         let text = text.join("\n");
-        let text_state = self.get(|state| {
-            state
-                .text_documents
-                .get(&filename)
-                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))
-                .map(|doc| doc.text.clone())
-        }).unwrap_or_default();
+        let text_state =
+            self.get(|state| {
+                state
+                    .text_documents
+                    .get(&filename)
+                    .ok_or_else(|| {
+                        format_err!("TextDocumentItem not found! filename: {}", filename)
+                    })
+                    .map(|doc| doc.text.clone())
+            }).unwrap_or_default();
         if text == text_state {
             info!("Texts equal. Skipping didChange.");
             return Ok(());
@@ -1576,13 +1584,11 @@ impl State {
                     uri: filename.to_url()?,
                     version: Some(version),
                 },
-                content_changes: vec![
-                    TextDocumentContentChangeEvent {
-                        range: None,
-                        range_length: None,
-                        text,
-                    },
-                ],
+                content_changes: vec![TextDocumentContentChangeEvent {
+                    range: None,
+                    range_length: None,
+                    text,
+                }],
             },
         )?;
 
@@ -1759,7 +1765,8 @@ impl State {
         let params: UnregistrationParams = params.clone().to_lsp()?;
         let mut regs_removed = vec![];
         for r in &params.unregisterations {
-            if let Some(idx) = self.registrations
+            if let Some(idx) = self
+                .registrations
                 .iter()
                 .position(|i| i.id == r.id && i.method == r.method)
             {
@@ -1904,13 +1911,14 @@ impl State {
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             self.textDocument_didOpen(params)?;
 
-            let diagnostics = self.get(|state| {
-                state
-                    .diagnostics
-                    .get(&filename.canonicalize())
-                    .cloned()
-                    .ok_or_else(|| format_err!("No diagnostics! filename: {}", filename))
-            }).unwrap_or_default();
+            let diagnostics =
+                self.get(|state| {
+                    state
+                        .diagnostics
+                        .get(&filename.canonicalize())
+                        .cloned()
+                        .ok_or_else(|| format_err!("No diagnostics! filename: {}", filename))
+                }).unwrap_or_default();
             self.display_diagnostics(&filename, &diagnostics)?;
             self.languageClient_handleCursorMoved(params)?;
         } else {
@@ -1992,19 +2000,20 @@ impl State {
             state.last_cursor_line = line;
             Ok(())
         })?;
-        let message = self.get(|state| {
-            state
-                .line_diagnostics
-                .get(&(filename.clone(), line))
-                .cloned()
-                .ok_or_else(|| {
-                    format_err!(
-                        "Line diagnostic message not found! filename: {}, line: {}",
-                        filename,
-                        line
-                    )
-                })
-        }).unwrap_or_default();
+        let message =
+            self.get(|state| {
+                state
+                    .line_diagnostics
+                    .get(&(filename.clone(), line))
+                    .cloned()
+                    .ok_or_else(|| {
+                        format_err!(
+                            "Line diagnostic message not found! filename: {}, line: {}",
+                            filename,
+                            line
+                        )
+                    })
+            }).unwrap_or_default();
         if message == self.get(|state| Ok(state.last_line_diagnostic.clone()))? {
             return Ok(());
         }
@@ -2311,8 +2320,11 @@ impl State {
     pub fn cquery_handleProgress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
         let params: CqueryProgressParams = params.clone().to_lsp()?;
-        let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
-            + params.onIdMappedCount + params.onIndexedCount;
+        let total = params.indexRequestCount
+            + params.doIdMapCount
+            + params.loadPreviousIndexCount
+            + params.onIdMappedCount
+            + params.onIndexedCount;
         if total != 0 {
             self.command(&format!(
                 "let {}=1 | let {}='cquery: indexing ({} jobs)'",

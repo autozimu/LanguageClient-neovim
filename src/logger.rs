@@ -1,9 +1,9 @@
 use super::*;
 use log::LevelFilter;
-use log4rs::Handle;
 use log4rs::append::file::FileAppender;
-use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::Handle;
 
 fn config(level: LevelFilter) -> Result<Config> {
     let encoder =

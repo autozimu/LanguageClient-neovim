@@ -2,6 +2,7 @@
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::convert::Into;
 use std::env;
 use std::fmt::Debug;
 use std::fs::{read_to_string, File};
@@ -15,7 +16,6 @@ use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 use std::time::{Duration, Instant};
-use std::convert::Into;
 
 #[macro_use]
 extern crate log;
@@ -42,8 +42,8 @@ extern crate jsonrpc_core as rpc;
 use rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
-use lsp::*;
 use lsp::request::GotoDefinitionResponse;
+use lsp::*;
 
 extern crate url;
 use url::Url;
@@ -68,10 +68,10 @@ mod types;
 use types::*;
 mod utils;
 use utils::*;
-mod vim;
-mod rpchandler;
 mod languageclient;
 mod logger;
+mod rpchandler;
+mod vim;
 
 #[derive(Debug, StructOpt)]
 struct Arguments {}

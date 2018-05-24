@@ -46,7 +46,8 @@ pub fn get_rootPath<'a>(
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
         "javascript" | "typescript" => traverse_up(path, |dir| dir.join("package.json").exists()),
         "python" => traverse_up(path, |dir| {
-            dir.join("setup.py").exists() || dir.join("Pipfile").exists()
+            dir.join("setup.py").exists()
+                || dir.join("Pipfile").exists()
                 || dir.join("requirements.txt").exists()
         }),
         "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
@@ -64,7 +65,8 @@ pub fn get_rootPath<'a>(
         })
     })
         .or_else(|_| {
-            let parent = path.parent()
+            let parent = path
+                .parent()
                 .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
             warn!(
                 "Unknown project type. Fallback to use dir as project root: {:?}",
