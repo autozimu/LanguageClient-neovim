@@ -123,6 +123,7 @@ pub struct State {
     pub rootMarkers: Option<RootMarkers>,
     pub change_throttle: Option<Duration>,
     pub wait_output_timeout: Duration,
+    pub hoverPreview: HoverPreviewOption,
 
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
@@ -184,6 +185,7 @@ impl State {
             rootMarkers: None,
             change_throttle: None,
             wait_output_timeout: Duration::from_secs(10),
+            hoverPreview: HoverPreviewOption::default(),
 
             logger,
         })
@@ -212,6 +214,32 @@ impl FromStr for SelectionUI {
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
             _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum HoverPreviewOption {
+    Always,
+    Auto,
+    Never,
+}
+
+impl Default for HoverPreviewOption {
+    fn default() -> Self {
+        HoverPreviewOption::Auto
+    }
+}
+
+impl FromStr for HoverPreviewOption {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_ascii_uppercase().as_str() {
+            "ALWAYS" => Ok(HoverPreviewOption::Always),
+            "AUTO" => Ok(HoverPreviewOption::Auto),
+            "NEVER" => Ok(HoverPreviewOption::Never),
+            _ => bail!("Invalid option for LanguageClient_hoverPreview: {}", s),
         }
     }
 }
