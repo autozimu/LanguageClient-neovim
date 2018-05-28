@@ -26,7 +26,9 @@ requesting other types of issue, please ignore.
     1.
     2.
     3.
-- Logs. Paste or attach `/tmp/LanguageClient.log` and `/tmp/LanguageServer.log`.
+- Logs. Paste or attach `($TMPDIR || $TMP || $TEMP || $TEMPDIR ||
+  /tmp)/LanguageServer.log` and `($TMPDIR || $TMP || $TEMP || $TEMPDIR ||
+  /tmp)/LanguageClient.log`.
 
 ## Current Behavior
 (placeholder)
