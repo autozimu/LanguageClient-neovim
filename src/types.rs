@@ -445,53 +445,6 @@ pub struct VimCompleteItem {
     pub is_snippet: Option<bool>,
 }
 
-impl From<CompletionItem> for VimCompleteItem {
-    fn from(lspitem: CompletionItem) -> VimCompleteItem {
-        let mut abbr = lspitem.label.clone();
-        let word = lspitem
-            // Try use textEdit.
-            .text_edit
-            .clone()
-            .map(|edit| {
-                // EXTREMELY HACKY.
-                abbr = "".into();
-                edit.new_text.split_whitespace().last().unwrap_or(&edit.new_text)
-                    .trim_left_matches(|c| !char::is_alphanumeric(c))
-                    .into()
-            })
-            // Or else insertText.
-            .or_else(|| lspitem.insert_text.clone())
-            // Or else label.
-            .unwrap_or_else(|| lspitem.label.clone());
-
-        let is_snippet;
-        let snippet;
-        if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-            is_snippet = Some(true);
-            snippet = word.clone();
-        } else {
-            is_snippet = None;
-            snippet = String::default();
-        };
-
-        VimCompleteItem {
-            word,
-            abbr,
-            icase: 1,
-            dup: 1,
-            menu: lspitem.detail.clone().unwrap_or_default(),
-            info: lspitem
-                .documentation
-                .map(|d| d.to_string())
-                .unwrap_or_default(),
-            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
-            additional_text_edits: lspitem.additional_text_edits.clone(),
-            snippet,
-            is_snippet,
-        }
-    }
-}
-
 pub trait ToRpcError {
     fn to_rpc_error(&self) -> rpc::Error;
 }
