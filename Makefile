@@ -21,7 +21,7 @@ release:
 	chmod a+x bin/languageclient
 
 bump-version:
-	cargo release --level=patch
+	cargo release patch
 
 test:
 	cargo test
