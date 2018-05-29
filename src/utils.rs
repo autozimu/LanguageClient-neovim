@@ -315,22 +315,8 @@ fn test_get_command_update_signs() {
     assert_eq!(cmd, "echo");
 }
 
-pub trait Merge {
-    fn merge(&mut self, other: Self) -> ();
-}
-
-impl<K: std::hash::Hash + Eq, V, S: std::hash::BuildHasher> Merge for HashMap<K, V, S>
-where
-    K: std::cmp::Eq + std::hash::Hash,
-{
-    fn merge(&mut self, other: Self) -> () {
-        for (k, v) in other {
-            self.insert(k, v);
-        }
-    }
-}
-
 pub trait Combine {
+    /// Recursively combine two objects.
     fn combine(self, other: Self) -> Self
     where
         Self: Sized;
@@ -412,7 +398,7 @@ pub fn diff_value<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<Strin
                     map2.get(*k).unwrap_or(&Value::Null),
                     &next_path,
                 );
-                diffs.merge(next_diffs);
+                diffs.extend(next_diffs);
             }
         }
         _ => {

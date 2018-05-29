@@ -161,7 +161,7 @@ impl State {
 
         self.update(|state| {
             state.autoStart = autoStart;
-            state.serverCommands.merge(serverCommands);
+            state.serverCommands.extend(serverCommands);
             state.selectionUI = selectionUI;
             state.trace = trace;
             state.diagnosticsEnable = diagnosticsEnable;
@@ -297,7 +297,7 @@ impl State {
             line_diagnostics.insert((filename.to_owned(), line), msg);
         }
         self.update(|state| {
-            state.line_diagnostics.merge(line_diagnostics);
+            state.line_diagnostics.extend(line_diagnostics);
             Ok(())
         })?;
 
@@ -1869,9 +1869,9 @@ impl State {
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
-        let commands = params.clone().to_lsp()?;
+        let commands: HashMap<String, Vec<String>> = params.clone().to_lsp()?;
         self.update(|state| {
-            state.serverCommands.merge(commands);
+            state.serverCommands.extend(commands);
             Ok(())
         })?;
         let exp = format!(
@@ -1893,9 +1893,9 @@ impl State {
 
     pub fn languageClient_registerHandlers(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
-        let handlers = params.clone().to_lsp()?;
+        let handlers: HashMap<String, String> = params.clone().to_lsp()?;
         self.update(|state| {
-            state.user_handlers.merge(handlers);
+            state.user_handlers.extend(handlers);
             Ok(())
         })?;
         info!("End {}", REQUEST__RegisterHandlers);
