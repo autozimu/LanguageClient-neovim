@@ -608,6 +608,25 @@ impl State {
         Ok(())
     }
 
+    pub fn goto_location_jdt(&mut self, params: &Option<Params>) -> Result<()> {
+        let (uri,): (String,) = self.gather_args(&["uri"], params)?;
+        let result = self.java_classFileContents(params)?;
+        let content = match result {
+            Value::String(s) => s,
+            _ => bail!("Unexpected type: {:?}", result),
+        };
+        let lines: Vec<String> = content
+            .lines()
+            .map(std::string::ToString::to_string)
+            .collect();
+        self.command(format!("edit {}", uri))?;
+        if self.call::<_, i64>(None, "setline", json!([1, lines]))? != 0 {
+            return Err(err_msg("Failed to set buffer content"));
+        }
+
+        Ok(())
+    }
+
     /////// LSP ///////
 
     fn initialize(&mut self, params: &Option<Params>) -> Result<Value> {
