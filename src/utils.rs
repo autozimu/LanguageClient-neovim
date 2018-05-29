@@ -53,7 +53,9 @@ pub fn get_rootPath<'a>(
         "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
         "cs" => traverse_up(path, is_dotnet_root),
         "java" => traverse_up(path, |dir| {
-            dir.join(".project").exists() || dir.join("pom.xml").exists()
+            dir.join(".project").exists()
+                || dir.join("pom.xml").exists()
+                || dir.join("build.gradle").exists()
         }),
         "scala" => traverse_up(path, |dir| dir.join("build.sbt").exists()),
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
@@ -459,5 +461,16 @@ where
             .to_str()
             .map(|s| s.to_owned())
             .unwrap_or_default()
+    }
+}
+
+pub fn get_default_initializationOptions(languageId: &str) -> Value {
+    match languageId {
+        "java" => json!({
+            "extendedClientCapabilities": {
+                "classFileContentsSupport": true
+            }
+        }),
+        _ => json!({}),
     }
 }

@@ -608,9 +608,17 @@ impl State {
         Ok(())
     }
 
-    pub fn goto_location_jdt(&mut self, params: &Option<Params>) -> Result<()> {
-        let (uri,): (String,) = self.gather_args(&["uri"], params)?;
-        let result = self.java_classFileContents(params)?;
+    pub fn goto_location_jdt(
+        &mut self,
+        goto_cmd: &Option<String>,
+        uri: &str,
+        line: u64,
+        character: u64,
+    ) -> Result<()> {
+        let result = self.java_classFileContents(&json!({
+            VimVar::LanguageId.to_key(): "java",
+            "uri": uri,
+        }).to_params()?)?;
         let content = match result {
             Value::String(s) => s,
             _ => bail!("Unexpected type: {:?}", result),
@@ -619,10 +627,13 @@ impl State {
             .lines()
             .map(std::string::ToString::to_string)
             .collect();
-        self.command(format!("edit {}", uri))?;
-        if self.call::<_, i64>(None, "setline", json!([1, lines]))? != 0 {
-            return Err(err_msg("Failed to set buffer content"));
-        }
+        self.command(format!(
+            "{}! +setlocal\\ buftype=nofile\\ filetype=java\\ noswapfile {}",
+            goto_cmd.as_deref().unwrap_or("edit"),
+            uri
+        ))?;
+        self.setline(1, &lines)?;
+        self.cursor(line + 1, character + 1)?;
 
         Ok(())
     }
@@ -656,10 +667,13 @@ impl State {
 
         let initialization_options = self
             .get_workspace_settings(&root)
-            .map(|s| s["initializationOptions"].clone());
-        if let Err(ref err) = initialization_options {
-            warn!("Failed to get initializationOptions: {}", err);
-        }
+            .map(|s| s["initializationOptions"].clone())
+            .unwrap_or_else(|err| {
+                warn!("Failed to get initializationOptions: {}", err);
+                json!({})
+            });
+        let initialization_options =
+            get_default_initializationOptions(&languageId).combine(initialization_options);
 
         let trace = self.get(|state| Ok(state.trace.clone()))?;
 
@@ -670,7 +684,7 @@ impl State {
                 process_id: Some(unsafe { libc::getpid() } as u64),
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
-                initialization_options: initialization_options.ok(),
+                initialization_options: Some(initialization_options),
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
                         completion: Some(CompletionCapability {

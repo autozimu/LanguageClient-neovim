@@ -218,7 +218,7 @@ impl State {
         S: AsRef<str> + Serialize,
     {
         if self.call::<_, u8>(None, "s:Echomsg", message)? != 0 {
-            bail!("return value is failure");
+            bail!("Failed to echomsg!");
         }
         Ok(())
     }
@@ -228,7 +228,7 @@ impl State {
         S: AsRef<str> + Serialize,
     {
         if self.call::<_, u8>(None, "s:Echoerr", message)? != 0 {
-            bail!("return value is failure");
+            bail!("Failed to echo error!");
         }
         Ok(())
     }
@@ -238,7 +238,21 @@ impl State {
         S: AsRef<str> + Serialize,
     {
         if self.call::<_, u8>(None, "s:Echowarn", message)? != 0 {
-            bail!("return value is failure");
+            bail!("Failed to echo warning!");
+        }
+        Ok(())
+    }
+
+    pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
+        if self.call::<_, u8>(None, "cursor", json!([lnum, col]))? != 0 {
+            bail!("Failed to set cursor!");
+        }
+        Ok(())
+    }
+
+    pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {
+        if self.call::<_, u8>(None, "setline", json!([lnum, text]))? != 0 {
+            bail!("Failed to set buffer content!");
         }
         Ok(())
     }
@@ -251,6 +265,11 @@ impl State {
         character: u64,
     ) -> Result<()> {
         let path = path.as_ref().to_string_lossy();
+
+        if path.starts_with("jdt://") {
+            return self.goto_location_jdt(goto_cmd, &path, line, character);
+        }
+
         let mut cmd = "echo | ".to_string();
         let goto;
         if let Some(ref goto_cmd) = *goto_cmd {

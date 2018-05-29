@@ -846,6 +846,16 @@ function! LanguageClient#cquery_vars(...) abort
     return call('LanguageClient#find_locations', ['$cquery/vars'] + a:000)
 endfunction
 
+function! LanguageClient#java_classFileContent(...) abort
+    if &buftype != '' || &filetype ==# ''
+        return
+    endif
+
+    let l:params = get(a:000, 0, {})
+    let l:callback = get(a:000, 1, v:null)
+    return LanguageClient#Call('java/classFileContent', l:params, l:callback)
+endfunction
+
 function! LanguageClient_contextMenuItems() abort
     return {
                 \ 'Code Action': 'LanguageClient#textDocument_codeAction',
