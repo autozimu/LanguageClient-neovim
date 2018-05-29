@@ -526,8 +526,7 @@ impl ToString for Hover {
     fn to_string(&self) -> String {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_string(),
-            HoverContents::Array(ref vec) => vec
-                .iter()
+            HoverContents::Array(ref vec) => vec.iter()
                 .map(|i| i.to_string())
                 .collect::<Vec<_>>()
                 .join("\n"),

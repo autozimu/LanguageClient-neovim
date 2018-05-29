@@ -31,11 +31,9 @@ impl State {
         loop {
             let msg = self.rx.recv_timeout(self.wait_output_timeout)?;
             match msg {
-                Message::MethodCall(lang_id, method_call) => self
-                    .pending_calls
+                Message::MethodCall(lang_id, method_call) => self.pending_calls
                     .push_back(Call::MethodCall(lang_id, method_call)),
-                Message::Notification(lang_id, notification) => self
-                    .pending_calls
+                Message::Notification(lang_id, notification) => self.pending_calls
                     .push_back(Call::Notification(lang_id, notification)),
                 Message::Output(output) => {
                     let mid = output.id().to_int()?;
@@ -91,8 +89,7 @@ impl State {
     fn write(&mut self, languageId: Option<&str>, message: &str) -> Result<()> {
         info!("=> {:?} {}", languageId, message);
         if let Some(languageId) = languageId {
-            let writer = self
-                .writers
+            let writer = self.writers
                 .get_mut(languageId)
                 .ok_or(LCError::NoLanguageServer {
                     languageId: languageId.to_owned(),
