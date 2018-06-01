@@ -115,6 +115,16 @@ function! s:FZF(source, sink) abort
     endif
 endfunction
 
+function! s:Edit(action, path)
+    let l:action = a:action
+    " Avoid the not saved warning.
+    if l:action ==# 'edit' && bufnr(a:path) != -1
+        let l:action = "buffer"
+    endif
+
+    execute l:action . ' ' . fnameescape(a:path)
+endfunction
+
 let s:id = 1
 let s:handlers = {}
 

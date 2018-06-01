@@ -228,7 +228,8 @@ impl State {
                 self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
         }
-        self.goto_location(&Some("buffer".to_string()), &filename, line, character)?;
+        self.edit(&None, &filename)?;
+        self.jump(line + 1, character + 1)?;
         debug!("End apply WorkspaceEdit");
         Ok(())
     }
@@ -246,8 +247,7 @@ impl State {
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
 
-        // FIXME: do not move cursor!
-        self.goto_location(&None, &path, 0, 0)?;
+        self.edit(&None, &path)?;
 
         let mut lines: Vec<String> = self.call(None, "getline", json!([1, '$']))?;
         let lines_len_prev = lines.len();
@@ -606,36 +606,6 @@ impl State {
         Ok(())
     }
 
-    pub fn goto_location_jdt(
-        &mut self,
-        goto_cmd: &Option<String>,
-        uri: &str,
-        line: u64,
-        character: u64,
-    ) -> Result<()> {
-        let result = self.java_classFileContents(&json!({
-            VimVar::LanguageId.to_key(): "java",
-            "uri": uri,
-        }).to_params()?)?;
-        let content = match result {
-            Value::String(s) => s,
-            _ => bail!("Unexpected type: {:?}", result),
-        };
-        let lines: Vec<String> = content
-            .lines()
-            .map(std::string::ToString::to_string)
-            .collect();
-        self.command(format!(
-            "{}! +setlocal\\ buftype=nofile\\ filetype=java\\ noswapfile {}",
-            goto_cmd.as_deref().unwrap_or("edit"),
-            uri
-        ))?;
-        self.setline(1, &lines)?;
-        self.cursor(line + 1, character + 1)?;
-
-        Ok(())
-    }
-
     /////// LSP ///////
 
     fn initialize(&mut self, params: &Option<Params>) -> Result<Value> {
@@ -832,23 +802,15 @@ impl State {
                 return Ok(Value::Null);
             }
             Some(GotoDefinitionResponse::Scalar(loc)) => {
-                self.goto_location(
-                    &goto_cmd,
-                    loc.uri.filepath()?,
-                    loc.range.start.line,
-                    loc.range.start.character,
-                )?;
+                self.edit(&goto_cmd, loc.uri.filepath()?)?;
+                self.jump(loc.range.start.line + 1, loc.range.start.character + 1)?;
             }
             Some(GotoDefinitionResponse::Array(arr)) => match arr.len() {
                 0 => self.echowarn("Not found!")?,
                 1 => {
                     let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
-                    self.goto_location(
-                        &goto_cmd,
-                        loc.uri.filepath()?,
-                        loc.range.start.line,
-                        loc.range.start.character,
-                    )?;
+                    self.edit(&goto_cmd, loc.uri.filepath()?)?;
+                    self.jump(loc.range.start.line + 1, loc.range.start.character + 1)?;
                 }
                 _ => self.display_locations(&arr)?,
             },
@@ -2153,7 +2115,8 @@ impl State {
             .ok_or_else(|| format_err!("Failed to get character! tokens: {:?}", tokens))?
             .to_int()? - 1;
 
-        self.goto_location(&None, &filename, line, character)?;
+        self.edit(&None, &filename)?;
+        self.jump(line + 1, character + 1)?;
 
         info!("End {}", NOTIFICATION__FZFSinkLocation);
         Ok(())

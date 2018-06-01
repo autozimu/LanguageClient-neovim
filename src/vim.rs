@@ -188,7 +188,10 @@ impl State {
     }
 
     pub fn command<S: AsRef<str>>(&mut self, cmd: S) -> Result<()> {
-        self.call::<_, u8>(None, "execute", cmd.as_ref())?;
+        let cmd = cmd.as_ref();
+        if self.call::<_, u8>(None, "execute", cmd)? != 0 {
+            bail!("Failed to execute command: {}", cmd);
+        }
         Ok(())
     }
 
@@ -240,11 +243,8 @@ impl State {
         Ok(())
     }
 
-    pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
-        if self.call::<_, u8>(None, "cursor", json!([lnum, col]))? != 0 {
-            bail!("Failed to set cursor!");
-        }
-        Ok(())
+    pub fn jump(&mut self, lnum: u64, col: u64) -> Result<()> {
+        self.command(format!("normal {}G{}|", lnum, col))
     }
 
     pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {
@@ -254,38 +254,32 @@ impl State {
         Ok(())
     }
 
-    pub fn goto_location<P: AsRef<Path>>(
-        &mut self,
-        goto_cmd: &Option<String>,
-        path: P,
-        line: u64,
-        character: u64,
-    ) -> Result<()> {
+    pub fn edit<P: AsRef<Path>>(&mut self, goto_cmd: &Option<String>, path: P) -> Result<()> {
         let path = path.as_ref().to_string_lossy();
 
-        if path.starts_with("jdt://") {
-            return self.goto_location_jdt(goto_cmd, &path, line, character);
+        let goto = goto_cmd.as_deref().unwrap_or("edit");
+        if self.call::<_, u8>(None, "s:Edit", json!([goto, path]))? != 0 {
+            bail!("Failed to edit file: {}", path);
         }
 
-        let mut cmd = "echo | ".to_string();
-        let goto;
-        if let Some(ref goto_cmd) = *goto_cmd {
-            goto = goto_cmd.as_str();
-        } else if self.eval::<_, i64>(format!("bufnr('{}')", path))? == -1 {
-            goto = "edit";
-        } else {
-            cmd += "execute 'normal m`' | ";
-            goto = "buffer";
-        };
-        cmd += &format!(
-            "execute 'normal! m`' | execute '{} +:call\\ cursor({},{}) ' . fnameescape('{}')",
-            goto,
-            line + 1,
-            character + 1,
-            path
-        );
+        if path.starts_with("jdt://") {
+            self.command("setlocal buftype=nofile filetype=java noswapfile")?;
 
-        self.command(cmd)
+            let result = self.java_classFileContents(&json!({
+                VimVar::LanguageId.to_key(): "java",
+                "uri": path,
+            }).to_params()?)?;
+            let content = match result {
+                Value::String(s) => s,
+                _ => bail!("Unexpected type: {:?}", result),
+            };
+            let lines: Vec<String> = content
+                .lines()
+                .map(std::string::ToString::to_string)
+                .collect();
+            self.setline(1, &lines)?;
+        }
+        Ok(())
     }
 
     pub fn setqflist(&mut self, list: &[QuickfixEntry]) -> Result<()> {
