@@ -768,11 +768,15 @@ impl State {
 
         let hover: Option<Hover> = serde_json::from_value(result.clone())?;
         if let Some(hover) = hover {
-            match (&self.hoverPreview, hover.lines_len()) {
-                (HoverPreviewOption::Always, _) => self.preview(&hover.to_display())?,
-                (HoverPreviewOption::Auto, 1) => self.echo_ellipsis(hover.to_string())?,
-                (HoverPreviewOption::Auto, _) => self.preview(&hover.to_display())?,
-                (HoverPreviewOption::Never, _) => self.echo_ellipsis(hover.to_string())?,
+            let use_preview = match &self.hoverPreview {
+                HoverPreviewOption::Always => true,
+                HoverPreviewOption::Never => false,
+                HoverPreviewOption::Auto => hover.lines_len() > 1,
+            };
+            if use_preview {
+                self.preview(&hover.to_display())?
+            } else {
+                self.echo_ellipsis(hover.to_string())?
             }
         }
 
