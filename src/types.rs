@@ -23,6 +23,7 @@ pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChan
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
 pub const NOTIFICATION__HandleBufDelete: &str = "languageClient/handleBufDelete";
 pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMoved";
+pub const NOTIFICATION__HandleCompleteDone: &str = "languageClient/handleCompleteDone";
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
 pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExisted";
@@ -437,7 +438,9 @@ pub struct VimCompleteItem {
     pub menu: String,
     pub info: String,
     pub kind: String,
-    #[serde(rename = "additionalTextEdits")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_edit: Option<TextEdit>,
+    #[serde(rename = "additionalTextEdits", skip_serializing_if = "Option::is_none")]
     pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
     #[serde(skip_serializing_if = "String::is_empty")]
     pub snippet: String,
@@ -899,6 +902,54 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
             text: Some(sym.name.clone()),
             nr: None,
             typ: None,
+        })
+    }
+}
+
+impl FromLSP<CompletionItem> for VimCompleteItem {
+    fn from_lsp(lspitem: &CompletionItem) -> Result<Self> {
+        let abbr = lspitem.label.clone();
+        let word = lspitem
+            .insert_text
+            .clone()
+            .unwrap_or_else(|| lspitem.label.clone());
+
+        let is_snippet;
+        let snippet;
+        if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
+            is_snippet = Some(true);
+            snippet = word.clone();
+        } else {
+            is_snippet = None;
+            snippet = String::default();
+        };
+
+        let mut info = String::new();
+        if let Some(ref doc) = lspitem.documentation {
+            info += &doc.to_string();
+        }
+        // if (lspitem.insert_text.is_none() && lspitem.text_edit.is_some())
+        //     || lspitem.additional_text_edits.is_some()
+        // {
+        //     info += "\n";
+        //     info += &serde_json::to_string(&json!({
+        //         "text_edit": lspitem.text_edit.clone(),
+        //         "additional_text_edits": lspitem.additional_text_edits.clone(),
+        //     }))?;
+        // }
+
+        Ok(VimCompleteItem {
+            word,
+            abbr,
+            icase: 1,
+            dup: 1,
+            menu: lspitem.detail.clone().unwrap_or_default(),
+            info,
+            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
+            text_edit: lspitem.text_edit.clone(),
+            additional_text_edits: lspitem.additional_text_edits.clone(),
+            snippet,
+            is_snippet,
         })
     }
 }

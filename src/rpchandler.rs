@@ -163,6 +163,9 @@ impl State {
             NOTIFICATION__HandleCursorMoved => {
                 self.languageClient_handleCursorMoved(&notification.params)?
             }
+            NOTIFICATION__HandleCompleteDone => {
+                self.languageClient_handleCompleteDone(&notification.params)?
+            }
             NOTIFICATION__FZFSinkLocation => {
                 self.languageClient_FZFSinkLocation(&notification.params)?
             }

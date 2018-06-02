@@ -702,6 +702,20 @@ function! LanguageClient#handleCursorMoved() abort
     endtry
 endfunction
 
+function! LanguageClient#handleCompleteDone()
+    try
+        " check if v:completed_item has "text_edit" or "additional_text_edits"
+        return
+
+        call LanguageClient#Notify('languageClient/handleCompleteDone', {
+                    \ 'filename': LSP#filename(),
+                    \ 'completed_item': v:completed_item,
+                    \ })
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! s:LanguageClient_FZFSinkLocation(line) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkLocation', [a:line])
 endfunction

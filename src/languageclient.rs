@@ -1857,8 +1857,6 @@ impl State {
 
     pub fn languageClient_omniComplete(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
-        let (filename, line, character): (String, u64, u64) =
-            self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
@@ -1875,72 +1873,10 @@ impl State {
             });
         }
 
-        let matches: Vec<VimCompleteItem> = matches
-            .into_iter()
-            .map(|lspitem| self.to_vim_complete_item(&lspitem, &filename, line, character))
-            .collect();
+        let matches: Result<Vec<VimCompleteItem>> = matches.iter().map(FromLSP::from_lsp).collect();
+        let matches = matches?;
         info!("End {}", REQUEST__OmniComplete);
         Ok(serde_json::to_value(matches)?)
-    }
-
-    pub fn to_vim_complete_item(
-        &self,
-        lspitem: &CompletionItem,
-        filename: &str,
-        line: u64,
-        character: u64,
-    ) -> VimCompleteItem {
-        let mut lines = vec![];
-
-        let mut abbr = lspitem.label.clone();
-        let word = lspitem
-            // Try use textEdit.
-            .text_edit
-            .clone()
-            .and_then(|edit| {
-                abbr = "".into();
-                if lines.is_empty() {
-                    lines = self.text_documents.get(filename)
-                        .map_or(vec![], |doc| doc.text.lines().map(std::string::ToString::to_string).collect());
-                }
-                let next_lines = apply_TextEdits(&lines[..], &[edit]).unwrap_or_default();
-                next_lines.get(line as usize)
-                    .map(|l| l[(character as usize)..].to_string())
-            })
-        // Or else insertText.
-        .or_else(|| lspitem.insert_text.clone())
-            // Or else label.
-            .unwrap_or_else(|| lspitem.label.clone());
-
-        let is_snippet;
-        let snippet;
-        if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-            is_snippet = Some(true);
-            snippet = word.clone();
-        } else {
-            is_snippet = None;
-            snippet = String::default();
-        };
-
-        let info;
-        if let Some(ref doc) = lspitem.documentation {
-            info = doc.to_string();
-        } else {
-            info = "".to_string();
-        }
-
-        VimCompleteItem {
-            word,
-            abbr,
-            icase: 1,
-            dup: 1,
-            menu: lspitem.detail.clone().unwrap_or_default(),
-            info,
-            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
-            additional_text_edits: lspitem.additional_text_edits.clone(),
-            snippet,
-            is_snippet,
-        }
     }
 
     pub fn languageClient_handleBufReadPost(&mut self, params: &Option<Params>) -> Result<()> {
@@ -2077,6 +2013,19 @@ impl State {
         Ok(())
     }
 
+    pub fn languageClient_handleCompleteDone(&mut self, params: &Option<Params>) -> Result<()> {
+        let (filename, completed_item): (String, VimCompleteItem) = self.gather_args(
+            &[VimVar::Filename.to_key().as_str(), "completed_item"],
+            params,
+        )?;
+        let text_edit = match completed_item.text_edit {
+            Some(text_edit) => text_edit.clone(),
+            None => return Ok(()),
+        };
+
+        self.apply_TextEdits(filename, &[text_edit])
+    }
+
     pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
         let params = match *params {
@@ -2190,12 +2139,13 @@ impl State {
             CompletionResponse::Array(_) => false,
             CompletionResponse::List(ref list) => list.is_incomplete,
         };
-        let matches: Vec<VimCompleteItem> = match result {
+        let matches: Result<Vec<VimCompleteItem>> = match result {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
-        }.into_iter()
-            .map(|lspitem| self.to_vim_complete_item(&lspitem, &filename, line, character))
+        }.iter()
+            .map(FromLSP::from_lsp)
             .collect();
+        let matches = matches?;
         self.call::<_, u8>(
             None,
             "cm#complete",
