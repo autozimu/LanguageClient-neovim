@@ -775,7 +775,7 @@ function! LanguageClient#complete(findstart, base) abort
         let l:line = getline('.')
         let l:cursor = LSP#character()
         let l:input = l:line[:l:cursor]
-        let l:start = match(l:input, '\k*\ze\K')
+        let l:start = match(l:input, '\%(.\{-}[^\k]\{-}\)*\zs\k*\ze.\=$')
         return l:start
     else
         let l:result = LanguageClient_runSync(
