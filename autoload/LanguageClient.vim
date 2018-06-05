@@ -775,7 +775,14 @@ function! LanguageClient#complete(findstart, base) abort
         let l:line = getline('.')
         let l:cursor = LSP#character()
         let l:input = l:line[:l:cursor]
-        let l:start = match(l:input, '\%(.\{-}[^\k]\{-}\)*\zs\k*\ze.\=$')
+
+        " Check for no identifier chars, but cursor is right after a non identifier char
+        " ie completing when the cursor is after the '.' in 'foo_class.'
+        if l:input[l:cursor-1:l:cursor-1] !~# "\k"
+            let l:start = l:cursor
+        else
+            let l:start = match(l:input, '\k*\ze[^\k]\=$')
+        endif
         return l:start
     else
         let l:result = LanguageClient_runSync(
