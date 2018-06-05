@@ -778,10 +778,10 @@ function! LanguageClient#complete(findstart, base) abort
 
         " Check for no identifier chars, but cursor is right after a non identifier char
         " ie completing when the cursor is after the '.' in 'foo_class.'
-        if l:input[l:cursor-1:l:cursor-1] !~# "\k"
+        if l:input[l:cursor-1:l:cursor-1] !~# "\w"
             let l:start = l:cursor
         else
-            let l:start = match(l:input, '\k*\ze[^\k]\=$')
+            let l:start = match(l:input, '\k*\ze\W*$')
         endif
         return l:start
     else
