@@ -17,3 +17,11 @@ endfunction
 function! LSP#character()
     return col('.') - 1
 endfunction
+
+function! LSP#range_start_line()
+    return v:lnum - 1
+endfunction
+
+function! LSP#range_end_line()
+    return v:lnum - 1 + v:count
+endfunction

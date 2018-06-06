@@ -1257,34 +1257,22 @@ impl State {
     pub fn textDocument_rangeFormatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
-        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Handle,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, handle, tab_size, insert_spaces, start_line, end_line):
+            (String, String, String, bool, u64, u64, u64, u64) = self.gather_args(
+                &[
+                VimVar::Buftype.to_key().as_str(),
+                VimVar::LanguageId.to_key().as_str(),
+                VimVar::Filename.to_key().as_str(),
+                VimVar::Handle.to_key().as_str(),
+                "&tabstop",
+                "&expandtab",
+                "LSP#range_start_line()",
+                "LSP#range_end_line()",
+                ], params)?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
 
-        let (tab_size, insert_spaces, start_line, end_line, end_character): (
-            u64,
-            u64,
-            u64,
-            u64,
-            u64,
-        ) = self.eval(
-            [
-                "&tabstop",
-                "&expandtab",
-                "v:lnum - 1",
-                "v:lnum - 1 + v:count - 1",
-                "len(getline(v:lnum + v:count - 1))",
-            ].as_ref(),
-        )?;
         let insert_spaces = insert_spaces == 1;
         let result = self.call(
             Some(&languageId),
@@ -1305,7 +1293,7 @@ impl State {
                     },
                     end: Position {
                         line: end_line,
-                        character: end_character,
+                        character: 0,
                     },
                 },
             },
