@@ -773,14 +773,16 @@ function! LanguageClient#omniComplete(...) abort
     endtry
 endfunction
 
+function! LanguageClient#get_complete_start(input)
+    " echomsg a:input
+    return match(a:input, '\k*$')
+endfunction
+
 let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
-        let l:line = getline('.')
-        let l:cursor = LSP#character()
-        let l:input = l:line[:l:cursor]
-        let l:start = match(l:input, '\k*$')
-        return l:start
+        let l:input = getline('.')[:LSP#character() - 1]
+        return LanguageClient#get_complete_start(l:input)
     else
         let l:result = LanguageClient_runSync(
                     \ 'LanguageClient#omniComplete', {

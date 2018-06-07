@@ -17,7 +17,7 @@ class Source(Base):
         self.input_pattern += r'(\.|::|->)\w*$'
 
     def get_complete_position(self, context):
-        return self.vim.call('LanguageClient#complete', 1, 0)
+        return self.vim.call('LanguageClient#get_complete_start', context['input'])
 
     def gather_candidates(self, context):
         if context["is_async"]:
