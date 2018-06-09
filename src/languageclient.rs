@@ -236,6 +236,10 @@ impl State {
 
     fn apply_TextEdits<P: AsRef<Path>>(&mut self, path: P, edits: &[TextEdit]) -> Result<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
+        if edits.is_empty() {
+            return Ok(());
+        }
+
         let mut edits = edits.to_vec();
 
         // Edits must be applied from bottom to top, so that earlier edits will not interfere
@@ -2006,12 +2010,24 @@ impl State {
             &[VimVar::Filename.to_key().as_str(), "completed_item"],
             params,
         )?;
-        let text_edit = match completed_item.text_edit {
-            Some(text_edit) => text_edit.clone(),
+        let user_data = match completed_item.user_data {
+            Some(data) => data,
             None => return Ok(()),
         };
+        let user_data: VimCompleteItemUserData = serde_json::from_str(&user_data)?;
 
-        self.apply_TextEdits(filename, &[text_edit])
+        let mut edits = vec![];
+        if let Some(edit) = user_data.text_edit {
+            edits.push(edit.clone());
+        };
+        if let Some(aedits) = user_data.additional_text_edits {
+            edits.extend(aedits.clone());
+        };
+
+        // TODO
+        // 1. undo previous completion
+        // 2. relocate cursor
+        self.apply_TextEdits(filename, &edits)
     }
 
     pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {

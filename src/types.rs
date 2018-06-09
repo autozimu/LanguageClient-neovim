@@ -432,20 +432,44 @@ pub struct NCMRefreshParams {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VimCompleteItem {
     pub word: String,
-    pub icase: u64,
     pub abbr: String,
-    pub dup: u64,
     pub menu: String,
     pub info: String,
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_edit: Option<TextEdit>,
-    #[serde(rename = "additionalTextEdits", skip_serializing_if = "Option::is_none")]
-    pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub snippet: String,
+    pub icase: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dup: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_snippet: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_data: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VimCompleteItemUserData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_edit: Option<TextEdit>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
+}
+
+impl VimCompleteItemUserData {
+    pub fn new() -> Self {
+        Self {
+            text_edit: None,
+            additional_text_edits: None,
+            snippet: None,
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        self.text_edit.is_none() && self.additional_text_edits.is_none() && self.snippet.is_none()
+    }
 }
 
 pub trait ToRpcError {
@@ -914,42 +938,46 @@ impl FromLSP<CompletionItem> for VimCompleteItem {
             .clone()
             .unwrap_or_else(|| lspitem.label.clone());
 
+        let mut user_data = VimCompleteItemUserData::new();
+
         let is_snippet;
         let snippet;
         if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
             is_snippet = Some(true);
-            snippet = word.clone();
+            snippet = Some(word.clone());
+            user_data.snippet = Some(word.clone());
         } else {
             is_snippet = None;
-            snippet = String::default();
+            snippet = None;
         };
 
         let mut info = String::new();
         if let Some(ref doc) = lspitem.documentation {
             info += &doc.to_string();
         }
-        // if (lspitem.insert_text.is_none() && lspitem.text_edit.is_some())
-        //     || lspitem.additional_text_edits.is_some()
-        // {
-        //     info += "\n";
-        //     info += &serde_json::to_string(&json!({
-        //         "text_edit": lspitem.text_edit.clone(),
-        //         "additional_text_edits": lspitem.additional_text_edits.clone(),
-        //     }))?;
-        // }
+
+        if lspitem.text_edit.is_some() {
+            user_data.text_edit = lspitem.text_edit.clone();
+        }
+        if lspitem.additional_text_edits.is_some() {
+            user_data.additional_text_edits = lspitem.additional_text_edits.clone();
+        }
 
         Ok(VimCompleteItem {
             word,
             abbr,
-            icase: 1,
-            dup: 1,
+            icase: Some(1),
+            dup: Some(1),
             menu: lspitem.detail.clone().unwrap_or_default(),
             info,
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
-            text_edit: lspitem.text_edit.clone(),
-            additional_text_edits: lspitem.additional_text_edits.clone(),
             snippet,
             is_snippet,
+            user_data: if user_data.is_none() {
+                None
+            } else {
+                Some(serde_json::to_string(&user_data)?)
+            },
         })
     }
 }

@@ -707,10 +707,12 @@ function! LanguageClient#handleCursorMoved() abort
 endfunction
 
 function! LanguageClient#handleCompleteDone()
-    try
-        " check if v:completed_item has "text_edit" or "additional_text_edits"
+    let user_data = get(v:completed_item, 'user_data', '')
+    if user_data ==# ''
         return
+    endif
 
+    try
         call LanguageClient#Notify('languageClient/handleCompleteDone', {
                     \ 'filename': LSP#filename(),
                     \ 'completed_item': v:completed_item,
