@@ -8,6 +8,9 @@ cd $dir
 LOG="${TMP:-/tmp}"/LanguageClient.log
 LOG_SERVER="${TMP:-/tmp}"/LanguageServer.log
 
+curl -fLo tests/data/.vim/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
 nvim -n -u tests/data/vimrc --headless +PlugInstall +qa
 rm -f /tmp/nvim-LanguageClient-IntegrationTest
 if [[ "$TMUX" ]]; then
