@@ -275,6 +275,37 @@ impl State {
         Ok(())
     }
 
+    fn update_quickfixlist(&mut self) -> Result<()> {
+        let qflist: Vec<_> = self.diagnostics
+            .iter()
+            .flat_map(|(filename, diagnostics)| {
+                diagnostics
+                    .iter()
+                    .map(|dn| QuickfixEntry {
+                        filename: filename.to_owned(),
+                        lnum: dn.range.start.line + 1,
+                        col: Some(dn.range.start.character + 1),
+                        nr: dn.code.clone().map(|ns| ns.to_string()),
+                        text: Some(dn.message.to_owned()),
+                        typ: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        match self.diagnosticsList {
+            DiagnosticsList::Quickfix => {
+                self.setqflist(&qflist)?;
+            }
+            DiagnosticsList::Location => {
+                self.setloclist(&qflist)?;
+            }
+            DiagnosticsList::Disabled => {}
+        }
+
+        Ok(())
+    }
+
     fn display_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
         // Line diagnostics.
         self.update(|state| {
@@ -305,37 +336,38 @@ impl State {
         })?;
 
         // Signs.
-        let texts = self.get(|state| {
-            let text_document = state
-                .text_documents
+        if self.text_documents.contains_key(filename) {
+            let text = self.text_documents
                 .get(filename)
-                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))?;
-            Ok(text_document.text.clone())
-        })?;
-        let texts: Vec<&str> = texts.lines().collect();
-        let mut signs: Vec<_> = diagnostics
-            .iter()
-            .map(|dn| {
-                let line = dn.range.start.line;
-                let text = texts
-                    .get(line as usize)
-                    .map(|l| l.to_string())
-                    .unwrap_or_default();
-                let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
-                Sign::new(line + 1, text, severity)
-            })
-            .collect();
-        signs.sort_unstable();
+                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))?
+                .text
+                .clone();
+            let lines: Vec<&str> = text.lines().collect();
+            let mut signs: Vec<_> = diagnostics
+                .iter()
+                .map(|dn| {
+                    let line = dn.range.start.line;
+                    let text = lines
+                        .get(line as usize)
+                        .map(|l| l.to_string())
+                        .unwrap_or_default();
+                    let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
+                    Sign::new(line + 1, text, severity)
+                })
+                .collect();
+            signs.sort_unstable();
 
-        let cmd = self.update(|state| {
-            let signs_prev = state.signs.remove(filename).unwrap_or_default();
-            let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, filename);
-            state.signs.insert(filename.to_string(), signs_next);
-            Ok(cmd)
-        })?;
-        info!("Command to update signs: {}", cmd);
-        self.command(&cmd)?;
+            let cmd = self.update(|state| {
+                let signs_prev = state.signs.remove(filename).unwrap_or_default();
+                let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, filename);
+                state.signs.insert(filename.to_string(), signs_next);
+                Ok(cmd)
+            })?;
+            info!("Command to update signs: {}", cmd);
+            self.command(&cmd)?;
+        }
 
+        // Highlight.
         if !self.get(|state| Ok(state.is_nvim))? {
             return Ok(());
         }
@@ -355,7 +387,6 @@ impl State {
         let source = source.ok_or_else(|| err_msg("Empty highlight source id"))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
-        // Highlight.
         // TODO: Optimize.
         self.call::<_, Option<u8>>(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
         for dn in diagnostics {
@@ -529,58 +560,37 @@ impl State {
     }
 
     fn cleanup(&mut self, languageId: &str) -> Result<()> {
-        self.update(|state| {
-            state.child_ids.remove(languageId);
-            state.last_cursor_line = 0;
-            Ok(())
-        })?;
+        info!("Begin cleanup");
 
-        let signsmap = self.update(|state| {
-            state.writers.remove(languageId);
-            let root = state
-                .roots
-                .remove(languageId)
-                .ok_or_else(|| format_err!("No project root found! languageId: {}", languageId))?;
+        let root = self.roots
+            .get(languageId)
+            .cloned()
+            .ok_or_else(|| format_err!("No project root found! languageId: {}", languageId))?;
 
-            state.text_documents.retain(|f, _| !f.starts_with(&root));
-            state.diagnostics.retain(|f, _| !f.starts_with(&root));
-
-            let mut signsmap = HashMap::new();
-            state.signs.retain(|f, s| {
-                if f.starts_with(&root) {
-                    signsmap.insert(f.clone(), s.clone());
-                    false
-                } else {
-                    true
-                }
-            });
-            state
-                .line_diagnostics
-                .retain(|fl, _| !fl.0.starts_with(&root));
-            Ok(signsmap)
-        })?;
-
-        for (filename, signs) in signsmap {
-            let (_, cmd) = get_command_update_signs(&signs, &[], &filename);
-            self.command(&cmd)?;
+        let mut filenames = vec![];
+        for f in self.diagnostics.keys() {
+            if f.starts_with(&root) {
+                filenames.push(f.clone());
+            }
+        }
+        for f in filenames {
+            self.display_diagnostics(&f, &[])?;
         }
 
-        let hlsource = self.update(|state| {
-            state
-                .highlight_source
-                .ok_or_else(|| err_msg("No highlight source"))
-        });
-        if let Ok(hlsource) = hlsource {
-            self.call::<_, Option<u8>>(
-                None,
-                "nvim_buf_clear_highlight",
-                json!([0, hlsource, 1, -1]),
-            )?;
-        }
+        self.diagnostics.retain(|f, _| !f.starts_with(&root));
+        self.update_quickfixlist()?;
+
+        self.writers.remove(languageId);
+        self.child_ids.remove(languageId);
+        self.last_cursor_line = 0;
+        self.text_documents.retain(|f, _| !f.starts_with(&root));
+        self.roots.remove(languageId);
 
         self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
         self.command(&format!("let {}=0", VIM__ServerStatus))?;
         self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
+
+        info!("End cleanup");
         Ok(())
     }
 
@@ -1634,42 +1644,14 @@ impl State {
         }
         // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
+
         self.update(|state| {
             state
                 .diagnostics
                 .insert(filename.clone(), params.diagnostics.clone());
             Ok(())
         })?;
-
-        let qflist: Vec<_> = self.get(|state| {
-            Ok(state
-                .diagnostics
-                .iter()
-                .flat_map(|(filename, diagnostics)| {
-                    diagnostics
-                        .iter()
-                        .map(|dn| QuickfixEntry {
-                            filename: filename.to_owned(),
-                            lnum: dn.range.start.line + 1,
-                            col: Some(dn.range.start.character + 1),
-                            nr: dn.code.clone().map(|ns| ns.to_string()),
-                            text: Some(dn.message.to_owned()),
-                            typ: dn.severity.map(|sev| sev.to_quickfix_entry_type()),
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect())
-        })?;
-
-        match self.get(|state| Ok(state.diagnosticsList.clone()))? {
-            DiagnosticsList::Quickfix => {
-                self.setqflist(&qflist)?;
-            }
-            DiagnosticsList::Location => {
-                self.setloclist(&qflist)?;
-            }
-            DiagnosticsList::Disabled => {}
-        }
+        self.update_quickfixlist()?;
 
         let current_filename: String = self.eval(VimVar::Filename)?;
         if filename != current_filename.canonicalize() {
@@ -1784,8 +1766,7 @@ impl State {
         if let Err(err) = result {
             error!("Error: {:?}", err);
         }
-        let result = self.cleanup(&languageId);
-        if let Err(err) = result {
+        if let Err(err) = self.cleanup(&languageId) {
             error!("Error: {:?}", err);
         }
         info!("End {}", lsp::notification::Exit::METHOD);
@@ -2490,11 +2471,15 @@ impl State {
         )?;
 
         if self.writers.contains_key(&languageId) {
-            let _ = self.cleanup(languageId.as_str());
-            let _ = self.echoerr(format!(
+            if let Err(err) = self.cleanup(&languageId) {
+                error!("Error in cleanup: {:?}", err);
+            }
+            if let Err(err) = self.echoerr(format!(
                 "Language server {} exited unexpectedly: {}",
                 languageId, message
-            ));
+            )) {
+                error!("Error in echoerr: {:?}", err);
+            }
         }
 
         Ok(())
