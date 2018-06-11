@@ -68,6 +68,7 @@ impl State {
             diagnosticsDisplay,
             windowLogMessageLevel,
             hoverPreview,
+            completionPreferTextEdit,
             is_nvim,
         ): (
             u64,
@@ -85,6 +86,7 @@ impl State {
             String,
             Option<String>,
             u64,
+            u64,
         ) = self.eval(
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
@@ -101,6 +103,7 @@ impl State {
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
                 "get(g:, 'LanguageClient_hoverPreview', 'Auto')",
+                "get(g:, 'LanguageClient_completionPreferTextEdit', 1)",
                 "has('nvim')",
             ].as_ref(),
         )?;
@@ -156,6 +159,8 @@ impl State {
             HoverPreviewOption::Auto
         };
 
+        let completionPreferTextEdit = completionPreferTextEdit == 1;
+
         let is_nvim = is_nvim == 1;
 
         self.update(|state| {
@@ -175,6 +180,7 @@ impl State {
             state.change_throttle = change_throttle;
             state.wait_output_timeout = wait_output_timeout;
             state.hoverPreview = hoverPreview;
+            state.completionPreferTextEdit = completionPreferTextEdit;
             state.is_nvim = is_nvim;
             Ok(())
         })?;

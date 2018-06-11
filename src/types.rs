@@ -126,6 +126,7 @@ pub struct State {
     pub change_throttle: Option<Duration>,
     pub wait_output_timeout: Duration,
     pub hoverPreview: HoverPreviewOption,
+    pub completionPreferTextEdit: bool,
 
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
@@ -188,6 +189,7 @@ impl State {
             change_throttle: None,
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
+            completionPreferTextEdit: true,
 
             logger,
         })
@@ -956,6 +958,7 @@ impl FromLSP<CompletionItem> for VimCompleteItem {
             info += &doc.to_string();
         }
 
+        // TODO: check completionPreferTextEdit.
         if lspitem.text_edit.is_some() {
             user_data.text_edit = lspitem.text_edit.clone();
         }
