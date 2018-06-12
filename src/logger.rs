@@ -19,14 +19,17 @@ fn config(level: LevelFilter) -> Result<Config> {
     Ok(config)
 }
 
+pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
+    let mut fo = std::fs::OpenOptions::new();
+    let fo = fo.create(true).write(true).truncate(true);
+    #[cfg(unix)]
+    let fo = fo.mode(0o666);
+    Ok(fo.open(path)?)
+}
+
 pub fn init() -> Result<Handle> {
     {
-        // Truncate log files.
-        let mut f = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(utils::get_logpath())?;
+        let mut f = open(utils::get_logpath())?;
         #[allow(write_literal)]
         writeln!(
             f,

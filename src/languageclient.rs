@@ -2392,10 +2392,7 @@ impl State {
                     })
                     .collect();
 
-                let stderr = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&get_logpath_server())?;
+                let stderr = logger::open(&get_logpath_server())?;
 
                 let process = std::process::Command::new(command
                     .get(0)
