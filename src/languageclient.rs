@@ -1858,6 +1858,28 @@ impl State {
         Ok(serde_json::to_value(matches)?)
     }
 
+    pub fn languageClient_handleBufNewFile(&mut self, params: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__HandleBufNewFile);
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
+        if !buftype.is_empty() || languageId.is_empty() || filename.is_empty() {
+            return Ok(());
+        }
+        let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
+        if autoStart == 1 {
+            let ret = self.languageClient_startServer(params);
+            // This is triggered from autocmd, silent all errors.
+            if let Err(err) = ret {
+                warn!("Failed to start language server automatically. {}", err);
+            }
+        }
+
+        info!("End {}", NOTIFICATION__HandleBufNewFile);
+        Ok(())
+    }
+
     pub fn languageClient_handleBufReadPost(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufReadPost);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(

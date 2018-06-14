@@ -148,6 +148,9 @@ impl State {
             }
             lsp::notification::Exit::METHOD => self.exit(&notification.params)?,
             // Extensions.
+            NOTIFICATION__HandleBufNewFile => {
+                self.languageClient_handleBufNewFile(&notification.params)?
+            }
             NOTIFICATION__HandleBufReadPost => {
                 self.languageClient_handleBufReadPost(&notification.params)?
             }

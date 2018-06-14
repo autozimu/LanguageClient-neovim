@@ -626,6 +626,20 @@ function! LanguageClient_runSync(fn, ...) abort
     return s:HandleOutput(l:output, v:true)
 endfunction
 
+function! LanguageClient#handleBufNewFile() abort
+    if &buftype !=# '' || &filetype ==# ''
+        return
+    endif
+
+    try
+        call LanguageClient#Notify('languageClient/handleBufNewFile', {
+                    \ 'filename': LSP#filename(),
+                    \ })
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! LanguageClient#handleBufReadPost() abort
     if &buftype !=# '' || &filetype ==# ''
         return
