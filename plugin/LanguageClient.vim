@@ -103,6 +103,7 @@ command! LanguageClientStop :call LanguageClient#exit()
 
 augroup languageClient
     autocmd!
+    autocmd BufNewFile * call LanguageClient#handleBufNewFile()
     autocmd BufReadPost * call LanguageClient#handleBufReadPost()
     autocmd BufWritePost * call LanguageClient#handleBufWritePost()
     autocmd BufDelete * call LanguageClient#handleBufDelete()

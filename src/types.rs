@@ -18,6 +18,7 @@ pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
 pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__ExplainErrorAtPoint: &str = "$languageClient/explainErrorAtPoint";
+pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
