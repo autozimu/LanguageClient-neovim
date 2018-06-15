@@ -17,18 +17,14 @@ requesting other types of issue, please ignore.
 - neovim/vim version (`nvim --version` or `vim --version`):
 - This plugin version (`git rev-parse --short HEAD`):
 - This plugin's binary version (`bin/languageclient --version`):
-- Minimal vimrc content. A minimal vimrc is the smallest vimrc that could
-  reproduce the issue. Refer to an example [here][min-init.vim].  Make sure
-  your vimrc contains `let g:LanguageClient_loggingLevel = 'DEBUG'` to have
-  full log:
+- Minimal vimrc content (A minimal vimrc is the smallest vimrc that could
+  reproduce the issue. Refer to an example [here][min-init.vim]):
 - Language server link and version:
 - Steps to reproduce the issue from clean state
     1.
     2.
     3.
-- Logs. Paste or attach `($TMPDIR || $TMP || $TEMP || $TEMPDIR ||
-  /tmp)/LanguageServer.log` and `($TMPDIR || $TMP || $TEMP || $TEMPDIR ||
-  /tmp)/LanguageClient.log`.
+- Logs (Paste or attach log file content):
 
 ## Current Behavior
 (placeholder)

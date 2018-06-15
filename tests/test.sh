@@ -5,8 +5,7 @@ set -o xtrace
 dir=$(dirname $(dirname $(realpath $0)))
 cd $dir
 
-LOG="${TMP:-/tmp}"/LanguageClient.log
-LOG_SERVER="${TMP:-/tmp}"/LanguageServer.log
+LOG=/tmp/LanguageClient.log
 
 curl -fLo tests/data/.vim/autoload/plug.vim --create-dirs \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -26,7 +25,6 @@ ret=$?
 
 if [[ $ret != 0 ]]; then
     cat $LOG
-    cat $LOG_SERVER
 fi
 
 kill $PID

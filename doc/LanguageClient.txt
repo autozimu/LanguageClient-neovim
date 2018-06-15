@@ -181,6 +181,13 @@ Whether to load language server settings.
 Default: 1
 Valid options: 1 | 0
 
+2.14 g:LanguageClient_loggingFile               *g:LanguageClient_loggingFile*
+
+Log file location.
+
+Default: null
+Valid options: any valid path.
+
 2.14 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
 
 Logging level.

@@ -18,4 +18,5 @@ set signcolumn=yes
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'stable', 'rls'],
     \ }
-let g:LanguageClient_loggingLevel = 'DEBUG'
+let g:LanguageClient_loggingFile = '/tmp/LanguageClient.log'
+let g:LanguageClient_loggingLevel = 'INFO'
