@@ -129,6 +129,8 @@ pub struct State {
     pub hoverPreview: HoverPreviewOption,
     pub completionPreferTextEdit: bool,
 
+    pub loggingFile: Option<String>,
+    pub loggingLevel: log::LevelFilter,
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
 }
@@ -191,6 +193,8 @@ impl State {
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
             completionPreferTextEdit: true,
+            loggingFile: None,
+            loggingLevel: log::LevelFilter::Warn,
 
             logger,
         })

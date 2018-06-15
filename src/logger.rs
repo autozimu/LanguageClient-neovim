@@ -5,17 +5,23 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::Handle;
 
-fn config(level: LevelFilter) -> Result<Config> {
+fn create_config(path: &Option<String>, level: &LevelFilter) -> Result<Config> {
     let encoder =
         PatternEncoder::new("{date(%H:%M:%S)} {level} {thread} {file}:{line} {message}{n}");
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(encoder))
-        .build(utils::get_logpath())?;
 
-    let config = Config::builder()
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .logger(Logger::builder().build("languageclient", level))
-        .build(Root::builder().appender("logfile").build(level))?;
+    let mut config_builder =
+        Config::builder().logger(Logger::builder().build("languageclient", *level));
+
+    let mut root_builder = Root::builder();
+    if let Some(path) = path {
+        let appender = FileAppender::builder()
+            .encoder(Box::new(encoder))
+            .build(path)?;
+        config_builder =
+            config_builder.appender(Appender::builder().build("logfile", Box::new(appender)));
+        root_builder = root_builder.appender("logfile");
+    }
+    let config = config_builder.build(root_builder.build(*level))?;
     Ok(config)
 }
 
@@ -28,38 +34,13 @@ pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
 }
 
 pub fn init() -> Result<Handle> {
-    {
-        let mut f = open(utils::get_logpath())?;
-        #[allow(write_literal)]
-        writeln!(
-            f,
-            "#######\nLanguageClient {} {}\n#######",
-            env!("CARGO_PKG_VERSION"),
-            env!("GIT_HASH")
-        )?;
-        let mut f = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(utils::get_logpath_server())?;
-        writeln!(f)?;
-    }
-
-    let handle = log4rs::init_config(config(LevelFilter::Warn)?)?;
+    let handle = log4rs::init_config(create_config(&None, &LevelFilter::Warn)?)?;
 
     Ok(handle)
 }
 
-pub fn set_logging_level(handle: &Handle, level: &str) -> Result<()> {
-    let level = match level.to_ascii_uppercase().as_str() {
-        "DEBUG" => LevelFilter::Debug,
-        "INFO" => LevelFilter::Info,
-        "WARNING" | "WARN" => LevelFilter::Warn,
-        "ERROR" => LevelFilter::Error,
-        _ => bail!("Unknown logging level: {}", level),
-    };
-
-    let config = config(level)?;
+pub fn update_settings(handle: &Handle, path: &Option<String>, level: &LevelFilter) -> Result<()> {
+    let config = create_config(path, level)?;
     handle.set_config(config);
     Ok(())
 }

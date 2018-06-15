@@ -48,8 +48,11 @@ impl State {
     }
 
     fn sync_settings(&mut self) -> Result<()> {
-        let loggingLevel: String = self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
-        logger::set_logging_level(&self.logger, &loggingLevel)?;
+        let loggingFile: Option<String> =
+            self.eval("get(g:, 'LanguageClient_loggingFile', v:null)")?;
+        let loggingLevel: log::LevelFilter =
+            self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
+        logger::update_settings(&self.logger, &loggingFile, &loggingLevel)?;
 
         #[allow(unknown_lints)]
         #[allow(type_complexity)]
@@ -181,6 +184,8 @@ impl State {
             state.wait_output_timeout = wait_output_timeout;
             state.hoverPreview = hoverPreview;
             state.completionPreferTextEdit = completionPreferTextEdit;
+            state.loggingFile = loggingFile;
+            state.loggingLevel = loggingLevel;
             state.is_nvim = is_nvim;
             Ok(())
         })?;
@@ -1817,8 +1822,9 @@ impl State {
 
     pub fn languageClient_setLoggingLevel(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
-        let (loggingLevel,): (String,) = self.gather_args(&["loggingLevel"], params)?;
-        logger::set_logging_level(&self.logger, &loggingLevel)?;
+        let (loggingLevel,): (log::LevelFilter,) = self.gather_args(&["loggingLevel"], params)?;
+        logger::update_settings(&self.logger, &self.loggingFile, &loggingLevel)?;
+        self.loggingLevel = loggingLevel;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
     }

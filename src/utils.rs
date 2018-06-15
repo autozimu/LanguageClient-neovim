@@ -138,10 +138,6 @@ pub fn get_tmppath() -> PathBuf {
     PathBuf::from(&*dir)
 }
 
-pub fn get_logpath() -> PathBuf {
-    get_tmppath().join("LanguageClient.log")
-}
-
 pub fn get_logpath_server() -> PathBuf {
     get_tmppath().join("LanguageServer.log")
 }
