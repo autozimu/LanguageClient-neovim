@@ -688,6 +688,13 @@ impl State {
                         }),
                         ..TextDocumentClientCapabilities::default()
                     }),
+                    workspace: Some(WorkspaceClientCapabilities {
+                        apply_edit: Some(true),
+                        did_change_watched_files: Some(GenericCapability {
+                            dynamic_registration: Some(true),
+                        }),
+                        ..WorkspaceClientCapabilities::default()
+                    }),
                     ..ClientCapabilities::default()
                 },
                 trace,
