@@ -16,6 +16,7 @@ fn create_config(path: &Option<String>, level: &LevelFilter) -> Result<Config> {
     if let Some(path) = path {
         let appender = FileAppender::builder()
             .encoder(Box::new(encoder))
+            .append(false)
             .build(path)?;
         config_builder =
             config_builder.appender(Appender::builder().build("logfile", Box::new(appender)));

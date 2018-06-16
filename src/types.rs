@@ -103,9 +103,9 @@ pub struct State {
     pub highlight_source: Option<u64>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
-    pub watcher_rx: Receiver<notify::DebouncedEvent>,
+    pub watchers: HashMap<String, notify::RecommendedWatcher>,
     #[serde(skip_serializing)]
-    pub watcher: Option<notify::RecommendedWatcher>,
+    pub watcher_rxs: HashMap<String, Receiver<notify::DebouncedEvent>>,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
@@ -141,16 +141,6 @@ impl State {
 
         let (tx, rx) = channel();
 
-        let (watcher_tx, watcher_rx) = channel();
-        // TODO: duration configurable.
-        let watcher = match notify::watcher(watcher_tx, Duration::from_secs(2)) {
-            Ok(watcher) => Some(watcher),
-            Err(err) => {
-                warn!("{:?}", err);
-                None
-            }
-        };
-
         Ok(State {
             id: 0,
             tx,
@@ -170,8 +160,8 @@ impl State {
             signs: HashMap::new(),
             highlight_source: None,
             user_handlers: HashMap::new(),
-            watcher_rx,
-            watcher,
+            watchers: HashMap::new(),
+            watcher_rxs: HashMap::new(),
 
             is_nvim: false,
             last_cursor_line: 0,

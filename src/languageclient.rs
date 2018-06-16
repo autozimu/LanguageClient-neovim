@@ -1707,7 +1707,7 @@ impl State {
 
     pub fn client_registerCapability(
         &mut self,
-        _languageId: &str,
+        languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
@@ -1717,8 +1717,16 @@ impl State {
                 lsp::notification::DidChangeWatchedFiles::METHOD => {
                     let opt: DidChangeWatchedFilesRegistrationOptions =
                         serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
-                    if let Some(ref mut watcher) = self.watcher {
-                        for w in opt.watchers {
+                    if !self.watchers.contains_key(languageId) {
+                        let (watcher_tx, watcher_rx) = channel();
+                        // TODO: configurable duration.
+                        let watcher = notify::watcher(watcher_tx, Duration::from_secs(2))?;
+                        self.watchers.insert(languageId.to_owned(), watcher);
+                        self.watcher_rxs.insert(languageId.to_owned(), watcher_rx);
+                    }
+
+                    if let Some(ref mut watcher) = self.watchers.get_mut(languageId) {
+                        for w in &opt.watchers {
                             let recursive_mode = if w.glob_pattern.ends_with("**") {
                                 notify::RecursiveMode::Recursive
                             } else {
@@ -1741,7 +1749,7 @@ impl State {
 
     pub fn client_unregisterCapability(
         &mut self,
-        _languageId: &str,
+        languageId: &str,
         params: &Option<Params>,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
@@ -1761,7 +1769,7 @@ impl State {
                 lsp::notification::DidChangeWatchedFiles::METHOD => {
                     let opt: DidChangeWatchedFilesRegistrationOptions =
                         serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
-                    if let Some(ref mut watcher) = self.watcher {
+                    if let Some(ref mut watcher) = self.watchers.get_mut(languageId) {
                         for w in opt.watchers {
                             watcher.unwatch(w.glob_pattern)?;
                         }
@@ -2528,11 +2536,12 @@ impl State {
         Ok(())
     }
 
-    pub fn check_fs_notify(&mut self) -> Result<()> {
-        if self.watcher.is_some() {
+    pub fn handle_fs_events(&mut self) -> Result<()> {
+        let mut pending_changes = HashMap::new();
+        for (languageId, watcher_rx) in &mut self.watcher_rxs {
             let mut events = vec![];
             loop {
-                let result = self.watcher_rx.try_recv();
+                let result = watcher_rx.try_recv();
                 let event = match result {
                     Ok(event) => event,
                     Err(TryRecvError::Empty) => {
@@ -2545,10 +2554,6 @@ impl State {
                 events.push(event);
             }
 
-            if events.is_empty() {
-                return Ok(());
-            }
-
             let mut changes = vec![];
             for e in events {
                 if let Ok(c) = e.to_lsp() {
@@ -2556,8 +2561,18 @@ impl State {
                 }
             }
 
-            use DidChangeWatchedFilesParams as P;
-            self.workspace_didChangeWatchedFiles(&P { changes }.to_params()?)?;
+            if changes.is_empty() {
+                continue;
+            }
+
+            pending_changes.insert(languageId.to_owned(), changes);
+        }
+
+        for (languageId, changes) in pending_changes {
+            self.workspace_didChangeWatchedFiles(&json!({
+                "languageId": languageId,
+                "changes": changes
+            }).to_params()?)?;
         }
 
         Ok(())

@@ -79,7 +79,7 @@ impl State {
                 }
             }
 
-            if let Err(err) = self.check_fs_notify() {
+            if let Err(err) = self.handle_fs_events() {
                 warn!("{:?}", err);
             }
         }
