@@ -1719,7 +1719,12 @@ impl State {
                         serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
                     if let Some(ref mut watcher) = self.watcher {
                         for w in opt.watchers {
-                            watcher.watch(w.glob_pattern, notify::RecursiveMode::NonRecursive)?;
+                            let recursive_mode = if w.glob_pattern.ends_with("**") {
+                                notify::RecursiveMode::Recursive
+                            } else {
+                                notify::RecursiveMode::NonRecursive
+                            };
+                            watcher.watch(w.glob_pattern.trim_right_matches("**"), recursive_mode)?;
                         }
                     }
                 }
