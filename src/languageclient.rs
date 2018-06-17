@@ -2440,15 +2440,12 @@ impl State {
                     })
                     .collect();
 
-                let stderr = logger::open(&get_logpath_server())?;
-
                 let process = std::process::Command::new(command
                     .get(0)
                     .ok_or_else(|| err_msg("Empty command!"))?)
                     .args(&command[1..])
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
-                    .stderr(stderr)
                     .spawn()?;
 
                 let child_id = Some(process.id());

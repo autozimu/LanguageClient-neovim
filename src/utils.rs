@@ -126,22 +126,6 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     }
 }
 
-pub fn get_tmppath() -> PathBuf {
-    // Ref: https://en.wikipedia.org/wiki/TMPDIR
-    let dir: Cow<_> = env::var("TMPDIR")
-        .or_else(|_| env::var("TMP"))
-        .or_else(|_| env::var("TEMP"))
-        .or_else(|_| env::var("TEMPDIR"))
-        .map(|t| t.into())
-        .unwrap_or_else(|_| "/tmp".into());
-
-    PathBuf::from(&*dir)
-}
-
-pub fn get_logpath_server() -> PathBuf {
-    get_tmppath().join("LanguageServer.log")
-}
-
 pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<String>> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];

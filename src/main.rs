@@ -1,6 +1,5 @@
 #![allow(non_snake_case, non_upper_case_globals, unknown_lints)]
 
-use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Into;
 use std::env;
@@ -10,9 +9,6 @@ use std::io::prelude::*;
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::TcpStream;
 use std::ops::Deref;
-#[allow(unused_imports)]
-#[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, ChildStdout, Stdio};
 use std::str::FromStr;

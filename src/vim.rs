@@ -356,13 +356,7 @@ pub fn loop_reader<T: BufRead>(
             if line.is_empty() {
                 count_empty_lines += 1;
                 if count_empty_lines > 5 {
-                    let mut message = "".to_string();
-                    if let Ok(log_server) = read_to_string(get_logpath_server()) {
-                        message += "\n\nlanguage server stderr:\n";
-                        message += &log_server;
-                    }
-
-                    bail!("{}", message);
+                    bail!("Unable to read from language server");
                 }
 
                 let mut buf = vec![0; content_length];

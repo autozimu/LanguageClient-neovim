@@ -26,14 +26,6 @@ fn create_config(path: &Option<String>, level: &LevelFilter) -> Result<Config> {
     Ok(config)
 }
 
-pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
-    let mut fo = std::fs::OpenOptions::new();
-    let fo = fo.create(true).write(true).truncate(true);
-    #[cfg(unix)]
-    let fo = fo.mode(0o666);
-    Ok(fo.open(path)?)
-}
-
 pub fn init() -> Result<Handle> {
     let handle = log4rs::init_config(create_config(&None, &LevelFilter::Warn)?)?;
 
