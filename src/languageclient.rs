@@ -195,7 +195,7 @@ impl State {
 
     fn get_workspace_settings(&self, root: &str) -> Result<Value> {
         if !self.loadSettings {
-            return Ok(json!({}));
+            return Ok(Value::Null);
         }
 
         let buffer = read_to_string(Path::new(root).join(self.settingsPath.clone()))?;
@@ -2502,14 +2502,14 @@ impl State {
         self.initialized(&params)?;
 
         let root = self.roots.get(&languageId).cloned().unwrap_or_default();
-        let settings = self.get_workspace_settings(&root);
-        if let Err(ref err) = settings {
-            warn!("Failed to get workspace settings: {}", err);
+        match self.get_workspace_settings(&root) {
+            Ok(Value::Null) => (),
+            Ok(settings) => self.workspace_didChangeConfiguration(&json!({
+                VimVar::LanguageId.to_key(): languageId,
+                "settings": settings,
+            }).to_params()?)?,
+            Err(err) => warn!("Failed to get workspace settings: {}", err),
         }
-        self.workspace_didChangeConfiguration(&json!({
-            VimVar::LanguageId.to_key(): languageId,
-            "settings": settings.unwrap_or_else(|_| json!({})),
-        }).to_params()?)?;
 
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
