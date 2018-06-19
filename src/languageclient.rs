@@ -663,12 +663,12 @@ impl State {
             .map(|s| s["initializationOptions"].clone())
             .unwrap_or_else(|err| {
                 warn!("Failed to get initializationOptions: {}", err);
-                json!({})
+                json!(Value::Null)
             });
         let initialization_options =
             get_default_initializationOptions(&languageId).combine(initialization_options);
 
-        let trace = self.get(|state| Ok(state.trace.clone()))?;
+        let trace = self.trace.clone();
 
         let result: Value = self.call(
             Some(&languageId),
