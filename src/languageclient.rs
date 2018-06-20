@@ -48,10 +48,17 @@ impl State {
     }
 
     fn sync_settings(&mut self) -> Result<()> {
-        let loggingFile: Option<String> =
-            self.eval("get(g:, 'LanguageClient_loggingFile', v:null)")?;
-        let loggingLevel: log::LevelFilter =
-            self.eval("get(g:, 'LanguageClient_loggingLevel', 'WARN')")?;
+        let (loggingFile, loggingLevel, serverStderr): (
+            Option<String>,
+            log::LevelFilter,
+            Option<String>,
+        ) = self.eval(
+            [
+                "get(g:, 'LanguageClient_loggingFile', v:null)",
+                "get(g:, 'LanguageClient_loggingLevel', 'WARN')",
+                "get(g:, 'LanguageClient_serverStderr', v:null)",
+            ].as_ref(),
+        )?;
         logger::update_settings(&self.logger, &loggingFile, &loggingLevel)?;
 
         #[allow(unknown_lints)]
@@ -186,6 +193,7 @@ impl State {
             state.completionPreferTextEdit = completionPreferTextEdit;
             state.loggingFile = loggingFile;
             state.loggingLevel = loggingLevel;
+            state.serverStderr = serverStderr;
             state.is_nvim = is_nvim;
             Ok(())
         })?;
@@ -2446,12 +2454,22 @@ impl State {
                     })
                     .collect();
 
+                let stderr = match self.serverStderr {
+                    Some(ref path) => std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(path)?
+                        .into(),
+                    None => Stdio::null(),
+                };
+
                 let process = std::process::Command::new(command
                     .get(0)
                     .ok_or_else(|| err_msg("Empty command!"))?)
                     .args(&command[1..])
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(stderr)
                     .spawn()?;
 
                 let child_id = Some(process.id());

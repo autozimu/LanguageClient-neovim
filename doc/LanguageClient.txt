@@ -195,6 +195,13 @@ Logging level.
 Default: 'WARN'
 Valid options: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 
+2.14 g:LanguageClient_serverStderr             *g:LanguageClient_serverStderr*
+
+Path for language server stderr.
+
+Default: None
+Valid options: any valid path.
+
 2.15 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
 
 Customized project root markers. Generally a heuristic algorithm within this

@@ -131,6 +131,7 @@ pub struct State {
 
     pub loggingFile: Option<String>,
     pub loggingLevel: log::LevelFilter,
+    pub serverStderr: Option<String>,
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
 }
@@ -185,6 +186,7 @@ impl State {
             completionPreferTextEdit: true,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
+            serverStderr: None,
 
             logger,
         })
