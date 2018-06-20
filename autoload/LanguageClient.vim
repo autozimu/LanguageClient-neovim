@@ -794,6 +794,10 @@ function! LanguageClient#get_complete_start(input)
     return match(a:input, '\k*$')
 endfunction
 
+function! LanguageClient_filterCompletionItems(item, base)
+    return a:item.word =~# '^' . a:base
+endfunction
+
 let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
@@ -803,7 +807,14 @@ function! LanguageClient#complete(findstart, base) abort
         let l:result = LanguageClient_runSync(
                     \ 'LanguageClient#omniComplete', {
                     \ 'character': LSP#character() + len(a:base) })
-        return l:result is v:null ? [] : l:result
+        let l:result = l:result is v:null ? [] : l:result
+        let l:filtered_items = []
+        for l:item in l:result
+            if LanguageClient_filterCompletionItems(l:item, a:base)
+                call add(l:filtered_items, l:item)
+            endif
+        endfor
+        return filtered_items
     endif
 endfunction
 
