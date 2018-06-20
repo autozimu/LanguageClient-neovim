@@ -1,8 +1,8 @@
-function! LSP#filename()
+function! LSP#filename() abort
     return expand('%:p')
 endfunction
 
-function! LSP#text()
+function! LSP#text() abort
     let l:lines = getline(1, '$')
     if l:lines[-1] !=# '' && &fixendofline
         let l:lines += ['']
@@ -10,15 +10,15 @@ function! LSP#text()
     return l:lines
 endfunction
 
-function! LSP#line()
+function! LSP#line() abort
     return line('.') - 1
 endfunction
 
-function! LSP#character()
+function! LSP#character() abort
     return col('.') - 1
 endfunction
 
-function! LSP#range_start_line()
+function! LSP#range_start_line() abort
     return v:lnum - 1
 endfunction
 

@@ -115,11 +115,11 @@ function! s:FZF(source, sink) abort
     endif
 endfunction
 
-function! s:Edit(action, path)
+function! s:Edit(action, path) abort
     let l:action = a:action
     " Avoid the not saved warning.
     if l:action ==# 'edit' && bufnr(a:path) != -1
-        let l:action = "buffer"
+        let l:action = 'buffer'
     endif
 
     execute l:action . ' ' . fnameescape(a:path)
@@ -720,7 +720,7 @@ function! LanguageClient#handleCursorMoved() abort
     endtry
 endfunction
 
-function! LanguageClient#handleCompleteDone()
+function! LanguageClient#handleCompleteDone() abort
     let user_data = get(v:completed_item, 'user_data', '')
     if user_data ==# ''
         return
@@ -789,12 +789,12 @@ function! LanguageClient#omniComplete(...) abort
     endtry
 endfunction
 
-function! LanguageClient#get_complete_start(input)
+function! LanguageClient#get_complete_start(input) abort
     " echomsg a:input
     return match(a:input, '\k*$')
 endfunction
 
-function! LanguageClient_filterCompletionItems(item, base)
+function! LanguageClient_filterCompletionItems(item, base) abort
     return a:item.word =~# '^' . a:base
 endfunction
 
@@ -904,7 +904,7 @@ function! LanguageClient#cquery_vars(...) abort
 endfunction
 
 function! LanguageClient#java_classFileContent(...) abort
-    if &buftype != '' || &filetype ==# ''
+    if &buftype !=# '' || &filetype ==# ''
         return
     endif
 
