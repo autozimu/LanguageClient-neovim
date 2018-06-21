@@ -414,16 +414,14 @@ where
     P: AsRef<Path>,
 {
     fn canonicalize(&self) -> String {
-        if let Ok(fc) = std::fs::canonicalize(self) {
-            if let Some(fs) = fc.to_str() {
-                return fs.to_owned();
-            }
-        }
+        let path = match std::fs::canonicalize(self) {
+            Ok(path) => path.to_string_lossy().into_owned(),
+            _ => self.as_ref().to_string_lossy().into_owned(),
+        };
 
-        self.as_ref()
-            .to_str()
-            .map(|s| s.to_owned())
-            .unwrap_or_default()
+        // Trim UNC prefixes.
+        // See https://github.com/rust-lang/rust/issues/42869
+        path.trim_left_matches("\\\\?\\").into()
     }
 }
 
