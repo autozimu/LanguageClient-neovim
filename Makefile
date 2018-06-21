@@ -13,7 +13,7 @@ clippy:
 	cargo +nightly clippy
 
 vint:
-	vint .
+	vint autoload plugin
 
 release:
 	cargo build --release

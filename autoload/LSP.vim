@@ -22,6 +22,6 @@ function! LSP#range_start_line() abort
     return v:lnum - 1
 endfunction
 
-function! LSP#range_end_line()
+function! LSP#range_end_line() abort
     return v:lnum - 1 + v:count
 endfunction
