@@ -27,7 +27,8 @@ let g:LanguageClient_serverCommands = {
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
 set formatexpr=LanguageClient#textDocument_rangeFormatting_sync()
-set signcolumn=yes
+" Not supported by neovim in debian
+" set signcolumn=yes
 
 function! HandleWindowProgress(params) abort
     echomsg json_encode(a:params)

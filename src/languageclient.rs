@@ -682,7 +682,7 @@ impl State {
             Some(&languageId),
             lsp::request::Initialize::METHOD,
             InitializeParams {
-                process_id: Some(unsafe { libc::getpid() } as u64),
+                process_id: Some(u64::from(std::process::id())),
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
                 initialization_options: Some(initialization_options),
@@ -2377,8 +2377,11 @@ impl State {
     pub fn cquery_handleProgress(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__CqueryProgress);
         let params: CqueryProgressParams = params.clone().to_lsp()?;
-        let total = params.indexRequestCount + params.doIdMapCount + params.loadPreviousIndexCount
-            + params.onIdMappedCount + params.onIndexedCount;
+        let total = params.indexRequestCount
+            + params.doIdMapCount
+            + params.loadPreviousIndexCount
+            + params.onIdMappedCount
+            + params.onIndexedCount;
         if total != 0 {
             self.command(&format!(
                 "let {}=1 | let {}='cquery: indexing ({} jobs)'",
@@ -2431,7 +2434,7 @@ impl State {
                 })
         })?;
 
-        let (child_id, reader, writer): (_, Box<SyncRead>, Box<SyncWrite>) =
+        let (child_id, reader, writer): (_, Box<dyn SyncRead>, Box<dyn SyncWrite>) =
             if command.get(0).map(|c| c.starts_with("tcp://")) == Some(true) {
                 let addr = command
                     .get(0)

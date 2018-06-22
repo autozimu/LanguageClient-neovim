@@ -24,8 +24,6 @@ extern crate log4rs;
 extern crate failure;
 use failure::{err_msg, Error};
 
-extern crate libc;
-
 #[macro_use]
 extern crate maplit;
 

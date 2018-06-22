@@ -54,8 +54,14 @@ clean:
 	cargo clean
 	rm -rf bin/languageclient
 
+DATE := $(shell date +%F)
+
 build-docker-image: ci/Dockerfile
-	docker build --tag autozimu/languageclientneovim ci
+	docker build \
+		--tag autozimu/languageclientneovim:latest \
+		--tag autozimu/languageclientneovim:$(DATE) \
+		ci
 
 publish-docker-image:
-	docker push autozimu/languageclientneovim
+	docker push autozimu/languageclientneovim:latest
+	docker push autozimu/languageclientneovim:$(DATE)

@@ -89,7 +89,7 @@ pub struct State {
 
     pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)]
-    pub writers: HashMap<String, Box<SyncWrite>>,
+    pub writers: HashMap<String, Box<dyn SyncWrite>>,
     pub capabilities: HashMap<String, Value>,
     pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,

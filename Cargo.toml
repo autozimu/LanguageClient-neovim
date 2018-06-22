@@ -10,7 +10,6 @@ failure = "0"
 log = "0.4"
 log4rs = "0"
 structopt = "0"
-libc = "0"
 maplit = "1"
 
 serde = "1"
