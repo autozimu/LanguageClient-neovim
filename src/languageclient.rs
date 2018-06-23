@@ -618,7 +618,7 @@ impl State {
     where
         S: AsRef<str> + Serialize,
     {
-        let bufname = "//LanguageClient";
+        let bufname = "__LanguageClient__";
 
         let mut cmd = String::new();
         cmd += "silent! pedit! +setlocal\\ buftype=nofile\\ filetype=markdown\\ nobuflisted\\ noswapfile\\ nonumber ";
