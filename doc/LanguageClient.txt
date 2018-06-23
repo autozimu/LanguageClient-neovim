@@ -259,6 +259,18 @@ Should FZF be used for `LanguageClient_contextMenu()`.
 Default: 1
 Valid options: 1 | 0
 
+2.21 g:LanguageClient_completionPreferTextEdit
+*g:LanguageClient_completionPreferTextEdit*
+
+Should prefer use textEdit over insertText when they both appear in
+CompletionItem.
+
+Note: textEdit support requires vim >= v8.0.1493, or vim >= v8.1.0039, or
+neovim >= 0.3.0.
+
+Default: 0
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

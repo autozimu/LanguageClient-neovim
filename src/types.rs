@@ -183,7 +183,7 @@ impl State {
             change_throttle: None,
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
-            completionPreferTextEdit: true,
+            completionPreferTextEdit: false,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,
@@ -929,55 +929,55 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
     }
 }
 
-impl FromLSP<CompletionItem> for VimCompleteItem {
-    fn from_lsp(lspitem: &CompletionItem) -> Result<Self> {
-        let abbr = lspitem.label.clone();
-        let word = lspitem
-            .insert_text
-            .clone()
-            .unwrap_or_else(|| lspitem.label.clone());
+pub fn to_vim_complete_item(
+    lspitem: &CompletionItem,
+    preferTextEdit: bool,
+) -> Result<VimCompleteItem> {
+    let abbr = lspitem.label.clone();
+    let word = lspitem
+        .insert_text
+        .clone()
+        .unwrap_or_else(|| lspitem.label.clone());
 
-        let mut user_data = VimCompleteItemUserData::new();
+    let mut user_data = VimCompleteItemUserData::new();
 
-        let is_snippet;
-        let snippet;
-        if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-            is_snippet = Some(true);
-            snippet = Some(word.clone());
-            user_data.snippet = Some(word.clone());
-        } else {
-            is_snippet = None;
-            snippet = None;
-        };
+    let is_snippet;
+    let snippet;
+    if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
+        is_snippet = Some(true);
+        snippet = Some(word.clone());
+        user_data.snippet = Some(word.clone());
+    } else {
+        is_snippet = None;
+        snippet = None;
+    };
 
-        let mut info = String::new();
-        if let Some(ref doc) = lspitem.documentation {
-            info += &doc.to_string();
-        }
-
-        // TODO: check completionPreferTextEdit.
-        if lspitem.text_edit.is_some() {
-            user_data.text_edit = lspitem.text_edit.clone();
-        }
-        if lspitem.additional_text_edits.is_some() {
-            user_data.additional_text_edits = lspitem.additional_text_edits.clone();
-        }
-
-        Ok(VimCompleteItem {
-            word,
-            abbr,
-            icase: Some(1),
-            dup: Some(1),
-            menu: lspitem.detail.clone().unwrap_or_default(),
-            info,
-            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
-            snippet,
-            is_snippet,
-            user_data: if user_data.is_none() {
-                None
-            } else {
-                Some(serde_json::to_string(&user_data)?)
-            },
-        })
+    let mut info = String::new();
+    if let Some(ref doc) = lspitem.documentation {
+        info += &doc.to_string();
     }
+
+    if lspitem.text_edit.is_some() && (preferTextEdit || lspitem.insert_text.is_none()) {
+        user_data.text_edit = lspitem.text_edit.clone();
+    }
+    if lspitem.additional_text_edits.is_some() {
+        user_data.additional_text_edits = lspitem.additional_text_edits.clone();
+    }
+
+    Ok(VimCompleteItem {
+        word,
+        abbr,
+        icase: Some(1),
+        dup: Some(1),
+        menu: lspitem.detail.clone().unwrap_or_default(),
+        info,
+        kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
+        snippet,
+        is_snippet,
+        user_data: if user_data.is_none() {
+            None
+        } else {
+            Some(serde_json::to_string(&user_data)?)
+        },
+    })
 }

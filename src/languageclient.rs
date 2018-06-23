@@ -113,7 +113,7 @@ impl State {
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
                 "get(g:, 'LanguageClient_hoverPreview', 'Auto')",
-                "get(g:, 'LanguageClient_completionPreferTextEdit', 1)",
+                "get(g:, 'LanguageClient_completionPreferTextEdit', 0)",
                 "has('nvim')",
             ].as_ref(),
         )?;
@@ -1892,7 +1892,10 @@ impl State {
             });
         }
 
-        let matches: Result<Vec<VimCompleteItem>> = matches.iter().map(FromLSP::from_lsp).collect();
+        let matches: Result<Vec<VimCompleteItem>> = matches
+            .iter()
+            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
+            .collect();
         let matches = matches?;
         info!("End {}", REQUEST__OmniComplete);
         Ok(serde_json::to_value(matches)?)
@@ -2055,8 +2058,18 @@ impl State {
     }
 
     pub fn languageClient_handleCompleteDone(&mut self, params: &Option<Params>) -> Result<()> {
-        let (filename, completed_item): (String, VimCompleteItem) = self.gather_args(
-            &[VimVar::Filename.to_key().as_str(), "completed_item"],
+        let (filename, completed_item, line, character): (
+            String,
+            VimCompleteItem,
+            u64,
+            u64,
+        ) = self.gather_args(
+            &[
+                VimVar::Filename.to_key().as_str(),
+                "completed_item",
+                VimVar::Line.to_key().as_str(),
+                VimVar::Character.to_key().as_str(),
+            ],
             params,
         )?;
         let user_data = match completed_item.user_data {
@@ -2067,16 +2080,15 @@ impl State {
 
         let mut edits = vec![];
         if let Some(edit) = user_data.text_edit {
+            self.command("undo")?;
             edits.push(edit.clone());
         };
         if let Some(aedits) = user_data.additional_text_edits {
             edits.extend(aedits.clone());
         };
 
-        // TODO
-        // 1. undo previous completion
-        // 2. relocate cursor
-        self.apply_TextEdits(filename, &edits)
+        self.apply_TextEdits(filename, &edits)?;
+        self.jump(line + 1, character + 1)
     }
 
     pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
@@ -2196,7 +2208,7 @@ impl State {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
-            .map(FromLSP::from_lsp)
+            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
             .collect();
         let matches = matches?;
         self.call::<_, u8>(

@@ -7,6 +7,6 @@ class Foo {
 
 int main(int argc, char* argv[]) {
     Foo foo;
-    foo
+    foo.
     return 0;
 }

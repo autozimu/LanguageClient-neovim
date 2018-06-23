@@ -114,7 +114,7 @@ augroup languageClient
       autocmd VimLeavePre * call LanguageClient#exit()
     endif
 
-    " autocmd CompleteDone * call LanguageClient#handleCompleteDone()
+    autocmd CompleteDone * call LanguageClient#handleCompleteDone()
 
     if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
         autocmd CompleteDone *

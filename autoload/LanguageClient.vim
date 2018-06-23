@@ -735,6 +735,8 @@ function! LanguageClient#handleCompleteDone() abort
         call LanguageClient#Notify('languageClient/handleCompleteDone', {
                     \ 'filename': LSP#filename(),
                     \ 'completed_item': v:completed_item,
+                    \ 'line': LSP#line(),
+                    \ 'character': LSP#character(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
