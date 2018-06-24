@@ -57,7 +57,7 @@ def test_textDocument_hover(nvim):
     nvim.funcs.cursor(13, 19)
     nvim.funcs.LanguageClient_textDocument_hover()
     time.sleep(1)
-    b = next(b for b in nvim.buffers if b.name.endswith('LanguageClient'))
+    b = next(b for b in nvim.buffers if b.name.endswith('__LanguageClient__'))
     expect = "function greet(): number"
 
     assert expect in b
