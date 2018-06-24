@@ -3,24 +3,23 @@
 #   - download binary
 #   - build with cargo
 
-set -o pipefail
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
 
 version=0.1.91
 name=languageclient
 
-function try_curl() {
+try_curl() {
     command -v curl > /dev/null && \
         curl --fail --location $1 --output bin/$name
 }
 
-function try_wget() {
+try_wget() {
     command -v wget > /dev/null && \
         wget --output-document=bin/$name $1
 }
 
-function download() {
+download() {
     echo "Downloading bin/${name}..."
     local url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
     if (try_curl $url || try_wget $url); then
@@ -31,7 +30,7 @@ function download() {
     fi
 }
 
-function try_build() {
+try_build() {
     if which cargo > /dev/null; then
         echo "Trying build locally ..."
         make release
