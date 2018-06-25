@@ -11,18 +11,18 @@ name=languageclient
 
 try_curl() {
     command -v curl > /dev/null && \
-        curl --fail --location $1 --output bin/$name
+        curl --fail --location "$1" --output bin/$name
 }
 
 try_wget() {
     command -v wget > /dev/null && \
-        wget --output-document=bin/$name $1
+        wget --output-document=bin/$name "$1"
 }
 
 download() {
     echo "Downloading bin/${name}..."
-    local url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
-    if (try_curl $url || try_wget $url); then
+    url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
+    if (try_curl "$url" || try_wget "$url"); then
         chmod a+x bin/$name
         return
     else
@@ -31,7 +31,7 @@ download() {
 }
 
 try_build() {
-    if which cargo > /dev/null; then
+    if command -v cargo > /dev/null; then
         echo "Trying build locally ..."
         make release
     else
@@ -42,7 +42,6 @@ try_build() {
 rm -f bin/languageclient
 
 arch=$(uname -sm)
-binary=""
 case "${arch}" in
     "Linux x86_64") download $name-$version-x86_64-unknown-linux-musl ;;
     "Linux i686") download $name-$version-i686-unknown-linux-musl ;;
