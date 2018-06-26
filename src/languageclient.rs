@@ -248,7 +248,7 @@ impl State {
             }
         }
         self.edit(&None, &filename)?;
-        self.jump(line + 1, character + 1)?;
+        self.cursor(line + 1, character + 1)?;
         debug!("End apply WorkspaceEdit");
         Ok(())
     }
@@ -844,14 +844,14 @@ impl State {
             }
             Some(GotoDefinitionResponse::Scalar(loc)) => {
                 self.edit(&goto_cmd, loc.uri.filepath()?)?;
-                self.jump(loc.range.start.line + 1, loc.range.start.character + 1)?;
+                self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
             }
             Some(GotoDefinitionResponse::Array(arr)) => match arr.len() {
                 0 => self.echowarn("Not found!")?,
                 1 => {
                     let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
                     self.edit(&goto_cmd, loc.uri.filepath()?)?;
-                    self.jump(loc.range.start.line + 1, loc.range.start.character + 1)?;
+                    self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
                 }
                 _ => self.display_locations(&arr)?,
             },
@@ -2088,7 +2088,7 @@ impl State {
         };
 
         self.apply_TextEdits(filename, &edits)?;
-        self.jump(line + 1, character + 1)
+        self.cursor(line + 1, character + 1)
     }
 
     pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
@@ -2130,7 +2130,7 @@ impl State {
             .to_int()? - 1;
 
         self.edit(&None, &filename)?;
-        self.jump(line + 1, character + 1)?;
+        self.cursor(line + 1, character + 1)?;
 
         info!("End {}", NOTIFICATION__FZFSinkLocation);
         Ok(())

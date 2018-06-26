@@ -243,8 +243,8 @@ impl State {
         Ok(())
     }
 
-    pub fn jump(&mut self, lnum: u64, col: u64) -> Result<()> {
-        self.command(format!("normal {}G{}|", lnum, col))
+    pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
+        self.notify(None, "cursor", json!([lnum, col]))
     }
 
     pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {

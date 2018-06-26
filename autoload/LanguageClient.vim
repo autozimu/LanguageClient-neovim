@@ -116,8 +116,13 @@ function! s:FZF(source, sink) abort
 endfunction
 
 function! s:Edit(action, path) abort
+    " If editing current file, push current location to jump list.
+    if bufnr(a:path) == bufnr('%')
+        execute 'normal m`'
+    endif
+
     let l:action = a:action
-    " Avoid the not saved warning.
+    " Avoid the 'not saved' warning.
     if l:action ==# 'edit' && bufnr(a:path) != -1
         let l:action = 'buffer'
     endif
