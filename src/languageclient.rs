@@ -59,7 +59,7 @@ impl State {
                 "get(g:, 'LanguageClient_serverStderr', v:null)",
             ].as_ref(),
         )?;
-        logger::update_settings(&self.logger, &loggingFile, &loggingLevel)?;
+        logger::update_settings(&self.logger, &loggingFile, loggingLevel)?;
 
         #[allow(unknown_lints)]
         #[allow(type_complexity)]
@@ -1857,7 +1857,7 @@ impl State {
     pub fn languageClient_setLoggingLevel(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (log::LevelFilter,) = self.gather_args(&["loggingLevel"], params)?;
-        logger::update_settings(&self.logger, &self.loggingFile, &loggingLevel)?;
+        logger::update_settings(&self.logger, &self.loggingFile, loggingLevel)?;
         self.loggingLevel = loggingLevel;
         info!("End {}", REQUEST__SetLoggingLevel);
         Ok(Value::Null)
