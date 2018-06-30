@@ -105,6 +105,13 @@ Default: >
         },
     }
 
+2.3 g:LanguageClient_diagnosticsSignsMax  *g:LanguageClient_diagnosticsSignsMax*
+
+Control how many diagnostics signs are displayed.
+
+Default: v:null (Show all signs)
+Valid options: v:null | number
+
 2.4 g:LanguageClient_changeThrottle      *g:LanguageClient_changeThrottle*
 
 Interval in seconds during which textDocument_didChange is suppressed. For
