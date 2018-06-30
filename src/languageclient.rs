@@ -117,6 +117,10 @@ impl State {
                 "has('nvim')",
             ].as_ref(),
         )?;
+
+        let (diagnosticsSignsMax,): (Option<u64>,) =
+            self.eval(["get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)"].as_ref())?;
+
         // vimscript use 1 for true, 0 for false.
         let autoStart = autoStart == 1;
         let loadSettings = loadSettings == 1;
@@ -183,6 +187,7 @@ impl State {
             state.diagnosticsDisplay = serde_json::from_value(
                 serde_json::to_value(&state.diagnosticsDisplay)?.combine(diagnosticsDisplay),
             )?;
+            state.diagnosticsSignsMax = diagnosticsSignsMax;
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
@@ -376,6 +381,9 @@ impl State {
                 .collect();
             signs.sort_unstable();
             signs.dedup_by_key(|s| s.line);
+            if let Some(diagnosticSignsMax) = self.diagnosticsSignsMax {
+                signs.truncate(diagnosticSignsMax as usize);
+            }
 
             let cmd = self.update(|state| {
                 let signs_prev = state.signs.remove(filename).unwrap_or_default();
