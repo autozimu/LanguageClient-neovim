@@ -1939,18 +1939,15 @@ impl State {
             return Ok(());
         }
 
+        let filename = filename.canonicalize();
+
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             self.textDocument_didOpen(params)?;
 
-            let diagnostics = self.get(|state| {
-                state
-                    .diagnostics
-                    .get(&filename.canonicalize())
-                    .cloned()
-                    .ok_or_else(|| format_err!("No diagnostics! filename: {}", filename))
-            }).unwrap_or_default();
-            self.display_diagnostics(&filename, &diagnostics)?;
-            self.languageClient_handleCursorMoved(params)?;
+            if let Some(diagnostics) = self.diagnostics.get(&filename).cloned() {
+                self.display_diagnostics(&filename, &diagnostics)?;
+                self.languageClient_handleCursorMoved(params)?;
+            }
         } else {
             let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
             if autoStart == 1 {
