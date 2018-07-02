@@ -434,6 +434,6 @@ pub fn get_default_initializationOptions(languageId: &str) -> Value {
                 "classFileContentsSupport": true
             }
         }),
-        _ => json!({}),
+        _ => json!(Value::Null),
     }
 }

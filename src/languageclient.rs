@@ -675,6 +675,11 @@ impl State {
             });
         let initialization_options =
             get_default_initializationOptions(&languageId).combine(initialization_options);
+        let initialization_options = if initialization_options.is_null() {
+            None
+        } else {
+            Some(initialization_options)
+        };
 
         let trace = self.trace.clone();
 
@@ -685,7 +690,7 @@ impl State {
                 process_id: Some(u64::from(std::process::id())),
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
-                initialization_options: Some(initialization_options),
+                initialization_options,
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
                         completion: Some(CompletionCapability {
