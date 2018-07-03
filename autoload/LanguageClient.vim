@@ -59,7 +59,7 @@ function! s:hasSnippetSupport() abort
         return 1
     endif
     " https://github.com/garbas/vim-snipmate
-    if exists('loaded_snips')
+    if exists('g:loaded_snips')
         return 1
     endif
 
