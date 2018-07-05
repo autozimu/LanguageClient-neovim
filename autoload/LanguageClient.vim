@@ -542,9 +542,10 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
 endfunction
 
 function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
-    return !LanguageClient_runSync('LanguageClient#textDocument_rangeFormatting', {
+    let l:result = LanguageClient_runSync('LanguageClient#textDocument_rangeFormatting', {
                 \ 'handle': v:true,
                 \ })
+    return l:result isnot v:null
 endfunction
 
 function! LanguageClient#rustDocument_implementations(...) abort

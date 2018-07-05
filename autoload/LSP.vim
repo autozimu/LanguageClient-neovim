@@ -19,9 +19,14 @@ function! LSP#character() abort
 endfunction
 
 function! LSP#range_start_line() abort
-    return v:lnum - 1
+    let l:lnum = v:lnum ? v:lnum : getpos("'<")[1]
+    return l:lnum - 1
 endfunction
 
 function! LSP#range_end_line() abort
-    return v:lnum - 1 + v:count
+    if v:lnum
+        return v:lnum - 1 + v:count
+    endif
+
+    return getpos("'>")[1]
 endfunction
