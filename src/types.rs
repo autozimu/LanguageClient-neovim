@@ -959,7 +959,7 @@ pub fn to_vim_complete_item(
         info += &doc.to_string();
     }
 
-    if lspitem.text_edit.is_some() && (preferTextEdit || lspitem.insert_text.is_none()) {
+    if lspitem.text_edit.is_some() && preferTextEdit {
         user_data.text_edit = lspitem.text_edit.clone();
     }
     if lspitem.additional_text_edits.is_some() {
