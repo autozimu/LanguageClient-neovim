@@ -465,16 +465,32 @@ impl State {
                     .texthl
                     .clone();
                 let ranges: Vec<_> = dns.iter()
-                    .map(|dn| {
-                        let length = dn.range.end.character - dn.range.start.character;
-                        // Vim line numbers are 1 off
-                        // `matchaddpos` expects an array of [line, col, length]
-                        // for each match.
-                        [
-                            dn.range.start.line + 1,
-                            dn.range.start.character + 1,
-                            length,
-                        ]
+                    .flat_map(|dn| {
+                        if dn.range.start.line == dn.range.end.line {
+                            let length = dn.range.end.character - dn.range.start.character;
+                            // Vim line numbers are 1 off
+                            // `matchaddpos` expects an array of [line, col, length]
+                            // for each match.
+                            vec![[
+                                dn.range.start.line + 1,
+                                dn.range.start.character + 1,
+                                length,
+                            ]]
+                        } else {
+                            let mut middleLines: Vec<_> = (dn.range.start.line + 1
+                                ..dn.range.end.line)
+                                .map(|l| [l + 1, 0, 0])
+                                .collect();
+                            let startLine = [
+                                dn.range.start.line + 1,
+                                dn.range.start.character + 1,
+                                999_999, //Clear to the end of the line
+                            ];
+                            let endLine = [dn.range.end.line + 1, 1, dn.range.end.character + 1];
+                            middleLines.push(startLine);
+                            middleLines.push(endLine);
+                            middleLines
+                        }
                     })
                     .collect();
                 self.call::<_, u8>(None, "matchaddpos", json!([hl_group, ranges]))?;
