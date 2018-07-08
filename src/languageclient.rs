@@ -395,7 +395,6 @@ impl State {
             self.command(&cmd)?;
         }
 
-        // self.call(None, "matchaddpos", json!(["Error", [1]]))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
         // Highlight.
