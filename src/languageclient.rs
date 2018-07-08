@@ -395,47 +395,90 @@ impl State {
             self.command(&cmd)?;
         }
 
-        // Highlight.
-        if !self.get(|state| Ok(state.is_nvim))? {
-            return Ok(());
-        }
-
-        let mut source: Option<u64> = self.get(|state| Ok(state.highlight_source))?;
-        if source.is_none() {
-            source = Some(self.call(
-                None,
-                "nvim_buf_add_highlight",
-                json!([0, 0, "Error", 1, 1, 1]),
-            )?);
-            self.update(|state| {
-                state.highlight_source = source;
-                Ok(())
-            })?;
-        }
-        let source = source.ok_or_else(|| err_msg("Empty highlight source id"))?;
+        // self.call(None, "matchaddpos", json!(["Error", [1]]))?;
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
-        // TODO: Optimize.
-        self.call::<_, Option<u8>>(None, "nvim_buf_clear_highlight", json!([0, source, 1, -1]))?;
-        for dn in diagnostics {
-            let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
-            let hl_group = diagnosticsDisplay
-                .get(&severity.to_int()?)
-                .ok_or_else(|| err_msg("Failed to get display"))?
-                .texthl
-                .clone();
-            self.call::<_, u8>(
+        // Highlight.
+        if self.get(|state| Ok(state.is_nvim))? {
+            let mut source: Option<u64> = self.get(|state| Ok(state.highlight_source))?;
+            if source.is_none() {
+                source = Some(self.call(
+                    None,
+                    "nvim_buf_add_highlight",
+                    json!([0, 0, "Error", 1, 1, 1]),
+                )?);
+                self.update(|state| {
+                    state.highlight_source = source;
+                    Ok(())
+                })?;
+            }
+            let source = source.ok_or_else(|| err_msg("Empty highlight source id"))?;
+
+            // TODO: Optimize.
+            self.call::<_, Option<u8>>(
                 None,
-                "nvim_buf_add_highlight",
-                json!([
-                    0,
-                    source,
-                    hl_group,
-                    dn.range.start.line,
-                    dn.range.start.character,
-                    dn.range.end.character,
-                ]),
+                "nvim_buf_clear_highlight",
+                json!([0, source, 1, -1]),
             )?;
+            for dn in diagnostics {
+                let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
+                let hl_group = diagnosticsDisplay
+                    .get(&severity.to_int()?)
+                    .ok_or_else(|| err_msg("Failed to get display"))?
+                    .texthl
+                    .clone();
+
+                self.call::<_, u8>(
+                    None,
+                    "nvim_buf_add_highlight",
+                    json!([
+                        0,
+                        source,
+                        hl_group,
+                        dn.range.start.line,
+                        dn.range.start.character,
+                        dn.range.end.character,
+                    ]),
+                )?;
+            }
+        } else {
+            self.call::<_, u8>(None, "clearmatches", json!([]))?;
+
+            // Group diagnostics by severity so we can highlight them
+            // in a single call.
+            let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
+
+            for dn in diagnostics {
+                let severity = dn.severity
+                    .unwrap_or(DiagnosticSeverity::Information)
+                    .to_int()?;
+                match_groups
+                    .entry(severity)
+                    .or_insert_with(Vec::new)
+                    .push(dn);
+            }
+
+            for (severity, dns) in match_groups {
+                let hl_group = diagnosticsDisplay
+                    .get(&severity)
+                    .ok_or_else(|| err_msg("Failed to get display"))?
+                    .texthl
+                    .clone();
+                let ranges: Vec<_> = dns.iter()
+                    .map(|dn| {
+                        let length = dn.range.end.character - dn.range.start.character;
+                        // Vim line numbers are 1 off
+                        // `matchaddpos` expects an array of [line, col, length]
+                        // for each match.
+                        [
+                            dn.range.start.line + 1,
+                            dn.range.start.character + 1,
+                            length,
+                        ]
+                    })
+                    .collect();
+                self.call::<_, u8>(None, "matchaddpos", json!([hl_group, ranges]))?;
+            }
         }
 
         Ok(())
