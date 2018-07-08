@@ -548,6 +548,47 @@ impl State {
         Ok(())
     }
 
+    fn registerNCM2Source(&mut self, languageId: &str, result: &Value) -> Result<()> {
+        info!("Begin register NCM2 source");
+        let exists_ncm2: u64 = self.eval("exists('g:ncm2_loaded')")?;
+        if exists_ncm2 == 0 {
+            return Ok(());
+        }
+
+        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        if result.capabilities.completion_provider.is_none() {
+            return Ok(());
+        }
+
+        let trigger_patterns = result
+            .capabilities
+            .completion_provider
+            .map(|opt| {
+                let strings: Vec<_> = opt.trigger_characters
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|c| regex::escape(c))
+                    .collect();
+                strings
+            })
+            .unwrap_or_default();
+
+        self.call::<_, u8>(
+            None,
+            "ncm2#register_source",
+            json!([{
+                "name": format!("LanguageClient_{}", languageId),
+                "priority": 9,
+                "scope": [languageId],
+                "complete_pattern": trigger_patterns,
+                "mark": "LC",
+                "on_complete": REQUEST__NCM2OnComplete,
+            }]),
+        )?;
+        info!("End register NCM source");
+        Ok(())
+    }
+
     fn get_line<P: AsRef<Path>>(&mut self, path: P, line: u64) -> Result<String> {
         let value = self.call(
             None,
@@ -731,7 +772,13 @@ impl State {
         })?;
 
         info!("End {}", lsp::request::Initialize::METHOD);
+
         if let Err(e) = self.registerCMSource(&languageId, &result) {
+            let message = format!("LanguageClient: failed to register as NCM source: {}", e);
+            error!("{}\n{:?}", message, e);
+            self.echoerr(message)?;
+        }
+        if let Err(e) = self.registerNCM2Source(&languageId, &result) {
             let message = format!("LanguageClient: failed to register as NCM source: {}", e);
             error!("{}\n{:?}", message, e);
             self.echoerr(message)?;
@@ -2227,6 +2274,51 @@ impl State {
             json!([info.name, ctx, ctx.startcol, matches, is_incomplete]),
         )?;
         info!("End {}", REQUEST__NCMRefresh);
+        Ok(Value::Null)
+    }
+
+    pub fn NCM2_on_complete(&mut self, params: &Option<Params>) -> Result<Value> {
+        info!("Begin {}", REQUEST__NCM2OnComplete);
+
+        let orig_ctx: Value = serde_json::from_value(rpc::to_value(params.clone())?)?;
+        let orig_ctx = &orig_ctx["ctx"];
+
+        let ctx: NCM2Context = serde_json::from_value(orig_ctx.clone())?;
+        if ctx.typed.is_empty() {
+            return Ok(Value::Null);
+        }
+
+        let filename = ctx.filepath.clone();
+        let line = ctx.lnum - 1;
+        let character = ctx.ccol - 1;
+
+        let result = self.textDocument_completion(&json!({
+                "buftype": "",
+                "languageId": ctx.filetype,
+                "filename": filename,
+                "line": line,
+                "character": character,
+                "handle": false,
+            }).to_params()?)?;
+        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
+        let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
+        let is_incomplete = match result {
+            CompletionResponse::Array(_) => false,
+            CompletionResponse::List(ref list) => list.is_incomplete,
+        };
+        let matches: Result<Vec<VimCompleteItem>> = match result {
+            CompletionResponse::Array(arr) => arr,
+            CompletionResponse::List(list) => list.items,
+        }.iter()
+            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
+            .collect();
+        let matches = matches?;
+        self.call::<_, u8>(
+            None,
+            "ncm2#complete",
+            json!([orig_ctx, ctx.startccol, matches, is_incomplete]),
+        )?;
+        info!("End {}", REQUEST__NCM2OnComplete);
         Ok(Value::Null)
     }
 

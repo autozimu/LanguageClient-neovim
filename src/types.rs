@@ -17,6 +17,7 @@ pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
 pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
 pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
+pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
 pub const REQUEST__ExplainErrorAtPoint: &str = "$languageClient/explainErrorAtPoint";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
@@ -428,6 +429,24 @@ pub struct NCMContext {
 pub struct NCMRefreshParams {
     pub info: NCMInfo,
     pub ctx: NCMContext,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NCM2Context {
+    pub bufnr: u64,
+    pub lnum: u64,
+    pub ccol: u64,
+    pub filetype: String,
+    pub typed: String,
+    pub filepath: String,
+    pub scope: String,
+    pub startccol: u64,
+    pub base: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NCM2OnCompleteParams {
+    pub ctx: NCM2Context,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
