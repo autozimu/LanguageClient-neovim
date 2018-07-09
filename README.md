@@ -17,8 +17,8 @@ More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/Lan
 
 - Non-blocking asynchronous calls.
 - [Sensible completion](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731936).
-  Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim)
-  or [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager). Or with vim built-in `omnifunc`.
+  Integrated with [deoplete](https://github.com/Shougo/deoplete.nvim) or
+  [ncm2](https://github.com/ncm2/ncm2). Or with vim built-in `omnifunc`.
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288732042)
 - [Rename.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731403)
 - [Hover/Get identifer info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)

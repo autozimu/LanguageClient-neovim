@@ -766,6 +766,12 @@ function! LanguageClient_NCMRefresh(info, context) abort
                 \ }, v:null)
 endfunction
 
+function! LanguageClient_NCM2OnComplete(context) abort
+    return LanguageClient#Call('LanguageClient_NCM2OnComplete', {
+                \ 'ctx': a:context,
+                \ }, v:null)
+endfunction
+
 function! LanguageClient#explainErrorAtPoint(...) abort
     if &buftype !=# '' || &filetype ==# ''
         return
