@@ -463,14 +463,14 @@ impl State {
                     .ok_or_else(|| err_msg("Failed to get display"))?
                     .texthl
                     .clone();
-                let ranges: Vec<_> = dns.iter()
+                let ranges: Vec<Vec<_>> = dns.iter()
                     .flat_map(|dn| {
                         if dn.range.start.line == dn.range.end.line {
                             let length = dn.range.end.character - dn.range.start.character;
                             // Vim line numbers are 1 off
                             // `matchaddpos` expects an array of [line, col, length]
                             // for each match.
-                            vec![[
+                            vec![vec![
                                 dn.range.start.line + 1,
                                 dn.range.start.character + 1,
                                 length,
@@ -478,14 +478,15 @@ impl State {
                         } else {
                             let mut middleLines: Vec<_> = (dn.range.start.line + 1
                                 ..dn.range.end.line)
-                                .map(|l| [l + 1, 0, 0])
+                                .map(|l| vec![l + 1])
                                 .collect();
-                            let startLine = [
+                            let startLine = vec![
                                 dn.range.start.line + 1,
                                 dn.range.start.character + 1,
                                 999_999, //Clear to the end of the line
                             ];
-                            let endLine = [dn.range.end.line + 1, 1, dn.range.end.character + 1];
+                            let endLine =
+                                vec![dn.range.end.line + 1, 1, dn.range.end.character + 1];
                             middleLines.push(startLine);
                             middleLines.push(endLine);
                             middleLines
