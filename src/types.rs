@@ -445,11 +445,6 @@ pub struct NCM2Context {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NCM2OnCompleteParams {
-    pub ctx: NCM2Context,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct VimCompleteItem {
     pub word: String,
     pub abbr: String,

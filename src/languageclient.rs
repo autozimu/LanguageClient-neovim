@@ -585,7 +585,7 @@ impl State {
                 "on_complete": REQUEST__NCM2OnComplete,
             }]),
         )?;
-        info!("End register NCM source");
+        info!("End register NCM2 source");
         Ok(())
     }
 
