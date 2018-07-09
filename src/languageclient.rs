@@ -441,6 +441,11 @@ impl State {
                 )?;
             }
         } else {
+            // Clear old highlights.
+            while let Some(match_id) = self.update(|state| Ok(state.highlight_match_ids.pop()))? {
+                self.call(None, "matchdelete", json!([match_id]))?;
+            }
+
             // Group diagnostics by severity so we can highlight them
             // in a single call.
             let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
@@ -454,6 +459,8 @@ impl State {
                     .or_insert_with(Vec::new)
                     .push(dn);
             }
+
+            let mut new_match_ids = Vec::new();
 
             for (severity, dns) in match_groups {
                 let hl_group = diagnosticsDisplay
@@ -493,17 +500,12 @@ impl State {
                     .collect();
 
                 let match_id = self.call(None, "matchaddpos", json!([hl_group, ranges]))?;
-
-                let mut match_to_delete = None;
-                self.update(|state| {
-                    match_to_delete = state.highlight_match_ids.pop();
-                    state.highlight_match_ids.push(match_id);
-                    Ok(())
-                })?;
-                if let Some(match_id) = match_to_delete {
-                    self.call(None, "matchdelete", json!([match_id]))?;
-                }
+                new_match_ids.push(match_id);
             }
+            self.update(|state| {
+                state.highlight_match_ids.append(&mut new_match_ids);
+                Ok(())
+            })?;
         }
 
         Ok(())
