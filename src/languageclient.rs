@@ -442,9 +442,8 @@ impl State {
             }
         } else {
             // Clear old highlights.
-            while let Some(match_id) = self.update(|state| Ok(state.highlight_match_ids.pop()))? {
-                self.call(None, "matchdelete", json!([match_id]))?;
-            }
+            let ids = self.highlight_match_ids.clone();
+            self.notify(None, "s:MatchDelete", json!([ids]))?;
 
             // Group diagnostics by severity so we can highlight them
             // in a single call.
@@ -502,10 +501,7 @@ impl State {
                 let match_id = self.call(None, "matchaddpos", json!([hl_group, ranges]))?;
                 new_match_ids.push(match_id);
             }
-            self.update(|state| {
-                state.highlight_match_ids.append(&mut new_match_ids);
-                Ok(())
-            })?;
+            self.highlight_match_ids = new_match_ids;
         }
 
         Ok(())
@@ -1932,15 +1928,6 @@ impl State {
     pub fn exit(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
-
-        //Tidy up highlighting
-        for match_id in self.get(|state| Ok(state.highlight_match_ids.clone()))? {
-            self.call(None, "matchdelete", json!([match_id]))?;
-        }
-        self.update(|state| {
-            state.highlight_match_ids = Vec::new();
-            Ok(())
-        })?;
 
         let result = self.notify(
             Some(&languageId),

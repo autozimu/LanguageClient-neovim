@@ -102,6 +102,7 @@ pub struct State {
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
+    // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]

@@ -130,6 +130,13 @@ function! s:Edit(action, path) abort
     execute l:action . ' ' . fnameescape(a:path)
 endfunction
 
+" Batch version of `matchdelete()`.
+function! s:MatchDelete(ids) abort
+    for l:id in a:ids
+        call matchdelete(l:id)
+    endfor
+endfunction
+
 let s:id = 1
 let s:handlers = {}
 
