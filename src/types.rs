@@ -102,6 +102,7 @@ pub struct State {
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
+    pub highlight_match_ids: Vec<u32>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, notify::RecommendedWatcher>,
@@ -162,6 +163,7 @@ impl State {
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
             highlight_source: None,
+            highlight_match_ids: Vec::new(),
             user_handlers: HashMap::new(),
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),

@@ -441,8 +441,6 @@ impl State {
                 )?;
             }
         } else {
-            self.call::<_, u8>(None, "clearmatches", json!([]))?;
-
             // Group diagnostics by severity so we can highlight them
             // in a single call.
             let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
@@ -493,7 +491,18 @@ impl State {
                         }
                     })
                     .collect();
-                self.call::<_, u8>(None, "matchaddpos", json!([hl_group, ranges]))?;
+
+                let match_id = self.call(None, "matchaddpos", json!([hl_group, ranges]))?;
+
+                let mut match_to_delete = None;
+                self.update(|state| {
+                    match_to_delete = state.highlight_match_ids.pop();
+                    state.highlight_match_ids.push(match_id);
+                    Ok(())
+                })?;
+                if let Some(match_id) = match_to_delete {
+                    self.call(None, "matchdelete", json!([match_id]))?;
+                }
             }
         }
 
@@ -1921,6 +1930,15 @@ impl State {
     pub fn exit(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+
+        //Tidy up highlighting
+        for match_id in self.get(|state| Ok(state.highlight_match_ids.clone()))? {
+            self.call(None, "matchdelete", json!([match_id]))?;
+        }
+        self.update(|state| {
+            state.highlight_match_ids = Vec::new();
+            Ok(())
+        })?;
 
         let result = self.notify(
             Some(&languageId),
