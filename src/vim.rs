@@ -244,7 +244,8 @@ impl State {
     }
 
     pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
-        self.notify(None, "cursor", json!([lnum, col]))
+        self.notify(None, "cursor", json!([lnum, col]))?;
+        self.command("redraw")
     }
 
     pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {
