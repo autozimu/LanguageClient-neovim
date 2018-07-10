@@ -953,10 +953,15 @@ pub fn to_vim_complete_item(
     preferTextEdit: bool,
 ) -> Result<VimCompleteItem> {
     let abbr = lspitem.label.clone();
+    let new_text = match lspitem.text_edit.clone() {
+        Some(text_edit) => text_edit.new_text,
+        None => lspitem.label.clone()
+    };
+
     let word = lspitem
         .insert_text
         .clone()
-        .unwrap_or_else(|| lspitem.label.clone());
+        .unwrap_or_else(|| new_text);
 
     let mut user_data = VimCompleteItemUserData::new();
 

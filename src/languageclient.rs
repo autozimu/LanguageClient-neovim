@@ -2202,16 +2202,42 @@ impl State {
         let user_data: VimCompleteItemUserData = serde_json::from_str(&user_data)?;
 
         let mut edits = vec![];
+        let mut cur_line = line + 1;
+        let mut cur_char = character + 1;
         if let Some(edit) = user_data.text_edit {
-            self.command("undo")?;
-            edits.push(edit.clone());
+            let word_len = completed_item.word.len();
+            let start : usize  = &(character as usize) - word_len;
+            let end : usize = character as usize;
+            let mut current_line: String = self.call(None, "getline", json!([line+1]))?;
+            current_line.replace_range(start..end, "");
+
+            if self.call::<_, i64>(None, "setline", json!([line+1, current_line]))? != 0 {
+                bail!("Failed to set buffer content!");
+            }
+            let mut edit_clone = edit.clone();
+            edit_clone.range.start.character = start as u64;
+            edit_clone.range.end.character = start as u64;
+
+            edits.push(edit_clone);
         };
         if let Some(aedits) = user_data.additional_text_edits {
+             for edit in aedits.iter()  {
+                if edit.range.start.line.to_usize()? < cur_line.to_usize()? {
+                    cur_line += edit.new_text.lines().count() as u64;
+                }
+                if edit.range.start.line.to_usize()? == cur_line.to_usize()? {
+                    if edit.range.end.character.to_usize()? < cur_char.to_usize()?{
+                        cur_char += edit.new_text.len() as u64;
+                    }
+                }
+            }
             edits.extend(aedits.clone());
         };
 
+
+
         self.apply_TextEdits(filename, &edits)?;
-        self.cursor(line + 1, character + 1)
+        self.cursor(cur_line, cur_char+1)
     }
 
     pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
