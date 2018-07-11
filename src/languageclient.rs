@@ -2210,6 +2210,10 @@ impl State {
             edits.extend(aedits.clone());
         };
 
+        if edits.is_empty() {
+            return Ok(())
+        }
+
         self.apply_TextEdits(filename, &edits)?;
         self.cursor(line + 1, character + 1)
     }
