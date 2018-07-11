@@ -474,6 +474,8 @@ pub struct VimCompleteItemUserData {
     pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub snippet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_item: Option<CompletionItem>,
 }
 
 impl VimCompleteItemUserData {
@@ -482,11 +484,13 @@ impl VimCompleteItemUserData {
             text_edit: None,
             additional_text_edits: None,
             snippet: None,
+            completion_item: None,
         }
     }
 
     pub fn is_none(&self) -> bool {
-        self.text_edit.is_none() && self.additional_text_edits.is_none() && self.snippet.is_none()
+        let data = self.completion_item.as_ref().map(|c| c.data.as_ref());
+        return self.text_edit.is_none() && self.additional_text_edits.is_none() && self.snippet.is_none() && data.is_none();
     }
 }
 
@@ -982,6 +986,8 @@ pub fn to_vim_complete_item(
     if lspitem.additional_text_edits.is_some() {
         user_data.additional_text_edits = lspitem.additional_text_edits.clone();
     }
+
+    user_data.completion_item = Some(lspitem.clone());
 
     Ok(VimCompleteItem {
         word,
