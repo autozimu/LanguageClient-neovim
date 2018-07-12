@@ -1088,7 +1088,13 @@ impl State {
                     .iter()
                     .map(|sym| {
                         let start = sym.location.range.start;
-                        format!("{}:{}:\t{}", start.line + 1, start.character + 1, sym.name)
+                        format!(
+                            "{}:{}:\t{}\t\t{:?}",
+                            start.line + 1,
+                            start.character + 1,
+                            sym.name,
+                            sym.kind
+                        )
                     })
                     .collect();
 
@@ -1546,11 +1552,12 @@ impl State {
                         let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
                         let start = sym.location.range.start;
                         Ok(format!(
-                            "{}:{}:{}:\t{}",
+                            "{}:{}:{}:\t{}\t\t{:?}",
                             relpath.to_string_lossy(),
                             start.line + 1,
                             start.character + 1,
-                            sym.name
+                            sym.name,
+                            sym.kind
                         ))
                     })
                     .collect();
