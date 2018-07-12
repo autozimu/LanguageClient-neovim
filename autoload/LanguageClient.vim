@@ -244,7 +244,7 @@ function! s:HandleMessage(job, lines, event) abort
         if type(a:lines) == type(0) && a:lines == 0
             return
         endif
-        call s:Echoerr('LanguageClient exited with: ' . string(a:lines))
+        call s:Debug('LanguageClient exited with: ' . string(a:lines))
     else
         call s:Debug('LanguageClient unknown event: ' . a:event)
     endif
