@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Into;
-use std::env;
 use std::fmt::Debug;
 use std::fs::{read_to_string, File};
 use std::io::prelude::*;
@@ -26,6 +25,8 @@ use failure::{err_msg, Error};
 
 #[macro_use]
 extern crate maplit;
+
+extern crate dirs;
 
 extern crate serde;
 use serde::de::DeserializeOwned;

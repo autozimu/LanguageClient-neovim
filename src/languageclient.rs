@@ -2640,7 +2640,7 @@ impl State {
                 let writer = Box::new(BufWriter::new(stream));
                 (None, reader, writer)
             } else {
-                let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
+                let home = dirs::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
                 let command: Vec<_> = command
                     .into_iter()
                     .map(|cmd| {
