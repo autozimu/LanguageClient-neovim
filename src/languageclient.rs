@@ -1668,9 +1668,13 @@ impl State {
         )?;
 
         self.command("setlocal omnifunc=LanguageClient#complete")?;
-        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
-            self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
-        }
+        let root = self.roots.get(&languageId).cloned().unwrap_or_default();
+        self.notify(
+            None,
+            "setbufvar",
+            json!([filename, "LanguageClient_projectRoot", root]),
+        )?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
 
         info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
@@ -2218,7 +2222,7 @@ impl State {
         };
 
         if edits.is_empty() {
-            return Ok(())
+            return Ok(());
         }
 
         self.apply_TextEdits(filename, &edits)?;
@@ -2726,7 +2730,7 @@ impl State {
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
 
-        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
     }
 
