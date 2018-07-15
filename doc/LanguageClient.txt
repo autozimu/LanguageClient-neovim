@@ -555,7 +555,7 @@ Try increasing logging level to 'INFO' or 'DEBUG' using the
 
 There is also an utility script in: >
 
-    $RUNTIME/tests/wrapper.sh
+    $RUNTIME/rplugin/python3/LanguageClient/wrapper.sh
 
 which can work like a proxy and logs all stdin and stdout of the language
 server into a log file.
