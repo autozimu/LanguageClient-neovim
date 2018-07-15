@@ -63,6 +63,9 @@ filetype. For example: >
         \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
         \ }
 
+In the example above, 'run', 'nightly', and 'rls' are arguments to the
+'rustup' command line tool.
+
 Or tcp connection string to the server, >
     let g:LanguageCLient_servercommands = {
         \ 'javascript': ['tcp://127.0.0.1:2089'],
@@ -552,7 +555,7 @@ Try increasing logging level to 'INFO' or 'DEBUG' using the
 
 There is also an utility script in: >
 
-    $RUNTIME/rplugin/python3/LanguageClient/wrapper.sh
+    $RUNTIME/tests/wrapper.sh
 
 which can work like a proxy and logs all stdin and stdout of the language
 server into a log file.
