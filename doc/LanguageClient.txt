@@ -63,6 +63,9 @@ filetype. For example: >
         \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
         \ }
 
+In the example above, 'run', 'nightly', and 'rls' are arguments to the
+'rustup' command line tool.
+
 Or tcp connection string to the server, >
     let g:LanguageCLient_servercommands = {
         \ 'javascript': ['tcp://127.0.0.1:2089'],
