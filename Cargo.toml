@@ -11,7 +11,6 @@ log = "0.4"
 log4rs = "0"
 structopt = "0"
 maplit = "1"
-dirs = "1"
 
 serde = "1"
 serde_derive = "1"
