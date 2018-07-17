@@ -462,6 +462,7 @@ pub struct VimCompleteItem {
     pub snippet: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_snippet: Option<bool>,
+    // NOTE: `user_data` can only be string in vim. So cannot specify concrete type here.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_data: Option<String>,
 }
@@ -469,28 +470,48 @@ pub struct VimCompleteItem {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VimCompleteItemUserData {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_edit: Option<TextEdit>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub additional_text_edits: Option<Vec<lsp::TextEdit>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub snippet: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub completion_item: Option<CompletionItem>,
+    pub lspitem: Option<CompletionItem>,
 }
 
-impl VimCompleteItemUserData {
-    pub fn new() -> Self {
-        Self {
-            text_edit: None,
-            additional_text_edits: None,
-            snippet: None,
-            completion_item: None,
-        }
-    }
+impl FromLSP<CompletionItem> for VimCompleteItem {
+    fn from_lsp(lspitem: &CompletionItem) -> Result<VimCompleteItem> {
+        let abbr = lspitem.label.clone();
+        let word = lspitem
+            .insert_text
+            .clone()
+            .unwrap_or_else(|| lspitem.label.clone());
 
-    pub fn is_none(&self) -> bool {
-        let data = self.completion_item.as_ref().map(|c| c.data.as_ref());
-        return self.text_edit.is_none() && self.additional_text_edits.is_none() && self.snippet.is_none() && data.is_none();
+        let is_snippet;
+        let snippet;
+        if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
+            is_snippet = Some(true);
+            snippet = Some(word.clone());
+        } else {
+            is_snippet = None;
+            snippet = None;
+        };
+
+        let mut info = String::new();
+        if let Some(ref doc) = lspitem.documentation {
+            info += &doc.to_string();
+        }
+
+        let user_data = VimCompleteItemUserData {
+            lspitem: Some(lspitem.clone()),
+        };
+
+        Ok(VimCompleteItem {
+            word,
+            abbr,
+            icase: Some(1),
+            dup: Some(1),
+            menu: lspitem.detail.clone().unwrap_or_default(),
+            info,
+            kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
+            snippet,
+            is_snippet,
+            user_data: Some(serde_json::to_string(&user_data)?),
+        })
     }
 }
 
@@ -950,59 +971,4 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
             typ: None,
         })
     }
-}
-
-pub fn to_vim_complete_item(
-    lspitem: &CompletionItem,
-    preferTextEdit: bool,
-) -> Result<VimCompleteItem> {
-    let abbr = lspitem.label.clone();
-    let word = lspitem
-        .insert_text
-        .clone()
-        .unwrap_or_else(|| lspitem.label.clone());
-
-    let mut user_data = VimCompleteItemUserData::new();
-
-    let is_snippet;
-    let snippet;
-    if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-        is_snippet = Some(true);
-        snippet = Some(word.clone());
-        user_data.snippet = Some(word.clone());
-    } else {
-        is_snippet = None;
-        snippet = None;
-    };
-
-    let mut info = String::new();
-    if let Some(ref doc) = lspitem.documentation {
-        info += &doc.to_string();
-    }
-
-    if lspitem.text_edit.is_some() && preferTextEdit {
-        user_data.text_edit = lspitem.text_edit.clone();
-    }
-    if lspitem.additional_text_edits.is_some() {
-        user_data.additional_text_edits = lspitem.additional_text_edits.clone();
-    }
-
-    user_data.completion_item = Some(lspitem.clone());
-
-    Ok(VimCompleteItem {
-        word,
-        abbr,
-        icase: Some(1),
-        dup: Some(1),
-        menu: lspitem.detail.clone().unwrap_or_default(),
-        info,
-        kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
-        snippet,
-        is_snippet,
-        user_data: if user_data.is_none() {
-            None
-        } else {
-            Some(serde_json::to_string(&user_data)?)
-        },
-    })
 }

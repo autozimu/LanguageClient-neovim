@@ -2029,10 +2029,7 @@ impl State {
             });
         }
 
-        let matches: Result<Vec<VimCompleteItem>> = matches
-            .iter()
-            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
-            .collect();
+        let matches: Result<Vec<VimCompleteItem>> = matches.iter().map(FromLSP::from_lsp).collect();
         let matches = matches?;
         info!("End {}", REQUEST__OmniComplete);
         Ok(serde_json::to_value(matches)?)
@@ -2206,18 +2203,25 @@ impl State {
             ],
             params,
         )?;
+
         let user_data = match completed_item.user_data {
-            Some(data) => data,
-            None => return Ok(()),
+            Some(user_data) => user_data,
+            _ => return Ok(()),
         };
         let user_data: VimCompleteItemUserData = serde_json::from_str(&user_data)?;
+        let lspitem = match user_data.lspitem {
+            Some(lspitem) => lspitem,
+            _ => return Ok(()),
+        };
 
         let mut edits = vec![];
-        if let Some(edit) = user_data.text_edit {
-            self.command("undo")?;
-            edits.push(edit.clone());
-        };
-        if let Some(aedits) = user_data.additional_text_edits {
+        if self.completionPreferTextEdit {
+            if let Some(edit) = lspitem.text_edit {
+                self.command("undo")?;
+                edits.push(edit.clone());
+            };
+        }
+        if let Some(aedits) = lspitem.additional_text_edits {
             edits.extend(aedits.clone());
         };
 
@@ -2346,7 +2350,7 @@ impl State {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
-            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
+            .map(FromLSP::from_lsp)
             .collect();
         let matches = matches?;
         self.call::<_, u8>(
@@ -2391,7 +2395,7 @@ impl State {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
-            .map(|item| to_vim_complete_item(item, self.completionPreferTextEdit))
+            .map(FromLSP::from_lsp)
             .collect();
         let matches = matches?;
         self.call::<_, u8>(
