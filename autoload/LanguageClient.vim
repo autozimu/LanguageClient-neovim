@@ -549,12 +549,12 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
 endfunction
 
 function! LanguageClient#completionItem_resolve(completion_item, ...)
-    let l:callback = get(a:000, 0, v:null)
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'completionItem': a:completion_item,
                 \ 'handle': s:IsFalse(l:callback)
                 \ }
-    echom "callback: [" . json_encode(l:callback) . "]"
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('completionItem/resolve', l:params, l:callback)
 endfunction
 
