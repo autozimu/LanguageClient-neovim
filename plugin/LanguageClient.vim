@@ -109,10 +109,7 @@ augroup languageClient
     autocmd BufDelete * call LanguageClient#handleBufDelete()
     autocmd TextChanged * call LanguageClient#handleTextChanged()
     autocmd TextChangedI * call LanguageClient#handleTextChanged()
-    autocmd CursorMoved * call LanguageClient#handleCursorMoved()
-    if get(g:, 'LanguageClient_autoStop', 1)
-      autocmd VimLeavePre * call LanguageClient#exit()
-    endif
+    autocmd VimLeavePre * call LanguageClient#handleVimLeavePre()
 
     autocmd CompleteDone * call LanguageClient#handleCompleteDone()
 

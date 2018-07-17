@@ -766,6 +766,16 @@ function! LanguageClient#handleCompleteDone() abort
     endtry
 endfunction
 
+function! LanguageClient#handleVimLeavePre() abort
+    try
+        if get(g:, 'LanguageClient_autoStop', 1)
+            call LanguageClient#exit()
+        endif
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! s:LanguageClient_FZFSinkLocation(line) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkLocation', [a:line])
 endfunction
