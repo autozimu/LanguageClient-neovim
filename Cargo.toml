@@ -17,7 +17,7 @@ serde_derive = "1"
 serde_json = "1"
 
 jsonrpc-core = "8"
-languageserver-types = "0"
+languageserver-types = ">=0.47.0"
 url = "1"
 pathdiff = "0"
 diff = "0"
