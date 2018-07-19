@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "languageclient"
-version = "0.1.101"
+version = "0.1.102"
 dependencies = [
  "diff 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
