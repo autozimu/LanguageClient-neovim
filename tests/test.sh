@@ -27,5 +27,7 @@ if [[ $ret != 0 ]]; then
     cat $LOG
 fi
 
-kill $PID
+if [[ -n $PID ]]; then
+    kill $PID
+fi
 exit $ret

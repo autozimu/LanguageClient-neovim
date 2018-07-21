@@ -216,21 +216,17 @@ impl State {
     }
 
     fn define_signs(&mut self) -> Result<()> {
-        info!("Define signs");
-        let cmd = self.get(|state| {
-            let mut cmd = "echo".to_owned();
+        info!("Defining signs");
 
-            for entry in state.diagnosticsDisplay.values() {
-                cmd += &format!(
-                    " | execute 'sign define LanguageClient{} text={} texthl={}'",
-                    entry.name, entry.signText, entry.signTexthl,
-                );
-            }
+        let mut cmds = vec![];
+        for entry in self.diagnosticsDisplay.values() {
+            cmds.push(format!(
+                "sign define LanguageClient{} text={} texthl={}",
+                entry.name, entry.signText, entry.signTexthl,
+            ));
+        }
 
-            Ok(cmd)
-        })?;
-        self.command(&cmd)?;
-        info!("Define signs");
+        self.command(cmds)?;
         Ok(())
     }
 
@@ -719,9 +715,11 @@ impl State {
         self.text_documents.retain(|f, _| !f.starts_with(&root));
         self.roots.remove(languageId);
 
-        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
-        self.command(&format!("let {}=0", VIM__ServerStatus))?;
-        self.command(&format!("let {}=''", VIM__ServerStatusMessage))?;
+        self.command(vec![
+            format!("let {}=0", VIM__ServerStatus),
+            format!("let {}=''", VIM__ServerStatusMessage),
+        ])?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientStopped")?;
 
         info!("End cleanup");
         Ok(())
@@ -1819,7 +1817,7 @@ impl State {
         }
         self.process_diagnostics(&current_filename, &diagnostics)?;
         self.languageClient_handleCursorMoved(&json!({}).to_params()?)?;
-        self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
         Ok(())
@@ -2513,30 +2511,30 @@ impl State {
 
     pub fn rust_handleBeginBuild(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
-        self.command(&format!(
-            "let {}=1 | let {}='Rust: build begin'",
-            VIM__ServerStatus, VIM__ServerStatusMessage
-        ))?;
+        self.command(vec![
+            format!("let {}=1", VIM__ServerStatus),
+            format!("let {}='Rust: build begin'", VIM__ServerStatusMessage),
+        ])?;
         info!("End {}", NOTIFICATION__RustBeginBuild);
         Ok(())
     }
 
     pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
-        self.command(&format!(
-            "let {}=1 | let {}='Rust: diagnostics begin'",
-            VIM__ServerStatus, VIM__ServerStatusMessage
-        ))?;
+        self.command(vec![
+            format!("let {}=1", VIM__ServerStatus),
+            format!("let {}='Rust: diagnostics begin'", VIM__ServerStatusMessage),
+        ])?;
         info!("End {}", NOTIFICATION__RustDiagnosticsBegin);
         Ok(())
     }
 
     pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
-        self.command(&format!(
-            "let {}=0 | let {}='Rust: diagnostics end'",
-            VIM__ServerStatus, VIM__ServerStatusMessage
-        ))?;
+        self.command(vec![
+            format!("let {}=0", VIM__ServerStatus),
+            format!("let {}='Rust: diagnostics end'", VIM__ServerStatusMessage),
+        ])?;
         info!("End {}", NOTIFICATION__RustDiagnosticsEnd);
         Ok(())
     }
@@ -2569,13 +2567,14 @@ impl State {
             }
         }
 
-        self.command(&format!(
-            "let {}={} | let {}='{}'",
-            VIM__ServerStatus,
-            if done { 0 } else { 1 },
-            VIM__ServerStatusMessage,
-            &escape_single_quote(buf)
-        ))?;
+        self.command(vec![
+            format!("let {}={}", VIM__ServerStatus, if done { 0 } else { 1 }),
+            format!(
+                "let {}='{}'",
+                VIM__ServerStatusMessage,
+                &escape_single_quote(buf)
+            ),
+        ])?;
         info!("End {}", NOTIFICATION__WindowProgress);
         Ok(())
     }
@@ -2589,15 +2588,18 @@ impl State {
             + params.onIdMappedCount
             + params.onIndexedCount;
         if total != 0 {
-            self.command(&format!(
-                "let {}=1 | let {}='cquery: indexing ({} jobs)'",
-                VIM__ServerStatus, VIM__ServerStatusMessage, params.indexRequestCount
-            ))?;
+            self.command(vec![
+                format!("let {}=1", VIM__ServerStatus),
+                format!(
+                    "let {}='cquery: indexing ({} jobs)'",
+                    VIM__ServerStatusMessage, params.indexRequestCount
+                ),
+            ])?;
         } else {
-            self.command(&format!(
-                "let {}=0 | let {}='cquery: idle'",
-                VIM__ServerStatus, VIM__ServerStatusMessage
-            ))?;
+            self.command(vec![
+                format!("let {}=0", VIM__ServerStatus),
+                format!("let {}='cquery: idle'", VIM__ServerStatusMessage),
+            ])?;
         }
         info!("End {}", NOTIFICATION__CqueryProgress);
         Ok(())
