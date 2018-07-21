@@ -219,34 +219,37 @@ fn test_apply_TextEdit_overlong_end() {
 
 fn get_command_add_sign(sign: &Sign, filename: &str) -> String {
     format!(
-        " | execute 'sign place {} line={} name=LanguageClient{:?} file={}'",
-        sign.id, sign.line, sign.severity, filename
+        "sign place {} line={} name=LanguageClient{:?} file={}",
+        sign.id,
+        sign.line,
+        sign.severity.unwrap_or(DiagnosticSeverity::Hint),
+        filename
     )
 }
 
 #[test]
 fn test_get_command_add_sign() {
-    let sign = Sign::new(1, "".to_owned(), DiagnosticSeverity::Error);
+    let sign = Sign::new(1, "".to_owned(), Some(DiagnosticSeverity::Error));
     assert_eq!(
         get_command_add_sign(&sign, ""),
-        " | execute 'sign place 75000 line=1 name=LanguageClientError file='"
+        "sign place 75000 line=1 name=LanguageClientError file="
     );
 
-    let sign = Sign::new(7, "".to_owned(), DiagnosticSeverity::Error);
+    let sign = Sign::new(7, "".to_owned(), Some(DiagnosticSeverity::Error));
     assert_eq!(
         get_command_add_sign(&sign, ""),
-        " | execute 'sign place 75024 line=7 name=LanguageClientError file='"
+        "sign place 75024 line=7 name=LanguageClientError file="
     );
 
-    let sign = Sign::new(7, "".to_owned(), DiagnosticSeverity::Hint);
+    let sign = Sign::new(7, "".to_owned(), Some(DiagnosticSeverity::Hint));
     assert_eq!(
         get_command_add_sign(&sign, ""),
-        " | execute 'sign place 75027 line=7 name=LanguageClientHint file='"
+        "sign place 75027 line=7 name=LanguageClientHint file="
     );
 }
 
 fn get_command_delete_sign(sign: &Sign, filename: &str) -> String {
-    format!(" | execute 'sign unplace {} file={}'", sign.id, filename)
+    format!("sign unplace {} file={}", sign.id, filename)
 }
 
 #[test]
@@ -258,19 +261,19 @@ pub fn get_command_update_signs(
     signs_prev: &[Sign],
     signs: &[Sign],
     filename: &str,
-) -> (Vec<Sign>, String) {
+) -> (Vec<Sign>, Vec<String>) {
     // Sign id might become different due to lines shifting. Use sign's existing sign id to
     // track same sign.
     let mut signs_next = vec![];
 
-    let mut cmd = "echo".to_owned();
+    let mut cmds = vec![];
     for comp in diff::slice(signs_prev, signs) {
         match comp {
             diff::Result::Left(sign) => {
-                cmd += &get_command_delete_sign(sign, filename);
+                cmds.push(get_command_delete_sign(sign, filename));
             }
             diff::Result::Right(sign) => {
-                cmd += &get_command_add_sign(sign, filename);
+                cmds.push(get_command_add_sign(sign, filename));
                 signs_next.push(sign.clone());
             }
             diff::Result::Both(sign, _) => {
@@ -279,19 +282,27 @@ pub fn get_command_update_signs(
         }
     }
 
-    (signs_next, cmd)
+    (signs_next, cmds)
 }
 
 #[test]
 fn test_get_command_update_signs() {
-    let signs_prev = vec![Sign::new(1, "abcde".to_string(), DiagnosticSeverity::Error)];
-    let signs = vec![Sign::new(3, "abcde".to_string(), DiagnosticSeverity::Error)];
-    let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, "f");
+    let signs_prev = vec![Sign::new(
+        1,
+        "abcde".to_string(),
+        Some(DiagnosticSeverity::Error),
+    )];
+    let signs = vec![Sign::new(
+        3,
+        "abcde".to_string(),
+        Some(DiagnosticSeverity::Error),
+    )];
+    let (signs_next, cmds) = get_command_update_signs(&signs_prev, &signs, "f");
     assert_eq!(
         serde_json::to_string(&signs_next).unwrap(),
         "[{\"id\":75000,\"line\":1,\"text\":\"abcde\",\"severity\":1}]"
     );
-    assert_eq!(cmd, "echo");
+    assert!(cmds.is_empty());
 }
 
 pub trait Combine {

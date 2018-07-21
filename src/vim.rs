@@ -187,10 +187,9 @@ impl State {
         Ok(serde_json::from_value(result)?)
     }
 
-    pub fn command<S: AsRef<str>>(&mut self, cmd: S) -> Result<()> {
-        let cmd = cmd.as_ref();
-        if self.call::<_, u8>(None, "execute", cmd)? != 0 {
-            bail!("Failed to execute command: {}", cmd);
+    pub fn command<P: Serialize + Debug>(&mut self, cmds: P) -> Result<()> {
+        if self.call::<_, u8>(None, "execute", &cmds)? != 0 {
+            bail!("Failed to execute command: {:?}", cmds);
         }
         Ok(())
     }

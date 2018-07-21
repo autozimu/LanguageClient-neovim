@@ -742,6 +742,8 @@ function! LanguageClient#handleCursorMoved() abort
                     \ 'buftype': &buftype,
                     \ 'filename': LSP#filename(),
                     \ 'line': l:cursor_line,
+                    \ 'LSP#visible_line_start()': LSP#visible_line_start(),
+                    \ 'LSP#visible_line_end()': LSP#visible_line_end(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))

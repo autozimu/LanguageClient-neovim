@@ -30,3 +30,11 @@ function! LSP#range_end_line() abort
 
     return getpos("'>")[1]
 endfunction
+
+function! LSP#visible_line_start() abort
+    return line('w0')
+endfunction
+
+function! LSP#visible_line_end() abort
+    return line('w$')
+endfunction

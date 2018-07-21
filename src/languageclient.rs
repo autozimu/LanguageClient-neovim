@@ -330,7 +330,7 @@ impl State {
         Ok(())
     }
 
-    fn display_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+    fn process_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
         // Line diagnostics.
         self.update(|state| {
             state
@@ -360,38 +360,36 @@ impl State {
         })?;
 
         // Signs.
-        if self.text_documents.contains_key(filename) {
-            let text = self.text_documents
+        {
+            let lines: Option<Vec<_>> = self.text_documents
                 .get(filename)
-                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))?
-                .text
-                .clone();
-            let lines: Vec<&str> = text.lines().collect();
-            let mut signs: Vec<_> = diagnostics
-                .iter()
-                .map(|dn| {
-                    let line = dn.range.start.line;
-                    let text = lines
-                        .get(line as usize)
-                        .map(|l| l.to_string())
-                        .unwrap_or_default();
-                    Some(Sign::new(line + 1, text, dn.severity))
-                })
-                .collect();
+                .map(|d| d.text.lines().collect());
+            let mut signs = if let Some(lines) = lines {
+                diagnostics
+                    .iter()
+                    .map(|dn| {
+                        let line = dn.range.start.line;
+                        let text = lines
+                            .get(line as usize)
+                            .map(|l| l.to_string())
+                            .unwrap_or_default();
+
+                        Sign::new(line + 1, text, dn.severity)
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            // There might be multiple diagnostics for one line. Show only highest severity.
             signs.sort_unstable();
-            signs.dedup_by_key(|s| s.line);
+            signs.dedup();
+
             if let Some(diagnosticSignsMax) = self.diagnosticsSignsMax {
                 signs.truncate(diagnosticSignsMax as usize);
             }
 
-            let cmd = self.update(|state| {
-                let signs_prev = state.signs.remove(filename).unwrap_or_default();
-                let (signs_next, cmd) = get_command_update_signs(&signs_prev, &signs, filename);
-                state.signs.insert(filename.to_string(), signs_next);
-                Ok(cmd)
-            })?;
-            info!("Command to update signs: {}", cmd);
-            self.command(&cmd)?;
+            self.signs.insert(filename.to_owned(), signs);
         }
 
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
@@ -708,8 +706,9 @@ impl State {
             }
         }
         for f in filenames {
-            self.display_diagnostics(&f, &[])?;
+            self.process_diagnostics(&f, &[])?;
         }
+        self.languageClient_handleCursorMoved(&json!({}).to_params()?)?;
 
         self.diagnostics.retain(|f, _| !f.starts_with(&root));
         self.update_quickfixlist()?;
@@ -1818,7 +1817,8 @@ impl State {
         if filename != current_filename.canonicalize() {
             return Ok(());
         }
-        self.display_diagnostics(&current_filename, &diagnostics)?;
+        self.process_diagnostics(&current_filename, &diagnostics)?;
+        self.languageClient_handleCursorMoved(&json!({}).to_params()?)?;
         self.call::<_, u8>(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
@@ -2071,7 +2071,7 @@ impl State {
             self.textDocument_didOpen(params)?;
 
             if let Some(diagnostics) = self.diagnostics.get(&filename).cloned() {
-                self.display_diagnostics(&filename, &diagnostics)?;
+                self.process_diagnostics(&filename, &diagnostics)?;
                 self.languageClient_handleCursorMoved(params)?;
             }
         } else {
@@ -2145,36 +2145,51 @@ impl State {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
         let (buftype, filename, line): (String, String, u64) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
-        if !buftype.is_empty() || line == self.get(|state| Ok(state.last_cursor_line))? {
+        let (visible_line_start, visible_line_end): (u64, u64) = self.gather_args(
+            &["LSP#visible_line_start()", "LSP#visible_line_end()"],
+            params,
+        )?;
+        if !buftype.is_empty() && !self.diagnostics.contains_key(&filename) {
             return Ok(());
         }
 
-        self.update(|state| {
-            state.last_cursor_line = line;
-            Ok(())
-        })?;
-        let message = self.get(|state| {
-            state
-                .line_diagnostics
+        if line != self.last_cursor_line {
+            self.last_cursor_line = line;
+
+            let message = self.line_diagnostics
                 .get(&(filename.clone(), line))
                 .cloned()
-                .ok_or_else(|| {
-                    format_err!(
-                        "Line diagnostic message not found! filename: {}, line: {}",
-                        filename,
-                        line
-                    )
-                })
-        }).unwrap_or_default();
-        if message == self.get(|state| Ok(state.last_line_diagnostic.clone()))? {
-            return Ok(());
+                .unwrap_or_default();
+
+            if message != self.last_line_diagnostic {
+                self.echo_ellipsis(&message)?;
+                self.last_line_diagnostic = message;
+            }
         }
 
-        self.update(|state| {
-            state.last_line_diagnostic = message.clone();
-            Ok(())
-        })?;
-        self.echo_ellipsis(&message)?;
+        let signs_prev = self.signs_placed
+            .get(&filename)
+            .cloned()
+            .unwrap_or_default();
+        let signs: Vec<_> = self.signs
+            .entry(filename.clone())
+            .or_insert_with(|| vec![])
+            .iter()
+            .filter_map(|s| {
+                if s.line < visible_line_start || s.line > visible_line_end {
+                    return None;
+                }
+
+                Some(s.clone())
+            })
+            .collect();
+        if signs != signs_prev {
+            let (signs, cmds) = get_command_update_signs(&signs_prev, &signs, &filename);
+            self.signs_placed.insert(filename.clone(), signs);
+
+            info!("Updating signs: {:?}", cmds);
+            self.command(&cmds)?;
+        }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
         Ok(())

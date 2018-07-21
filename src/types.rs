@@ -101,6 +101,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
+    pub signs_placed: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
@@ -163,6 +164,7 @@ impl State {
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
+            signs_placed: HashMap::new(),
             highlight_source: None,
             highlight_match_ids: Vec::new(),
             user_handlers: HashMap::new(),
