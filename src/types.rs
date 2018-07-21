@@ -334,11 +334,11 @@ pub struct Sign {
     pub id: u64,
     pub line: u64,
     pub text: String,
-    pub severity: DiagnosticSeverity,
+    pub severity: Option<DiagnosticSeverity>,
 }
 
 impl Sign {
-    pub fn new(line: u64, text: String, severity: DiagnosticSeverity) -> Sign {
+    pub fn new(line: u64, text: String, severity: Option<DiagnosticSeverity>) -> Sign {
         Sign {
             id: Self::get_id(line, severity),
             line,
@@ -347,9 +347,13 @@ impl Sign {
         }
     }
 
-    fn get_id(line: u64, severity: DiagnosticSeverity) -> u64 {
+    fn get_id(line: u64, severity: Option<DiagnosticSeverity>) -> u64 {
         let base_id = 75_000;
-        base_id + (line - 1) * 4 + severity.to_int().unwrap_or(0) - 1
+        base_id + (line - 1) * 4
+            + severity
+                .unwrap_or(DiagnosticSeverity::Hint)
+                .to_int()
+                .unwrap_or(4) - 1
     }
 }
 

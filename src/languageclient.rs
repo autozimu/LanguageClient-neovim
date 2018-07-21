@@ -375,8 +375,7 @@ impl State {
                         .get(line as usize)
                         .map(|l| l.to_string())
                         .unwrap_or_default();
-                    let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
-                    Sign::new(line + 1, text, severity)
+                    Some(Sign::new(line + 1, text, dn.severity))
                 })
                 .collect();
             signs.sort_unstable();
@@ -1809,14 +1808,7 @@ impl State {
         // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
 
-        // Make sure error comes after warning.
-        let mut diagnostics = params.diagnostics.clone();
-        diagnostics.sort_by_key(|d| {
-            (
-                d.range.start.line,
-                -(d.severity.map_or(4, |s| s.to_int().unwrap_or(4)) as i64),
-            )
-        });
+        let diagnostics = params.diagnostics;
 
         self.diagnostics
             .insert(filename.clone(), diagnostics.clone());
