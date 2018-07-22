@@ -328,12 +328,6 @@ impl State {
 
     fn process_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
         // Line diagnostics.
-        self.update(|state| {
-            state
-                .line_diagnostics
-                .retain(|&(ref f, _), _| f != filename);
-            Ok(())
-        })?;
         let mut line_diagnostics = HashMap::new();
         for entry in diagnostics {
             let line = entry.range.start.line;
@@ -350,10 +344,8 @@ impl State {
             msg += &entry.message;
             line_diagnostics.insert((filename.to_owned(), line), msg);
         }
-        self.update(|state| {
-            state.line_diagnostics.extend(line_diagnostics);
-            Ok(())
-        })?;
+        self.line_diagnostics.retain(|&(ref f, _), _| f != filename);
+        self.line_diagnostics.extend(line_diagnostics);
 
         // Signs.
         {
@@ -391,26 +383,24 @@ impl State {
         let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
 
         // Highlight.
-        if self.get(|state| Ok(state.is_nvim))? {
-            let mut source: Option<u64> = self.get(|state| Ok(state.highlight_source))?;
-            if source.is_none() {
-                source = Some(self.call(
+        if self.is_nvim {
+            let source = if let Some(source) = self.highlight_source {
+                source
+            } else {
+                let source = self.call(
                     None,
                     "nvim_buf_add_highlight",
                     json!([0, 0, "Error", 1, 1, 1]),
-                )?);
-                self.update(|state| {
-                    state.highlight_source = source;
-                    Ok(())
-                })?;
-            }
-            let source = source.ok_or_else(|| err_msg("Empty highlight source id"))?;
+                )?;
+                self.highlight_source = Some(source);
+                source
+            };
 
             // TODO: Optimize.
             self.call::<_, Option<u8>>(
                 None,
                 "nvim_buf_clear_highlight",
-                json!([0, source, 1, -1]),
+                json!([0, source, 0, -1]),
             )?;
             for dn in diagnostics {
                 let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
