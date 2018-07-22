@@ -327,6 +327,15 @@ impl State {
     }
 
     fn process_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+        if !self.text_documents.contains_key(filename) {
+            return Ok(());
+        }
+
+        let lines: Vec<_> = self.text_documents
+            .get(filename)
+            .map(|d| d.text.lines().map(ToOwned::to_owned).collect())
+            .unwrap_or_default();
+
         // Line diagnostics.
         let mut line_diagnostics = HashMap::new();
         for entry in diagnostics {
@@ -348,82 +357,62 @@ impl State {
         self.line_diagnostics.extend(line_diagnostics);
 
         // Signs.
-        {
-            let lines: Option<Vec<_>> = self.text_documents
-                .get(filename)
-                .map(|d| d.text.lines().collect());
-            let mut signs = if let Some(lines) = lines {
-                diagnostics
-                    .iter()
-                    .map(|dn| {
-                        let line = dn.range.start.line;
-                        let text = lines
-                            .get(line as usize)
-                            .map(|l| l.to_string())
-                            .unwrap_or_default();
+        let mut signs: Vec<_> = diagnostics
+            .iter()
+            .map(|dn| {
+                let line = dn.range.start.line;
+                let text = lines
+                    .get(line as usize)
+                    .map(|l| l.to_string())
+                    .unwrap_or_default();
 
-                        Sign::new(line + 1, text, dn.severity)
-                    })
-                    .collect()
-            } else {
-                vec![]
-            };
+                Sign::new(line + 1, text, dn.severity)
+            })
+            .collect();
 
-            // There might be multiple diagnostics for one line. Show only highest severity.
-            signs.sort_unstable();
-            signs.dedup();
-
-            if let Some(diagnosticSignsMax) = self.diagnosticsSignsMax {
-                signs.truncate(diagnosticSignsMax as usize);
-            }
-
-            self.signs.insert(filename.to_owned(), signs);
+        // There might be multiple diagnostics for one line. Show only highest severity.
+        signs.sort_unstable();
+        signs.dedup();
+        if let Some(diagnosticSignsMax) = self.diagnosticsSignsMax {
+            signs.truncate(diagnosticSignsMax as usize);
         }
 
-        let diagnosticsDisplay = self.get(|state| Ok(state.diagnosticsDisplay.clone()))?;
+        self.signs.insert(filename.to_owned(), signs);
 
         // Highlight.
-        if self.is_nvim {
-            let source = if let Some(source) = self.highlight_source {
-                source
-            } else {
-                let source = self.call(
-                    None,
-                    "nvim_buf_add_highlight",
-                    json!([0, 0, "Error", 1, 1, 1]),
-                )?;
-                self.highlight_source = Some(source);
-                source
-            };
+        let diagnosticsDisplay = self.diagnosticsDisplay.clone();
 
-            // TODO: Optimize.
-            self.call::<_, Option<u8>>(
-                None,
-                "nvim_buf_clear_highlight",
-                json!([0, source, 0, -1]),
-            )?;
-            for dn in diagnostics {
-                let severity = dn.severity.unwrap_or(DiagnosticSeverity::Information);
-                let hl_group = diagnosticsDisplay
-                    .get(&severity.to_int()?)
-                    .ok_or_else(|| err_msg("Failed to get display"))?
-                    .texthl
-                    .clone();
+        let mut highlights = vec![];
+        for dn in diagnostics {
+            let line = dn.range.start.line;
+            let character_start = dn.range.start.character;
+            let character_end = dn.range.end.character;
 
-                self.call::<_, u8>(
-                    None,
-                    "nvim_buf_add_highlight",
-                    json!([
-                        0,
-                        source,
-                        hl_group,
-                        dn.range.start.line,
-                        dn.range.start.character,
-                        dn.range.end.character,
-                    ]),
-                )?;
-            }
-        } else {
+            let severity = dn.severity.unwrap_or(DiagnosticSeverity::Hint);
+            let group = diagnosticsDisplay
+                .get(&severity.to_int()?)
+                .ok_or_else(|| err_msg("Failed to get display"))?
+                .texthl
+                .clone();
+            // TODO: handle multi-line range.
+            let text = lines
+                .get(line as usize)
+                .and_then(|l| l.get((character_start as usize)..(character_end as usize)))
+                .map(ToOwned::to_owned)
+                .unwrap_or_default();
+
+            highlights.push(Highlight {
+                line,
+                character_start,
+                character_end,
+                group,
+                text,
+            });
+        }
+        // dedup?
+        self.highlights.insert(filename.to_owned(), highlights);
+
+        if !self.is_nvim {
             // Clear old highlights.
             let ids = self.highlight_match_ids.clone();
             self.notify(None, "s:MatchDelete", json!([ids]))?;
@@ -2155,28 +2144,67 @@ impl State {
             }
         }
 
-        let signs_prev = self.signs_placed
-            .get(&filename)
-            .cloned()
-            .unwrap_or_default();
         let signs: Vec<_> = self.signs
             .entry(filename.clone())
             .or_insert_with(|| vec![])
             .iter()
             .filter_map(|s| {
-                if s.line < visible_line_start || s.line > visible_line_end {
+                if s.line < visible_line_start + 1 || s.line > visible_line_end + 1 {
                     return None;
                 }
 
                 Some(s.clone())
             })
             .collect();
-        if signs != signs_prev {
-            let (signs, cmds) = get_command_update_signs(&signs_prev, &signs, &filename);
+        if Some(&signs) != self.signs_placed.get(&filename) {
+            let empty = vec![];
+
+            let (signs, cmds) = get_command_update_signs(
+                self.signs_placed.get(&filename).unwrap_or(&empty),
+                &signs,
+                &filename,
+            );
             self.signs_placed.insert(filename.clone(), signs);
 
             info!("Updating signs: {:?}", cmds);
             self.command(&cmds)?;
+        }
+
+        let highlights: Vec<_> = self.highlights
+            .entry(filename.clone())
+            .or_insert_with(|| vec![])
+            .iter()
+            .filter_map(|h| {
+                if h.line < visible_line_start || h.line > visible_line_end {
+                    return None;
+                }
+
+                Some(h.clone())
+            })
+            .collect();
+
+        if Some(&highlights) != self.highlights_placed.get(&filename) {
+            if self.is_nvim {
+                let source = if let Some(source) = self.highlight_source {
+                    source
+                } else {
+                    let source = self.call(
+                        None,
+                        "nvim_buf_add_highlight",
+                        json!([0, 0, "Error", 1, 1, 1]),
+                    )?;
+                    self.highlight_source = Some(source);
+                    source
+                };
+
+                self.call::<_, Option<u8>>(
+                    None,
+                    "nvim_buf_clear_highlight",
+                    json!([0, source, visible_line_start, visible_line_end]),
+                )?;
+
+                self.call::<_, Option<i8>>(None, "s:AddHighlights", json!([source, highlights]))?;
+            }
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);

@@ -103,6 +103,8 @@ pub struct State {
     pub signs: HashMap<String, Vec<Sign>>,
     pub signs_placed: HashMap<String, Vec<Sign>>,
     pub highlight_source: Option<u64>,
+    pub highlights: HashMap<String, Vec<Highlight>>,
+    pub highlights_placed: HashMap<String, Vec<Highlight>>,
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
     pub user_handlers: HashMap<String, String>,
@@ -166,6 +168,8 @@ impl State {
             signs: HashMap::new(),
             signs_placed: HashMap::new(),
             highlight_source: None,
+            highlights: HashMap::new(),
+            highlights_placed: HashMap::new(),
             highlight_match_ids: Vec::new(),
             user_handlers: HashMap::new(),
             watchers: HashMap::new(),
@@ -330,7 +334,6 @@ impl DiagnosticsDisplay {
     }
 }
 
-// Maybe with (line, character) as key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sign {
     pub id: u64,
@@ -373,7 +376,7 @@ impl std::cmp::PartialOrd for Sign {
 
 impl std::cmp::PartialEq for Sign {
     fn eq(&self, other: &Self) -> bool {
-        // Dirty way to check if sign has changed.
+        // Quick check whether sign should be updated.
         self.text == other.text && self.severity == other.severity
     }
 }
@@ -384,6 +387,22 @@ use std::hash::{Hash, Hasher};
 impl Hash for Sign {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Highlight {
+    pub line: u64,
+    pub character_start: u64,
+    pub character_end: u64,
+    pub group: String,
+    pub text: String,
+}
+
+impl PartialEq for Highlight {
+    fn eq(&self, other: &Self) -> bool {
+        // Quick check whether highlight should be updated.
+        self.text == other.text && self.group == other.group
     }
 }
 

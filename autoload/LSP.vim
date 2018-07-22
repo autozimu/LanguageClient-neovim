@@ -32,9 +32,9 @@ function! LSP#range_end_line() abort
 endfunction
 
 function! LSP#visible_line_start() abort
-    return line('w0')
+    return line('w0') - 1
 endfunction
 
 function! LSP#visible_line_end() abort
-    return line('w$')
+    return line('w$') - 1
 endfunction

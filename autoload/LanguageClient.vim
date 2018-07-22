@@ -137,6 +137,13 @@ function! s:MatchDelete(ids) abort
     endfor
 endfunction
 
+" Batch version of nvim_buf_add_highlight
+function! s:AddHighlights(source, highlights) abort
+    for hl in a:highlights
+        call nvim_buf_add_highlight(0, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
+    endfor
+endfunction
+
 let s:id = 1
 let s:handlers = {}
 
