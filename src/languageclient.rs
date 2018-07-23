@@ -2183,28 +2183,26 @@ impl State {
             })
             .collect();
 
-        if Some(&highlights) != self.highlights_placed.get(&filename) {
-            if self.is_nvim {
-                let source = if let Some(source) = self.highlight_source {
-                    source
-                } else {
-                    let source = self.call(
-                        None,
-                        "nvim_buf_add_highlight",
-                        json!([0, 0, "Error", 1, 1, 1]),
-                    )?;
-                    self.highlight_source = Some(source);
-                    source
-                };
-
-                self.call::<_, Option<u8>>(
+        if Some(&highlights) != self.highlights_placed.get(&filename) && self.is_nvim {
+            let source = if let Some(source) = self.highlight_source {
+                source
+            } else {
+                let source = self.call(
                     None,
-                    "nvim_buf_clear_highlight",
-                    json!([0, source, visible_line_start, visible_line_end]),
+                    "nvim_buf_add_highlight",
+                    json!([0, 0, "Error", 1, 1, 1]),
                 )?;
+                self.highlight_source = Some(source);
+                source
+            };
 
-                self.call::<_, Option<i8>>(None, "s:AddHighlights", json!([source, highlights]))?;
-            }
+            self.call::<_, Option<u8>>(
+                None,
+                "nvim_buf_clear_highlight",
+                json!([0, source, visible_line_start, visible_line_end]),
+            )?;
+
+            self.call::<_, Option<i8>>(None, "s:AddHighlights", json!([source, highlights]))?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
