@@ -68,7 +68,7 @@ set hidden
 
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
-    \ 'javascript': ['javascript-typescript-stdio'],
+    \ 'javascript': ['/usr/local/bin/javascript-typescript-stdio'],
     \ }
 
 nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
@@ -82,5 +82,6 @@ nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 1. Try on [sample projects](tests/data).
 1. Execute `:echo &runtimepath` and make sure the plugin path is in the list.
 1. Make sure language server could be started when invoked manually from shell.
+ Also try use absolute path for server commands, as PATH in vim might be different from shell env, especially on macOS.
 1. Check content of log file. Also worth noting language server might have
    separate log file.
