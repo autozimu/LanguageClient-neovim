@@ -2196,13 +2196,16 @@ impl State {
                 source
             };
 
-            self.call::<_, Option<u8>>(
+            self.highlights_placed
+                .insert(filename.clone(), highlights.clone());
+
+            self.notify(
                 None,
                 "nvim_buf_clear_highlight",
                 json!([0, source, visible_line_start, visible_line_end]),
             )?;
 
-            self.call::<_, Option<i8>>(None, "s:AddHighlights", json!([source, highlights]))?;
+            self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
