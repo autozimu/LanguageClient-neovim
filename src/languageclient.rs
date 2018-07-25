@@ -103,7 +103,7 @@ impl State {
                 "get(g:, 'LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', v:null)",
                 "get(g:, 'LanguageClient_trace', v:null)",
-                "get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')",
+                "expand(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json'))",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
