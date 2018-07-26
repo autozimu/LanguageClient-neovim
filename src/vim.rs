@@ -208,8 +208,12 @@ impl State {
 
     pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
         let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
-        self.call::<_, u8>(None, "s:EchoEllipsis", message)?;
-        Ok(())
+        self.notify(None, "s:EchoEllipsis", message)
+    }
+
+    pub fn echomsg_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
+        let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
+        self.notify(None, "s:EchomsgEllipsis", message)
     }
 
     pub fn echomsg<S>(&mut self, message: S) -> Result<()>

@@ -6,8 +6,7 @@ function! s:Echo(message) abort
     echo a:message
 endfunction
 
-" Echo message without trigger |hit-enter|
-function! s:EchoEllipsis(message) abort
+function s:Ellipsis(message) abort
     let l:maxlen = &columns * &cmdheight - 2
     if &showcmd
         let maxlen -= 11
@@ -20,7 +19,17 @@ function! s:EchoEllipsis(message) abort
     else
         let l:message = a:message[:l:maxlen - 3] . '...'
     endif
-    echo l:message
+    return l:message
+endfunction
+
+" `echo` message without trigger |hit-enter|
+function! s:EchoEllipsis(message) abort
+    echo s:Ellipsis(a:message)
+endfunction
+
+" `echomsg` message without trigger |hit-enter|
+function! s:EchomsgEllipsis(message) abort
+    echomsg s:Ellipsis(a:message)
 endfunction
 
 function! s:Echomsg(message) abort

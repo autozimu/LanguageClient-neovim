@@ -750,7 +750,7 @@ impl State {
             let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
                 .to_string_lossy()
                 .into_owned();
-            self.echomsg(format!("LanguageClient project root: {}", root))?;
+            self.echomsg_ellipsis(format!("LanguageClient project root: {}", root))?;
             root
         };
         info!("Project root: {}", root);
