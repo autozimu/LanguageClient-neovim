@@ -2270,13 +2270,16 @@ impl State {
         if lines.is_empty() {
             err_msg("No selection!");
         }
-        let mut tokens: Vec<&str> = lines
+
+        let location = lines
             .get(0)
             .ok_or_else(|| format_err!("Failed to get line! lines: {:?}", lines))?
-            .split(':')
-            .collect();
+            .split('\t')
+            .next()
+            .ok_or_else(|| format_err!("Failed to parse: {:?}", lines))?;
+        let mut tokens: Vec<_> = location.split_terminator(':').collect();
         tokens.reverse();
-        let filename: String = if tokens.len() > 3 {
+        let filename: String = if tokens.len() > 2 {
             let relpath = tokens
                 .pop()
                 .ok_or_else(|| format_err!("Failed to get file path! tokens: {:?}", tokens))?
