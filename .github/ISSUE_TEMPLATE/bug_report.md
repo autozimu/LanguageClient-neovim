@@ -10,7 +10,7 @@ about: Create a report to help us improve
 - (Neovim users only) Did you check output of `:checkhealth LanguageClient`?
 - Did you check [troubleshooting]?
 
-troubleshooting: https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting
+[troubleshooting]: https://github.com/autozimu/LanguageClient-neovim/blob/next/INSTALL.md#6-troubleshooting
 
 ## Describe the bug
 A clear and concise description of what the bug is.
