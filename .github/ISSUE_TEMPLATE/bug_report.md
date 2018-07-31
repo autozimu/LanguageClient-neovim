@@ -20,7 +20,7 @@ A clear and concise description of what the bug is.
 - This plugin version (`git rev-parse --short HEAD`):
 - This plugin's binary version (`bin/languageclient --version`):
 - Minimal vimrc content (A minimal vimrc is the smallest vimrc that could
-  reproduce the issue. Refer to an example [here][min-init.vim]):
+  reproduce the issue. Refer to an example [here][min-vimrc.vim]):
 - Language server link and version:
 
 ## To Reproduce
