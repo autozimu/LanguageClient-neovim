@@ -25,6 +25,9 @@ regex = "1"
 glob = "0"
 notify = "4"
 
+[profile.release]
+debug = true
+
 [package.metadata.release]
 no-dev-version = true
 pre-release-replacements = [

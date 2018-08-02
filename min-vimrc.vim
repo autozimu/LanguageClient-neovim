@@ -18,7 +18,7 @@ set signcolumn=yes
 let g:LanguageClient_serverCommands = {
     \ 'rust': ['rustup', 'run', 'stable', 'rls'],
     \ }
-let $RUST_BACKTRACE = 'full'
+let $RUST_BACKTRACE = 1
 let g:LanguageClient_loggingFile = '/tmp/LanguageClient.log'
 let g:LanguageClient_loggingLevel = 'INFO'
 let g:LanguageClient_serverStderr = '/tmp/LanguageServer.log'
