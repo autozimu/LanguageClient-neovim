@@ -23,12 +23,15 @@ A clear and concise description of what the bug is.
   reproduce the issue. Refer to an example [here][min-vimrc.vim]):
 - Language server link and version:
 
+[min-vimrc.vim]: https://github.com/autozimu/LanguageClient-neovim/blob/next/min-vimrc.vim
+
 ## To Reproduce
 Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+1. Create/Fetch example project ...
+1. Start vim, `nvim -u min-vimrc.vim` ...
+1. Edit ...
+1. Execute ....
+1. See error
 
 ## Current behavior
 A clear and concise description of what's the current behavior.
