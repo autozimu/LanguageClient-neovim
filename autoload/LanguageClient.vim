@@ -126,14 +126,17 @@ endfunction
 
 function! s:Edit(action, path) abort
     " If editing current file, push current location to jump list.
-    if bufnr(a:path) == bufnr('%')
+    let l:bufnr = bufnr(a:path)
+    if l:bufnr == bufnr('%')
         execute 'normal m`'
+        return
     endif
 
     let l:action = a:action
     " Avoid the 'not saved' warning.
-    if l:action ==# 'edit' && bufnr(a:path) != -1
-        let l:action = 'buffer'
+    if l:action ==# 'edit' && l:bufnr != -1
+        execute 'buffer' l:bufnr
+        return
     endif
 
     execute l:action . ' ' . fnameescape(a:path)
