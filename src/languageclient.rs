@@ -2629,32 +2629,6 @@ impl State {
         Ok(())
     }
 
-    pub fn cquery_handleProgress(&mut self, params: &Option<Params>) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__CqueryProgress);
-        let params: CqueryProgressParams = params.clone().to_lsp()?;
-        let total = params.indexRequestCount
-            + params.doIdMapCount
-            + params.loadPreviousIndexCount
-            + params.onIdMappedCount
-            + params.onIndexedCount;
-        if total != 0 {
-            self.command(vec![
-                format!("let {}=1", VIM__ServerStatus),
-                format!(
-                    "let {}='cquery: indexing ({} jobs)'",
-                    VIM__ServerStatusMessage, params.indexRequestCount
-                ),
-            ])?;
-        } else {
-            self.command(vec![
-                format!("let {}=0", VIM__ServerStatus),
-                format!("let {}='cquery: idle'", VIM__ServerStatusMessage),
-            ])?;
-        }
-        info!("End {}", NOTIFICATION__CqueryProgress);
-        Ok(())
-    }
-
     pub fn languageClient_startServer(&mut self, params: &Option<Params>) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;

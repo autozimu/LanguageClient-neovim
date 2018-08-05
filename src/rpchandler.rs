@@ -184,7 +184,6 @@ impl State {
                 self.rust_handleDiagnosticsEnd(&notification.params)?
             }
             NOTIFICATION__WindowProgress => self.window_progress(&notification.params)?,
-            NOTIFICATION__CqueryProgress => self.cquery_handleProgress(&notification.params)?,
             NOTIFICATION__ServerExited => self.languageClient_serverExited(&notification.params)?,
 
             _ => {

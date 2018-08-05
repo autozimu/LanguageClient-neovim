@@ -42,7 +42,6 @@ pub const REQUEST__CqueryBase: &str = "$cquery/base";
 pub const REQUEST__CqueryCallers: &str = "$cquery/callers";
 pub const REQUEST__CqueryDerived: &str = "$cquery/derived";
 pub const REQUEST__CqueryVars: &str = "$cquery/vars";
-pub const NOTIFICATION__CqueryProgress: &str = "$cquery/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 
