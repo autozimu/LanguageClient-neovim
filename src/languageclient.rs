@@ -2308,7 +2308,7 @@ impl State {
     pub fn languageClient_FZFSinkCommand(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkCommand);
         let (selection,): (String,) = self.gather_args(&["selection"], params)?;
-        let tokens: Vec<&str> = selection.split(": ").collect();
+        let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
         let command = tokens
             .get(0)
             .cloned()
