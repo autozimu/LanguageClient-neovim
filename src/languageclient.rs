@@ -39,8 +39,10 @@ impl State {
         let mut result = vec![];
         for e in exps {
             let k = e.to_key();
-            result.push(map.remove(&k)
-                .ok_or_else(|| format_err!("Failed to get value! k: {}", k))?);
+            result.push(
+                map.remove(&k)
+                    .ok_or_else(|| format_err!("Failed to get value! k: {}", k))?,
+            );
         }
 
         info!("gather_args: {:?} = {:?}", exps, result);
@@ -296,7 +298,8 @@ impl State {
     }
 
     fn update_quickfixlist(&mut self) -> Result<()> {
-        let qflist: Vec<_> = self.diagnostics
+        let qflist: Vec<_> = self
+            .diagnostics
             .iter()
             .flat_map(|(filename, diagnostics)| {
                 diagnostics
@@ -331,7 +334,8 @@ impl State {
             return Ok(());
         }
 
-        let lines: Vec<_> = self.text_documents
+        let lines: Vec<_> = self
+            .text_documents
             .get(filename)
             .map(|d| d.text.lines().map(ToOwned::to_owned).collect())
             .unwrap_or_default();
@@ -422,7 +426,8 @@ impl State {
             let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
 
             for dn in diagnostics {
-                let severity = dn.severity
+                let severity = dn
+                    .severity
                     .unwrap_or(DiagnosticSeverity::Information)
                     .to_int()?;
                 match_groups
@@ -439,7 +444,8 @@ impl State {
                     .ok_or_else(|| err_msg("Failed to get display"))?
                     .texthl
                     .clone();
-                let ranges: Vec<Vec<_>> = dns.iter()
+                let ranges: Vec<Vec<_>> = dns
+                    .iter()
                     .flat_map(|dn| {
                         if dn.range.start.line == dn.range.end.line {
                             let length = dn.range.end.character - dn.range.start.character;
@@ -561,7 +567,8 @@ impl State {
             .capabilities
             .completion_provider
             .map(|opt| {
-                let strings: Vec<_> = opt.trigger_characters
+                let strings: Vec<_> = opt
+                    .trigger_characters
                     .unwrap_or_default()
                     .iter()
                     .map(|c| regex::escape(c))
@@ -602,7 +609,8 @@ impl State {
             .capabilities
             .completion_provider
             .map(|opt| {
-                let strings: Vec<_> = opt.trigger_characters
+                let strings: Vec<_> = opt
+                    .trigger_characters
                     .unwrap_or_default()
                     .iter()
                     .map(|c| regex::escape(c))
@@ -669,7 +677,8 @@ impl State {
     fn cleanup(&mut self, languageId: &str) -> Result<()> {
         info!("Begin cleanup");
 
-        let root = self.roots
+        let root = self
+            .roots
             .get(languageId)
             .cloned()
             .ok_or_else(|| format_err!("No project root found! languageId: {}", languageId))?;
@@ -757,7 +766,8 @@ impl State {
         let has_snippet_support = has_snippet_support > 0;
         self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
 
-        let initialization_options = self.get_workspace_settings(&root)
+        let initialization_options = self
+            .get_workspace_settings(&root)
             .map(|s| s["initializationOptions"].clone())
             .unwrap_or_else(|err| {
                 warn!("Failed to get initializationOptions: {}", err);
@@ -1027,15 +1037,16 @@ impl State {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
-        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Handle,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self
+            .gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
 
         if !buftype.is_empty() {
             return Ok(Value::Null);
@@ -1125,7 +1136,8 @@ impl State {
         // Unify filename.
         let filename = filename.canonicalize();
 
-        let diagnostics: Vec<_> = self.diagnostics
+        let diagnostics: Vec<_> = self
+            .diagnostics
             .get(&filename)
             .unwrap_or(&vec![])
             .iter()
@@ -1264,7 +1276,8 @@ impl State {
         if help.signatures.is_empty() {
             return Ok(Value::Null);
         }
-        let active_signature = help.signatures
+        let active_signature = help
+            .signatures
             .get(help.active_signature.unwrap_or(0).to_usize()?)
             .ok_or_else(|| err_msg("Failed to get active signature"))?;
         let active_parameter: Option<&ParameterInformation>;
@@ -1356,15 +1369,16 @@ impl State {
     pub fn textDocument_formatting(&mut self, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
-        let (buftype, languageId, filename, handle): (String, String, String, bool) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Handle,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, handle): (String, String, String, bool) = self
+            .gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Handle,
+                ],
+                params,
+            )?;
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(Value::Null);
         }
@@ -1609,15 +1623,16 @@ impl State {
 
     pub fn textDocument_didOpen(&mut self, params: &Option<Params>) -> Result<()> {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
-        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Text,
-            ],
-            params,
-        )?;
+        let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self
+            .gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Text,
+                ],
+                params,
+            )?;
 
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
@@ -1672,13 +1687,16 @@ impl State {
         let (text,): (Vec<String>,) = self.gather_args(&[VimVar::Text], params)?;
 
         let text = text.join("\n");
-        let text_state = self.get(|state| {
-            state
-                .text_documents
-                .get(&filename)
-                .ok_or_else(|| format_err!("TextDocumentItem not found! filename: {}", filename))
-                .map(|doc| doc.text.clone())
-        }).unwrap_or_default();
+        let text_state =
+            self.get(|state| {
+                state
+                    .text_documents
+                    .get(&filename)
+                    .ok_or_else(|| {
+                        format_err!("TextDocumentItem not found! filename: {}", filename)
+                    })
+                    .map(|doc| doc.text.clone())
+            }).unwrap_or_default();
         if text == text_state {
             info!("Texts equal. Skipping didChange.");
             return Ok(());
@@ -1876,7 +1894,8 @@ impl State {
         let params: UnregistrationParams = params.clone().to_lsp()?;
         let mut regs_removed = vec![];
         for r in &params.unregisterations {
-            if let Some(idx) = self.registrations
+            if let Some(idx) = self
+                .registrations
                 .iter()
                 .position(|i| i.id == r.id && i.method == r.method)
             {
@@ -2133,7 +2152,8 @@ impl State {
         if line != self.last_cursor_line {
             self.last_cursor_line = line;
 
-            let message = self.line_diagnostics
+            let message = self
+                .line_diagnostics
                 .get(&(filename.clone(), line))
                 .cloned()
                 .unwrap_or_default();
@@ -2144,7 +2164,8 @@ impl State {
             }
         }
 
-        let signs: Vec<_> = self.signs
+        let signs: Vec<_> = self
+            .signs
             .entry(filename.clone())
             .or_insert_with(|| vec![])
             .iter()
@@ -2170,7 +2191,8 @@ impl State {
             self.command(&cmds)?;
         }
 
-        let highlights: Vec<_> = self.highlights
+        let highlights: Vec<_> = self
+            .highlights
             .entry(filename.clone())
             .or_insert_with(|| vec![])
             .iter()
@@ -2333,10 +2355,12 @@ impl State {
             return Ok(());
         }
 
-        self.workspace_executeCommand(&json!({
+        self.workspace_executeCommand(
+            &json!({
                 "command": entry.command,
                 "arguments": entry.arguments,
-            }).to_params()?)?;
+            }).to_params()?,
+        )?;
 
         self.update(|state| {
             state.stashed_codeAction_commands = vec![];
@@ -2359,14 +2383,16 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.col - 1;
 
-        let result = self.textDocument_completion(&json!({
+        let result = self.textDocument_completion(
+            &json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
                 "handle": false,
-            }).to_params()?)?;
+            }).to_params()?,
+        )?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
@@ -2404,14 +2430,16 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.ccol - 1;
 
-        let result = self.textDocument_completion(&json!({
+        let result = self.textDocument_completion(
+            &json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
                 "handle": false,
-            }).to_params()?)?;
+            }).to_params()?,
+        )?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
@@ -2696,22 +2724,25 @@ impl State {
                     None => Stdio::null(),
                 };
 
-                let process = std::process::Command::new(command
-                    .get(0)
-                    .ok_or_else(|| err_msg("Empty command!"))?)
-                    .args(&command[1..])
+                let process = std::process::Command::new(
+                    command.get(0).ok_or_else(|| err_msg("Empty command!"))?,
+                ).args(&command[1..])
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .stderr(stderr)
                     .spawn()?;
 
                 let child_id = Some(process.id());
-                let reader = Box::new(BufReader::new(process
-                    .stdout
-                    .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?));
-                let writer = Box::new(BufWriter::new(process
-                    .stdin
-                    .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?));
+                let reader = Box::new(BufReader::new(
+                    process
+                        .stdout
+                        .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?,
+                ));
+                let writer = Box::new(BufWriter::new(
+                    process
+                        .stdin
+                        .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?,
+                ));
                 (child_id, reader, writer)
             };
 
@@ -2755,10 +2786,12 @@ impl State {
         let root = self.roots.get(&languageId).cloned().unwrap_or_default();
         match self.get_workspace_settings(&root) {
             Ok(Value::Null) => (),
-            Ok(settings) => self.workspace_didChangeConfiguration(&json!({
+            Ok(settings) => self.workspace_didChangeConfiguration(
+                &json!({
                 VimVar::LanguageId.to_key(): languageId,
                 "settings": settings,
-            }).to_params()?)?,
+            }).to_params()?,
+            )?,
             Err(err) => warn!("Failed to get workspace settings: {}", err),
         }
 
@@ -2823,10 +2856,12 @@ impl State {
         }
 
         for (languageId, changes) in pending_changes {
-            self.workspace_didChangeWatchedFiles(&json!({
+            self.workspace_didChangeWatchedFiles(
+                &json!({
                 "languageId": languageId,
                 "changes": changes
-            }).to_params()?)?;
+            }).to_params()?,
+            )?;
         }
 
         Ok(())
