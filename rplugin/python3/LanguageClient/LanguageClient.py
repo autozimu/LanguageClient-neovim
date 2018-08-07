@@ -1136,8 +1136,8 @@ class LanguageClient:
                 match['word'] = item['textEdit']['newText']
             matches.append(match)
 
-        state["nvim"].call('cm#complete', info['name'], ctx,
-                           ctx['startcol'], matches, isIncomplete, async=True)
+        state["nvim"].async_call('cm#complete', info['name'], ctx,
+                                 ctx['startcol'], matches, isIncomplete)
 
     @neovim.function("LanguageClient_exit")
     @deco_args
