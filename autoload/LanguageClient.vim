@@ -6,30 +6,36 @@ function! s:Echo(message) abort
     echo a:message
 endfunction
 
-function s:Ellipsis(message) abort
-    let l:maxlen = &columns * &cmdheight - 2
-    if &showcmd
-        let maxlen -= 11
-    endif
-    if &ruler
-        let maxlen -= 18
-    endif
-    if len(a:message) < l:maxlen
-        let l:message = a:message
-    else
-        let l:message = a:message[:l:maxlen - 3] . '...'
-    endif
-    return l:message
+" Credit: ALE, snippets from ale#cursor#TruncatedEcho()
+function! s:Truncate(message, cmd) abort
+    " We need to remember the setting for shortmess and reset it again.
+    let l:shortmess_options = &l:shortmess
+    try
+        let l:cursor_position = getcurpos()
+
+        " The message is truncated and saved to the history.
+        setlocal shortmess+=T
+        exec "norm! :".a:cmd." a:message\n"
+
+        " Reset the cursor position if we moved off the end of the line.
+        " Using :norm and :echomsg can move the cursor off the end of the
+        " line.
+        if l:cursor_position != getcurpos()
+            call setpos('.', l:cursor_position)
+        endif
+    finally
+        let &l:shortmess = l:shortmess_options
+    endtry
 endfunction
 
 " `echo` message without trigger |hit-enter|
 function! s:EchoEllipsis(message) abort
-    echo s:Ellipsis(a:message)
+    call s:Truncate(a:message, 'echo')
 endfunction
 
 " `echomsg` message without trigger |hit-enter|
 function! s:EchomsgEllipsis(message) abort
-    echomsg s:Ellipsis(a:message)
+    call s:Truncate(a:message, 'echomsg')
 endfunction
 
 function! s:Echomsg(message) abort
