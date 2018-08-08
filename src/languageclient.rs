@@ -953,8 +953,8 @@ impl State {
                     let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
                     self.edit(&goto_cmd, loc.uri.filepath()?)?;
                     self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
-                    let cmd = format!("echohl Function | echom '[LC]: '.expand('%').' {}:{}' | echohl NONE", loc.range.start.line + 1, loc.range.start.character + 1);
-                    self.command(&cmd)?;
+                    let cur_file: String = self.eval("expand('%')")?;
+                    self.echomsg_ellipsis(format!("[LC]: {} {}:{}", cur_file, loc.range.start.line + 1, loc.range.start.character + 1))?;
                 }
                 _ => self.display_locations(&arr)?,
             },
