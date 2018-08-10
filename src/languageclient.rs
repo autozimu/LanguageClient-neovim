@@ -2430,23 +2430,32 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.ccol - 1;
 
-        let result = self.textDocument_completion(
-            &json!({
+        let mut result: Result<Value> = Ok(Value::Null);
+        let completion = self.textDocument_completion(&json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
-                "handle": false,
-            }).to_params()?,
-        )?;
-        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
-        let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
-        let is_incomplete = match result {
+                "handle": false}).to_params()?)
+            .unwrap_or_else(|err| {
+                result = Err(err);
+                Value::Null
+            });
+        let completion: CompletionResponse = serde_json::from_value(completion)
+            .unwrap_or_else(|err| {
+                if result.is_ok() {
+                    result = Err(err.into());
+                }
+                CompletionResponse::List(CompletionList {
+                    is_incomplete: true,
+                    items: vec![]})
+            });
+        let is_incomplete = match completion {
             CompletionResponse::Array(_) => false,
             CompletionResponse::List(ref list) => list.is_incomplete,
         };
-        let matches: Result<Vec<VimCompleteItem>> = match result {
+        let matches: Result<Vec<VimCompleteItem>> = match completion {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
@@ -2459,7 +2468,7 @@ impl State {
             json!([orig_ctx, ctx.startccol, matches, is_incomplete]),
         )?;
         info!("End {}", REQUEST__NCM2OnComplete);
-        Ok(Value::Null)
+        result
     }
 
     pub fn languageClient_explainErrorAtPoint(&mut self, params: &Option<Params>) -> Result<Value> {
