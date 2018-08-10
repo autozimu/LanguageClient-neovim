@@ -29,7 +29,31 @@ endfunction
 
 " `echomsg` message without trigger |hit-enter|
 function! s:EchomsgEllipsis(message) abort
-    echomsg s:Ellipsis(a:message)
+    " Credit: ALE, snippets from ale#cursor#TruncatedEcho()
+    let l:message = a:message
+    " Change tabs to spaces.
+    let l:message = substitute(l:message, "\t", ' ', 'g')
+    " Remove any newlines in the message.
+    let l:message = substitute(l:message, "\n", '', 'g')
+
+    " We need to remember the setting for shortmess and reset it again.
+    let l:shortmess_options = &l:shortmess
+    try
+        let l:cursor_position = getcurpos()
+
+        " The message is truncated and saved to the history.
+        setlocal shortmess+=T
+        exec "norm! :echomsg l:message\n"
+
+        " Reset the cursor position if we moved off the end of the line.
+        " Using :norm and :echomsg can move the cursor off the end of the
+        " line.
+        if l:cursor_position != getcurpos()
+            call setpos('.', l:cursor_position)
+        endif
+    finally
+        let &l:shortmess = l:shortmess_options
+    endtry
 endfunction
 
 function! s:Echomsg(message) abort
