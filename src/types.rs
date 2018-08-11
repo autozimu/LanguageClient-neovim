@@ -876,15 +876,6 @@ pub struct WindowProgressParams {
     pub done: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CqueryProgressParams {
-    pub indexRequestCount: u64,
-    pub doIdMapCount: u64,
-    pub loadPreviousIndexCount: u64,
-    pub onIdMappedCount: u64,
-    pub onIndexedCount: u64,
-}
-
 pub trait Filepath {
     fn filepath(&self) -> Result<PathBuf>;
 }
