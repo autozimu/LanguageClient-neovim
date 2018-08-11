@@ -106,6 +106,7 @@ pub struct State {
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
+    pub document_highlight_source: Option<u64>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, notify::RecommendedWatcher>,
@@ -126,6 +127,7 @@ pub struct State {
     pub diagnosticsList: DiagnosticsList,
     pub diagnosticsDisplay: HashMap<u64, DiagnosticsDisplay>,
     pub diagnosticsSignsMax: Option<u64>,
+    pub documentHighlightDisplay: HashMap<u64, DocumentHighlightDisplay>,
     pub windowLogMessageLevel: MessageType,
     pub settingsPath: String,
     pub loadSettings: bool,
@@ -170,6 +172,7 @@ impl State {
             highlights: HashMap::new(),
             highlights_placed: HashMap::new(),
             highlight_match_ids: Vec::new(),
+            document_highlight_source: None,
             user_handlers: HashMap::new(),
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),
@@ -187,6 +190,7 @@ impl State {
             diagnosticsList: DiagnosticsList::Quickfix,
             diagnosticsDisplay: DiagnosticsDisplay::default(),
             diagnosticsSignsMax: None,
+            documentHighlightDisplay: DocumentHighlightDisplay::default(),
             windowLogMessageLevel: MessageType::Warning,
             settingsPath: format!(".vim{}settings.json", std::path::MAIN_SEPARATOR),
             loadSettings: false,
@@ -358,6 +362,40 @@ impl Sign {
                 .unwrap_or(DiagnosticSeverity::Hint)
                 .to_int()
                 .unwrap_or(4) - 1
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentHighlightDisplay {
+    pub name: String,
+    pub texthl: String,
+}
+
+impl DocumentHighlightDisplay {
+    pub fn default() -> HashMap<u64, DocumentHighlightDisplay> {
+        let mut map = HashMap::new();
+        map.insert(
+            1,
+            DocumentHighlightDisplay {
+                name: "Text".to_owned(),
+                texthl: "LanguageClientText".to_owned(),
+            },
+        );
+        map.insert(
+            2,
+            DocumentHighlightDisplay {
+                name: "Read".to_owned(),
+                texthl: "LanguageClientRead".to_owned(),
+            },
+        );
+        map.insert(
+            3,
+            DocumentHighlightDisplay {
+                name: "Write".to_owned(),
+                texthl: "LanguageClientWrite".to_owned(),
+            },
+        );
+        map
     }
 }
 
@@ -736,6 +774,12 @@ impl ToInt for DiagnosticSeverity {
 }
 
 impl ToInt for MessageType {
+    fn to_int(&self) -> Result<u64> {
+        Ok(*self as u64)
+    }
+}
+
+impl ToInt for DocumentHighlightKind {
     fn to_int(&self) -> Result<u64> {
         Ok(*self as u64)
     }

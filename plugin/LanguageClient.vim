@@ -42,6 +42,10 @@ function! LanguageClient_textDocument_rangeFormatting(...)
     return call('LanguageClient#textDocument_rangeFormatting', a:000)
 endfunction
 
+function! LanguageClient_textDocument_documentHighlight(...)
+    return call('LanguageClient#textDocument_documentHighlight', a:000)
+endfunction
+
 function! LanguageClient_workspace_symbol(...)
     return call('LanguageClient#workspace_symbol', a:000)
 endfunction
