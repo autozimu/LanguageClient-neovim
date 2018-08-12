@@ -2432,38 +2432,35 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.ccol - 1;
 
-        let mut result: Result<Value> = Ok(Value::Null);
-        let completion = self.textDocument_completion(&json!({
+        let result = self.textDocument_completion(
+            &json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
-                "handle": false}).to_params()?)
-            .unwrap_or_else(|err| {
-                result = Err(err);
-                Value::Null
-            });
-        let completion: CompletionResponse = serde_json::from_value(completion)
-            .unwrap_or_else(|err| {
-                if result.is_ok() {
-                    result = Err(err.into());
-                }
-                CompletionResponse::List(CompletionList {
-                    is_incomplete: true,
-                    items: vec![]})
-            });
-        let is_incomplete = match completion {
-            CompletionResponse::Array(_) => false,
-            CompletionResponse::List(ref list) => list.is_incomplete,
-        };
-        let matches: Result<Vec<VimCompleteItem>> = match completion {
-            CompletionResponse::Array(arr) => arr,
-            CompletionResponse::List(list) => list.items,
-        }.iter()
-            .map(FromLSP::from_lsp)
-            .collect();
-        let matches = matches?;
+                "handle": false})
+                .to_params()?,
+        );
+        let is_incomplete;
+        let matches;
+        if let Ok(ref value) = result {
+            let completion = serde_json::from_value(value.clone())?;
+            is_incomplete = match completion {
+                CompletionResponse::List(ref list) => list.is_incomplete,
+                _ => true,
+            };
+            let matches_result: Result<Vec<VimCompleteItem>> = match completion {
+                CompletionResponse::Array(arr) => arr,
+                CompletionResponse::List(list) => list.items,
+            }.iter()
+                .map(FromLSP::from_lsp)
+                .collect();
+            matches = matches_result?;
+        } else {
+            is_incomplete = false;
+            matches = vec![];
+        }
         self.call::<_, u8>(
             None,
             "ncm2#complete",
