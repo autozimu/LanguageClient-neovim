@@ -2448,7 +2448,7 @@ impl State {
             let completion = serde_json::from_value(value.clone())?;
             is_incomplete = match completion {
                 CompletionResponse::List(ref list) => list.is_incomplete,
-                _ => true,
+                _ => false,
             };
             let matches_result: Result<Vec<VimCompleteItem>> = match completion {
                 CompletionResponse::Array(arr) => arr,
@@ -2458,7 +2458,7 @@ impl State {
                 .collect();
             matches = matches_result?;
         } else {
-            is_incomplete = false;
+            is_incomplete = true;
             matches = vec![];
         }
         self.call::<_, u8>(
