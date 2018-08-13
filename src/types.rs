@@ -29,6 +29,7 @@ pub const NOTIFICATION__HandleCompleteDone: &str = "languageClient/handleComplet
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
 pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
+pub const NOTIFICATION__ClearDocumentHighlight: &str = "languageClient/clearDocumentHighlight";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";

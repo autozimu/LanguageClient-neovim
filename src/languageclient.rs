@@ -345,6 +345,17 @@ impl State {
         Ok(result)
     }
 
+    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
+
+        if let Some(source) = self.document_highlight_source.take() {
+            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
+        }
+
+        info!("End {}", NOTIFICATION__ClearDocumentHighlight);
+        Ok(())
+    }
+
     fn apply_TextEdits<P: AsRef<Path>>(&mut self, path: P, edits: &[TextEdit]) -> Result<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
         if edits.is_empty() {

@@ -659,6 +659,10 @@ function! LanguageClient#textDocument_documentHighlight(...) abort
     return LanguageClient#Call('textDocument/documentHighlight', l:params, l:callback)
 endfunction
 
+function! LanguageClient#clearDocumentHighlight() abort
+    return LanguageClient#Notify('languageClient/clearDocumentHighlight', {})
+endfunction
+
 function! LanguageClient#getState(callback) abort
     return LanguageClient#Call('languageClient/getState', {}, a:callback)
 endfunction

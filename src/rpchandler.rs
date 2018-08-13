@@ -177,6 +177,9 @@ impl State {
             NOTIFICATION__FZFSinkCommand => {
                 self.languageClient_FZFSinkCommand(&notification.params)?
             }
+            NOTIFICATION__ClearDocumentHighlight => {
+                self.languageClient_clearDocumentHighlight(&notification.params)?
+            }
             // Extensions by language servers.
             NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,
             NOTIFICATION__RustBeginBuild => self.rust_handleBeginBuild(&notification.params)?,
