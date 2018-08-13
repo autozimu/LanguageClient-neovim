@@ -2332,11 +2332,6 @@ impl State {
             self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
         }
 
-        // Clear all document highlights.
-        if let Some(source) = self.document_highlight_source.take() {
-            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
-        }
-
         info!("End {}", NOTIFICATION__HandleCursorMoved);
         Ok(())
     }
