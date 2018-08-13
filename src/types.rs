@@ -28,7 +28,7 @@ pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMo
 pub const NOTIFICATION__HandleCompleteDone: &str = "languageClient/handleCompleteDone";
 pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
 pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
-pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExisted";
+pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
 
 // Extensions by language servers.
 pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
