@@ -1034,6 +1034,7 @@ function! LanguageClient_contextMenuItems() abort
                 \ 'Rename': 'LanguageClient#textDocument_rename',
                 \ 'Signature Help': 'LanguageClient#textDocument_signatureHelp',
                 \ 'Type Definition': 'LanguageClient#textDocument_typeDefinition',
+                \ 'Document Highlight': 'LanguageClient#textDocument_documentHighlight',
                 \ 'Workspace Symbol': 'LanguageClient#workspace_symbol',
                 \ }
 endfunction
