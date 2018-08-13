@@ -304,19 +304,26 @@ impl State {
         if let Some(document_highlight) = document_highlight {
             let highlights = document_highlight
                 .into_iter()
-                .map(|DocumentHighlight { range, kind }| Highlight {
-                    line: range.start.line,
-                    character_start: range.start.character,
-                    character_end: range.end.character,
-                    group: self.documentHighlightDisplay[&kind
-                                                             .unwrap_or(DocumentHighlightKind::Text)
-                                                             .to_int()
-                                                             .unwrap()]
-                        .texthl
-                        .clone(),
-                    text: String::new(),
+                .map(|DocumentHighlight { range, kind }| {
+                    Ok(Highlight {
+                        line: range.start.line,
+                        character_start: range.start.character,
+                        character_end: range.end.character,
+                        group: self
+                            .documentHighlightDisplay
+                            .get(
+                                &kind
+                                    .unwrap_or(DocumentHighlightKind::Text)
+                                    .to_int()
+                                    .unwrap(),
+                            )
+                            .ok_or_else(|| err_msg("Failed to get display"))?
+                            .texthl
+                            .clone(),
+                        text: String::new(),
+                    })
                 })
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>>>()?;
 
             let source = if let Some(source) = self.document_highlight_source {
                 source
