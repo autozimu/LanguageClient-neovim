@@ -120,8 +120,12 @@ impl State {
             ].as_ref(),
         )?;
 
-        let (diagnosticsSignsMax,): (Option<u64>,) =
-            self.eval(["get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)"].as_ref())?;
+        let (diagnosticsSignsMax, documentHighlightDisplay): (Option<u64>, Value) = self.eval(
+            [
+                "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
+                "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
+            ].as_ref(),
+        )?;
 
         // vimscript use 1 for true, 0 for false.
         let autoStart = autoStart == 1;
@@ -190,6 +194,10 @@ impl State {
                 serde_json::to_value(&state.diagnosticsDisplay)?.combine(diagnosticsDisplay),
             )?;
             state.diagnosticsSignsMax = diagnosticsSignsMax;
+            state.documentHighlightDisplay = serde_json::from_value(
+                serde_json::to_value(&state.documentHighlightDisplay)?
+                    .combine(documentHighlightDisplay),
+            )?;
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
@@ -253,6 +261,98 @@ impl State {
         self.edit(&None, &filename)?;
         self.cursor(line + 1, character + 1)?;
         debug!("End apply WorkspaceEdit");
+        Ok(())
+    }
+
+    pub fn textDocument_documentHighlight(&mut self, params: &Option<Params>) -> Result<Value> {
+        self.textDocument_didChange(params)?;
+        info!("Begin {}", lsp::request::DocumentHighlightRequest::METHOD);
+        let (languageId, filename, line, character, handle): (
+            String,
+            String,
+            u64,
+            u64,
+            bool,
+        ) = self.gather_args(
+            &[
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Line,
+                VimVar::Character,
+                VimVar::Handle,
+            ],
+            params,
+        )?;
+
+        let result = self.call(
+            Some(&languageId),
+            lsp::request::DocumentHighlightRequest::METHOD,
+            TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                position: Position { line, character },
+            },
+        )?;
+
+        if !handle {
+            return Ok(result);
+        }
+
+        let document_highlight: Option<Vec<DocumentHighlight>> =
+            serde_json::from_value(result.clone())?;
+        if let Some(document_highlight) = document_highlight {
+            let highlights = document_highlight
+                .into_iter()
+                .map(|DocumentHighlight { range, kind }| {
+                    Ok(Highlight {
+                        line: range.start.line,
+                        character_start: range.start.character,
+                        character_end: range.end.character,
+                        group: self
+                            .documentHighlightDisplay
+                            .get(
+                                &kind
+                                    .unwrap_or(DocumentHighlightKind::Text)
+                                    .to_int()
+                                    .unwrap(),
+                            )
+                            .ok_or_else(|| err_msg("Failed to get display"))?
+                            .texthl
+                            .clone(),
+                        text: String::new(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            let source = if let Some(source) = self.document_highlight_source {
+                source
+            } else {
+                let source = self.call(
+                    None,
+                    "nvim_buf_add_highlight",
+                    json!([0, 0, "Error", 1, 1, 1]),
+                )?;
+                self.document_highlight_source = Some(source);
+                source
+            };
+
+            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
+            self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
+        }
+
+        info!("End {}", lsp::request::DocumentHighlightRequest::METHOD);
+        Ok(result)
+    }
+
+    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Option<Params>) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
+
+        if let Some(source) = self.document_highlight_source.take() {
+            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
+        }
+
+        info!("End {}", NOTIFICATION__ClearDocumentHighlight);
         Ok(())
     }
 

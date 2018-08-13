@@ -646,6 +646,23 @@ function! LanguageClient#textDocument_didClose() abort
                 \ })
 endfunction
 
+function! LanguageClient#textDocument_documentHighlight(...) abort
+    let l:callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'handle': s:IsFalse(l:callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/documentHighlight', l:params, l:callback)
+endfunction
+
+function! LanguageClient#clearDocumentHighlight() abort
+    return LanguageClient#Notify('languageClient/clearDocumentHighlight', {})
+endfunction
+
 function! LanguageClient#getState(callback) abort
     return LanguageClient#Call('languageClient/getState', {}, a:callback)
 endfunction
@@ -1017,6 +1034,7 @@ function! LanguageClient_contextMenuItems() abort
                 \ 'Rename': 'LanguageClient#textDocument_rename',
                 \ 'Signature Help': 'LanguageClient#textDocument_signatureHelp',
                 \ 'Type Definition': 'LanguageClient#textDocument_typeDefinition',
+                \ 'Document Highlight': 'LanguageClient#textDocument_documentHighlight',
                 \ 'Workspace Symbol': 'LanguageClient#workspace_symbol',
                 \ }
 endfunction

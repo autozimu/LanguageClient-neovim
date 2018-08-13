@@ -61,6 +61,9 @@ impl State {
             lsp::request::ApplyWorkspaceEdit::METHOD => {
                 self.workspace_applyEdit(&method_call.params)
             }
+            lsp::request::DocumentHighlightRequest::METHOD => {
+                self.textDocument_documentHighlight(&method_call.params)
+            }
             REQUEST__RustImplementations => self.rustDocument_implementations(&method_call.params),
             // Extensions.
             REQUEST__GetState => self.languageClient_getState(&method_call.params),
@@ -173,6 +176,9 @@ impl State {
             }
             NOTIFICATION__FZFSinkCommand => {
                 self.languageClient_FZFSinkCommand(&notification.params)?
+            }
+            NOTIFICATION__ClearDocumentHighlight => {
+                self.languageClient_clearDocumentHighlight(&notification.params)?
             }
             // Extensions by language servers.
             NOTIFICATION__LanguageStatus => self.language_status(&notification.params)?,

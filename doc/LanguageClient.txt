@@ -281,6 +281,26 @@ neovim >= 0.3.0.
 Default: 0
 Valid options: 1 | 0
 
+2.22 g:LanguageClient_documentHighlightDisplay *g:LanguageClient_documentHighlightDisplay*
+
+Control how document highlights are displayed.
+
+Default: >
+    {
+        1: {
+            "name": "Text",
+            "texthl": "SpellCap",
+        },
+        2: {
+            "name": "Read",
+            "texthl": "SpellLocal",
+        },
+        3: {
+            "name": "Write",
+            "texthl": "SpellRare",
+        },
+    }
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
@@ -403,6 +423,18 @@ Format current document.
 Signature: LanguageClient#textDocument_rangeFormatting(...)
 
 Format selected lines.
+
+*LanguageClient#textDocument_documentHighlight()*
+*LanguageClient_textDocument_documentHighlight()*
+Signature: LanguageClient#textDocument_documentHighlight(...)
+
+Highlight usages of the symbol under the cursor.
+
+*LanguageClient#clearDocumentHighlight()*
+*LanguageClient_clearDocumentHighlight()*
+Signature: LanguageClient#clearDocumentHighlight()
+
+Clear the symbol usages highlighting.
 
 *LanguageClient#workspace_symbol()*
 *LanguageClient_workspace_symbol()*
