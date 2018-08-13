@@ -379,21 +379,21 @@ impl DocumentHighlightDisplay {
             1,
             DocumentHighlightDisplay {
                 name: "Text".to_owned(),
-                texthl: "LanguageClientText".to_owned(),
+                texthl: "SpellCap".to_owned(),
             },
         );
         map.insert(
             2,
             DocumentHighlightDisplay {
                 name: "Read".to_owned(),
-                texthl: "LanguageClientRead".to_owned(),
+                texthl: "SpellLocal".to_owned(),
             },
         );
         map.insert(
             3,
             DocumentHighlightDisplay {
                 name: "Write".to_owned(),
-                texthl: "LanguageClientWrite".to_owned(),
+                texthl: "SpellRare".to_owned(),
             },
         );
         map

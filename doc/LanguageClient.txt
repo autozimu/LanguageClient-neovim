@@ -289,15 +289,15 @@ Default: >
     {
         1: {
             "name": "Text",
-            "texthl": "LanguageClientText",
+            "texthl": "SpellCap",
         },
         2: {
             "name": "Read",
-            "texthl": "LanguageClientRead",
+            "texthl": "SpellLocal",
         },
         3: {
             "name": "Write",
-            "texthl": "LanguageClientWrite",
+            "texthl": "SpellRare",
         },
     }
 
