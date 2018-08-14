@@ -581,8 +581,6 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ '&tabstop': &tabstop,
-                \ '&expandtab': &expandtab,
                 \ 'LSP#range_start_line()': LSP#range_start_line(),
                 \ 'LSP#range_end_line()': LSP#range_end_line(),
                 \ 'handle': s:IsFalse(l:callback),
