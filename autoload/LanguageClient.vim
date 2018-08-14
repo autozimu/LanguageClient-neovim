@@ -459,16 +459,16 @@ endfunction
 
 " Meta methods to go to various places.
 function! LanguageClient#find_locations(method_name, ...) abort
+    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'gotoCmd': v:null,
-                \ 'handle': v:true,
+                \ 'handle': s:IsFalse(l:callback),
                 \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call(a:method_name, l:params, l:callback)
 endfunction
 
