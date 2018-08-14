@@ -667,7 +667,7 @@ function! LanguageClient#getState(callback) abort
     return LanguageClient#Call('languageClient/getState', {}, a:callback)
 endfunction
 
-function! LanguageClient#alive(callback) abort
+function! LanguageClient#isAlive(callback) abort
     return LanguageClient#Call('languageClient/isAlive', {}, a:callback)
 endfunction
 
