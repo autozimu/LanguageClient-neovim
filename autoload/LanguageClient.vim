@@ -2,6 +2,13 @@ if get(g:, 'LanguageClient_loaded')
     finish
 endif
 
+let s:TYPE = {
+\   'string':  type(''),
+\   'list':    type([]),
+\   'dict':    type({}),
+\   'funcref': type(function('call'))
+\ }
+
 function! s:Echo(message) abort
     echo a:message
 endfunction
@@ -211,7 +218,7 @@ function! s:HandleMessage(job, lines, event) abort
 
             try
                 let l:message = json_decode(s:input)
-                if type(l:message) !=# type({})
+                if type(l:message) !=# s:TYPE.dict
                     throw 'Messsage is not dict.'
                 endif
             catch
@@ -233,7 +240,7 @@ function! s:HandleMessage(job, lines, event) abort
                         endfor
                         let l:result = 0
                     else
-                        let l:params = type(l:params) == type([]) ? l:params : [l:params]
+                        let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
                         let l:result = call(l:method, l:params)
                     endif
                     if l:id != v:null
@@ -263,15 +270,15 @@ function! s:HandleMessage(job, lines, event) abort
                 endtry
             elseif has_key(l:message, 'result') || has_key(l:message, 'error')
                 let l:id = get(l:message, 'id')
-                " Function name needs to begin with uppercase letter.
                 let l:Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
-                if type(l:Handle) == type(function('tr')) ||
-                            \ (type(l:Handle) == type('') && exists('*' . l:Handle))
+                let l:type = type(l:Handle)
+                if l:type == s:TYPE.funcref ||
+                      \ (l:type == s:TYPE.string && exists('*' . l:Handle))
                     call call(l:Handle, [l:message])
-                elseif type(l:Handle) == type([])
+                elseif l:type == s:TYPE.list
                     call add(l:Handle, l:message)
-                elseif type(l:Handle) == type('') && exists(l:Handle)
+                elseif l:type == s:TYPE.string && exists(l:Handle)
                     let l:outputs = eval(l:Handle)
                     call add(l:outputs, l:message)
                 else
@@ -415,7 +422,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     endif
     let l:skipAddParams = get(a:000, 0, v:false)
     let l:params = a:params
-    if type(a:params) == type({}) && !skipAddParams
+    if type(a:params) == s:TYPE.dict && !skipAddParams
         let l:params = extend({
                     \ 'buftype': &buftype,
                     \ 'languageId': &filetype,
@@ -431,7 +438,7 @@ endfunction
 
 function! LanguageClient#Notify(method, params) abort
     let l:params = a:params
-    if type(params) == type({})
+    if type(params) == s:TYPE.dict
         let l:params = extend({
                     \ 'buftype': &buftype,
                     \ 'languageId': &filetype,
@@ -459,17 +466,16 @@ endfunction
 
 " Meta methods to go to various places.
 function! LanguageClient#find_locations(method_name, ...) abort
-    let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'gotoCmd': v:null,
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(get(a:000, 1, v:null)),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call(a:method_name, l:params, l:callback)
+    return LanguageClient#Call(a:method_name, l:params, get(a:000, 1, v:null))
 endfunction
 
 function! LanguageClient#textDocument_definition(...) abort
