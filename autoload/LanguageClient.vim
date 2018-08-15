@@ -273,7 +273,8 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:Handle = get(s:handlers, l:id)
                 unlet s:handlers[l:id]
                 let l:type = type(l:Handle)
-                if l:type == s:TYPE.funcref
+                if l:type == s:TYPE.funcref ||
+                      \ (l:type == s:TYPE.string && exists('*' . l:Handle))
                     call call(l:Handle, [l:message])
                 elseif l:type == s:TYPE.list
                     call add(l:Handle, l:message)
