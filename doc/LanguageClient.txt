@@ -331,10 +331,10 @@ Stop current language server.
 
 *LanguageClient#Call()*
 *LanguageClient_Call()*
-Signature: LanguageClient#Call(method: String, params: Map | List, callback: Funcref | List | Null)
+Signature: LanguageClient#Call(method: String, params: Map | List, callback: Funcref | String | List | Null)
 
 Call a method of current language server. After receiving response, if
-callback is a Funcref, it is invoked with response as params, if the callback
+callback is a function, it is invoked with response as params, if the callback
 is a list, the response is pushed at the end of it, if callback is null, it is
 handled by this plugin default handler.
 
