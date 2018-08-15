@@ -13,7 +13,7 @@ function! s:Echo(message) abort
     echo a:message
 endfunction
 
-function s:Ellipsis(message) abort
+function! s:Ellipsis(message) abort
     let l:maxlen = &columns * &cmdheight - 2
     if &showcmd
         let maxlen -= 11
@@ -594,7 +594,7 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
     return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:callback)
 endfunction
 
-function! LanguageClient#completionItem_resolve(completion_item, ...)
+function! LanguageClient#completionItem_resolve(completion_item, ...) abort
     let l:callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'completionItem': a:completion_item,
