@@ -1007,40 +1007,33 @@ impl State {
     pub fn find_locations(&mut self, method_name: &str, params: &Option<Params>) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", method_name);
-        let (buftype, languageId, filename, line, character, goto_cmd, handle): (
-            String,
+        let (languageId, filename, line, character, handle, goto_cmd): (
             String,
             String,
             u64,
             u64,
-            Option<String>,
             bool,
+            Option<String>,
         ) = self.gather_args(
             &[
-                VimVar::Buftype,
                 VimVar::LanguageId,
                 VimVar::Filename,
                 VimVar::Line,
                 VimVar::Character,
-                VimVar::GotoCmd,
                 VimVar::Handle,
+                VimVar::GotoCmd,
             ],
             params,
         )?;
-        if !buftype.is_empty() || languageId.is_empty() {
-            return Ok(Value::Null);
-        }
 
-        let result = self.call(
-            Some(&languageId),
-            method_name,
-            TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier {
-                    uri: filename.to_url()?,
-                },
-                position: Position { line, character },
+        let params = serde_json::to_value(TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier {
+                uri: filename.to_url()?,
             },
-        )?;
+            position: Position { line, character },
+        })?.combine(serde_json::to_value(params)?);
+
+        let result = self.call(Some(&languageId), method_name, &params.to_params()?)?;
 
         if !handle {
             return Ok(result);
@@ -1421,71 +1414,21 @@ impl State {
     }
 
     pub fn textDocument_references(&mut self, params: &Option<Params>) -> Result<Value> {
-        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::References::METHOD);
 
-        let (buftype, languageId, filename, line, character, goto_cmd, handle, include_declaration): (
-            String,
-            String,
-            String,
-            u64,
-            u64,
-            Option<String>,
-            bool,
-            bool,
-        ) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Line,
-                VimVar::Character,
-                VimVar::GotoCmd,
-                VimVar::Handle,
-                VimVar::IncludeDeclaration,
-            ],
-            params,
-        )?;
-        if !buftype.is_empty() || languageId.is_empty() {
+        let (buftype, include_declaration): (String, bool) =
+            self.gather_args(&[VimVar::Buftype, VimVar::IncludeDeclaration], params)?;
+        if !buftype.is_empty() {
             return Ok(Value::Null);
         }
 
-        let result = self.call(
-            Some(&languageId),
-            lsp::request::References::METHOD,
-            ReferenceParams {
-                text_document: TextDocumentIdentifier {
-                    uri: filename.to_url()?,
-                },
-                position: Position { line, character },
-                context: ReferenceContext {
+        let params = serde_json::to_value(params)?.combine(json!({
+                "context": ReferenceContext {
                     include_declaration,
-                },
-            },
-        )?;
+                }
+            }));
 
-        if !handle {
-            return Ok(result);
-        }
-
-        let locations: Option<Vec<Location>> = serde_json::from_value(result.clone())?;
-        match locations {
-            None => self.echowarn("Not found!")?,
-            Some(ref arr) if arr.is_empty() => self.echowarn("Not found!")?,
-            Some(ref arr) if arr.len() == 1 => {
-                let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
-                self.edit(&goto_cmd, loc.uri.filepath()?)?;
-                self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
-                let cur_file: String = self.eval("expand('%')")?;
-                self.echomsg_ellipsis(format!(
-                    "[LC]: {} {}:{}",
-                    cur_file,
-                    loc.range.start.line + 1,
-                    loc.range.start.character + 1
-                ))?
-            }
-            Some(ref arr) => self.display_locations(arr)?,
-        }
+        let result = self.find_locations(lsp::request::References::METHOD, &params.to_params()?)?;
 
         info!("End {}", lsp::request::References::METHOD);
         Ok(result)
