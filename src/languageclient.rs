@@ -8,12 +8,12 @@ impl State {
     pub fn gather_args<E: VimExp + std::fmt::Debug, T: DeserializeOwned>(
         &mut self,
         exps: &[E],
-        map: &Option<Params>,
+        map: &Value,
     ) -> Result<T> {
-        let mut map = match *map {
-            None | Some(Params::None) | Some(Params::Array(_)) => serde_json::map::Map::new(),
-            Some(Params::Map(ref map)) => map.clone(),
-        };
+        let mut map = map
+            .as_object()
+            .cloned()
+            .unwrap_or_else(serde_json::Map::new);
         let mut keys_request = vec![];
         let mut exps_request = vec![];
         for e in exps {
@@ -191,12 +191,12 @@ impl State {
             state.diagnosticsEnable = diagnosticsEnable;
             state.diagnosticsList = diagnosticsList;
             state.diagnosticsDisplay = serde_json::from_value(
-                serde_json::to_value(&state.diagnosticsDisplay)?.combine(diagnosticsDisplay),
+                serde_json::to_value(&state.diagnosticsDisplay)?.combine(&diagnosticsDisplay),
             )?;
             state.diagnosticsSignsMax = diagnosticsSignsMax;
             state.documentHighlightDisplay = serde_json::from_value(
                 serde_json::to_value(&state.documentHighlightDisplay)?
-                    .combine(documentHighlightDisplay),
+                    .combine(&documentHighlightDisplay),
             )?;
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
@@ -240,7 +240,7 @@ impl State {
         Ok(())
     }
 
-    fn apply_WorkspaceEdit(&mut self, edit: &WorkspaceEdit, params: &Option<Params>) -> Result<()> {
+    fn apply_WorkspaceEdit(&mut self, edit: &WorkspaceEdit, params: &Value) -> Result<()> {
         debug!(
             "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
             edit, params
@@ -264,7 +264,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_documentHighlight(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_documentHighlight(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentHighlightRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -345,7 +345,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Option<Params>) -> Result<()> {
+    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
 
         if let Some(source) = self.document_highlight_source.take() {
@@ -764,7 +764,7 @@ impl State {
             if let Some(ref edits) = cmd.arguments {
                 for edit in edits {
                     let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
-                    self.apply_WorkspaceEdit(&edit, &None)?;
+                    self.apply_WorkspaceEdit(&edit, &Value::Null)?;
                 }
             }
         } else {
@@ -792,7 +792,7 @@ impl State {
         for f in filenames {
             self.process_diagnostics(&f, &[])?;
         }
-        self.languageClient_handleCursorMoved(&json!({}).to_params()?)?;
+        self.languageClient_handleCursorMoved(&Value::Null)?;
 
         self.diagnostics.retain(|f, _| !f.starts_with(&root));
         self.update_quickfixlist()?;
@@ -841,7 +841,7 @@ impl State {
 
     /////// LSP ///////
 
-    fn initialize(&mut self, params: &Option<Params>) -> Result<Value> {
+    fn initialize(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::Initialize::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -874,7 +874,7 @@ impl State {
                 json!(Value::Null)
             });
         let initialization_options =
-            get_default_initializationOptions(&languageId).combine(initialization_options);
+            get_default_initializationOptions(&languageId).combine(&initialization_options);
         let initialization_options = if initialization_options.is_null() {
             None
         } else {
@@ -938,7 +938,7 @@ impl State {
         Ok(result)
     }
 
-    fn initialized(&mut self, params: &Option<Params>) -> Result<()> {
+    fn initialized(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         self.notify(
@@ -950,7 +950,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_hover(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_hover(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::HoverRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -1004,7 +1004,7 @@ impl State {
     }
 
     /// Generic find locations, e.g, definitions, references.
-    pub fn find_locations(&mut self, method_name: &str, params: &Option<Params>) -> Result<Value> {
+    pub fn find_locations(&mut self, method_name: &str, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", method_name);
         let (languageId, filename, line, character, handle, goto_cmd): (
@@ -1031,9 +1031,9 @@ impl State {
                 uri: filename.to_url()?,
             },
             position: Position { line, character },
-        })?.combine(serde_json::to_value(params)?);
+        })?.combine(params);
 
-        let result = self.call(Some(&languageId), method_name, &params.to_params()?)?;
+        let result = self.call(Some(&languageId), method_name, &params)?;
 
         if !handle {
             return Ok(result);
@@ -1072,7 +1072,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_rename(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_rename(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Rename::METHOD);
         let (buftype, languageId, filename, line, character, cword, new_name, handle): (
@@ -1133,7 +1133,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_documentSymbol(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_documentSymbol(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
 
@@ -1208,7 +1208,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_codeAction(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_codeAction(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
@@ -1286,7 +1286,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_completion(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_completion(&mut self, params: &Value) -> Result<Value> {
         // Vim will change buffer content temporarily when executing omnifunc (?).
         // self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
@@ -1332,7 +1332,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_signatureHelp(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_signatureHelp(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::SignatureHelpRequest::METHOD);
         let (buftype, languageId, filename, line, character, handle): (
@@ -1413,7 +1413,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn textDocument_references(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_references(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::References::METHOD);
 
         let (buftype, include_declaration): (String, bool) =
@@ -1422,19 +1422,19 @@ impl State {
             return Ok(Value::Null);
         }
 
-        let params = serde_json::to_value(params)?.combine(json!({
+        let params = json!({
                 "context": ReferenceContext {
                     include_declaration,
                 }
-            }));
+            }).combine(params);
 
-        let result = self.find_locations(lsp::request::References::METHOD, &params.to_params()?)?;
+        let result = self.find_locations(lsp::request::References::METHOD, &params)?;
 
         info!("End {}", lsp::request::References::METHOD);
         Ok(result)
     }
 
-    pub fn textDocument_formatting(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_formatting(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
         let (buftype, languageId, filename, handle): (String, String, String, bool) = self
@@ -1484,7 +1484,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_rangeFormatting(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn textDocument_rangeFormatting(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
         let (buftype, languageId, filename, handle, start_line, end_line): (
@@ -1552,7 +1552,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn completionItem_resolve(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn completionItem_resolve(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::ResolveCompletionItem::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
@@ -1583,7 +1583,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn workspace_symbol(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_symbol(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::WorkspaceSymbol::METHOD);
         let (buftype, languageId, handle): (String, String, bool) = self.gather_args(
@@ -1652,7 +1652,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn workspace_executeCommand(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_executeCommand(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::ExecuteCommand::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (command, arguments): (String, Vec<Value>) =
@@ -1667,11 +1667,11 @@ impl State {
         Ok(result)
     }
 
-    pub fn workspace_applyEdit(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn workspace_applyEdit(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         let params: ApplyWorkspaceEditParams = params.clone().to_lsp()?;
-        self.apply_WorkspaceEdit(&params.edit, &None)?;
+        self.apply_WorkspaceEdit(&params.edit, &Value::Null)?;
 
         info!("End {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
@@ -1680,7 +1680,7 @@ impl State {
         })?)
     }
 
-    pub fn workspace_didChangeConfiguration(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn workspace_didChangeConfiguration(&mut self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp::notification::DidChangeConfiguration::METHOD
@@ -1697,7 +1697,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didOpen(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didOpen(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
         let (buftype, languageId, filename, text): (String, String, String, Vec<String>) = self
             .gather_args(
@@ -1746,7 +1746,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didChange(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didChange(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1817,7 +1817,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didSave(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didSave(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::DidSaveTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1840,7 +1840,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didClose(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_didClose(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::DidCloseTextDocument::METHOD);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -1863,7 +1863,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_publishDiagnostics(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn textDocument_publishDiagnostics(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::PublishDiagnostics::METHOD);
         let params: PublishDiagnosticsParams = params.clone().to_lsp()?;
         if !self.get(|state| Ok(state.diagnosticsEnable))? {
@@ -1889,14 +1889,14 @@ impl State {
             return Ok(());
         }
         self.process_diagnostics(&current_filename, &diagnostics)?;
-        self.languageClient_handleCursorMoved(&json!({}).to_params()?)?;
+        self.languageClient_handleCursorMoved(&Value::Null)?;
         self.notify(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
         Ok(())
     }
 
-    pub fn window_logMessage(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn window_logMessage(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::LogMessage::METHOD);
         let params: LogMessageParams = params.clone().to_lsp()?;
         let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
@@ -1910,7 +1910,7 @@ impl State {
         Ok(())
     }
 
-    pub fn window_showMessage(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn window_showMessage(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::ShowMessage::METHOD);
         let params: ShowMessageParams = params.clone().to_lsp()?;
         let msg = format!("[{:?}] {}", params.typ, params.message);
@@ -1919,11 +1919,7 @@ impl State {
         Ok(())
     }
 
-    pub fn client_registerCapability(
-        &mut self,
-        languageId: &str,
-        params: &Option<Params>,
-    ) -> Result<Value> {
+    pub fn client_registerCapability(&mut self, languageId: &str, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
         let params: RegistrationParams = params.clone().to_lsp()?;
         for r in &params.registrations {
@@ -1964,7 +1960,7 @@ impl State {
     pub fn client_unregisterCapability(
         &mut self,
         languageId: &str,
-        params: &Option<Params>,
+        params: &Value,
     ) -> Result<Value> {
         info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
         let params: UnregistrationParams = params.clone().to_lsp()?;
@@ -2000,7 +1996,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn exit(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn exit(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
@@ -2021,14 +2017,14 @@ impl State {
 
     /////// Extensions by this plugin ///////
 
-    pub fn languageClient_getState(&mut self, _params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_getState(&mut self, _params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__GetState);
         let s = self.get(|state| Ok(serde_json::to_string(state)?))?;
         info!("End {}", REQUEST__GetState);
         Ok(Value::String(s))
     }
 
-    pub fn languageClient_isAlive(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_isAlive(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__IsAlive);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let is_alive = self.get(|state| Ok(state.writers.contains_key(&languageId)))?;
@@ -2036,10 +2032,7 @@ impl State {
         Ok(Value::Bool(is_alive))
     }
 
-    pub fn languageClient_registerServerCommands(
-        &mut self,
-        params: &Option<Params>,
-    ) -> Result<Value> {
+    pub fn languageClient_registerServerCommands(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
         let commands: HashMap<String, Vec<String>> = params.clone().to_lsp()?;
         self.update(|state| {
@@ -2055,7 +2048,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_setLoggingLevel(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_setLoggingLevel(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (log::LevelFilter,) = self.gather_args(&["loggingLevel"], params)?;
         logger::update_settings(&self.logger, &self.loggingFile, loggingLevel)?;
@@ -2064,7 +2057,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_registerHandlers(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_registerHandlers(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
         let handlers: HashMap<String, String> = params.clone().to_lsp()?;
         self.update(|state| {
@@ -2075,7 +2068,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_omniComplete(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_omniComplete(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
@@ -2099,7 +2092,7 @@ impl State {
         Ok(serde_json::to_value(matches)?)
     }
 
-    pub fn languageClient_handleBufNewFile(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufNewFile(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufNewFile);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -2121,7 +2114,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleBufReadPost(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufReadPost(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufReadPost);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
@@ -2161,7 +2154,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleTextChanged(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleTextChanged(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
         let (buftype, filename): (String, String) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename], params)?;
@@ -2191,14 +2184,14 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleBufWritePost(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufWritePost(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         self.textDocument_didSave(params)?;
         info!("End {}", NOTIFICATION__HandleBufWritePost);
         Ok(())
     }
 
-    pub fn languageClient_handleBufDelete(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleBufDelete(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
         self.update(|state| {
@@ -2213,7 +2206,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleCursorMoved(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
         let (buftype, filename, line): (String, String, u64) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
@@ -2310,7 +2303,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleCompleteDone(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_handleCompleteDone(&mut self, params: &Value) -> Result<()> {
         let (filename, completed_item, line, character): (
             String,
             VimCompleteItem,
@@ -2355,13 +2348,13 @@ impl State {
         self.cursor(line + 1, character + 1)
     }
 
-    pub fn languageClient_FZFSinkLocation(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_FZFSinkLocation(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
-        let params = match *params {
-            None | Some(Params::None) | Some(Params::Map(_)) => {
+        let params = match params {
+            Value::Array(ref arr) => Value::Array(arr.clone()),
+            _ => {
                 bail!("Expecting array params!");
             }
-            Some(Params::Array(ref arr)) => Value::Array(arr.clone()),
         };
 
         let lines: Vec<String> = serde_json::from_value(params)?;
@@ -2403,7 +2396,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_FZFSinkCommand(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_FZFSinkCommand(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkCommand);
         let (selection,): (String,) = self.gather_args(&["selection"], params)?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
@@ -2431,12 +2424,10 @@ impl State {
             return Ok(());
         }
 
-        self.workspace_executeCommand(
-            &json!({
+        self.workspace_executeCommand(&json!({
                 "command": entry.command,
                 "arguments": entry.arguments,
-            }).to_params()?,
-        )?;
+            }))?;
 
         self.update(|state| {
             state.stashed_codeAction_commands = vec![];
@@ -2447,7 +2438,7 @@ impl State {
         Ok(())
     }
 
-    pub fn NCM_refresh(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn NCM_refresh(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__NCMRefresh);
         let params: NCMRefreshParams = serde_json::from_value(rpc::to_value(params.clone())?)?;
         let NCMRefreshParams { info, ctx } = params;
@@ -2459,16 +2450,14 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.col - 1;
 
-        let result = self.textDocument_completion(
-            &json!({
+        let result = self.textDocument_completion(&json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
                 "handle": false,
-            }).to_params()?,
-        )?;
+            }))?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
@@ -2491,7 +2480,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn NCM2_on_complete(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn NCM2_on_complete(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__NCM2OnComplete);
 
         let orig_ctx: Value = serde_json::from_value(rpc::to_value(params.clone())?)?;
@@ -2506,16 +2495,13 @@ impl State {
         let line = ctx.lnum - 1;
         let character = ctx.ccol - 1;
 
-        let result = self.textDocument_completion(
-            &json!({
+        let result = self.textDocument_completion(&json!({
                 "buftype": "",
                 "languageId": ctx.filetype,
                 "filename": filename,
                 "line": line,
                 "character": character,
-                "handle": false})
-                .to_params()?,
-        );
+                "handle": false}));
         let is_incomplete;
         let matches;
         if let Ok(ref value) = result {
@@ -2544,7 +2530,7 @@ impl State {
         result
     }
 
-    pub fn languageClient_explainErrorAtPoint(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_explainErrorAtPoint(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__ExplainErrorAtPoint);
         let (buftype, filename, line, character): (String, String, u64, u64) = self.gather_args(
             &[
@@ -2586,7 +2572,7 @@ impl State {
     }
 
     // Extensions by languge servers.
-    pub fn language_status(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn language_status(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__LanguageStatus);
         let params: LanguageStatusParams = params.clone().to_lsp()?;
         let msg = format!("{} {}", params.typee, params.message);
@@ -2595,7 +2581,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rustDocument_implementations(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn rustDocument_implementations(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__RustImplementations);
         let (buftype, languageId, filename, line, character, handle): (
             String,
@@ -2641,7 +2627,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn rust_handleBeginBuild(&mut self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleBeginBuild(&mut self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(vec![
             format!("let {}=1", VIM__ServerStatus),
@@ -2651,7 +2637,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
         self.command(vec![
             format!("let {}=1", VIM__ServerStatus),
@@ -2661,7 +2647,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Option<Params>) -> Result<()> {
+    pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.command(vec![
             format!("let {}=0", VIM__ServerStatus),
@@ -2671,7 +2657,7 @@ impl State {
         Ok(())
     }
 
-    pub fn window_progress(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn window_progress(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__WindowProgress);
         let params: WindowProgressParams = params.clone().to_lsp()?;
 
@@ -2711,12 +2697,11 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_startServer(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn languageClient_startServer(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
-        let params = rpc::to_value(params.clone())?;
-        let params = params.combine(cmdparams).to_params()?;
+        let params = params.combine(&cmdparams);
         let (buftype, languageId, filename): (String, String, String) = self.gather_args(
             &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
             &params,
@@ -2842,12 +2827,10 @@ impl State {
         let root = self.roots.get(&languageId).cloned().unwrap_or_default();
         match self.get_workspace_settings(&root) {
             Ok(Value::Null) => (),
-            Ok(settings) => self.workspace_didChangeConfiguration(
-                &json!({
+            Ok(settings) => self.workspace_didChangeConfiguration(&json!({
                 VimVar::LanguageId.to_key(): languageId,
                 "settings": settings,
-            }).to_params()?,
-            )?,
+            }))?,
             Err(err) => warn!("Failed to get workspace settings: {}", err),
         }
 
@@ -2858,7 +2841,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_serverExited(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn languageClient_serverExited(&mut self, params: &Value) -> Result<()> {
         let (languageId, message): (String, String) = self.gather_args(
             [VimVar::LanguageId.to_key().as_str(), "message"].as_ref(),
             params,
@@ -2912,18 +2895,16 @@ impl State {
         }
 
         for (languageId, changes) in pending_changes {
-            self.workspace_didChangeWatchedFiles(
-                &json!({
+            self.workspace_didChangeWatchedFiles(&json!({
                 "languageId": languageId,
                 "changes": changes
-            }).to_params()?,
-            )?;
+            }))?;
         }
 
         Ok(())
     }
 
-    pub fn workspace_didChangeWatchedFiles(&mut self, params: &Option<Params>) -> Result<()> {
+    pub fn workspace_didChangeWatchedFiles(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp::notification::DidChangeWatchedFiles::METHOD);
         let (languageId,): (String,) = self.gather_args([VimVar::LanguageId].as_ref(), params)?;
 
@@ -2938,7 +2919,7 @@ impl State {
         Ok(())
     }
 
-    pub fn java_classFileContents(&mut self, params: &Option<Params>) -> Result<Value> {
+    pub fn java_classFileContents(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__ClassFileContents);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 

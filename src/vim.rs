@@ -271,12 +271,10 @@ impl State {
         if path.starts_with("jdt://") {
             self.command("setlocal buftype=nofile filetype=java noswapfile")?;
 
-            let result = self.java_classFileContents(
-                &json!({
+            let result = self.java_classFileContents(&json!({
                 VimVar::LanguageId.to_key(): "java",
                 "uri": path,
-            }).to_params()?,
-            )?;
+            }))?;
             let content = match result {
                 Value::String(s) => s,
                 _ => bail!("Unexpected type: {:?}", result),

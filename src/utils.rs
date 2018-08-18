@@ -308,15 +308,15 @@ fn test_get_command_update_signs() {
 
 pub trait Combine {
     /// Recursively combine two objects.
-    fn combine(self, other: Self) -> Self
+    fn combine(&self, other: &Self) -> Self
     where
-        Self: Sized;
+        Self: Sized + Clone;
 }
 
 impl Combine for Value {
-    fn combine(self, other: Self) -> Self {
+    fn combine(&self, other: &Self) -> Self {
         match (self, other) {
-            (this, Value::Null) => this,
+            (this, Value::Null) => this.clone(),
             (Value::Object(this), Value::Object(other)) => {
                 let mut map = serde_json::map::Map::new();
                 let mut keys: HashSet<String> = HashSet::new();
@@ -327,13 +327,13 @@ impl Combine for Value {
                     keys.insert(k.clone());
                 }
                 for k in keys.drain() {
-                    let v1 = this.get(&k).unwrap_or(&Value::Null).clone();
-                    let v2 = other.get(&k).unwrap_or(&Value::Null).clone();
+                    let v1 = this.get(&k).unwrap_or(&Value::Null);
+                    let v2 = other.get(&k).unwrap_or(&Value::Null);
                     map.insert(k, v1.combine(v2));
                 }
                 Value::Object(map)
             }
-            (_, other) => other,
+            (_, other) => other.clone(),
         }
     }
 }
