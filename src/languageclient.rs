@@ -1424,12 +1424,13 @@ impl State {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::References::METHOD);
 
-        let (buftype, languageId, filename, line, character, handle, include_declaration): (
+        let (buftype, languageId, filename, line, character, goto_cmd, handle, include_declaration): (
             String,
             String,
             String,
             u64,
             u64,
+            Option<String>,
             bool,
             bool,
         ) = self.gather_args(
@@ -1439,6 +1440,7 @@ impl State {
                 VimVar::Filename,
                 VimVar::Line,
                 VimVar::Character,
+                VimVar::GotoCmd,
                 VimVar::Handle,
                 VimVar::IncludeDeclaration,
             ],
@@ -1466,8 +1468,24 @@ impl State {
             return Ok(result);
         }
 
-        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations)?;
+        let locations: Option<Vec<Location>> = serde_json::from_value(result.clone())?;
+        match locations {
+            None => self.echowarn("Not found!")?,
+            Some(ref arr) if arr.is_empty() => self.echowarn("Not found!")?,
+            Some(ref arr) if arr.len() == 1 => {
+                let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
+                self.edit(&goto_cmd, loc.uri.filepath()?)?;
+                self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
+                let cur_file: String = self.eval("expand('%')")?;
+                self.echomsg_ellipsis(format!(
+                    "[LC]: {} {}:{}",
+                    cur_file,
+                    loc.range.start.line + 1,
+                    loc.range.start.character + 1
+                ))?
+            }
+            Some(ref arr) => self.display_locations(arr)?,
+        }
 
         info!("End {}", lsp::request::References::METHOD);
         Ok(result)

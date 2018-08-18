@@ -168,10 +168,8 @@ def test_textDocument_references_modified_buffer(nvim):
     time.sleep(1)
     nvim.funcs.LanguageClient_textDocument_references()
     time.sleep(1)
-    expect = ["function abcgreet() {"]
 
-    assert [location["text"] for location in
-            nvim.funcs.getloclist(0)] == expect
+    assert nvim.current.window.cursor == [7, 9]
 
     nvim.command("edit! {}".format(PATH_INDEXJS))
 

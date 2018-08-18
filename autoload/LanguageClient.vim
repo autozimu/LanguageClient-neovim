@@ -499,6 +499,7 @@ function! LanguageClient#textDocument_references(...) abort
                 \ 'character': LSP#character(),
                 \ 'includeDeclaration': v:true,
                 \ 'handle': s:IsFalse(l:Callback),
+                \ 'gotoCmd': v:null,
                 \ }
     call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('textDocument/references', l:params, l:Callback)
