@@ -451,30 +451,31 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/hover', l:params, l:callback)
+    return LanguageClient#Call('textDocument/hover', l:params, l:Callback)
 endfunction
 
 " Meta methods to go to various places.
 function! LanguageClient#find_locations(method_name, ...) abort
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'gotoCmd': v:null,
-                \ 'handle': s:IsFalse(get(a:000, 1, v:null)),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call(a:method_name, l:params, get(a:000, 1, v:null))
+    return LanguageClient#Call(a:method_name, l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_definition(...) abort
@@ -490,17 +491,17 @@ function! LanguageClient#textDocument_implementation(...) abort
 endfunction
 
 function! LanguageClient#textDocument_references(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'includeDeclaration': v:true,
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/references', l:params, l:callback)
+    return LanguageClient#Call('textDocument/references', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_rename(...) abort
@@ -513,44 +514,44 @@ function! LanguageClient#textDocument_rename(...) abort
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
     return LanguageClient#Call('textDocument/rename', l:params, v:null)
 endfunction
 
 function! LanguageClient#textDocument_documentSymbol(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/documentSymbol', l:params, l:callback)
+    return LanguageClient#Call('textDocument/documentSymbol', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#workspace_symbol(...) abort
-    let l:callback = get(a:000, 2, v:null)
+    let l:Callback = get(a:000, 2, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'query': get(a:000, 0, ''),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 1, {}))
-    return LanguageClient#Call('workspace/symbol', l:params, l:callback)
+    return LanguageClient#Call('workspace/symbol', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_codeAction(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/codeAction', l:params, l:callback)
+    return LanguageClient#Call('textDocument/codeAction', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_completion(...) abort
@@ -562,8 +563,8 @@ function! LanguageClient#textDocument_completion(...) abort
                 \ 'handle': v:false,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('textDocument/completion', l:params, l:callback)
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/completion', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_formatting(...) abort
@@ -575,12 +576,12 @@ function! LanguageClient#textDocument_formatting(...) abort
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('textDocument/formatting', l:params, l:callback)
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/formatting', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_rangeFormatting(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
@@ -588,20 +589,20 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
                 \ 'character': LSP#character(),
                 \ 'LSP#range_start_line()': LSP#range_start_line(),
                 \ 'LSP#range_end_line()': LSP#range_end_line(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:callback)
+    return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#completionItem_resolve(completion_item, ...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'completionItem': a:completion_item,
-                \ 'handle': s:IsFalse(l:callback)
+                \ 'handle': s:IsFalse(l:Callback)
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('completionItem/resolve', l:params, l:callback)
+    return LanguageClient#Call('completionItem/resolve', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
@@ -619,8 +620,8 @@ function! LanguageClient#rustDocument_implementations(...) abort
                 \ 'character': LSP#character(),
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('rustDocument/implementations', l:params, l:callback)
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('rustDocument/implementations', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_didOpen() abort
@@ -650,16 +651,16 @@ function! LanguageClient#textDocument_didClose() abort
 endfunction
 
 function! LanguageClient#textDocument_documentHighlight(...) abort
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('textDocument/documentHighlight', l:params, l:callback)
+    return LanguageClient#Call('textDocument/documentHighlight', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#clearDocumentHighlight() abort
@@ -869,16 +870,16 @@ function! LanguageClient#explainErrorAtPoint(...) abort
         return
     endif
 
-    let l:callback = get(a:000, 1, v:null)
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'buftype': &buftype,
                 \ 'filename': LSP#filename(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'handle': s:IsFalse(l:callback),
+                \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('$languageClient/explainErrorAtPoint', l:params, l:callback)
+    return LanguageClient#Call('$languageClient/explainErrorAtPoint', l:params, l:Callback)
 endfunction
 
 let g:LanguageClient_omniCompleteResults = []
@@ -892,10 +893,10 @@ function! LanguageClient#omniComplete(...) abort
                     \ 'handle': v:false,
                     \ }
         call extend(l:params, get(a:000, 0, {}))
-        let l:callback = get(a:000, 1, g:LanguageClient_omniCompleteResults)
-        call LanguageClient#Call('languageClient/omniComplete', l:params, l:callback)
+        let l:Callback = get(a:000, 1, g:LanguageClient_omniCompleteResults)
+        call LanguageClient#Call('languageClient/omniComplete', l:params, l:Callback)
     catch
-        call add(l:callback, [])
+        call add(l:Callback, [])
         call s:Debug(string(v:exception))
     endtry
 endfunction
@@ -941,8 +942,8 @@ function! LanguageClient#textDocument_signatureHelp(...) abort
                 \ 'handle': v:true,
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('textDocument/signatureHelp', l:params, l:callback)
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('textDocument/signatureHelp', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#workspace_applyEdit(...) abort
@@ -954,8 +955,8 @@ function! LanguageClient#workspace_applyEdit(...) abort
                 \ 'edit': {},
                 \ }
     call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('workspace/applyEdit', l:params, l:callback)
+    let l:Callback = a:0 >= 2 ? a:2 : v:null
+    return LanguageClient#Call('workspace/applyEdit', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#workspace_executeCommand(command, ...) abort
@@ -967,8 +968,8 @@ function! LanguageClient#workspace_executeCommand(command, ...) abort
                 \ 'command': a:command,
                 \ 'arguments': get(a:000, 0, v:null),
                 \ }
-    let callback = get(a:000, 1, v:null)
-    return LanguageClient#Call('workspace/executeCommand', l:params, l:callback)
+    let l:Callback = get(a:000, 1, v:null)
+    return LanguageClient#Call('workspace/executeCommand', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#exit() abort
@@ -1020,8 +1021,8 @@ function! LanguageClient#java_classFileContent(...) abort
     endif
 
     let l:params = get(a:000, 0, {})
-    let l:callback = get(a:000, 1, v:null)
-    return LanguageClient#Call('java/classFileContent', l:params, l:callback)
+    let l:Callback = get(a:000, 1, v:null)
+    return LanguageClient#Call('java/classFileContent', l:params, l:Callback)
 endfunction
 
 function! LanguageClient_contextMenuItems() abort
