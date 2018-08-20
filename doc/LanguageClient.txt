@@ -550,6 +550,11 @@ Signature: LanguageClient#java_classFileContent(...)
 
 Call java/classFileContent.
 
+*LanguageClient#explainErrorAtPoint*
+Signature: LanguageClient#explainErrorAtPoint(...)
+
+Show detailed error under cursor.
+
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
 
