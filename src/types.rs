@@ -19,6 +19,7 @@ pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
 pub const REQUEST__ExplainErrorAtPoint: &str = "$languageClient/explainErrorAtPoint";
+pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
@@ -39,10 +40,6 @@ pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd"
 // This is an RLS extension but the name is general enough to assume it might be implemented by
 // other language servers or planned for inclusion in the base protocol.
 pub const NOTIFICATION__WindowProgress: &str = "window/progress";
-pub const REQUEST__CqueryBase: &str = "$cquery/base";
-pub const REQUEST__CqueryCallers: &str = "$cquery/callers";
-pub const REQUEST__CqueryDerived: &str = "$cquery/derived";
-pub const REQUEST__CqueryVars: &str = "$cquery/vars";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 

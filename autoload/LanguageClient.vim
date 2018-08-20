@@ -464,7 +464,7 @@ function! LanguageClient#textDocument_hover(...) abort
 endfunction
 
 " Meta methods to go to various places.
-function! LanguageClient#find_locations(method_name, ...) abort
+function! LanguageClient#findLocations(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
@@ -475,19 +475,31 @@ function! LanguageClient#find_locations(method_name, ...) abort
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call(a:method_name, l:params, l:Callback)
+    return LanguageClient#Call('languageClient/findLocations', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_definition(...) abort
-    return call('LanguageClient#find_locations', ['textDocument/definition'] + a:000)
+    let l:params = {
+                \ 'method': 'textDocument/definition',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#textDocument_typeDefinition(...) abort
-    return call('LanguageClient#find_locations', ['textDocument/typeDefinition'] + a:000)
+    let l:params = {
+                \ 'method': 'textDocument/typeDefinition',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#textDocument_implementation(...) abort
-    return call('LanguageClient#find_locations', ['textDocument/implementation'] + a:000)
+    let l:params = {
+                \ 'method': 'textDocument/implementation',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#textDocument_references(...) abort
@@ -1006,19 +1018,35 @@ function! LanguageClient#statusLine() abort
 endfunction
 
 function! LanguageClient#cquery_base(...) abort
-    return call('LanguageClient#find_locations', ['$cquery/base'] + a:000)
+        let l:params = {
+                \ 'method': '$cquery/base',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#cquery_derived(...) abort
-    return call('LanguageClient#find_locations', ['$cquery/derived'] + a:000)
+    let l:params = {
+                \ 'method': '$cquery/derived',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#cquery_callers(...) abort
-    return call('LanguageClient#find_locations', ['$cquery/callers'] + a:000)
+    let l:params = {
+                \ 'method': '$cquery/callers',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#cquery_vars(...) abort
-    return call('LanguageClient#find_locations', ['$cquery/vars'] + a:000)
+    let l:params = {
+                \ 'method': '$cquery/vars',
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
 function! LanguageClient#java_classFileContent(...) abort

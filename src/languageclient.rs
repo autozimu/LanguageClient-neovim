@@ -1004,9 +1004,10 @@ impl State {
     }
 
     /// Generic find locations, e.g, definitions, references.
-    pub fn find_locations(&mut self, method_name: &str, params: &Value) -> Result<Value> {
+    pub fn find_locations(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
-        info!("Begin {}", method_name);
+        let (method,): (String,) = self.gather_args(&["method"], params)?;
+        info!("Begin {}", method);
         let (languageId, filename, line, character, handle, goto_cmd): (
             String,
             String,
@@ -1033,7 +1034,7 @@ impl State {
             position: Position { line, character },
         })?.combine(params);
 
-        let result = self.call(Some(&languageId), method_name, &params)?;
+        let result = self.call(Some(&languageId), &method, &params)?;
 
         if !handle {
             return Ok(result);
@@ -1068,7 +1069,7 @@ impl State {
             },
         };
 
-        info!("End {}", method_name);
+        info!("End {}", method);
         Ok(result)
     }
 
@@ -1423,12 +1424,13 @@ impl State {
         }
 
         let params = json!({
+                "method": lsp::request::References::METHOD,
                 "context": ReferenceContext {
                     include_declaration,
                 }
             }).combine(params);
 
-        let result = self.find_locations(lsp::request::References::METHOD, &params)?;
+        let result = self.find_locations(&params)?;
 
         info!("End {}", lsp::request::References::METHOD);
         Ok(result)

@@ -29,13 +29,7 @@ impl State {
                 self.client_unregisterCapability(languageId.unwrap_or_default(), &params)
             }
             lsp::request::HoverRequest::METHOD => self.textDocument_hover(&params),
-            m @ lsp::request::GotoDefinition::METHOD
-            | m @ REQUEST__CqueryBase
-            | m @ REQUEST__CqueryCallers
-            | m @ REQUEST__CqueryDerived
-            | m @ REQUEST__CqueryVars
-            | m @ lsp::request::GotoTypeDefinition::METHOD
-            | m @ lsp::request::GotoImplementation::METHOD => self.find_locations(m, &params),
+            REQUEST__FindLocations => self.find_locations(&params),
             lsp::request::Rename::METHOD => self.textDocument_rename(&params),
             lsp::request::DocumentSymbol::METHOD => self.textDocument_documentSymbol(&params),
             lsp::request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
