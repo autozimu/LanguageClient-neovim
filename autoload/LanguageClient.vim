@@ -892,7 +892,7 @@ function! LanguageClient#explainErrorAtPoint(...) abort
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('$languageClient/explainErrorAtPoint', l:params, l:Callback)
+    return LanguageClient#Call('languageClient/explainErrorAtPoint', l:params, l:Callback)
 endfunction
 
 let g:LanguageClient_omniCompleteResults = []
