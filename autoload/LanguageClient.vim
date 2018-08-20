@@ -891,6 +891,7 @@ function! LanguageClient#omniComplete(...) abort
                     \ 'filename': LSP#filename(),
                     \ 'line': LSP#line(),
                     \ 'character': LSP#character(),
+                    \ 'complete_position': v:null,
                     \ 'handle': v:false,
                     \ }
         call extend(l:params, get(a:000, 0, {}))
@@ -915,11 +916,15 @@ let g:LanguageClient_completeResults = []
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         let l:input = getline('.')[:LSP#character() - 1]
-        return LanguageClient#get_complete_start(l:input)
+        let l:start = LanguageClient#get_complete_start(l:input)
+        return l:start
     else
+        " Magic happens that cursor jumps to the previously found l:start.
         let l:result = LanguageClient_runSync(
                     \ 'LanguageClient#omniComplete', {
-                    \ 'character': LSP#character() + len(a:base) })
+                    \ 'character': LSP#character() + len(a:base),
+                    \ 'complete_position': LSP#character(),
+                    \ })
         let l:result = l:result is v:null ? [] : l:result
         let l:filtered_items = []
         for l:item in l:result

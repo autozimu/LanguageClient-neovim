@@ -318,7 +318,7 @@ impl Combine for Value {
         match (self, other) {
             (this, Value::Null) => this.clone(),
             (Value::Object(this), Value::Object(other)) => {
-                let mut map = serde_json::map::Map::new();
+                let mut map = serde_json::Map::new();
                 let mut keys: HashSet<String> = HashSet::new();
                 for k in this.keys() {
                     keys.insert(k.clone());

@@ -36,6 +36,7 @@ class Source(Base):
                          + len(context["complete_str"]))
             self.vim.funcs.LanguageClient_omniComplete({
                 "character": character,
+                "complete_position": context["complete_position"],
             })
         return []
 

@@ -536,13 +536,36 @@ pub struct VimCompleteItemUserData {
     pub lspitem: Option<CompletionItem>,
 }
 
-impl FromLSP<CompletionItem> for VimCompleteItem {
-    fn from_lsp(lspitem: &CompletionItem) -> Result<VimCompleteItem> {
+impl VimCompleteItem {
+    pub fn from_lsp(
+        lspitem: &CompletionItem,
+        complete_position: Option<u64>,
+    ) -> Result<VimCompleteItem> {
         let abbr = lspitem.label.clone();
-        let word = lspitem
-            .insert_text
-            .clone()
-            .unwrap_or_else(|| lspitem.label.clone());
+        let mut word = lspitem.insert_text.clone().unwrap_or_default();
+        if word.is_empty() {
+            match (lspitem.text_edit.clone(), complete_position) {
+                (Some(text_edit), Some(complete_position)) => {
+                    // TextEdit range start might be different from vim expected completion start.
+                    // From spec, TextEdit can only span one line, i.e., the current line.
+                    if text_edit.range.start.line != complete_position {
+                        word = text_edit
+                            .new_text
+                            .get((complete_position as usize)..)
+                            .and_then(|line| line.split_whitespace().next())
+                            .map_or_else(String::new, ToOwned::to_owned);
+                    } else {
+                        word = text_edit.new_text.clone();
+                    }
+                }
+                (Some(text_edit), _) => {
+                    word = text_edit.new_text.clone();
+                }
+                (_, _) => {
+                    word = lspitem.label.clone();
+                }
+            }
+        }
 
         let is_snippet;
         let snippet;

@@ -2086,7 +2086,13 @@ impl State {
             });
         }
 
-        let matches: Result<Vec<VimCompleteItem>> = matches.iter().map(FromLSP::from_lsp).collect();
+        let (complete_position,): (Option<u64>,) =
+            self.gather_args(&[("complete_position", "v:null")], params)?;
+
+        let matches: Result<Vec<VimCompleteItem>> = matches
+            .iter()
+            .map(|item| VimCompleteItem::from_lsp(item, complete_position))
+            .collect();
         let matches = matches?;
         info!("End {}", REQUEST__OmniComplete);
         Ok(serde_json::to_value(matches)?)
@@ -2468,7 +2474,7 @@ impl State {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
-            .map(FromLSP::from_lsp)
+            .map(|item| VimCompleteItem::from_lsp(item, None))
             .collect();
         let matches = matches?;
         self.call::<_, u8>(
@@ -2514,7 +2520,7 @@ impl State {
                 CompletionResponse::Array(arr) => arr,
                 CompletionResponse::List(list) => list.items,
             }.iter()
-                .map(FromLSP::from_lsp)
+                .map(|item| VimCompleteItem::from_lsp(item, None))
                 .collect();
             matches = matches_result?;
         } else {
