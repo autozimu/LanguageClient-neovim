@@ -73,6 +73,7 @@ impl State {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
                         self.gather_args(&[VimVar::LanguageId], &params)?;
+                    info!("Proxy message directly to language server: {:?}", method_call);
                     Some(languageId_target)
                 };
 
@@ -151,6 +152,7 @@ impl State {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
                         self.gather_args(&[VimVar::LanguageId], &params)?;
+                    info!("Proxy message directly to language server: {:?}", notification);
                     Some(languageId_target)
                 };
 
