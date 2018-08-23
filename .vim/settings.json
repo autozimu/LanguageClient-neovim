@@ -1,3 +1,8 @@
 {
-    "rust.clippy_preference": "on"
+    "rust": {
+        "clippy_preference": "on",
+        "all_targets": false,
+        "build_on_save": true,
+        "wait_to_build": 0
+    }
 }
