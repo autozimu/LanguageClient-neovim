@@ -1025,14 +1025,6 @@ function! LanguageClient#cquery_base(...) abort
     return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
-function! LanguageClient#cquery_derived(...) abort
-    let l:params = {
-                \ 'method': '$cquery/derived',
-                \ }
-    call extend(l:params, get(a:000, 0, {}))
-    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
-endfunction
-
 function! LanguageClient#cquery_callers(...) abort
     let l:params = {
                 \ 'method': '$cquery/callers',
