@@ -98,10 +98,6 @@ function! LanguageClient_cquery_base(...)
     return call('LanguageClient#cquery_base', a:000)
 endfunction
 
-function! LanguageClient_cquery_derived(...)
-    return call('LanguageClient#cquery_derived', a:000)
-endfunction
-
 function! LanguageClient_cquery_vars(...)
     return call('LanguageClient#cquery_vars', a:000)
 endfunction
