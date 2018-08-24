@@ -906,6 +906,7 @@ impl State {
                         apply_edit: Some(true),
                         did_change_watched_files: Some(GenericCapability {
                             dynamic_registration: Some(true),
+                            hierarchical_document_symbol_support: None,
                         }),
                         ..WorkspaceClientCapabilities::default()
                     }),
@@ -1136,7 +1137,7 @@ impl State {
 
     pub fn textDocument_documentSymbol(&mut self, params: &Value) -> Result<Value> {
         self.textDocument_didChange(params)?;
-        info!("Begin {}", lsp::request::DocumentSymbol::METHOD);
+        info!("Begin {}", lsp::request::DocumentSymbolRequest::METHOD);
 
         let (buftype, languageId, filename, handle): (String, String, String, bool) = self
             .gather_args(
@@ -1155,7 +1156,7 @@ impl State {
 
         let result = self.call(
             Some(&languageId),
-            lsp::request::DocumentSymbol::METHOD,
+            lsp::request::DocumentSymbolRequest::METHOD,
             DocumentSymbolParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
@@ -1205,7 +1206,7 @@ impl State {
             }
         }
 
-        info!("End {}", lsp::request::DocumentSymbol::METHOD);
+        info!("End {}", lsp::request::DocumentSymbolRequest::METHOD);
         Ok(result)
     }
 
