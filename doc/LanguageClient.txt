@@ -383,10 +383,34 @@ Signature: LanguageClient#textDocument_implementation(...)
 Goto implementation under cursor.
 
 *LanguageClient#textDocument_rename()*
-*LanguageClient_textDocument_rename()*
-Signature: LanguageClient#textDocument_rename(...)
+Signature: LanguageClient#textDocument_rename()
+           LanguageClient#textDocument_rename({"newName": ...})
 
 Rename identifier under cursor.
+
+Accepts an optional dictionary argument, which if passed with the {newName}
+property, will rename to the provided value without prompting the user. This
+can be useful in situations where {newName} can be wholly determined from the
+existing name (e.g. capitalization, camelCase, etc).
+
+
+Example bindings combining with tpope/vim-abolish:
+>
+    " Rename - rn => rename
+    noremap <leader>rn :call LanguageClient#textDocument_rename()<CR>
+
+    " Rename - rc => rename camelCase
+    noremap <leader>rc :call LanguageClient#textDocument_rename(
+                \ {'newName': Abolish.camelcase(expand('<cword>'))})<CR>
+
+    " Rename - rs => rename snake_case
+    noremap <leader>rs :call LanguageClient#textDocument_rename(
+                \ {'newName': Abolish.snakecase(expand('<cword>'))})<CR>
+
+    " Rename - ru => rename UPPERCASE
+    noremap <leader>ru :call LanguageClient#textDocument_rename(
+                \ {'newName': Abolish.uppercase(expand('<cword>'))})<CR>
+<
 
 *LanguageClient#textDocument_documentSymbol()*
 *LanguageClient_textDocument_documentSymbol()*
