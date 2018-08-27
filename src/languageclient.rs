@@ -222,7 +222,9 @@ impl State {
         }
 
         let buffer = read_to_string(Path::new(root).join(self.settingsPath.clone()))?;
-        Ok(serde_json::from_str(&buffer)?)
+        let value = serde_json::from_str(&buffer)?;
+        let value = expand_json_path(value);
+        Ok(value)
     }
 
     fn define_signs(&mut self) -> Result<()> {

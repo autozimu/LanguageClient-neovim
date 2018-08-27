@@ -184,17 +184,8 @@ Path for language server settings.
 
 Example settings file content: >
     {
-        "rust": {
-            "clippy_preference": "on"
-        }
-    }
-
-Note: this is different from VSCode settings, which translates json path before
-passing it to language servers. The corresponding VSCode settings is >
-    {
         "rust.clippy_preference": "on"
     }
-
 
 Default: ".vim/settings.json"
 

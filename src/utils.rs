@@ -340,6 +340,61 @@ impl Combine for Value {
     }
 }
 
+/// Expand condensed json path as in VSCode.
+///
+/// e.g.,
+/// ```json
+/// {
+///   "rust.rls": true
+/// }
+/// ```
+/// will be expanded to
+/// ```json
+/// {
+///   "rust": {
+///     "rls": true
+///   }
+/// }
+/// ```
+pub fn expand_json_path(v: Value) -> Value {
+    match v {
+        Value::Object(map) => {
+            let mut v_expanded = json!({});
+            for (key, value) in map {
+                let mut v2: Value = value.clone();
+                for token in key.rsplit('.') {
+                    v2 = json!({ token: v2 });
+                }
+                v_expanded = v_expanded.combine(&v2);
+            }
+            v_expanded
+        }
+        _ => v.clone(),
+    }
+}
+
+#[test]
+fn test_expand_json_path() {
+    assert_eq!(
+        expand_json_path(json!({
+            "k": "v"
+        })),
+        json!({
+            "k": "v"
+        })
+    );
+    assert_eq!(
+        expand_json_path(json!({
+            "rust.rls": true
+        })),
+        json!({
+            "rust": {
+                "rls": true
+            }
+        })
+    );
+}
+
 pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
     let mut map = serde_json::map::Map::new();
     for arg in args {
