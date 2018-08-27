@@ -31,7 +31,9 @@ impl State {
             lsp::request::HoverRequest::METHOD => self.textDocument_hover(&params),
             REQUEST__FindLocations => self.find_locations(&params),
             lsp::request::Rename::METHOD => self.textDocument_rename(&params),
-            lsp::request::DocumentSymbolRequest::METHOD => self.textDocument_documentSymbol(&params),
+            lsp::request::DocumentSymbolRequest::METHOD => {
+                self.textDocument_documentSymbol(&params)
+            }
             lsp::request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
             lsp::request::CodeActionRequest::METHOD => self.textDocument_codeAction(&params),
             lsp::request::Completion::METHOD => self.textDocument_completion(&params),
