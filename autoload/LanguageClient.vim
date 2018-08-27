@@ -1098,4 +1098,10 @@ function! LanguageClient_contextMenu() abort
     return LanguageClient_handleContextMenuItem(l:options[l:selection - 1])
 endfunction
 
+function! LanguageClient#debugInfo(...) abort
+    let l:params = get(a:000, 0, {})
+    let l:Callback = get(a:000, 1, v:null)
+    return LanguageClient#Call('languageClient/debugInfo', l:params, l:Callback)
+endfunction
+
 let g:LanguageClient_loaded = s:Launch()

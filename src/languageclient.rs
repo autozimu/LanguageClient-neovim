@@ -2941,4 +2941,30 @@ impl State {
         info!("End {}", REQUEST__ClassFileContents);
         Ok(Value::String(content))
     }
+
+    pub fn debug_info(&mut self, params: &Value) -> Result<Value> {
+        info!("Begin {}", REQUEST__DebugInfo);
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+        let mut msg = String::new();
+        msg += &format!(
+            "Project root: {}\n",
+            self.roots.get(&languageId).cloned().unwrap_or_default()
+        );
+        msg += &format!(
+            "Language server process id: {}\n",
+            self.child_ids.get(&languageId).cloned().unwrap_or_default(),
+        );
+        msg += &format!(
+            "Language server stderr: {}\n",
+            self.serverStderr.clone().unwrap_or_default()
+        );
+        msg += &format!("Log level: {}\n", self.loggingLevel);
+        msg += &format!(
+            "Log file: {}\n",
+            self.loggingFile.clone().unwrap_or_default()
+        );
+        self.echo(&msg)?;
+        info!("End {}", REQUEST__DebugInfo);
+        Ok(json!(msg))
+    }
 }

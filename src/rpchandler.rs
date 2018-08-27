@@ -58,6 +58,7 @@ impl State {
             REQUEST__ExplainErrorAtPoint => self.languageClient_explainErrorAtPoint(&params),
             REQUEST__OmniComplete => self.languageClient_omniComplete(&params),
             REQUEST__ClassFileContents => self.java_classFileContents(&params),
+            REQUEST__DebugInfo => self.debug_info(&params),
 
             _ => {
                 let languageId_target = if languageId.is_some() {
@@ -73,7 +74,10 @@ impl State {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
                         self.gather_args(&[VimVar::LanguageId], &params)?;
-                    info!("Proxy message directly to language server: {:?}", method_call);
+                    info!(
+                        "Proxy message directly to language server: {:?}",
+                        method_call
+                    );
                     Some(languageId_target)
                 };
 
@@ -152,7 +156,10 @@ impl State {
                     // Message from vim. Proxy to language server.
                     let (languageId_target,): (String,) =
                         self.gather_args(&[VimVar::LanguageId], &params)?;
-                    info!("Proxy message directly to language server: {:?}", notification);
+                    info!(
+                        "Proxy message directly to language server: {:?}",
+                        notification
+                    );
                     Some(languageId_target)
                 };
 

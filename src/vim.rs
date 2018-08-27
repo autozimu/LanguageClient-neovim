@@ -203,10 +203,7 @@ impl State {
     where
         S: AsRef<str> + Serialize,
     {
-        if self.call::<_, u8>(None, "s:Echo", message)? != 0 {
-            bail!("return value is failure");
-        }
-        Ok(())
+        self.notify(None, "s:Echo", message)
     }
 
     pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
@@ -223,30 +220,21 @@ impl State {
     where
         S: AsRef<str> + Serialize,
     {
-        if self.call::<_, u8>(None, "s:Echomsg", message)? != 0 {
-            bail!("Failed to echomsg!");
-        }
-        Ok(())
+        self.notify(None, "s:Echomsg", message)
     }
 
     pub fn echoerr<S>(&mut self, message: S) -> Result<()>
     where
         S: AsRef<str> + Serialize,
     {
-        if self.call::<_, u8>(None, "s:Echoerr", message)? != 0 {
-            bail!("Failed to echo error!");
-        }
-        Ok(())
+        self.notify(None, "s:Echoerr", message)
     }
 
     pub fn echowarn<S>(&mut self, message: S) -> Result<()>
     where
         S: AsRef<str> + Serialize,
     {
-        if self.call::<_, u8>(None, "s:Echowarn", message)? != 0 {
-            bail!("Failed to echo warning!");
-        }
-        Ok(())
+        self.notify(None, "s:Echowarn", message)
     }
 
     pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {

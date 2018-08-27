@@ -20,6 +20,7 @@ pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
 pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoint";
 pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
+pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
