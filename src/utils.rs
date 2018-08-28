@@ -351,20 +351,20 @@ impl Combine for Value {
 ///   }
 /// }
 /// ```
-pub fn expand_json_path(v: Value) -> Value {
-    match v {
+pub fn expand_json_path(value: Value) -> Value {
+    match value {
         Value::Object(map) => {
-            let mut v_expanded = json!({});
-            for (key, value) in map {
-                let mut v2: Value = value.clone();
-                for token in key.rsplit('.') {
-                    v2 = json!({ token: v2 });
+            let mut value_expanded = json!({});
+            for (k, v) in map {
+                let mut v = v;
+                for token in k.rsplit('.') {
+                    v = json!({ token: v });
                 }
-                v_expanded = v_expanded.combine(&v2);
+                value_expanded = value_expanded.combine(&v);
             }
-            v_expanded
+            value_expanded
         }
-        _ => v.clone(),
+        _ => value,
     }
 }
 
