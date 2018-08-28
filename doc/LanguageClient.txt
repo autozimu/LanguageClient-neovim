@@ -564,7 +564,7 @@ Signature: LanguageClient#explainErrorAtPoint(...)
 
 Show detailed error under cursor.
 
-LanguageClient#debugInfo
+*LanguageClient#debugInfo*
 Signature: LanguageClient#debugInfo(...)
 
 Print out debug info.
