@@ -17,9 +17,9 @@ autocmd BufRead *.ts setlocal filetype=typescript
 autocmd BufRead *.rs setlocal filetype=rust
 
 let g:LanguageClient_devel = 1
-let g:LanguageClient_loggingFile = '/tmp/LanguageClient.log'
 let g:LanguageClient_loggingLevel = 'INFO'
-let g:LanguageClient_serverStderr = '/tmp/LanguageServer.log'
+let g:LanguageClient_loggingFile = stdpath('data') . '/LanguageClient.log'
+let g:LanguageClient_serverStderr = stdpath('data') . '/LanguageServer.log'
 let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
     \ 'typescript': ['javascript-typescript-stdio'],

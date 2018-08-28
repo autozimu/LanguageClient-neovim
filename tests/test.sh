@@ -5,7 +5,7 @@ set -o xtrace
 dir=$(dirname $(dirname $(realpath $0)))
 cd $dir
 
-LOG=/tmp/LanguageClient.log
+LOG=~/.local/share/nvim/LanguageClient.log
 
 curl -fLo tests/data/.vim/autoload/plug.vim --create-dirs \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
