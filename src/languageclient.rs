@@ -221,7 +221,10 @@ impl State {
             return Ok(Value::Null);
         }
 
-        let buffer = read_to_string(Path::new(root).join(self.settingsPath.clone()))?;
+        let path = Path::new(root).join(self.settingsPath.clone());
+        let buffer = read_to_string(&path).with_context(|err| {
+            format!("Failed to read file ({}): {}", path.to_string_lossy(), err)
+        })?;
         let value = serde_json::from_str(&buffer)?;
         let value = expand_json_path(value);
         Ok(value)
@@ -2771,7 +2774,8 @@ impl State {
                     Some(ref path) => std::fs::OpenOptions::new()
                         .create(true)
                         .append(true)
-                        .open(path)?
+                        .open(path)
+                        .with_context(|err| format!("Failed to open file ({}): {}", path, err))?
                         .into(),
                     None => Stdio::null(),
                 };
