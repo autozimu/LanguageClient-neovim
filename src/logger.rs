@@ -14,9 +14,25 @@ fn create_config(path: &Option<String>, level: LevelFilter) -> Result<Config> {
 
     let mut root_builder = Root::builder();
     if let Some(path) = path {
+        // Ensure log file writable.
+        {
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path)
+                .with_context(|err| format!("Failed to open file ({}): {}", path, err))?;
+            #[allow(write_literal)]
+            writeln!(
+                f,
+                "#######\nLanguageClient {} {}\n#######",
+                env!("CARGO_PKG_VERSION"),
+                env!("GIT_HASH")
+            )?;
+        }
+
         let appender = FileAppender::builder()
             .encoder(Box::new(encoder))
-            .append(false)
             .build(path)?;
         config_builder =
             config_builder.appender(Appender::builder().build("logfile", Box::new(appender)));

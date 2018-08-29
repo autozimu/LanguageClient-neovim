@@ -22,7 +22,8 @@ extern crate log4rs;
 
 #[macro_use]
 extern crate failure;
-use failure::{err_msg, Error};
+#[allow(unused_imports)]
+use failure::{err_msg, Error, ResultExt};
 
 #[macro_use]
 extern crate maplit;
