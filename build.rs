@@ -1,9 +1,15 @@
-use std::fs::read_to_string;
-
 fn main() {
     let git_hash = option_env!("TRAVIS_COMMIT")
-        .map(|s| s.into())
-        .unwrap_or_else(|| read_to_string(".git/refs/heads/next").unwrap_or_default());
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| {
+            let stdout = std::process::Command::new("git")
+                .arg("rev-parse")
+                .arg("HEAD")
+                .output()
+                .expect("Failed to get git commit SHA")
+                .stdout;
+            String::from_utf8(stdout).expect("Failed to construct string")
+        });
 
     println!("cargo:rustc-env=GIT_HASH={}", git_hash);
 }
