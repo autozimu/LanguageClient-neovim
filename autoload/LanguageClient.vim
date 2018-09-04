@@ -709,6 +709,13 @@ function! LanguageClient#setLoggingLevel(level) abort
     return LanguageClient#Call('languageClient/setLoggingLevel', l:params, v:null)
 endfunction
 
+function! LanguageClient#setDiagnosticsList(diagnosticsList) abort
+    let l:params = {
+                \ 'diagnosticsList': a:diagnosticsList,
+                \ }
+    return LanguageClient#Call('languageClient/setDiagnosticsList', l:params, v:null)
+endfunction
+
 function! LanguageClient#registerHandlers(handlers, ...) abort
     let l:handle = a:0 > 0 ? a:1 : v:null
     return LanguageClient#Call('languageClient/registerHandlers', a:handlers, l:handle)

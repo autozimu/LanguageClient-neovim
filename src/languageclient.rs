@@ -2065,6 +2065,15 @@ impl State {
         Ok(Value::Null)
     }
 
+    pub fn languageClient_setDiagnosticsList(&mut self, params: &Value) -> Result<Value> {
+        info!("Begin {}", REQUEST__SetDiagnosticsList);
+        let (diagnosticsList,): (DiagnosticsList,) =
+            self.gather_args(&["diagnosticsList"], params)?;
+        self.diagnosticsList = diagnosticsList;
+        info!("End {}", REQUEST__SetDiagnosticsList);
+        Ok(Value::Null)
+    }
+
     pub fn languageClient_registerHandlers(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
         let handlers: HashMap<String, String> = params.clone().to_lsp()?;

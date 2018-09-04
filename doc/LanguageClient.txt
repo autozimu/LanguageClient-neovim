@@ -492,10 +492,16 @@ Execute a workspace command.
 *LanguageClient_setLoggingLevel()*
 Signature: LanguageClient#setLoggingLevel(level: String)
 
-Set the plugin logging level. By default, only errors are logged into
-/tmp/LanguageClient.log (%TMP%/LanguageClient.log for Windows).
+Set the plugin logging level.
 
-Valid logging levels are 'ERROR'(default), 'INFO', 'DEBUG'.
+Valid logging levels are 'ERROR', 'WARN'(default), 'INFO', 'DEBUG'.
+
+*LanguageClient#setDiagnosticsList()*
+Signature: LanguageClient#setDiagnosticsList(diagnosticsList: String)
+
+Set the destination of diagnostics.
+
+Valid options are 'Quickfix', 'Location', 'Disabled'.
 
 *LanguageClient#registerServerCommands()*
 *LanguageClient_registerServerCommands()*

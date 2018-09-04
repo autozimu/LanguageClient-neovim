@@ -15,6 +15,7 @@ pub const REQUEST__StartServer: &str = "languageClient/startServer";
 pub const REQUEST__RegisterServerCommands: &str = "languageClient/registerServerCommands";
 pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
 pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
+pub const REQUEST__SetDiagnosticsList: &str = "languageClient/setDiagnosticsList";
 pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
 pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
 pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";

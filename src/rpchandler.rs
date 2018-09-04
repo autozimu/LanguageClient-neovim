@@ -54,6 +54,7 @@ impl State {
             REQUEST__StartServer => self.languageClient_startServer(&params),
             REQUEST__RegisterServerCommands => self.languageClient_registerServerCommands(&params),
             REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&params),
+            REQUEST__SetDiagnosticsList => self.languageClient_setDiagnosticsList(&params),
             REQUEST__RegisterHandlers => self.languageClient_registerHandlers(&params),
             REQUEST__NCMRefresh => self.NCM_refresh(&params),
             REQUEST__NCM2OnComplete => self.NCM2_on_complete(&params),
