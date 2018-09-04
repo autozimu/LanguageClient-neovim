@@ -35,3 +35,8 @@ pre-release-replacements = [
     { file = "install.ps1", search = "version = '.*'", replace = "version = '{{version}}'" }
 ]
 pre-release-hook = ["cargo", "build"]
+
+[build.env]
+passthrough = [
+    "TRAVIS_COMMIT",
+]
