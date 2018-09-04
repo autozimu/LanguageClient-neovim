@@ -2786,7 +2786,10 @@ impl State {
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .stderr(stderr)
-                    .spawn()?;
+                    .spawn()
+                    .with_context(|err| {
+                        format!("Failed to start language server ({:?}): {}", command, err)
+                    })?;
 
                 let child_id = Some(process.id());
                 let reader = Box::new(BufReader::new(
