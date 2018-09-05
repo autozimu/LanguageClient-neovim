@@ -15,6 +15,8 @@ None.
 > release` as post action after plugin installation and update. e.g., `Plug
 > 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': 'make release'}`.
 
+> Android is not supported using the `install.sh` script.
+
 Choose steps matching your plugin manager.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
