@@ -21,7 +21,7 @@ More recordings at [Updates, screenshots & GIFs](https://github.com/autozimu/Lan
   [ncm2](https://github.com/ncm2/ncm2). Or with vim built-in `omnifunc`.
 - [Realtime diagnostics/compiler/lint message.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288732042)
 - [Rename.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731403)
-- [Hover/Get identifer info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)
+- [Hover/Get identifier info.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731665)
 - [Goto definition.](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731744)
 - Goto reference locations.
 - [Workspace/Document symbols query](https://github.com/autozimu/LanguageClient-neovim/issues/35#issuecomment-288731839).

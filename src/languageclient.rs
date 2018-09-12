@@ -2594,7 +2594,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    // Extensions by languge servers.
+    // Extensions by language servers.
     pub fn language_status(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__LanguageStatus);
         let params: LanguageStatusParams = params.clone().to_lsp()?;
