@@ -117,7 +117,9 @@ impl State {
                 self.textDocument_didChange(&params)?
             }
             lsp::notification::DidSaveTextDocument::METHOD => self.textDocument_didSave(&params)?,
-            lsp::notification::DidCloseTextDocument::METHOD => self.textDocument_didClose(&params)?,
+            lsp::notification::DidCloseTextDocument::METHOD => {
+                self.textDocument_didClose(&params)?
+            }
             lsp::notification::PublishDiagnostics::METHOD => {
                 self.textDocument_publishDiagnostics(&params)?
             }

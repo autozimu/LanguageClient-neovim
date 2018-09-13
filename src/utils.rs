@@ -65,17 +65,16 @@ pub fn get_rootPath<'a>(
         traverse_up(path, |dir| {
             dir.join(".git").exists() || dir.join(".hg").exists() || dir.join(".svn").exists()
         })
-    })
-        .or_else(|_| {
-            let parent = path
-                .parent()
-                .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
-            warn!(
-                "Unknown project type. Fallback to use dir as project root: {:?}",
-                parent
-            );
+    }).or_else(|_| {
+        let parent = path
+            .parent()
+            .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
+        warn!(
+            "Unknown project type. Fallback to use dir as project root: {:?}",
             parent
-        })
+        );
+        parent
+    })
 }
 
 fn traverse_up<F>(path: &Path, predicate: F) -> Result<&Path>
@@ -138,11 +137,13 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<Strin
         let start = lines[..std::cmp::min(start_line, lines.len())]
             .iter()
             .map(|l| l.len())
-            .fold(0, |acc, l| acc + l + 1 /*line ending*/) + start_character;
+            .fold(0, |acc, l| acc + l + 1 /*line ending*/)
+            + start_character;
         let end = lines[..std::cmp::min(end_line, lines.len())]
             .iter()
             .map(|l| l.len())
-            .fold(0, |acc, l| acc + l + 1 /*line ending*/) + end_character;
+            .fold(0, |acc, l| acc + l + 1 /*line ending*/)
+            + end_character;
         edits_by_index.push((start, end, &edit.new_text));
     }
 
@@ -162,15 +163,15 @@ fn test_apply_TextEdit() {
 0;
 }
 "#.lines()
-        .map(|l| l.to_owned())
-        .collect();
+    .map(|l| l.to_owned())
+    .collect();
 
     let expect: Vec<String> = r#"fn main() {
     0;
 }
 "#.lines()
-        .map(|l| l.to_owned())
-        .collect();
+    .map(|l| l.to_owned())
+    .collect();
 
     let edit = TextEdit {
         range: Range {
@@ -395,12 +396,12 @@ pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
     for arg in args {
         let mut tokens: Vec<_> = arg.splitn(2, '=').collect();
         tokens.reverse();
-        let key = tokens
-            .pop()
-            .ok_or_else(|| format_err!("Failed to parse command arguments! tokens: {:?}", tokens))?;
-        let value = tokens
-            .pop()
-            .ok_or_else(|| format_err!("Failed to parse command arguments! tokens: {:?}", tokens))?;
+        let key = tokens.pop().ok_or_else(|| {
+            format_err!("Failed to parse command arguments! tokens: {:?}", tokens)
+        })?;
+        let value = tokens.pop().ok_or_else(|| {
+            format_err!("Failed to parse command arguments! tokens: {:?}", tokens)
+        })?;
         let value = Value::String(value.to_owned());
         map.insert(key.to_owned(), value);
     }

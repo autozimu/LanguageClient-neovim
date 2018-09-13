@@ -4,7 +4,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum LCError {
-    #[fail(display = "Language server is not running for: {}", languageId)]
+    #[fail(
+        display = "Language server is not running for: {}",
+        languageId
+    )]
     NoLanguageServer { languageId: String },
 }
 
@@ -357,11 +360,11 @@ impl Sign {
 
     fn get_id(line: u64, severity: Option<DiagnosticSeverity>) -> u64 {
         let base_id = 75_000;
-        base_id + (line - 1) * 4
-            + severity
-                .unwrap_or(DiagnosticSeverity::Hint)
-                .to_int()
-                .unwrap_or(4) - 1
+        base_id + (line - 1) * 4 + severity
+            .unwrap_or(DiagnosticSeverity::Hint)
+            .to_int()
+            .unwrap_or(4)
+            - 1
     }
 }
 

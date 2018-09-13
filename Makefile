@@ -10,7 +10,7 @@ fmt:
 	cargo fmt
 
 clippy:
-	cargo +nightly clippy
+	cargo clippy
 
 vint:
 	vint autoload plugin

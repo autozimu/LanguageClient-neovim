@@ -21,7 +21,7 @@ going to be used to start language server. See |LanguageClient_serverCommands|
 for detail. Here is a simple example config: >
 
     let g:LanguageClient_serverCommands = {
-        \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
+        \ 'rust': ['rustup', 'run', 'stable', 'rls'],
         \ }
 
 After that, open a file with one of the above filetypes, functionalities
@@ -60,10 +60,10 @@ String to list map. Defines commands to start language server for specific
 filetype. For example: >
 
     let g:LanguageClient_serverCommands = {
-        \ 'rust': ['rustup', 'run', 'nightly', 'rls'],
+        \ 'rust': ['rustup', 'run', 'stable', 'rls'],
         \ }
 
-In the example above, 'run', 'nightly', and 'rls' are arguments to the
+In the example above, 'run', 'stable', and 'rls' are arguments to the
 'rustup' command line tool.
 
 Or tcp connection string to the server, >
