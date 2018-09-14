@@ -79,6 +79,12 @@ pub enum Call {
     Notification(Option<String>, rpc::Notification),
 }
 
+#[derive(Clone, Copy, Serialize)]
+pub struct HighlightSource {
+    pub buffer: u64,
+    pub source: u64,
+}
+
 #[derive(Serialize)]
 pub struct State {
     // Program state.
@@ -109,7 +115,7 @@ pub struct State {
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
-    pub document_highlight_source: Option<u64>,
+    pub document_highlight_source: Option<HighlightSource>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, notify::RecommendedWatcher>,
