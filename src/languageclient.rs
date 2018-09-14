@@ -331,19 +331,26 @@ impl State {
                     })
                 }).collect::<Result<Vec<_>>>()?;
 
-            let source = if let Some(source) = self.document_highlight_source {
-                source
-            } else {
-                let source = self.call(
-                    None,
-                    "nvim_buf_add_highlight",
-                    json!([0, 0, "Error", 1, 1, 1]),
-                )?;
-                self.document_highlight_source = Some(source);
-                source
-            };
+            let HighlightSource { buffer, source } =
+                if let Some(highlight_source) = self.document_highlight_source {
+                    highlight_source
+                } else {
+                    let buffer = self.call(None, "nvim_win_get_buf", json!([0]))?;
+                    let source = self.call(
+                        None,
+                        "nvim_buf_add_highlight",
+                        json!([buffer, 0, "Error", 1, 1, 1]),
+                    )?;
+                    let highlight_source = HighlightSource { buffer, source };
+                    self.document_highlight_source = Some(highlight_source);
+                    highlight_source
+                };
 
-            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
+            self.notify(
+                None,
+                "nvim_buf_clear_highlight",
+                json!([buffer, source, 0, -1]),
+            )?;
             self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
         }
 
@@ -354,8 +361,12 @@ impl State {
     pub fn languageClient_clearDocumentHighlight(&mut self, _: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
 
-        if let Some(source) = self.document_highlight_source.take() {
-            self.notify(None, "nvim_buf_clear_highlight", json!([0, source, 0, -1]))?;
+        if let Some(HighlightSource { buffer, source }) = self.document_highlight_source.take() {
+            self.notify(
+                None,
+                "nvim_buf_clear_highlight",
+                json!([buffer, source, 0, -1]),
+            )?;
         }
 
         info!("End {}", NOTIFICATION__ClearDocumentHighlight);
