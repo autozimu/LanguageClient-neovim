@@ -1286,8 +1286,7 @@ impl State {
     }
 
     pub fn textDocument_completion(&mut self, params: &Value) -> Result<Value> {
-        // Vim will change buffer content temporarily when executing omnifunc (?).
-        // self.textDocument_didChange(params)?;
+        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
 
         let (buftype, languageId, filename, line, character, handle): (
