@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Into;
-use std::env;
 use std::fmt::Debug;
 use std::fs::{read_to_string, File};
 use std::io::prelude::*;
@@ -15,6 +14,8 @@ use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 use std::time::{Duration, Instant};
+
+extern crate dirs;
 
 #[macro_use]
 extern crate log;

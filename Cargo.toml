@@ -6,6 +6,7 @@ description = "Language Server Protocol (LSP) support for vim and neovim"
 publish = false
 
 [dependencies]
+dirs = "1.0.3"
 failure = "0"
 log = "0.4"
 log4rs = "0"

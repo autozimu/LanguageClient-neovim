@@ -834,7 +834,10 @@ impl State {
         cmd += bufname;
         self.command(cmd)?;
 
-        if self.get(|state| Ok(state.is_nvim))? {
+        if self.update(|state| {
+            state.preview_opening = true;
+            Ok(state.is_nvim)
+        })? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
             self.call::<_, Option<u8>>(
                 None,
@@ -2233,6 +2236,13 @@ impl State {
 
     pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
+        if self.update(|state| {
+            let need_close = state.preview_opening;
+            state.preview_opening = false;
+            Ok(need_close)
+        })? {
+            let _ = self.command(String::from("pc"));
+        }
         let (buftype, filename, line): (String, String, u64) =
             self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
         let (visible_line_start, visible_line_end): (u64, u64) = self.gather_args(
@@ -2768,7 +2778,7 @@ impl State {
                 let writer = Box::new(BufWriter::new(stream));
                 (None, reader, writer)
             } else {
-                let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
+                let home = dirs::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
                 let command: Vec<_> = command
                     .into_iter()
                     .map(|cmd| {

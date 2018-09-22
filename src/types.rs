@@ -123,6 +123,7 @@ pub struct State {
     pub watcher_rxs: HashMap<String, Receiver<notify::DebouncedEvent>>,
 
     pub is_nvim: bool,
+    pub preview_opening: bool,
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_codeAction_commands: Vec<Command>,
@@ -187,6 +188,7 @@ impl State {
             watcher_rxs: HashMap::new(),
 
             is_nvim: false,
+            preview_opening: false,
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_codeAction_commands: vec![],
