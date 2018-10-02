@@ -44,6 +44,11 @@ Plug 'junegunn/fzf'
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 ```
 
+`install.sh` will attempt to download prebuilt binaries first if available for
+your platform. To force building from source, make sure a rust toolchain is
+installed, and change the `'do'` option to `'make release'` instead of `'bash
+install.sh'`.
+
 Example configuration
 
 ```vim
