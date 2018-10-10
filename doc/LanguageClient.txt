@@ -632,14 +632,16 @@ Please report all bugs at https://github.com/autozimu/LanguageClient-neovim/issu
 
 If you believe you've find a bug in this plugin, please first try to help
 narrow down where the error happens, which will reduce bug fix time/effort
-tremendously.
+significantly.
+
+Experiment with VS Code plugin if the language server has one.
 
 Try increasing logging level to 'INFO' or 'DEBUG' using the
 |LanguageClient_setLoggingLevel| function, and check the log file.
 
 There is also an utility script in: >
 
-    $RUNTIME/rplugin/python3/LanguageClient/wrapper.sh
+    $RUNTIME/tests/wrapper-server.sh
 
 which can work like a proxy and logs all stdin and stdout of the language
 server into a log file.
