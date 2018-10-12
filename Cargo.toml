@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 failure = "0"
-log = "0.4"
+log = "0"
 log4rs = "0"
 structopt = "0"
 maplit = "1"

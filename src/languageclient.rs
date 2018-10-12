@@ -257,8 +257,20 @@ impl State {
             self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
 
         if let Some(ref changes) = edit.document_changes {
-            for e in changes {
-                self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
+            match changes {
+                DocumentChanges::Edits(ref changes) => {
+                    for e in changes {
+                        self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
+                    }
+                }
+                DocumentChanges::Operations(ref ops) => {
+                    for op in ops {
+                        if let DocumentChangeOperation::Edit(ref e) = op {
+                            self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
+                        }
+                        // TODO: handle ResourceOp.
+                    }
+                }
             }
         }
         if let Some(ref changes) = edit.changes {
@@ -916,13 +928,13 @@ impl State {
                         apply_edit: Some(true),
                         did_change_watched_files: Some(GenericCapability {
                             dynamic_registration: Some(true),
-                            hierarchical_document_symbol_support: None,
                         }),
                         ..WorkspaceClientCapabilities::default()
                     }),
                     ..ClientCapabilities::default()
                 },
                 trace,
+                workspace_folders: None,
             },
         )?;
 
@@ -1270,7 +1282,10 @@ impl State {
                     start: Position { line, character },
                     end: Position { line, character },
                 },
-                context: CodeActionContext { diagnostics },
+                context: CodeActionContext {
+                    diagnostics,
+                    only: None,
+                },
             },
         )?;
 
