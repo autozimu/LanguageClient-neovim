@@ -343,20 +343,40 @@ impl State {
                     })
                 }).collect::<Result<Vec<_>>>()?;
 
-            let HighlightSource { buffer, source } =
-                if let Some(highlight_source) = self.document_highlight_source {
-                    highlight_source
+            let buffer = self.call(None, "nvim_win_get_buf", json!([0]))?;
+
+            let source = if let Some(hs) = self.document_highlight_source {
+                if hs.buffer == buffer {
+                    // If we want to highlight in the same buffer as last time, we can reuse
+                    // the previous source.
+                    Some(hs.source)
                 } else {
-                    let buffer = self.call(None, "nvim_win_get_buf", json!([0]))?;
+                    // Clear the highlight in the previous buffer.
+                    self.notify(
+                        None,
+                        "nvim_buf_clear_highlight",
+                        json!([hs.buffer, hs.source, 0, -1]),
+                    )?;
+
+                    None
+                }
+            } else {
+                None
+            };
+
+            let source = match source {
+                Some(source) => source,
+                None => {
+                    // Create a new source.
                     let source = self.call(
                         None,
                         "nvim_buf_add_highlight",
                         json!([buffer, 0, "Error", 1, 1, 1]),
                     )?;
-                    let highlight_source = HighlightSource { buffer, source };
-                    self.document_highlight_source = Some(highlight_source);
-                    highlight_source
-                };
+                    self.document_highlight_source = Some(HighlightSource { buffer, source });
+                    source
+                }
+            };
 
             self.notify(
                 None,
