@@ -599,7 +599,7 @@ impl VimCompleteItem {
             abbr,
             icase: Some(1),
             dup: Some(1),
-            menu: lspitem.detail.clone().unwrap_or_default(),
+            menu: lspitem.detail.clone().unwrap_or_default().replace("\n"," "),
             info,
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
             snippet,
