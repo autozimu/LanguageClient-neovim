@@ -38,14 +38,12 @@ integration-test: build integration-test-lint
 	tests/test.sh
 
 integration-test-docker:
-	docker image pull autozimu/languageclientneovim
 	docker run --volume ${CURDIR}:/root/.config/nvim autozimu/languageclientneovim bash -c "\
 		export CARGO_TARGET_DIR=/tmp && \
 		cd /root/.config/nvim && \
 		make integration-test"
 
 integration-test-docker-debug:
-	docker image pull autozimu/languageclientneovim
 	docker run --interactive --tty --volume ${CURDIR}:/root/.config/nvim autozimu/languageclientneovim
 
 cleanup-binary-tags:
