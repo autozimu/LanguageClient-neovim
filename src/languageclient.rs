@@ -1,6 +1,7 @@
 use super::*;
-use lsp::notification::Notification;
-use lsp::request::Request;
+use crate::lsp::notification::Notification;
+use crate::lsp::request::GotoDefinitionResponse;
+use crate::lsp::request::Request;
 
 impl State {
     /////// Utils ///////

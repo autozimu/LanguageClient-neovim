@@ -1,4 +1,4 @@
-FROM rust:1.27-slim
+FROM rust:1.30-slim
 
 RUN apt-get update \
         && apt-get install --yes curl git neovim python3-pip python3-pytest mypy flake8 \

@@ -20,28 +20,27 @@ use std::time::{Duration, Instant};
 extern crate log;
 extern crate log4rs;
 
-#[macro_use]
 extern crate failure;
+use failure::{bail, format_err, Fail};
 #[allow(unused_imports)]
 use failure::{err_msg, Error, ResultExt};
 
-#[macro_use]
 extern crate maplit;
+use maplit::hashmap;
 
 extern crate serde;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate serde_json;
+use serde_json::json;
 
 extern crate jsonrpc_core as rpc;
-use rpc::{Params, Value};
+use crate::rpc::{Params, Value};
 
 extern crate languageserver_types as lsp;
-use lsp::request::GotoDefinitionResponse;
-use lsp::*;
+use crate::lsp::*;
 
 extern crate url;
 use url::Url;
@@ -58,14 +57,13 @@ extern crate notify;
 #[allow(unused_imports)]
 use notify::Watcher;
 
-#[macro_use]
 extern crate structopt;
 use structopt::StructOpt;
 
 mod types;
-use types::*;
+use crate::types::*;
 mod utils;
-use utils::*;
+use crate::utils::*;
 mod languageclient;
 mod logger;
 mod rpchandler;

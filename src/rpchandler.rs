@@ -1,6 +1,6 @@
 use super::*;
-use lsp::notification::Notification;
-use lsp::request::Request;
+use crate::lsp::notification::Notification;
+use crate::lsp::request::Request;
 
 impl State {
     pub fn handle_method_call(
