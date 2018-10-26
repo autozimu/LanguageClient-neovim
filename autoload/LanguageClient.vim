@@ -767,7 +767,7 @@ function! LanguageClient#handleBufReadPost() abort
 endfunction
 
 function! LanguageClient#handleTextChanged() abort
-    if &buftype !=# '' || &filetype ==# ''
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
         return
     endif
 
