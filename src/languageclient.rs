@@ -1871,6 +1871,10 @@ impl State {
         if !buftype.is_empty() || languageId.is_empty() {
             return Ok(());
         }
+        if !self.serverCommands.contains_key(&languageId) {
+            return Ok(());
+        }
+
         let uri = filename.to_url()?;
 
         self.notify(
@@ -2217,14 +2221,19 @@ impl State {
 
     pub fn languageClient_handleTextChanged(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
-        let (buftype, filename): (String, String) =
-            self.gather_args(&[VimVar::Buftype, VimVar::Filename], params)?;
+        let (buftype, languageId, filename): (String, String, String) =
+            self.gather_args(&[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename], params)?;
         if !buftype.is_empty() {
             info!(
                 "Skip handleTextChanged as buftype is non-empty: {}",
                 buftype
             );
+            return Ok(());
         }
+        if !self.serverCommands.contains_key(&languageId) {
+            return Ok(());
+        }
+
         let skip_notification = self.get(|state| {
             if let Some(metadata) = state.text_documents_metadata.get(&filename) {
                 if let Some(throttle) = state.change_throttle {
@@ -2254,7 +2263,11 @@ impl State {
 
     pub fn languageClient_handleBufDelete(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
-        let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
+        let (languageId, filename): (String, String) = self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
+        if !self.serverCommands.contains_key(&languageId) {
+            return Ok(());
+        }
+
         self.update(|state| {
             state.text_documents.retain(|f, _| f != &filename);
             state.diagnostics.retain(|f, _| f != &filename);
@@ -2269,8 +2282,12 @@ impl State {
 
     pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (buftype, filename, line): (String, String, u64) =
-            self.gather_args(&[VimVar::Buftype, VimVar::Filename, VimVar::Line], params)?;
+        let (buftype, languageId, filename, line): (String, String, String, u64) =
+            self.gather_args(&[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename, VimVar::Line], params)?;
+        if !self.serverCommands.contains_key(&languageId) {
+            return Ok(());
+        }
+
         let (visible_line_start, visible_line_end): (u64, u64) = self.gather_args(
             &["LSP#visible_line_start()", "LSP#visible_line_end()"],
             params,
