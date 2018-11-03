@@ -832,7 +832,6 @@ impl ToUsize for u64 {
 
 #[derive(Debug, PartialEq)]
 pub enum VimVar {
-    Buftype,
     LanguageId,
     Filename,
     Line,
@@ -853,7 +852,6 @@ pub trait VimExp {
 impl VimExp for VimVar {
     fn to_key(&self) -> String {
         match *self {
-            VimVar::Buftype => "buftype",
             VimVar::LanguageId => "languageId",
             VimVar::Filename => "filename",
             VimVar::Line => "line",
@@ -869,7 +867,6 @@ impl VimExp for VimVar {
 
     fn to_exp(&self) -> String {
         match *self {
-            VimVar::Buftype => "&buftype",
             VimVar::LanguageId => "&filetype",
             VimVar::Filename => "LSP#filename()",
             VimVar::Line => "LSP#line()",

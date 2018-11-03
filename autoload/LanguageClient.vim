@@ -400,6 +400,11 @@ function! s:Launch() abort
 endfunction
 
 function! LanguageClient#Write(message) abort
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+        s:Debug('Skip sending message')
+        return
+    endif
+
     let l:message = a:message . "\n"
     if has('nvim')
         " jobsend respond 1 for success.
@@ -727,10 +732,6 @@ function! LanguageClient_runSync(fn, ...) abort
 endfunction
 
 function! LanguageClient#handleBufNewFile() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufNewFile', {
                     \ 'filename': LSP#filename(),
@@ -741,10 +742,6 @@ function! LanguageClient#handleBufNewFile() abort
 endfunction
 
 function! LanguageClient#handleBufReadPost() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufReadPost', {
                     \ 'filename': LSP#filename(),
@@ -770,10 +767,6 @@ function! LanguageClient#handleTextChanged() abort
 endfunction
 
 function! LanguageClient#handleBufWritePost() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufWritePost', {
                     \ 'filename': LSP#filename(),
@@ -784,10 +777,6 @@ function! LanguageClient#handleBufWritePost() abort
 endfunction
 
 function! LanguageClient#handleBufDelete() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufDelete', {
                     \ 'filename': LSP#filename(),
@@ -804,10 +793,6 @@ function! LanguageClient#handleCursorMoved() abort
         return
     endif
     let s:last_cursor_line = l:cursor_line
-
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
 
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
@@ -874,10 +859,6 @@ function! LanguageClient_NCM2OnComplete(context) abort
 endfunction
 
 function! LanguageClient#explainErrorAtPoint(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'buftype': &buftype,
@@ -948,10 +929,6 @@ function! LanguageClient#complete(findstart, base) abort
 endfunction
 
 function! LanguageClient#textDocument_signatureHelp(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'line': LSP#line(),
@@ -964,10 +941,6 @@ function! LanguageClient#textDocument_signatureHelp(...) abort
 endfunction
 
 function! LanguageClient#workspace_applyEdit(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'edit': {},
                 \ }
@@ -977,10 +950,6 @@ function! LanguageClient#workspace_applyEdit(...) abort
 endfunction
 
 function! LanguageClient#workspace_executeCommand(command, ...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'command': a:command,
                 \ 'arguments': get(a:000, 0, v:null),
@@ -1041,10 +1010,6 @@ function! LanguageClient#cquery_vars(...) abort
 endfunction
 
 function! LanguageClient#java_classFileContent(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
     return LanguageClient#Call('java/classFileContent', l:params, l:Callback)
