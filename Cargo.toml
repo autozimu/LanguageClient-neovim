@@ -11,7 +11,6 @@ log = "0.4"
 log4rs = "0"
 structopt = "0"
 maplit = "1"
-
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
@@ -24,6 +23,7 @@ diff = "0"
 regex = "1"
 glob = "0"
 notify = "4"
+shellexpand = "1"
 
 [package.metadata.release]
 no-dev-version = true

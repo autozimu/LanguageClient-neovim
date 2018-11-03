@@ -2671,14 +2671,13 @@ impl State {
                 let writer = Box::new(BufWriter::new(stream));
                 (None, reader, writer)
             } else {
-                let home = env::home_dir().ok_or_else(|| err_msg("Failed to get home dir"))?;
                 let command: Vec<_> = command
                     .into_iter()
-                    .map(|cmd| {
-                        if cmd.starts_with('~') {
-                            cmd.replacen('~', &home.to_string_lossy(), 1)
-                        } else {
-                            cmd
+                    .map(|cmd| match shellexpand::full(&cmd) {
+                        Ok(cmd) => cmd.as_ref().into(),
+                        Err(err) => {
+                            warn!("Error expanding ({}): {}", cmd, err);
+                            cmd.clone()
                         }
                     }).collect();
 

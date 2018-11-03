@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Into;
-use std::env;
 use std::fmt::Debug;
 use std::fs::{read_to_string, File};
 use std::io::prelude::*;
@@ -59,6 +58,8 @@ use notify::Watcher;
 
 extern crate structopt;
 use structopt::StructOpt;
+
+extern crate shellexpand;
 
 mod types;
 use crate::types::*;
