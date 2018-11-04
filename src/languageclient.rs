@@ -466,10 +466,10 @@ impl State {
 
         match self.diagnosticsList {
             DiagnosticsList::Quickfix => {
-                self.setqflist(&qflist)?;
+                self.setqflist(&qflist, "r")?;
             }
             DiagnosticsList::Location => {
-                self.setloclist(&qflist)?;
+                self.setloclist(&qflist, "r")?;
             }
             DiagnosticsList::Disabled => {}
         }
@@ -680,7 +680,7 @@ impl State {
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
-                self.setqflist(&list)?;
+                self.setqflist(&list, " ")?;
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
@@ -689,7 +689,7 @@ impl State {
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
-                self.setloclist(&list)?;
+                self.setloclist(&list, " ")?;
                 self.echo("Location list updated.")?;
             }
         }
@@ -1237,13 +1237,13 @@ impl State {
             SelectionUI::Quickfix => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setqflist(&list)?;
+                self.setqflist(&list, " ")?;
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setloclist(&list)?;
+                self.setloclist(&list, " ")?;
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -1683,13 +1683,13 @@ impl State {
             SelectionUI::Quickfix => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setqflist(&list)?;
+                self.setqflist(&list, " ")?;
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setloclist(&list)?;
+                self.setloclist(&list, " ")?;
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
