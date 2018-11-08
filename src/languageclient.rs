@@ -2677,55 +2677,6 @@ impl State {
         Ok(())
     }
 
-    pub fn rustDocument_implementations(&mut self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST__RustImplementations);
-        let (buftype, languageId, filename, word, line, character, handle): (
-            String,
-            String,
-            String,
-            String,
-            u64,
-            u64,
-            bool,
-        ) = self.gather_args(
-            &[
-                VimVar::Buftype,
-                VimVar::LanguageId,
-                VimVar::Filename,
-                VimVar::Cword,
-                VimVar::Line,
-                VimVar::Character,
-                VimVar::Handle,
-            ],
-            params,
-        )?;
-        if !buftype.is_empty() || languageId.is_empty() {
-            return Ok(Value::Null);
-        }
-
-        let result = self.call(
-            Some(&languageId),
-            REQUEST__RustImplementations,
-            TextDocumentPositionParams {
-                text_document: TextDocumentIdentifier {
-                    uri: filename.to_url()?,
-                },
-                position: Position { line, character },
-            },
-        )?;
-
-        if !handle {
-            return Ok(result);
-        }
-
-        let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        let title = format!("[LC]: implementations for {}", word);
-        self.display_locations(&locations, &title)?;
-
-        info!("End {}", REQUEST__RustImplementations);
-        Ok(result)
-    }
-
     pub fn rust_handleBeginBuild(&mut self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(vec![

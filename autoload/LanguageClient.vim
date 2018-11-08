@@ -625,18 +625,6 @@ function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
     return l:result isnot v:null
 endfunction
 
-function! LanguageClient#rustDocument_implementations(...) abort
-    let l:params = {
-                \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
-                \ 'line': LSP#line(),
-                \ 'character': LSP#character(),
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:Callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('rustDocument/implementations', l:params, l:Callback)
-endfunction
-
 function! LanguageClient#textDocument_didOpen() abort
     return LanguageClient#Notify('textDocument/didOpen', {
                 \ 'filename': LSP#filename(),

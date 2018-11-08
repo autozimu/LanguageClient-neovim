@@ -38,7 +38,6 @@ pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
 pub const NOTIFICATION__ClearDocumentHighlight: &str = "languageClient/clearDocumentHighlight";
 
 // Extensions by language servers.
-pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
