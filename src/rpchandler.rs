@@ -47,7 +47,6 @@ impl State {
             lsp::request::DocumentHighlightRequest::METHOD => {
                 self.textDocument_documentHighlight(&params)
             }
-            REQUEST__RustImplementations => self.rustDocument_implementations(&params),
             // Extensions.
             REQUEST__GetState => self.languageClient_getState(&params),
             REQUEST__IsAlive => self.languageClient_isAlive(&params),
