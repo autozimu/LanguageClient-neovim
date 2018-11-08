@@ -464,12 +464,13 @@ impl State {
                     }).collect::<Vec<_>>()
             }).collect();
 
+        let title = "[LC]: diagnostics";
         match self.diagnosticsList {
             DiagnosticsList::Quickfix => {
-                self.setqflist(&qflist, "r")?;
+                self.setqflist(&qflist, "r", title)?;
             }
             DiagnosticsList::Location => {
-                self.setloclist(&qflist, "r")?;
+                self.setloclist(&qflist, "r", title)?;
             }
             DiagnosticsList::Disabled => {}
         }
@@ -631,7 +632,7 @@ impl State {
         Ok(())
     }
 
-    fn display_locations(&mut self, locations: &[Location]) -> Result<()> {
+    fn display_locations(&mut self, locations: &[Location], title: &str) -> Result<()> {
         let location_to_quickfix_entry =
             |state: &mut Self, loc: &Location| -> Result<QuickfixEntry> {
                 let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
@@ -680,7 +681,7 @@ impl State {
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
-                self.setqflist(&list, " ")?;
+                self.setqflist(&list, " ", title)?;
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
@@ -689,7 +690,7 @@ impl State {
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
                 let list = list?;
-                self.setloclist(&list, " ")?;
+                self.setloclist(&list, " ", title)?;
                 self.echo("Location list updated.")?;
             }
         }
@@ -1052,7 +1053,8 @@ impl State {
         self.textDocument_didChange(params)?;
         let (method,): (String,) = self.gather_args(&["method"], params)?;
         info!("Begin {}", method);
-        let (languageId, filename, line, character, handle, goto_cmd): (
+        let (languageId, filename, word, line, character, handle, goto_cmd): (
+            String,
             String,
             String,
             u64,
@@ -1063,6 +1065,7 @@ impl State {
             &[
                 VimVar::LanguageId,
                 VimVar::Filename,
+                VimVar::Cword,
                 VimVar::Line,
                 VimVar::Character,
                 VimVar::Handle,
@@ -1109,7 +1112,10 @@ impl State {
                         loc.range.start.character + 1
                     ))?;
                 }
-                _ => self.display_locations(&arr)?,
+                _ => {
+                    let title = format!("[LC]: search for {}", word);
+                    self.display_locations(&arr, &title)?
+                },
             },
         };
 
@@ -1212,6 +1218,7 @@ impl State {
         }
 
         let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
+        let title = format!("[LC]: symbols for {}", filename);
 
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
@@ -1237,13 +1244,13 @@ impl State {
             SelectionUI::Quickfix => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setqflist(&list, " ")?;
+                self.setqflist(&list, " ", &title)?;
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setloclist(&list, " ")?;
+                self.setloclist(&list, " ", &title)?;
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -1653,6 +1660,7 @@ impl State {
         }
 
         let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
+        let title = "[LC]: workspace symbols";
 
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
@@ -1683,13 +1691,13 @@ impl State {
             SelectionUI::Quickfix => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setqflist(&list, " ")?;
+                self.setqflist(&list, " ", title)?;
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
-                self.setloclist(&list, " ")?;
+                self.setloclist(&list, " ", title)?;
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
@@ -2660,7 +2668,8 @@ impl State {
 
     pub fn rustDocument_implementations(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST__RustImplementations);
-        let (buftype, languageId, filename, line, character, handle): (
+        let (buftype, languageId, filename, word, line, character, handle): (
+            String,
             String,
             String,
             String,
@@ -2672,6 +2681,7 @@ impl State {
                 VimVar::Buftype,
                 VimVar::LanguageId,
                 VimVar::Filename,
+                VimVar::Cword,
                 VimVar::Line,
                 VimVar::Character,
                 VimVar::Handle,
@@ -2698,7 +2708,8 @@ impl State {
         }
 
         let locations: Vec<Location> = serde_json::from_value(result.clone())?;
-        self.display_locations(&locations)?;
+        let title = format!("[LC]: implementations for {}", word);
+        self.display_locations(&locations, &title)?;
 
         info!("End {}", REQUEST__RustImplementations);
         Ok(result)
