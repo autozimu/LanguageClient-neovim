@@ -681,6 +681,7 @@ impl State {
                     .collect();
                 let list = list?;
                 self.setqflist(&list)?;
+                self.command("copen")?;
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
@@ -690,6 +691,7 @@ impl State {
                     .collect();
                 let list = list?;
                 self.setloclist(&list)?;
+                self.command("lopen")?;
                 self.echo("Location list updated.")?;
             }
         }
@@ -1238,12 +1240,14 @@ impl State {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list)?;
+                self.command("copen")?;
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list)?;
+                self.command("lopen")?;
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -1684,12 +1688,14 @@ impl State {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list)?;
+                self.command("copen")?;
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list)?;
+                self.command("lopen")?;
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
