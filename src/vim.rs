@@ -277,17 +277,25 @@ impl State {
     }
 
     pub fn setqflist(&mut self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
-        let parms = json!([list, action, title]);
+        let parms = json!([list, action]);
         if self.call::<_, u8>(None, "setqflist", parms)? != 0 {
             bail!("Failed to set quickfix list!");
+        }
+        let parms = json!([[], "a", {"title": title}]);
+        if self.call::<_, u8>(None, "setqflist", parms)? != 0 {
+            bail!("Failed to set quickfix list title!");
         }
         Ok(())
     }
 
     pub fn setloclist(&mut self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
-        let parms = json!([0, list, action, title]);
+        let parms = json!([0, list, action]);
         if self.call::<_, u8>(None, "setloclist", parms)? != 0 {
             bail!("Failed to set location list!");
+        }
+        let parms = json!([0, [], "a", {"title": title}]);
+        if self.call::<_, u8>(None, "setloclist", parms)? != 0 {
+            bail!("Failed to set location list title!");
         }
         Ok(())
     }
