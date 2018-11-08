@@ -2889,7 +2889,7 @@ impl State {
                                 "languageId": languageId_clone,
                                 "message": format!("{}", err),
                             }).to_params()
-                            .unwrap_or_default(),
+                            .unwrap_or(Params::None),
                         },
                     ));
                 }

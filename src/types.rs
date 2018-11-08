@@ -628,23 +628,23 @@ impl ToRpcError for Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Result<Option<Params>>;
+    fn to_params(self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Result<Option<Params>> {
+    fn to_params(self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
-            Value::Null => None,
+            Value::Null => Params::None,
             Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-                Some(Params::Array(vec![json_value]))
+                Params::Array(vec![json_value])
             }
-            Value::Array(vec) => Some(Params::Array(vec)),
-            Value::Object(map) => Some(Params::Map(map)),
+            Value::Array(vec) => Params::Array(vec),
+            Value::Object(map) => Params::Map(map),
         };
 
         Ok(params)
