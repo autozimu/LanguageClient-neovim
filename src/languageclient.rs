@@ -1115,7 +1115,7 @@ impl State {
                 _ => {
                     let title = format!("[LC]: search for {}", word);
                     self.display_locations(&arr, &title)?
-                },
+                }
             },
         };
 
@@ -2229,8 +2229,10 @@ impl State {
 
     pub fn languageClient_handleTextChanged(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
-        let (buftype, languageId, filename): (String, String, String) =
-            self.gather_args(&[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename], params)?;
+        let (buftype, languageId, filename): (String, String, String) = self.gather_args(
+            &[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !buftype.is_empty() {
             info!(
                 "Skip handleTextChanged as buftype is non-empty: {}",
@@ -2271,7 +2273,8 @@ impl State {
 
     pub fn languageClient_handleBufDelete(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
-        let (languageId, filename): (String, String) = self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
+        let (languageId, filename): (String, String) =
+            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         if !self.serverCommands.contains_key(&languageId) {
             return Ok(());
         }
@@ -2290,8 +2293,16 @@ impl State {
 
     pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (buftype, languageId, filename, line): (String, String, String, u64) =
-            self.gather_args(&[VimVar::Buftype, VimVar::LanguageId, VimVar::Filename, VimVar::Line], params)?;
+        let (buftype, languageId, filename, line): (String, String, String, u64) = self
+            .gather_args(
+                &[
+                    VimVar::Buftype,
+                    VimVar::LanguageId,
+                    VimVar::Filename,
+                    VimVar::Line,
+                ],
+                params,
+            )?;
         if !self.serverCommands.contains_key(&languageId) {
             return Ok(());
         }
