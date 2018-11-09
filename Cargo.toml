@@ -25,6 +25,8 @@ regex = "1"
 glob = "0"
 notify = "4"
 
+dirs = "1.0"
+
 [package.metadata.release]
 no-dev-version = true
 pre-release-replacements = [
