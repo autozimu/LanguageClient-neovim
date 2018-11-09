@@ -681,7 +681,7 @@ impl State {
                     .collect();
                 let list = list?;
                 self.setqflist(&list)?;
-                self.command("copen")?;
+                self.command("botright copen")?;
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
@@ -1240,7 +1240,7 @@ impl State {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list)?;
-                self.command("copen")?;
+                self.command("botright copen")?;
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
@@ -1688,7 +1688,7 @@ impl State {
                 let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list)?;
-                self.command("copen")?;
+                self.command("botright copen")?;
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
