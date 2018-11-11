@@ -281,7 +281,7 @@ impl State {
         if self.call::<_, u8>(None, "setqflist", parms)? != 0 {
             bail!("Failed to set quickfix list!");
         }
-        let parms = json!([[], "a", {"title": title}]);
+        let parms = json!([[], "a", { "title": title }]);
         if self.call::<_, u8>(None, "setqflist", parms)? != 0 {
             bail!("Failed to set quickfix list title!");
         }
@@ -293,7 +293,7 @@ impl State {
         if self.call::<_, u8>(None, "setloclist", parms)? != 0 {
             bail!("Failed to set location list!");
         }
-        let parms = json!([0, [], "a", {"title": title}]);
+        let parms = json!([0, [], "a", { "title": title }]);
         if self.call::<_, u8>(None, "setloclist", parms)? != 0 {
             bail!("Failed to set location list title!");
         }

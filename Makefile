@@ -1,4 +1,4 @@
-all: check build
+all: check build fmt clippy
 
 check:
 	cargo check

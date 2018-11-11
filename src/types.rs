@@ -639,9 +639,7 @@ where
 
         let params = match json_value {
             Value::Null => Params::None,
-            Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-                Params::Array(vec![json_value])
-            }
+            Value::Bool(_) | Value::Number(_) | Value::String(_) => Params::Array(vec![json_value]),
             Value::Array(vec) => Params::Array(vec),
             Value::Object(map) => Params::Map(map),
         };
