@@ -741,9 +741,9 @@ function! LanguageClient#handleBufNewFile() abort
     endtry
 endfunction
 
-function! LanguageClient#handleBufReadPost() abort
+function! LanguageClient#handleFileType() abort
     try
-        call LanguageClient#Notify('languageClient/handleBufReadPost', {
+        call LanguageClient#Notify('languageClient/handleFileType', {
                     \ 'filename': LSP#filename(),
                     \ })
     catch

@@ -615,10 +615,10 @@ Example: >
 
 This event is triggered when diagnostics changed.
 
-5.4 LanguageClientBufReadPost
-*LanguageClientBufReadPost*
+5.4 LanguageClientTextDocumentDidOpenPost
+*LanguageClientTextDocumentDidOpenPost*
 
-Triggered after BufReadPost is successfully handled by language client.
+Triggered after textDocument/didOpen notification is sent to language server.
 
 ==============================================================================
 6. License                                             *LanguageClientLicense*

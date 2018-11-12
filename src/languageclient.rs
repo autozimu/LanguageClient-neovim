@@ -1727,7 +1727,7 @@ impl State {
             "setbufvar",
             json!([filename, "LanguageClient_projectRoot", root]),
         )?;
-        self.notify(None, "s:ExecuteAutocmd", "LanguageClientBufReadPost")?;
+        self.notify(None, "s:ExecuteAutocmd", "LanguageClientTextDocumentDidOpenPost")?;
 
         info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
@@ -2102,23 +2102,17 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleBufReadPost(&mut self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION__HandleBufReadPost);
+    pub fn languageClient_handleFileType(&mut self, params: &Value) -> Result<()> {
+        info!("Begin {}", NOTIFICATION__HandleFileType);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         if filename.is_empty() {
             return Ok(());
         }
 
-        // File opened before.
-        if self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
-            info!("File is opened before.");
-            return Ok(());
-        }
-
         let filename = filename.canonicalize();
 
-        if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
+        if self.writers.contains_key(&languageId) {
             self.textDocument_didOpen(params)?;
 
             if let Some(diagnostics) = self.diagnostics.get(&filename).cloned() {
@@ -2136,7 +2130,7 @@ impl State {
             }
         }
 
-        info!("End {}", NOTIFICATION__HandleBufReadPost);
+        info!("End {}", NOTIFICATION__HandleFileType);
         Ok(())
     }
 
