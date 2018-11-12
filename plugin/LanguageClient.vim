@@ -1,3 +1,7 @@
+if !exists('g:LanguageClient_serverCommands')
+    let g:LanguageClient_serverCommands = {}
+endif
+
 function! LanguageClient_textDocument_hover(...)
     return call('LanguageClient#textDocument_hover', a:000)
 endfunction
