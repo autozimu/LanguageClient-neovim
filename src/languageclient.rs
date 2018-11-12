@@ -1727,7 +1727,11 @@ impl State {
             "setbufvar",
             json!([filename, "LanguageClient_projectRoot", root]),
         )?;
-        self.notify(None, "s:ExecuteAutocmd", "LanguageClientTextDocumentDidOpenPost")?;
+        self.notify(
+            None,
+            "s:ExecuteAutocmd",
+            "LanguageClientTextDocumentDidOpenPost",
+        )?;
 
         info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
