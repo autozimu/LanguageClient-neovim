@@ -138,12 +138,13 @@ function! s:FZF(source, sink) abort
         return
     endif
 
-    if exists('LanguageClient_fzfOptions')
-        let l:options = LanguageClient_fzfOptions
-    elseif exists('*fzf#vim#with_preview')
-        let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
-    else
-        let l:options = []
+    let l:options = s:GetVar('LanguageClient_fzfOptions')
+    if l:options is v:null
+        if exists('*fzf#vim#with_preview')
+            let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
+        else
+            let l:options = []
+        endif
     endif
     call fzf#run(fzf#wrap({
                 \ 'source': a:source,
@@ -185,6 +186,20 @@ function! s:AddHighlights(source, highlights) abort
     for hl in a:highlights
         call nvim_buf_add_highlight(0, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
     endfor
+endfunction
+
+" Get an variable value.
+" First try buffer local, then global, then default, then v:null.
+function! s:GetVar(...) abort
+    let name = a:0
+
+    if exists('b:' . name)
+        return get(b:, name)
+    elseif exists('g:' . name)
+        return get(g:, name)
+    else
+        return get(a:000, 1, v:null)
+    endif
 endfunction
 
 let s:id = 1
