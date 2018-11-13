@@ -416,7 +416,7 @@ endfunction
 
 function! LanguageClient#Write(message) abort
     if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
-        call s:Debug('Skip sending message')
+        " call s:Debug('Skip sending message')
         return
     endif
 
