@@ -10,7 +10,7 @@ jobs:
       - image: autozimu/languageclientneovim
     steps:
       - checkout
-      - run: make test && make integration-test
+      - run: make ci
   deploy:
     docker:
       - image: autozimu/rust-cross-for-macos

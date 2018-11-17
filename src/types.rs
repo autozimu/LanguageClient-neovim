@@ -26,7 +26,7 @@ pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoi
 pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
-pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
+pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
 pub const NOTIFICATION__HandleBufDelete: &str = "languageClient/handleBufDelete";
@@ -38,7 +38,6 @@ pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
 pub const NOTIFICATION__ClearDocumentHighlight: &str = "languageClient/clearDocumentHighlight";
 
 // Extensions by language servers.
-pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
@@ -628,23 +627,21 @@ impl ToRpcError for Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Result<Option<Params>>;
+    fn to_params(self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Result<Option<Params>> {
+    fn to_params(self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
-            Value::Null => None,
-            Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-                Some(Params::Array(vec![json_value]))
-            }
-            Value::Array(vec) => Some(Params::Array(vec)),
-            Value::Object(map) => Some(Params::Map(map)),
+            Value::Null => Params::None,
+            Value::Bool(_) | Value::Number(_) | Value::String(_) => Params::Array(vec![json_value]),
+            Value::Array(vec) => Params::Array(vec),
+            Value::Object(map) => Params::Map(map),
         };
 
         Ok(params)
@@ -833,7 +830,6 @@ impl ToUsize for u64 {
 
 #[derive(Debug, PartialEq)]
 pub enum VimVar {
-    Buftype,
     LanguageId,
     Filename,
     Line,
@@ -854,7 +850,6 @@ pub trait VimExp {
 impl VimExp for VimVar {
     fn to_key(&self) -> String {
         match *self {
-            VimVar::Buftype => "buftype",
             VimVar::LanguageId => "languageId",
             VimVar::Filename => "filename",
             VimVar::Line => "line",
@@ -870,7 +865,6 @@ impl VimExp for VimVar {
 
     fn to_exp(&self) -> String {
         match *self {
-            VimVar::Buftype => "&buftype",
             VimVar::LanguageId => "&filetype",
             VimVar::Filename => "LSP#filename()",
             VimVar::Line => "LSP#line()",

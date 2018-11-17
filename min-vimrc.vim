@@ -20,5 +20,5 @@ let g:LanguageClient_serverCommands = {
     \ }
 let $RUST_BACKTRACE = 1
 let g:LanguageClient_loggingLevel = 'INFO'
-let g:LanguageClient_loggingFile = stdpath('data') . '/LanguageClient.log'
-let g:LanguageClient_serverStderr = stdpath('data') . '/LanguageServer.log'
+let g:LanguageClient_loggingFile =  expand('~/.local/share/nvim/LanguageClient.log')
+let g:LanguageClient_serverStderr = expand('~/.local/share/nvim/LanguageServer.log')

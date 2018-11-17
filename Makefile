@@ -1,4 +1,9 @@
-all: check build
+all: release
+
+dev: build fmt clippy vint python-lint
+
+ci: vint python-lint test integration-test
+	cargo fmt -- --check
 
 check:
 	cargo check
@@ -27,14 +32,14 @@ bump-version:
 test:
 	cargo test
 
-integration-test-lint:
+python-lint:
 	mypy --ignore-missing-imports \
 		tests \
 		rplugin/python3/denite/source \
 		rplugin/python3/deoplete/sources
 	flake8 .
 
-integration-test: build integration-test-lint
+integration-test: build
 	tests/test.sh
 
 integration-test-docker:

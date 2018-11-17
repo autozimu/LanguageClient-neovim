@@ -47,7 +47,6 @@ impl State {
             lsp::request::DocumentHighlightRequest::METHOD => {
                 self.textDocument_documentHighlight(&params)
             }
-            REQUEST__RustImplementations => self.rustDocument_implementations(&params),
             // Extensions.
             REQUEST__GetState => self.languageClient_getState(&params),
             REQUEST__IsAlive => self.languageClient_isAlive(&params),
@@ -127,8 +126,8 @@ impl State {
             lsp::notification::ShowMessage::METHOD => self.window_showMessage(&params)?,
             lsp::notification::Exit::METHOD => self.exit(&params)?,
             // Extensions.
+            NOTIFICATION__HandleFileType => self.languageClient_handleFileType(&params)?,
             NOTIFICATION__HandleBufNewFile => self.languageClient_handleBufNewFile(&params)?,
-            NOTIFICATION__HandleBufReadPost => self.languageClient_handleBufReadPost(&params)?,
             NOTIFICATION__HandleTextChanged => self.languageClient_handleTextChanged(&params)?,
             NOTIFICATION__HandleBufWritePost => self.languageClient_handleBufWritePost(&params)?,
             NOTIFICATION__HandleBufDelete => self.languageClient_handleBufDelete(&params)?,

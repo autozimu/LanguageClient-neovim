@@ -1,7 +1,10 @@
 FROM rust:1.30-slim
 
+RUN echo 'deb http://deb.debian.org/debian stretch-backports main contrib non-free' >> /etc/apt/sources.list
+
 RUN apt-get update \
-        && apt-get install --yes curl git neovim python3-pip python3-pytest mypy flake8 \
+        && apt-get install --yes --target-release stretch-backports neovim \
+        && apt-get install --yes curl git python3-pip python3-pytest mypy flake8 \
         && pip3 install neovim vim-vint
 
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
