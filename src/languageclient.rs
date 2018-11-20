@@ -887,28 +887,11 @@ impl State {
 
     fn initialize(&mut self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp::request::Initialize::METHOD);
-        let (languageId, filename): (String, String) =
-            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
-        let (rootPath, has_snippet_support): (Option<String>, u64) = self.gather_args(
-            &[
-                ("rootPath", "v:null"),
-                ("hasSnippetSupport", "s:hasSnippetSupport()"),
-            ],
-            params,
-        )?;
-        let root = if let Some(r) = rootPath {
-            r
-        } else {
-            let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
-            let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
-                .to_string_lossy()
-                .into_owned();
-            self.echomsg_ellipsis(format!("LanguageClient project root: {}", root))?;
-            root
-        };
-        info!("Project root: {}", root);
+        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
+        let (has_snippet_support,): (u64,) =
+            self.gather_args(&[("hasSnippetSupport", "s:hasSnippetSupport()")], params)?;
         let has_snippet_support = has_snippet_support > 0;
-        self.update(|state| Ok(state.roots.insert(languageId.clone(), root.clone())))?;
+        let root = self.roots.get(&languageId).cloned().unwrap_or_default();
 
         let initialization_options = self
             .get_workspace_settings(&root)
@@ -2636,7 +2619,22 @@ impl State {
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
         let params = params.combine(&cmdparams);
-        let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], &params)?;
+        let (languageId, filename): (String, String) =
+            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], &params)?;
+        let (rootPath,): (Option<String>,) =
+            self.gather_args(&[("rootPath", "v:null")], &params)?;
+        let root = if let Some(r) = rootPath {
+            r
+        } else {
+            let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
+            let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
+                .to_string_lossy()
+                .into_owned();
+            self.echomsg_ellipsis(format!("LanguageClient project root: {}", root))?;
+            root
+        };
+        info!("Project root: {}", root);
+        self.roots.insert(languageId.clone(), root.clone());
 
         if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
             bail!(
@@ -2694,6 +2692,7 @@ impl State {
                 let process = std::process::Command::new(
                     command.get(0).ok_or_else(|| err_msg("Empty command!"))?,
                 ).args(&command[1..])
+                .current_dir(&root)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(stderr)
