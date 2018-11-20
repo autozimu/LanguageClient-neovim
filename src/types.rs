@@ -5,10 +5,15 @@ pub type Fallible<T> = failure::Fallible<T>;
 #[derive(Debug, Fail)]
 pub enum LCError {
     #[fail(
+        display = "No language server commands found for filetype: {}",
+        languageId
+    )]
+    NoServerCommands { languageId: String },
+    #[fail(
         display = "Language server is not running for: {}",
         languageId
     )]
-    NoLanguageServer { languageId: String },
+    ServerNotRunning { languageId: String },
 }
 
 // Extensions.

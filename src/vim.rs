@@ -55,7 +55,8 @@ impl State {
                 Call::MethodCall(lang_id, method_call) => {
                     let result = self.handle_method_call(lang_id.as_deref(), &method_call);
                     if let Err(ref err) = result {
-                        if err.downcast_ref::<LCError>().is_none() {
+                        error!("{:?}", err);
+                        if err.find_root_cause().downcast_ref::<LCError>().is_none() {
                             error!(
                                 "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                                 err,
@@ -94,8 +95,8 @@ impl State {
             let writer = self
                 .writers
                 .get_mut(languageId)
-                .ok_or(LCError::NoLanguageServer {
-                    languageId: languageId.to_owned(),
+                .ok_or(LCError::ServerNotRunning {
+                    languageId: languageId.into(),
                 })?;
             write!(
                 writer,

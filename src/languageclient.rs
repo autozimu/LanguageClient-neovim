@@ -2625,6 +2625,26 @@ impl State {
         let params = params.combine(&cmdparams);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], &params)?;
+
+        if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
+            bail!(
+                "Language client has already started for language {}.",
+                &languageId
+            );
+        }
+
+        self.sync_settings()?;
+
+        let command = self
+            .serverCommands
+            .get(&languageId)
+            .cloned()
+            .ok_or_else(|| {
+                Error::from(LCError::NoServerCommands {
+                    languageId: languageId.clone(),
+                })
+            })?;
+
         let (rootPath,): (Option<String>,) =
             self.gather_args(&[("rootPath", "v:null")], &params)?;
         let root = if let Some(r) = rootPath {
@@ -2639,28 +2659,6 @@ impl State {
         };
         info!("Project root: {}", root);
         self.roots.insert(languageId.clone(), root.clone());
-
-        if self.get(|state| Ok(state.writers.contains_key(&languageId)))? {
-            bail!(
-                "Language client has already started for language {}.",
-                &languageId
-            );
-        }
-
-        self.sync_settings()?;
-
-        let command = self.get(|state| {
-            state
-                .serverCommands
-                .get(&languageId)
-                .cloned()
-                .ok_or_else(|| {
-                    format_err!(
-                        "No language server command found for file type: {}.",
-                        &languageId
-                    )
-                })
-        })?;
 
         let (child_id, reader, writer): (_, Box<dyn SyncRead>, Box<dyn SyncWrite>) =
             if command.get(0).map(|c| c.starts_with("tcp://")) == Some(true) {
