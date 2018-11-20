@@ -10,7 +10,7 @@ impl State {
         &mut self,
         exps: &[E],
         map: &Value,
-    ) -> Result<T> {
+    ) -> Fallible<T> {
         let mut map = map
             .as_object()
             .cloned()
@@ -50,7 +50,7 @@ impl State {
         Ok(serde_json::from_value(Value::Array(result))?)
     }
 
-    fn sync_settings(&mut self) -> Result<()> {
+    fn sync_settings(&mut self) -> Fallible<()> {
         let (loggingFile, loggingLevel, serverStderr): (
             Option<String>,
             log::LevelFilter,
@@ -220,7 +220,7 @@ impl State {
         Ok(())
     }
 
-    fn get_workspace_settings(&self, root: &str) -> Result<Value> {
+    fn get_workspace_settings(&self, root: &str) -> Fallible<Value> {
         if !self.loadSettings {
             return Ok(Value::Null);
         }
@@ -234,7 +234,7 @@ impl State {
         Ok(value)
     }
 
-    fn define_signs(&mut self) -> Result<()> {
+    fn define_signs(&mut self) -> Fallible<()> {
         info!("Defining signs");
 
         let mut cmds = vec![];
@@ -249,7 +249,7 @@ impl State {
         Ok(())
     }
 
-    fn apply_WorkspaceEdit(&mut self, edit: &WorkspaceEdit, params: &Value) -> Result<()> {
+    fn apply_WorkspaceEdit(&mut self, edit: &WorkspaceEdit, params: &Value) -> Fallible<()> {
         debug!(
             "Begin apply WorkspaceEdit: {:?}. Params: {:?}",
             edit, params
@@ -285,7 +285,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_documentHighlight(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_documentHighlight(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentHighlightRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -342,7 +342,7 @@ impl State {
                             .clone(),
                         text: String::new(),
                     })
-                }).collect::<Result<Vec<_>>>()?;
+                }).collect::<Fallible<Vec<_>>>()?;
 
             let buffer = self.call(None, "nvim_win_get_buf", json!([0]))?;
 
@@ -391,7 +391,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Value) -> Result<()> {
+    pub fn languageClient_clearDocumentHighlight(&mut self, _: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
 
         if let Some(HighlightSource { buffer, source }) = self.document_highlight_source.take() {
@@ -406,7 +406,7 @@ impl State {
         Ok(())
     }
 
-    fn apply_TextEdits<P: AsRef<Path>>(&mut self, path: P, edits: &[TextEdit]) -> Result<()> {
+    fn apply_TextEdits<P: AsRef<Path>>(&mut self, path: P, edits: &[TextEdit]) -> Fallible<()> {
         debug!("Begin apply TextEdits: {:?}", edits);
         if edits.is_empty() {
             return Ok(());
@@ -447,7 +447,7 @@ impl State {
         Ok(())
     }
 
-    fn update_quickfixlist(&mut self) -> Result<()> {
+    fn update_quickfixlist(&mut self) -> Fallible<()> {
         let qflist: Vec<_> = self
             .diagnostics
             .iter()
@@ -478,7 +478,7 @@ impl State {
         Ok(())
     }
 
-    fn process_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+    fn process_diagnostics(&mut self, filename: &str, diagnostics: &[Diagnostic]) -> Fallible<()> {
         if !self.text_documents.contains_key(filename) {
             return Ok(());
         }
@@ -632,9 +632,9 @@ impl State {
         Ok(())
     }
 
-    fn display_locations(&mut self, locations: &[Location], title: &str) -> Result<()> {
+    fn display_locations(&mut self, locations: &[Location], title: &str) -> Fallible<()> {
         let location_to_quickfix_entry =
-            |state: &mut Self, loc: &Location| -> Result<QuickfixEntry> {
+            |state: &mut Self, loc: &Location| -> Fallible<QuickfixEntry> {
                 let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
                 let start = loc.range.start;
                 let text = state.get_line(&filename, start.line).unwrap_or_default();
@@ -652,7 +652,7 @@ impl State {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
-                let source: Result<Vec<_>> = locations
+                let source: Fallible<Vec<_>> = locations
                     .iter()
                     .map(|loc| {
                         let filename = loc.uri.filepath()?;
@@ -676,7 +676,7 @@ impl State {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Result<Vec<_>> = locations
+                let list: Fallible<Vec<_>> = locations
                     .iter()
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
@@ -685,7 +685,7 @@ impl State {
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
-                let list: Result<Vec<_>> = locations
+                let list: Fallible<Vec<_>> = locations
                     .iter()
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
@@ -697,7 +697,7 @@ impl State {
         Ok(())
     }
 
-    fn registerCMSource(&mut self, languageId: &str, result: &Value) -> Result<()> {
+    fn registerCMSource(&mut self, languageId: &str, result: &Value) -> Fallible<()> {
         info!("Begin register NCM source");
         let exists_CMRegister: u64 = self.eval("exists('g:cm_matcher')")?;
         if exists_CMRegister == 0 {
@@ -738,7 +738,7 @@ impl State {
         Ok(())
     }
 
-    fn registerNCM2Source(&mut self, languageId: &str, result: &Value) -> Result<()> {
+    fn registerNCM2Source(&mut self, languageId: &str, result: &Value) -> Fallible<()> {
         info!("Begin register NCM2 source");
         let exists_ncm2: u64 = self.eval("exists('g:ncm2_loaded')")?;
         if exists_ncm2 == 0 {
@@ -779,7 +779,7 @@ impl State {
         Ok(())
     }
 
-    fn get_line<P: AsRef<Path>>(&mut self, path: P, line: u64) -> Result<String> {
+    fn get_line<P: AsRef<Path>>(&mut self, path: P, line: u64) -> Fallible<String> {
         let value = self.call(
             None,
             "getbufline",
@@ -799,7 +799,7 @@ impl State {
         Ok(text.trim().into())
     }
 
-    fn try_handle_command_by_client(&mut self, cmd: &Command) -> Result<bool> {
+    fn try_handle_command_by_client(&mut self, cmd: &Command) -> Fallible<bool> {
         if !CommandsClient.contains(&cmd.command.as_str()) {
             return Ok(false);
         }
@@ -818,7 +818,7 @@ impl State {
         Ok(true)
     }
 
-    fn cleanup(&mut self, languageId: &str) -> Result<()> {
+    fn cleanup(&mut self, languageId: &str) -> Fallible<()> {
         info!("Begin cleanup");
 
         let root = self
@@ -857,7 +857,7 @@ impl State {
         Ok(())
     }
 
-    fn preview<S>(&mut self, lines: &[S]) -> Result<()>
+    fn preview<S>(&mut self, lines: &[S]) -> Fallible<()>
     where
         S: AsRef<str> + Serialize,
     {
@@ -885,7 +885,7 @@ impl State {
 
     /////// LSP ///////
 
-    fn initialize(&mut self, params: &Value) -> Result<Value> {
+    fn initialize(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::Initialize::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (has_snippet_support,): (u64,) =
@@ -966,7 +966,7 @@ impl State {
         Ok(result)
     }
 
-    fn initialized(&mut self, params: &Value) -> Result<()> {
+    fn initialized(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         self.notify(
@@ -978,7 +978,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_hover(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_hover(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::HoverRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -1032,7 +1032,7 @@ impl State {
     }
 
     /// Generic find locations, e.g, definitions, references.
-    pub fn find_locations(&mut self, params: &Value) -> Result<Value> {
+    pub fn find_locations(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         let (method,): (String,) = self.gather_args(&["method"], params)?;
         info!("Begin {}", method);
@@ -1106,7 +1106,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_rename(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_rename(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Rename::METHOD);
         let (languageId, filename, line, character, cword, new_name, handle): (
@@ -1162,7 +1162,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_documentSymbol(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_documentSymbol(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::DocumentSymbolRequest::METHOD);
 
@@ -1210,13 +1210,13 @@ impl State {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list, " ", &title)?;
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list, " ", &title)?;
                 self.echo("Document symbols populated to location list.")?;
@@ -1227,7 +1227,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_codeAction(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_codeAction(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -1302,7 +1302,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_completion(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_completion(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
 
@@ -1342,7 +1342,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_signatureHelp(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_signatureHelp(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::SignatureHelpRequest::METHOD);
         let (languageId, filename, line, character, handle): (
@@ -1418,7 +1418,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn textDocument_references(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_references(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::References::METHOD);
 
         let (include_declaration,): (bool,) =
@@ -1437,7 +1437,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_formatting(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_formatting(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Formatting::METHOD);
         let (languageId, filename, handle): (String, String, bool) = self.gather_args(
@@ -1478,7 +1478,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn textDocument_rangeFormatting(&mut self, params: &Value) -> Result<Value> {
+    pub fn textDocument_rangeFormatting(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::RangeFormatting::METHOD);
         let (languageId, filename, handle, start_line, end_line): (
@@ -1541,7 +1541,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn completionItem_resolve(&mut self, params: &Value) -> Result<Value> {
+    pub fn completionItem_resolve(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::ResolveCompletionItem::METHOD);
         let (languageId, handle): (String, bool) =
@@ -1568,7 +1568,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn workspace_symbol(&mut self, params: &Value) -> Result<Value> {
+    pub fn workspace_symbol(&mut self, params: &Value) -> Fallible<Value> {
         self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::WorkspaceSymbol::METHOD);
         let (languageId, handle): (String, bool) =
@@ -1591,7 +1591,7 @@ impl State {
         match self.get(|state| Ok(state.selectionUI.clone()))? {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
-                let source: Result<Vec<_>> = symbols
+                let source: Fallible<Vec<_>> = symbols
                     .iter()
                     .map(|sym| {
                         let filename = sym.location.uri.filepath()?;
@@ -1615,13 +1615,13 @@ impl State {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list, " ", title)?;
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list, " ", title)?;
                 self.echo("Workspace symbols populated to location list.")?;
@@ -1632,7 +1632,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn workspace_executeCommand(&mut self, params: &Value) -> Result<Value> {
+    pub fn workspace_executeCommand(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::ExecuteCommand::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let (command, arguments): (String, Vec<Value>) =
@@ -1647,7 +1647,7 @@ impl State {
         Ok(result)
     }
 
-    pub fn workspace_applyEdit(&mut self, params: &Value) -> Result<Value> {
+    pub fn workspace_applyEdit(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::ApplyWorkspaceEdit::METHOD);
 
         let params: ApplyWorkspaceEditParams = params.clone().to_lsp()?;
@@ -1660,7 +1660,7 @@ impl State {
         })?)
     }
 
-    pub fn workspace_didChangeConfiguration(&mut self, params: &Value) -> Result<()> {
+    pub fn workspace_didChangeConfiguration(&mut self, params: &Value) -> Fallible<()> {
         info!(
             "Begin {}",
             lsp::notification::DidChangeConfiguration::METHOD
@@ -1677,7 +1677,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didOpen(&mut self, params: &Value) -> Result<()> {
+    pub fn textDocument_didOpen(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
         let (languageId, filename, text): (String, String, Vec<String>) = self.gather_args(
             &[VimVar::LanguageId, VimVar::Filename, VimVar::Text],
@@ -1720,7 +1720,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didChange(&mut self, params: &Value) -> Result<()> {
+    pub fn textDocument_didChange(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -1785,7 +1785,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didSave(&mut self, params: &Value) -> Result<()> {
+    pub fn textDocument_didSave(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidSaveTextDocument::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -1807,7 +1807,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_didClose(&mut self, params: &Value) -> Result<()> {
+    pub fn textDocument_didClose(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidCloseTextDocument::METHOD);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -1825,7 +1825,7 @@ impl State {
         Ok(())
     }
 
-    pub fn textDocument_publishDiagnostics(&mut self, params: &Value) -> Result<()> {
+    pub fn textDocument_publishDiagnostics(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::PublishDiagnostics::METHOD);
         let params: PublishDiagnosticsParams = params.clone().to_lsp()?;
         if !self.get(|state| Ok(state.diagnosticsEnable))? {
@@ -1858,7 +1858,7 @@ impl State {
         Ok(())
     }
 
-    pub fn window_logMessage(&mut self, params: &Value) -> Result<()> {
+    pub fn window_logMessage(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::LogMessage::METHOD);
         let params: LogMessageParams = params.clone().to_lsp()?;
         let threshold = self.get(|state| state.windowLogMessageLevel.to_int())?;
@@ -1872,7 +1872,7 @@ impl State {
         Ok(())
     }
 
-    pub fn window_showMessage(&mut self, params: &Value) -> Result<()> {
+    pub fn window_showMessage(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::ShowMessage::METHOD);
         let params: ShowMessageParams = params.clone().to_lsp()?;
         let msg = format!("[{:?}] {}", params.typ, params.message);
@@ -1881,7 +1881,11 @@ impl State {
         Ok(())
     }
 
-    pub fn client_registerCapability(&mut self, languageId: &str, params: &Value) -> Result<Value> {
+    pub fn client_registerCapability(
+        &mut self,
+        languageId: &str,
+        params: &Value,
+    ) -> Fallible<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
         let params: RegistrationParams = params.clone().to_lsp()?;
         for r in &params.registrations {
@@ -1924,7 +1928,7 @@ impl State {
         &mut self,
         languageId: &str,
         params: &Value,
-    ) -> Result<Value> {
+    ) -> Fallible<Value> {
         info!("Begin {}", lsp::request::UnregisterCapability::METHOD);
         let params: UnregistrationParams = params.clone().to_lsp()?;
         let mut regs_removed = vec![];
@@ -1959,7 +1963,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn exit(&mut self, params: &Value) -> Result<()> {
+    pub fn exit(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::Exit::METHOD);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
@@ -1980,14 +1984,14 @@ impl State {
 
     /////// Extensions by this plugin ///////
 
-    pub fn languageClient_getState(&mut self, _params: &Value) -> Result<Value> {
+    pub fn languageClient_getState(&mut self, _params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__GetState);
         let s = self.get(|state| Ok(serde_json::to_string(state)?))?;
         info!("End {}", REQUEST__GetState);
         Ok(Value::String(s))
     }
 
-    pub fn languageClient_isAlive(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_isAlive(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__IsAlive);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let is_alive = self.get(|state| Ok(state.writers.contains_key(&languageId)))?;
@@ -1995,7 +1999,7 @@ impl State {
         Ok(Value::Bool(is_alive))
     }
 
-    pub fn languageClient_registerServerCommands(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_registerServerCommands(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__RegisterServerCommands);
         let commands: HashMap<String, Vec<String>> = params.clone().to_lsp()?;
         self.update(|state| {
@@ -2011,7 +2015,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_setLoggingLevel(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_setLoggingLevel(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__SetLoggingLevel);
         let (loggingLevel,): (log::LevelFilter,) = self.gather_args(&["loggingLevel"], params)?;
         logger::update_settings(&self.logger, &self.loggingFile, loggingLevel)?;
@@ -2020,7 +2024,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_setDiagnosticsList(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_setDiagnosticsList(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__SetDiagnosticsList);
         let (diagnosticsList,): (DiagnosticsList,) =
             self.gather_args(&["diagnosticsList"], params)?;
@@ -2029,7 +2033,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_registerHandlers(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_registerHandlers(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
         let handlers: HashMap<String, String> = params.clone().to_lsp()?;
         self.update(|state| {
@@ -2040,7 +2044,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_omniComplete(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_omniComplete(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__OmniComplete);
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
@@ -2061,7 +2065,7 @@ impl State {
         let (complete_position,): (Option<u64>,) =
             self.gather_args(&[("complete_position", "v:null")], params)?;
 
-        let matches: Result<Vec<VimCompleteItem>> = matches
+        let matches: Fallible<Vec<VimCompleteItem>> = matches
             .iter()
             .map(|item| VimCompleteItem::from_lsp(item, complete_position))
             .collect();
@@ -2070,7 +2074,7 @@ impl State {
         Ok(serde_json::to_value(matches)?)
     }
 
-    pub fn languageClient_handleBufNewFile(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleBufNewFile(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleBufNewFile);
         let (filename,): (String,) = self.gather_args(&[VimVar::Filename], params)?;
         if filename.is_empty() {
@@ -2089,7 +2093,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleFileType(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleFileType(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleFileType);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -2121,7 +2125,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleTextChanged(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleTextChanged(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleTextChanged);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -2149,14 +2153,14 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleBufWritePost(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleBufWritePost(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         self.textDocument_didSave(params)?;
         info!("End {}", NOTIFICATION__HandleBufWritePost);
         Ok(())
     }
 
-    pub fn languageClient_handleBufDelete(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleBufDelete(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleBufWritePost);
         let (languageId, filename): (String, String) =
             self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
@@ -2176,7 +2180,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
         let (languageId, filename, line): (String, String, u64) = self.gather_args(
             &[VimVar::LanguageId, VimVar::Filename, VimVar::Line],
@@ -2277,7 +2281,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_handleCompleteDone(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_handleCompleteDone(&mut self, params: &Value) -> Fallible<()> {
         let (filename, completed_item, line, character): (
             String,
             VimCompleteItem,
@@ -2322,7 +2326,7 @@ impl State {
         self.cursor(line + 1, character + 1)
     }
 
-    pub fn languageClient_FZFSinkLocation(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_FZFSinkLocation(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
         let params = match params {
             Value::Array(ref arr) => Value::Array(arr.clone()),
@@ -2372,7 +2376,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_FZFSinkCommand(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_FZFSinkCommand(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkCommand);
         let (selection,): (String,) = self.gather_args(&["selection"], params)?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
@@ -2414,7 +2418,7 @@ impl State {
         Ok(())
     }
 
-    pub fn NCM_refresh(&mut self, params: &Value) -> Result<Value> {
+    pub fn NCM_refresh(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__NCMRefresh);
         let params: NCMRefreshParams = serde_json::from_value(rpc::to_value(params.clone())?)?;
         let NCMRefreshParams { info, ctx } = params;
@@ -2439,7 +2443,7 @@ impl State {
             CompletionResponse::Array(_) => false,
             CompletionResponse::List(ref list) => list.is_incomplete,
         };
-        let matches: Result<Vec<VimCompleteItem>> = match result {
+        let matches: Fallible<Vec<VimCompleteItem>> = match result {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }.iter()
@@ -2455,7 +2459,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn NCM2_on_complete(&mut self, params: &Value) -> Result<Value> {
+    pub fn NCM2_on_complete(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__NCM2OnComplete);
 
         let orig_ctx: Value = serde_json::from_value(rpc::to_value(params.clone())?)?;
@@ -2484,7 +2488,7 @@ impl State {
                 CompletionResponse::List(ref list) => list.is_incomplete,
                 _ => false,
             };
-            let matches_result: Result<Vec<VimCompleteItem>> = match completion {
+            let matches_result: Fallible<Vec<VimCompleteItem>> = match completion {
                 CompletionResponse::Array(arr) => arr,
                 CompletionResponse::List(list) => list.items,
             }.iter()
@@ -2504,7 +2508,7 @@ impl State {
         result
     }
 
-    pub fn languageClient_explainErrorAtPoint(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_explainErrorAtPoint(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__ExplainErrorAtPoint);
         let (filename, line, character): (String, u64, u64) =
             self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
@@ -2535,7 +2539,7 @@ impl State {
     }
 
     // Extensions by language servers.
-    pub fn language_status(&mut self, params: &Value) -> Result<()> {
+    pub fn language_status(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__LanguageStatus);
         let params: LanguageStatusParams = params.clone().to_lsp()?;
         let msg = format!("{} {}", params.typee, params.message);
@@ -2544,7 +2548,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rust_handleBeginBuild(&mut self, _params: &Value) -> Result<()> {
+    pub fn rust_handleBeginBuild(&mut self, _params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__RustBeginBuild);
         self.command(vec![
             format!("let {}=1", VIM__ServerStatus),
@@ -2554,7 +2558,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Value) -> Result<()> {
+    pub fn rust_handleDiagnosticsBegin(&mut self, _params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsBegin);
         self.command(vec![
             format!("let {}=1", VIM__ServerStatus),
@@ -2564,7 +2568,7 @@ impl State {
         Ok(())
     }
 
-    pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Value) -> Result<()> {
+    pub fn rust_handleDiagnosticsEnd(&mut self, _params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__RustDiagnosticsEnd);
         self.command(vec![
             format!("let {}=0", VIM__ServerStatus),
@@ -2574,7 +2578,7 @@ impl State {
         Ok(())
     }
 
-    pub fn window_progress(&mut self, params: &Value) -> Result<()> {
+    pub fn window_progress(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__WindowProgress);
         let params: WindowProgressParams = params.clone().to_lsp()?;
 
@@ -2614,7 +2618,7 @@ impl State {
         Ok(())
     }
 
-    pub fn languageClient_startServer(&mut self, params: &Value) -> Result<Value> {
+    pub fn languageClient_startServer(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
@@ -2769,7 +2773,7 @@ impl State {
         Ok(Value::Null)
     }
 
-    pub fn languageClient_serverExited(&mut self, params: &Value) -> Result<()> {
+    pub fn languageClient_serverExited(&mut self, params: &Value) -> Fallible<()> {
         let (languageId, message): (String, String) = self.gather_args(
             [VimVar::LanguageId.to_key().as_str(), "message"].as_ref(),
             params,
@@ -2790,7 +2794,7 @@ impl State {
         Ok(())
     }
 
-    pub fn handle_fs_events(&mut self) -> Result<()> {
+    pub fn handle_fs_events(&mut self) -> Fallible<()> {
         let mut pending_changes = HashMap::new();
         for (languageId, watcher_rx) in &mut self.watcher_rxs {
             let mut events = vec![];
@@ -2832,7 +2836,7 @@ impl State {
         Ok(())
     }
 
-    pub fn workspace_didChangeWatchedFiles(&mut self, params: &Value) -> Result<()> {
+    pub fn workspace_didChangeWatchedFiles(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidChangeWatchedFiles::METHOD);
         let (languageId,): (String,) = self.gather_args([VimVar::LanguageId].as_ref(), params)?;
 
@@ -2847,7 +2851,7 @@ impl State {
         Ok(())
     }
 
-    pub fn java_classFileContents(&mut self, params: &Value) -> Result<Value> {
+    pub fn java_classFileContents(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__ClassFileContents);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
 
@@ -2861,7 +2865,7 @@ impl State {
         Ok(Value::String(content))
     }
 
-    pub fn debug_info(&mut self, params: &Value) -> Result<Value> {
+    pub fn debug_info(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__DebugInfo);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], params)?;
         let mut msg = String::new();

@@ -73,7 +73,7 @@ mod vim;
 #[derive(Debug, StructOpt)]
 struct Arguments {}
 
-fn main() -> Result<()> {
+fn main() -> Fallible<()> {
     let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"));
     let args = Arguments::clap().version(version.as_str());
     let _ = args.get_matches();
