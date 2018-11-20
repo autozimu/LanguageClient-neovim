@@ -191,7 +191,7 @@ endfunction
 " Get an variable value.
 " First try buffer local, then global, then default, then v:null.
 function! s:GetVar(...) abort
-    let name = a:0
+    let name = a:1
 
     if exists('b:' . name)
         return get(b:, name)

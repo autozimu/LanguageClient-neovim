@@ -104,7 +104,7 @@ impl State {
         ) = self.eval(
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
-                "get(g:, 'LanguageClient_serverCommands', {})",
+                "s:GetVar('LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', v:null)",
                 "get(g:, 'LanguageClient_trace', v:null)",
                 "expand(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json'))",
