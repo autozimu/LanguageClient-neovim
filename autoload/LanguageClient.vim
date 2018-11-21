@@ -419,11 +419,6 @@ function! s:Launch() abort
 endfunction
 
 function! LanguageClient#Write(message) abort
-    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
-        " call s:Debug('Skip sending message')
-        return
-    endif
-
     let l:message = a:message . "\n"
     if has('nvim')
         " jobsend respond 1 for success.
@@ -436,6 +431,11 @@ function! LanguageClient#Write(message) abort
 endfunction
 
 function! LanguageClient#Call(method, params, callback, ...) abort
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:id = s:id
     let s:id = s:id + 1
     if a:callback is v:null
@@ -460,6 +460,11 @@ function! LanguageClient#Call(method, params, callback, ...) abort
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:params = a:params
     if type(params) == s:TYPE.dict
         let l:params = extend({
