@@ -2650,14 +2650,13 @@ impl State {
         let root = if let Some(r) = rootPath {
             r
         } else {
-            let rootMarkers = self.get(|state| Ok(state.rootMarkers.clone()))?;
-            let root = get_rootPath(Path::new(&filename), &languageId, &rootMarkers)?
+            get_rootPath(Path::new(&filename), &languageId, &self.rootMarkers)?
                 .to_string_lossy()
-                .into_owned();
-            self.echomsg_ellipsis(format!("LanguageClient project root: {}", root))?;
-            root
+                .into()
         };
-        info!("Project root: {}", root);
+        let message = format!("Project root: {}", root);
+        self.echomsg_ellipsis(&message)?;
+        info!("{}", message);
         self.roots.insert(languageId.clone(), root.clone());
 
         let (child_id, reader, writer): (_, Box<dyn SyncRead>, Box<dyn SyncWrite>) =

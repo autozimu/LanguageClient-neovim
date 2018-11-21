@@ -9,6 +9,10 @@ let s:TYPE = {
 \   'funcref': type(function('call'))
 \ }
 
+function! s:AddPrefix(message) abort
+    return '[LC] ' . a:message
+endfunction
+
 function! s:Echo(message) abort
     echo a:message
 endfunction
@@ -37,7 +41,7 @@ endfunction
 " `echomsg` message without trigger |hit-enter|
 function! s:EchomsgEllipsis(message) abort
     " Credit: ALE, snippets from ale#cursor#TruncatedEcho()
-    let l:message = a:message
+    let l:message = s:AddPrefix(a:message)
     " Change tabs to spaces.
     let l:message = substitute(l:message, "\t", ' ', 'g')
     " Remove any newlines in the message.
@@ -64,15 +68,15 @@ function! s:EchomsgEllipsis(message) abort
 endfunction
 
 function! s:Echomsg(message) abort
-    echomsg a:message
+    echomsg s:AddPrefix(a:message)
 endfunction
 
 function! s:Echoerr(message) abort
-    echohl Error | echomsg a:message | echohl None
+    echohl Error | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
 function! s:Echowarn(message) abort
-    echohl WarningMsg | echomsg a:message | echohl None
+    echohl WarningMsg | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
 function! s:Debug(message) abort
