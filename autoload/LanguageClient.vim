@@ -9,6 +9,10 @@ let s:TYPE = {
 \   'funcref': type(function('call'))
 \ }
 
+function! s:AddPrefix(message) abort
+    return '[LC] ' . a:message
+endfunction
+
 function! s:Echo(message) abort
     echo a:message
 endfunction
@@ -37,7 +41,7 @@ endfunction
 " `echomsg` message without trigger |hit-enter|
 function! s:EchomsgEllipsis(message) abort
     " Credit: ALE, snippets from ale#cursor#TruncatedEcho()
-    let l:message = a:message
+    let l:message = s:AddPrefix(a:message)
     " Change tabs to spaces.
     let l:message = substitute(l:message, "\t", ' ', 'g')
     " Remove any newlines in the message.
@@ -64,15 +68,15 @@ function! s:EchomsgEllipsis(message) abort
 endfunction
 
 function! s:Echomsg(message) abort
-    echomsg a:message
+    echomsg s:AddPrefix(a:message)
 endfunction
 
 function! s:Echoerr(message) abort
-    echohl Error | echomsg a:message | echohl None
+    echohl Error | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
 function! s:Echowarn(message) abort
-    echohl WarningMsg | echomsg a:message | echohl None
+    echohl WarningMsg | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
 function! s:Debug(message) abort
@@ -191,7 +195,7 @@ endfunction
 " Get an variable value.
 " First try buffer local, then global, then default, then v:null.
 function! s:GetVar(...) abort
-    let name = a:0
+    let name = a:1
 
     if exists('b:' . name)
         return get(b:, name)
@@ -415,11 +419,6 @@ function! s:Launch() abort
 endfunction
 
 function! LanguageClient#Write(message) abort
-    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
-        " call s:Debug('Skip sending message')
-        return
-    endif
-
     let l:message = a:message . "\n"
     if has('nvim')
         " jobsend respond 1 for success.
@@ -432,6 +431,11 @@ function! LanguageClient#Write(message) abort
 endfunction
 
 function! LanguageClient#Call(method, params, callback, ...) abort
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:id = s:id
     let s:id = s:id + 1
     if a:callback is v:null
@@ -456,6 +460,11 @@ function! LanguageClient#Call(method, params, callback, ...) abort
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:params = a:params
     if type(params) == s:TYPE.dict
         let l:params = extend({

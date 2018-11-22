@@ -1,6 +1,6 @@
 all: release
 
-dev: build fmt clippy vint python-lint
+dev: build fmt clippy vint
 
 ci: vint python-lint test integration-test
 	cargo fmt -- --check

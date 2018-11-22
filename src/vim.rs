@@ -1,7 +1,7 @@
 use super::*;
 
 impl State {
-    fn poll_call(&mut self) -> Result<Call> {
+    fn poll_call(&mut self) -> Fallible<Call> {
         if let Some(msg) = self.pending_calls.pop_front() {
             return Ok(msg);
         }
@@ -23,7 +23,7 @@ impl State {
         }
     }
 
-    fn poll_output(&mut self, id: Id) -> Result<rpc::Output> {
+    fn poll_output(&mut self, id: Id) -> Fallible<rpc::Output> {
         if let Some(output) = self.pending_outputs.remove(&id) {
             return Ok(output);
         }
@@ -49,13 +49,14 @@ impl State {
         }
     }
 
-    pub fn loop_message(&mut self) -> Result<()> {
+    pub fn loop_message(&mut self) -> Fallible<()> {
         loop {
             match self.poll_call()? {
                 Call::MethodCall(lang_id, method_call) => {
                     let result = self.handle_method_call(lang_id.as_deref(), &method_call);
                     if let Err(ref err) = result {
-                        if err.downcast_ref::<LCError>().is_none() {
+                        error!("{:?}", err);
+                        if err.find_root_cause().downcast_ref::<LCError>().is_none() {
                             error!(
                                 "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                                 err,
@@ -88,14 +89,14 @@ impl State {
     }
 
     /// Send message to RPC server.
-    fn write(&mut self, languageId: Option<&str>, message: &str) -> Result<()> {
+    fn write(&mut self, languageId: Option<&str>, message: &str) -> Fallible<()> {
         info!("=> {:?} {}", languageId, message);
         if let Some(languageId) = languageId {
             let writer = self
                 .writers
                 .get_mut(languageId)
-                .ok_or(LCError::NoLanguageServer {
-                    languageId: languageId.to_owned(),
+                .ok_or(LCError::ServerNotRunning {
+                    languageId: languageId.into(),
                 })?;
             write!(
                 writer,
@@ -112,7 +113,7 @@ impl State {
     }
 
     /// RPC method call.
-    pub fn call<P, V>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Result<V>
+    pub fn call<P, V>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Fallible<V>
     where
         P: Serialize,
         V: DeserializeOwned,
@@ -137,7 +138,7 @@ impl State {
     }
 
     /// RPC notification.
-    pub fn notify<P>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Result<()>
+    pub fn notify<P>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Fallible<()>
     where
         P: Serialize,
     {
@@ -158,8 +159,8 @@ impl State {
         &mut self,
         languageId: Option<&str>,
         id: rpc::Id,
-        result: Result<Value>,
-    ) -> Result<()> {
+        result: Fallible<Value>,
+    ) -> Fallible<()> {
         let response = match result {
             Ok(ok) => rpc::Output::Success(rpc::Success {
                 jsonrpc: Some(rpc::Version::V2),
@@ -181,7 +182,7 @@ impl State {
     /////// Vim wrappers ///////
 
     #[allow(needless_pass_by_value)]
-    pub fn eval<E, T>(&mut self, exp: E) -> Result<T>
+    pub fn eval<E, T>(&mut self, exp: E) -> Fallible<T>
     where
         E: VimExp,
         T: DeserializeOwned,
@@ -190,7 +191,7 @@ impl State {
         Ok(serde_json::from_value(result)?)
     }
 
-    pub fn command<P: Serialize + Debug>(&mut self, cmds: P) -> Result<()> {
+    pub fn command<P: Serialize + Debug>(&mut self, cmds: P) -> Fallible<()> {
         if self.call::<_, u8>(None, "execute", &cmds)? != 0 {
             bail!("Failed to execute command: {:?}", cmds);
         }
@@ -199,56 +200,56 @@ impl State {
 
     ////// Vim builtin function wrappers ///////
 
-    pub fn echo<S>(&mut self, message: S) -> Result<()>
+    pub fn echo<S>(&mut self, message: S) -> Fallible<()>
     where
         S: AsRef<str> + Serialize,
     {
         self.notify(None, "s:Echo", message)
     }
 
-    pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
+    pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Fallible<()> {
         let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
         self.notify(None, "s:EchoEllipsis", message)
     }
 
-    pub fn echomsg_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
+    pub fn echomsg_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Fallible<()> {
         let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
         self.notify(None, "s:EchomsgEllipsis", message)
     }
 
-    pub fn echomsg<S>(&mut self, message: S) -> Result<()>
+    pub fn echomsg<S>(&mut self, message: S) -> Fallible<()>
     where
         S: AsRef<str> + Serialize,
     {
         self.notify(None, "s:Echomsg", message)
     }
 
-    pub fn echoerr<S>(&mut self, message: S) -> Result<()>
+    pub fn echoerr<S>(&mut self, message: S) -> Fallible<()>
     where
         S: AsRef<str> + Serialize,
     {
         self.notify(None, "s:Echoerr", message)
     }
 
-    pub fn echowarn<S>(&mut self, message: S) -> Result<()>
+    pub fn echowarn<S>(&mut self, message: S) -> Fallible<()>
     where
         S: AsRef<str> + Serialize,
     {
         self.notify(None, "s:Echowarn", message)
     }
 
-    pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
+    pub fn cursor(&mut self, lnum: u64, col: u64) -> Fallible<()> {
         self.notify(None, "cursor", json!([lnum, col]))
     }
 
-    pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {
+    pub fn setline(&mut self, lnum: u64, text: &[String]) -> Fallible<()> {
         if self.call::<_, u8>(None, "setline", json!([lnum, text]))? != 0 {
             bail!("Failed to set buffer content!");
         }
         Ok(())
     }
 
-    pub fn edit<P: AsRef<Path>>(&mut self, goto_cmd: &Option<String>, path: P) -> Result<()> {
+    pub fn edit<P: AsRef<Path>>(&mut self, goto_cmd: &Option<String>, path: P) -> Fallible<()> {
         let path = path.as_ref().to_string_lossy();
 
         let goto = goto_cmd.as_deref().unwrap_or("edit");
@@ -276,7 +277,7 @@ impl State {
         Ok(())
     }
 
-    pub fn setqflist(&mut self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
+    pub fn setqflist(&mut self, list: &[QuickfixEntry], action: &str, title: &str) -> Fallible<()> {
         let parms = json!([list, action]);
         if self.call::<_, u8>(None, "setqflist", parms)? != 0 {
             bail!("Failed to set quickfix list!");
@@ -288,7 +289,12 @@ impl State {
         Ok(())
     }
 
-    pub fn setloclist(&mut self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
+    pub fn setloclist(
+        &mut self,
+        list: &[QuickfixEntry],
+        action: &str,
+        title: &str,
+    ) -> Fallible<()> {
         let parms = json!([0, list, action]);
         if self.call::<_, u8>(None, "setloclist", parms)? != 0 {
             bail!("Failed to set location list!");
@@ -300,16 +306,16 @@ impl State {
         Ok(())
     }
 
-    pub fn get<F, T>(&self, f: F) -> Result<T>
+    pub fn get<F, T>(&self, f: F) -> Fallible<T>
     where
-        F: FnOnce(&State) -> Result<T>,
+        F: FnOnce(&State) -> Fallible<T>,
     {
         f(self)
     }
 
-    pub fn update<F, T>(&mut self, f: F) -> Result<T>
+    pub fn update<F, T>(&mut self, f: F) -> Fallible<T>
     where
-        F: FnOnce(&mut State) -> Result<T>,
+        F: FnOnce(&mut State) -> Fallible<T>,
     {
         use log::Level;
 
@@ -345,7 +351,7 @@ pub fn loop_reader<T: BufRead>(
     input: T,
     languageId: &Option<String>,
     tx: &Sender<Message>,
-) -> Result<()> {
+) -> Fallible<()> {
     // Count how many consequent empty lines.
     let mut count_empty_lines = 0;
 

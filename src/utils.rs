@@ -13,7 +13,7 @@ pub fn get_rootPath<'a>(
     path: &'a Path,
     languageId: &str,
     rootMarkers: &Option<RootMarkers>,
-) -> Result<&'a Path> {
+) -> Fallible<&'a Path> {
     if let Some(ref rootMarkers) = *rootMarkers {
         let empty = vec![];
         let rootMarkers = match *rootMarkers {
@@ -77,7 +77,7 @@ pub fn get_rootPath<'a>(
     })
 }
 
-fn traverse_up<F>(path: &Path, predicate: F) -> Result<&Path>
+fn traverse_up<F>(path: &Path, predicate: F) -> Fallible<&Path>
 where
     F: Fn(&Path) -> bool,
 {
@@ -114,18 +114,18 @@ fn is_dotnet_root(dir: &Path) -> bool {
 }
 
 pub trait ToUrl {
-    fn to_url(&self) -> Result<Url>;
+    fn to_url(&self) -> Fallible<Url>;
 }
 
 impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
-    fn to_url(&self) -> Result<Url> {
+    fn to_url(&self) -> Fallible<Url> {
         Url::from_file_path(self)
             .or_else(|_| Url::from_str(&self.as_ref().to_string_lossy()))
             .or_else(|_| Err(format_err!("Failed to convert ({:?}) to Url", self)))
     }
 }
 
-pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Result<Vec<String>> {
+pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<String>> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
     for edit in edits {
@@ -391,7 +391,7 @@ fn test_expand_json_path() {
     );
 }
 
-pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
+pub fn vim_cmd_args_to_value(args: &[String]) -> Fallible<Value> {
     let mut map = serde_json::map::Map::new();
     for arg in args {
         let mut tokens: Vec<_> = arg.splitn(2, '=').collect();

@@ -5,7 +5,7 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::Handle;
 
-fn create_config(path: &Option<String>, level: LevelFilter) -> Result<Config> {
+fn create_config(path: &Option<String>, level: LevelFilter) -> Fallible<Config> {
     let encoder =
         PatternEncoder::new("{date(%H:%M:%S)} {level} {thread} {file}:{line} {message}{n}");
 
@@ -42,13 +42,13 @@ fn create_config(path: &Option<String>, level: LevelFilter) -> Result<Config> {
     Ok(config)
 }
 
-pub fn init() -> Result<Handle> {
+pub fn init() -> Fallible<Handle> {
     let handle = log4rs::init_config(create_config(&None, LevelFilter::Warn)?)?;
 
     Ok(handle)
 }
 
-pub fn update_settings(handle: &Handle, path: &Option<String>, level: LevelFilter) -> Result<()> {
+pub fn update_settings(handle: &Handle, path: &Option<String>, level: LevelFilter) -> Fallible<()> {
     let config = create_config(path, level)?;
     handle.set_config(config);
     Ok(())

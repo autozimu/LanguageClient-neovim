@@ -7,7 +7,7 @@ impl State {
         &mut self,
         languageId: Option<&str>,
         method_call: &rpc::MethodCall,
-    ) -> Result<Value> {
+    ) -> Fallible<Value> {
         let params = serde_json::to_value(method_call.params.clone())?;
 
         let user_handler = self.get(|state| {
@@ -92,7 +92,7 @@ impl State {
         &mut self,
         languageId: Option<&str>,
         notification: &rpc::Notification,
-    ) -> Result<()> {
+    ) -> Fallible<()> {
         let params = serde_json::to_value(notification.params.clone())?;
 
         let user_handler = self.get(|state| {
