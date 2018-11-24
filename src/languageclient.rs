@@ -1722,14 +1722,17 @@ impl State {
 
     pub fn textDocument_didChange(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
-        let (languageId, filename): (String, String) =
-            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
+        let (bufnr, languageId, filename): (u64, String, String) = self.gather_args(
+            &[VimVar::Bufnr, VimVar::LanguageId, VimVar::Filename],
+            params,
+        )?;
         if !self.get(|state| Ok(state.text_documents.contains_key(&filename)))? {
             info!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
 
-        let (text,): (Vec<String>,) = self.gather_args(&[VimVar::Text], params)?;
+        let (text,): (Vec<String>,) =
+            self.gather_args(&[format!("LSP#text({})", bufnr)], params)?;
 
         let text = text.join("\n");
         let text_state = self

@@ -447,7 +447,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     let l:params = a:params
     if type(a:params) == s:TYPE.dict && !skipAddParams
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
@@ -468,7 +468,7 @@ function! LanguageClient#Notify(method, params) abort
     let l:params = a:params
     if type(params) == s:TYPE.dict
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
