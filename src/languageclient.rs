@@ -2038,7 +2038,21 @@ impl State {
 
     pub fn languageClient_registerHandlers(&mut self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__RegisterHandlers);
-        let handlers: HashMap<String, String> = params.clone().to_lsp()?;
+        let handlers: Fallible<HashMap<String, String>> = params
+            .as_object()
+            .ok_or_else(|| err_msg("Invalid arguments!"))?
+            .iter()
+            .filter_map(|(k, v)| {
+                if **k == VimVar::Bufnr.to_key() || **k == VimVar::LanguageId.to_key() {
+                    return None;
+                }
+
+                Some(match serde_json::to_string(v) {
+                    Ok(v) => Ok((k.clone(), v)),
+                    Err(err) => Err(err.into()),
+                })
+            }).collect();
+        let handlers = handlers?;
         self.update(|state| {
             state.user_handlers.extend(handlers);
             Ok(())
