@@ -1,4 +1,6 @@
 use super::*;
+use crate::rpcclient::RpcClient;
+use std::sync::mpsc;
 
 pub type Fallible<T> = failure::Fallible<T>;
 
@@ -66,18 +68,19 @@ impl SyncWrite for BufWriter<ChildStdin> {}
 impl SyncWrite for BufWriter<TcpStream> {}
 
 pub type Id = u64;
+pub type LanguageId = Option<String>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
-    MethodCall(Option<String>, rpc::MethodCall),
-    Notification(Option<String>, rpc::Notification),
+    MethodCall(LanguageId, rpc::MethodCall),
+    Notification(LanguageId, rpc::Notification),
     Output(rpc::Output),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Call {
-    MethodCall(Option<String>, rpc::MethodCall),
-    Notification(Option<String>, rpc::Notification),
+    MethodCall(LanguageId, rpc::MethodCall),
+    Notification(LanguageId, rpc::Notification),
 }
 
 #[derive(Clone, Copy, Serialize)]
@@ -89,17 +92,12 @@ pub struct HighlightSource {
 #[derive(Serialize)]
 pub struct State {
     // Program state.
-    pub id: Id,
     #[serde(skip_serializing)]
-    pub tx: Sender<Message>,
-    #[serde(skip_serializing)]
-    pub rx: Receiver<Message>,
-    pub pending_calls: VecDeque<Call>,
-    pub pending_outputs: HashMap<Id, rpc::Output>,
+    pub tx: crossbeam_channel::Sender<Call>,
 
-    pub child_ids: HashMap<String, u32>,
-    #[serde(skip_serializing)]
-    pub writers: HashMap<String, Box<dyn SyncWrite>>,
+    pub starting_server: LanguageId,
+    pub clients: HashMap<LanguageId, RpcClient>,
+
     pub capabilities: HashMap<String, Value>,
     pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,
@@ -121,7 +119,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, notify::RecommendedWatcher>,
     #[serde(skip_serializing)]
-    pub watcher_rxs: HashMap<String, Receiver<notify::DebouncedEvent>>,
+    pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
@@ -155,20 +153,27 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Fallible<State> {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(tx: crossbeam_channel::Sender<Call>) -> Fallible<State> {
         let logger = logger::init()?;
 
-        let (tx, rx) = channel();
+        let client = RpcClient::new(
+            None,
+            BufReader::new(std::io::stdin()),
+            BufWriter::new(std::io::stdout()),
+            None,
+            tx.clone(),
+        )?;
 
         Ok(State {
-            id: 0,
             tx,
-            rx,
-            pending_calls: VecDeque::new(),
-            pending_outputs: HashMap::new(),
 
-            child_ids: HashMap::new(),
-            writers: HashMap::new(),
+            starting_server: None,
+
+            clients: hashmap! {
+                None => client,
+            },
+
             capabilities: HashMap::new(),
             registrations: vec![],
             roots: HashMap::new(),
@@ -218,7 +223,7 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SelectionUI {
     FZF,
     Quickfix,
@@ -244,7 +249,7 @@ impl FromStr for SelectionUI {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum HoverPreviewOption {
     Always,
     Auto,
@@ -270,7 +275,7 @@ impl FromStr for HoverPreviewOption {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DiagnosticsList {
     Quickfix,
     Location,
