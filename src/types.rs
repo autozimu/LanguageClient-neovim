@@ -560,7 +560,7 @@ impl VimCompleteItem {
                 (Some(text_edit), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
-                    if text_edit.range.start.line != complete_position {
+                    if text_edit.range.start.character != complete_position {
                         word = text_edit
                             .new_text
                             .get((complete_position as usize)..)
