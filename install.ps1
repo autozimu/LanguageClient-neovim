@@ -10,7 +10,7 @@ if ($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
 
 $url += '-pc-windows-gnu.exe'
 
-$path = "bin\$name.exe"
+$path = "$PSScriptRoot\bin\$name.exe"
 if (Test-Path $path) {
     Remove-Item -Force $path
 }
