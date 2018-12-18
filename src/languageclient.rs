@@ -2288,13 +2288,8 @@ impl State {
             self.highlights_placed
                 .insert(filename.to_owned(), highlights.clone());
 
-            self.notify(
-                None,
-                "nvim_buf_clear_highlight",
-                json!([0, source]),
-            )?;
-
-            self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
+            self.notify(None, "s:ClearHighlightsByFile", json!([filename, source]))?;
+            self.notify(None, "s:AddHighlightsByFile", json!([filename, source, highlights]))?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);

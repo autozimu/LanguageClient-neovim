@@ -190,6 +190,18 @@ function! s:AddHighlights(source, highlights) abort
     for hl in a:highlights
         call nvim_buf_add_highlight(0, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
     endfor
+  endfunction
+
+function! s:ClearHighlightsByFile(filename, source) abort
+    let bufid = bufnr(a:filename)
+    call nvim_buf_clear_highlight(bufid, a:source, 0, -1)
+endfunction
+
+function! s:AddHighlightsByFile(filename, source, highlights) abort
+    let bufid = bufnr(a:filename)
+    for hl in a:highlights
+        call nvim_buf_add_highlight(bufid, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
+    endfor
 endfunction
 
 " Get an variable value.
