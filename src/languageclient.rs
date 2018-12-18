@@ -835,6 +835,7 @@ impl State {
         }
         for f in filenames {
             self.process_diagnostics(&f, &[])?;
+            self.display_diagnostics(&f)?;
         }
         self.languageClient_handleCursorMoved(&Value::Null)?;
 
@@ -1849,12 +1850,13 @@ impl State {
             .insert(filename.clone(), diagnostics.clone());
         self.update_quickfixlist()?;
 
+        self.process_diagnostics(&filename, &diagnostics)?;
+        self.display_diagnostics(&filename)?;
+
         let current_filename: String = self.eval(VimVar::Filename)?;
         if filename != current_filename.canonicalize() {
-            return Ok(());
+            self.languageClient_handleCursorMoved(&Value::Null)?;
         }
-        self.process_diagnostics(&current_filename, &diagnostics)?;
-        self.languageClient_handleCursorMoved(&Value::Null)?;
         self.notify(None, "s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
@@ -2125,6 +2127,7 @@ impl State {
 
             if let Some(diagnostics) = self.diagnostics.get(&filename).cloned() {
                 self.process_diagnostics(&filename, &diagnostics)?;
+                self.display_diagnostics(&filename)?;
                 self.languageClient_handleCursorMoved(params)?;
             }
         } else {
@@ -2199,18 +2202,11 @@ impl State {
 
     pub fn languageClient_handleCursorMoved(&mut self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (languageId, filename, line): (String, String, u64) = self.gather_args(
-            &[VimVar::LanguageId, VimVar::Filename, VimVar::Line],
+        let (filename, line): (String, u64) = self.gather_args(
+            &[VimVar::Filename, VimVar::Line],
             params,
         )?;
-        if !self.serverCommands.contains_key(&languageId) {
-            return Ok(());
-        }
 
-        let (visible_line_start, visible_line_end): (u64, u64) = self.gather_args(
-            &["LSP#visible_line_start()", "LSP#visible_line_end()"],
-            params,
-        )?;
         if !self.diagnostics.contains_key(&filename) {
             return Ok(());
         }
@@ -2230,46 +2226,53 @@ impl State {
             }
         }
 
+        info!("End {}", NOTIFICATION__HandleCursorMoved);
+        Ok(())
+    }
+
+    pub fn display_signs(&mut self, filename: &str) -> Fallible<()> {
+        if !self.diagnostics.contains_key(filename) {
+            return Ok(());
+        }
+
         let signs: Vec<_> = self
             .signs
-            .entry(filename.clone())
+            .entry(filename.to_owned())
             .or_insert_with(|| vec![])
             .iter()
-            .filter_map(|s| {
-                if s.line < visible_line_start + 1 || s.line > visible_line_end + 1 {
-                    return None;
-                }
+            .filter_map(|s| {Some(s.clone())})
+            .collect();
 
-                Some(s.clone())
-            }).collect();
-        if Some(&signs) != self.signs_placed.get(&filename) {
+        if Some(&signs) != self.signs_placed.get(filename) {
             let empty = vec![];
 
             let (signs, cmds) = get_command_update_signs(
-                self.signs_placed.get(&filename).unwrap_or(&empty),
+                self.signs_placed.get(filename).unwrap_or(&empty),
                 &signs,
-                &filename,
+                filename,
             );
-            self.signs_placed.insert(filename.clone(), signs);
+            self.signs_placed.insert(filename.to_owned(), signs);
 
             info!("Updating signs: {:?}", cmds);
             self.command(&cmds)?;
         }
+        Ok(())
+    }
+
+    pub fn display_highlights(&mut self, filename: &str) -> Fallible<()> {
+        if !self.diagnostics.contains_key(filename) {
+            return Ok(());
+        }
 
         let highlights: Vec<_> = self
             .highlights
-            .entry(filename.clone())
+            .entry(filename.to_owned())
             .or_insert_with(|| vec![])
             .iter()
-            .filter_map(|h| {
-                if h.line < visible_line_start || h.line > visible_line_end {
-                    return None;
-                }
+            .filter_map(|h| {Some(h.clone())})
+            .collect();
 
-                Some(h.clone())
-            }).collect();
-
-        if Some(&highlights) != self.highlights_placed.get(&filename) && self.is_nvim {
+        if Some(&highlights) != self.highlights_placed.get(filename) && self.is_nvim {
             let source = if let Some(source) = self.highlight_source {
                 source
             } else {
@@ -2283,18 +2286,24 @@ impl State {
             };
 
             self.highlights_placed
-                .insert(filename.clone(), highlights.clone());
+                .insert(filename.to_owned(), highlights.clone());
 
             self.notify(
                 None,
                 "nvim_buf_clear_highlight",
-                json!([0, source, visible_line_start, visible_line_end]),
+                json!([0, source]),
             )?;
 
             self.notify(None, "s:AddHighlights", json!([source, highlights]))?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
+        Ok(())
+    }
+
+    pub fn display_diagnostics(&mut self, filename: &str) -> Fallible<()> {
+        self.display_signs(&filename)?;
+        self.display_highlights(&filename)?;
         Ok(())
     }
 
