@@ -194,11 +194,17 @@ function! s:AddHighlights(source, highlights) abort
 
 function! s:ClearHighlightsByFile(filename, source) abort
     let bufid = bufnr(a:filename)
+    if bufid == -1
+        return
+    endif
     call nvim_buf_clear_highlight(bufid, a:source, 0, -1)
 endfunction
 
 function! s:AddHighlightsByFile(filename, source, highlights) abort
     let bufid = bufnr(a:filename)
+    if bufid == -1
+        return
+    endif
     for hl in a:highlights
         call nvim_buf_add_highlight(bufid, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
     endfor
