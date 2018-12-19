@@ -193,7 +193,7 @@ function! s:AddHighlights(source, highlights) abort
   endfunction
 
 function! s:ClearHighlightsByFile(filename, source) abort
-    let bufid = bufnr(a:filename)
+    let bufid = bufnr(a:filename . '$')
     if bufid == -1
         return
     endif
@@ -201,7 +201,7 @@ function! s:ClearHighlightsByFile(filename, source) abort
 endfunction
 
 function! s:AddHighlightsByFile(filename, source, highlights) abort
-    let bufid = bufnr(a:filename)
+    let bufid = bufnr(a:filename . '$')
     if bufid == -1
         return
     endif
