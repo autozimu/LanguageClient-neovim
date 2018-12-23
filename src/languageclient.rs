@@ -857,17 +857,21 @@ impl State {
         Ok(())
     }
 
-    fn preview<S>(&mut self, lines: &[S]) -> Fallible<()>
+    fn preview<D>(&mut self, to_display: &D) -> Fallible<()>
     where
-        S: AsRef<str> + Serialize,
+        D: ToDisplay + ?Sized,
     {
         let bufname = "__LanguageClient__";
 
-        let mut cmd = String::new();
-        cmd += "silent! pedit! +setlocal\\ buftype=nofile\\ filetype=markdown\\ nobuflisted\\ noswapfile\\ nonumber ";
-        cmd += bufname;
+        let cmd = "silent! pedit! +setlocal\\ buftype=nofile\\ nobuflisted\\ noswapfile\\ nonumber";
+        let cmd = if let Some(ref ft) = to_display.vim_filetype() {
+            format!("{}\\ filetype={} {}", cmd, ft, bufname)
+        } else {
+            format!("{} {}", cmd, bufname)
+        };
         self.command(cmd)?;
 
+        let lines = to_display.to_display();
         if self.get(|state| Ok(state.is_nvim))? {
             let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
             self.call::<_, Option<u8>>(
@@ -1021,7 +1025,7 @@ impl State {
                 HoverPreviewOption::Auto => hover.lines_len() > 1,
             };
             if use_preview {
-                self.preview(&hover.to_display())?
+                self.preview(&hover)?
             } else {
                 self.echo_ellipsis(hover.to_string())?
             }
@@ -2548,8 +2552,7 @@ impl State {
                     )
                 })
         })?;
-        let message: Vec<_> = diag.message.lines().collect();
-        self.preview(&message)?;
+        self.preview(diag.message.as_str())?;
 
         info!("End {}", REQUEST__ExplainErrorAtPoint);
         Ok(Value::Null)

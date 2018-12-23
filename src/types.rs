@@ -726,21 +726,22 @@ impl ToString for NumberOrString {
 
 pub trait ToDisplay {
     fn to_display(&self) -> Vec<String>;
+    fn vim_filetype(&self) -> Option<String> { None }
 }
 
 impl ToDisplay for lsp::MarkedString {
     fn to_display(&self) -> Vec<String> {
-        match *self {
-            MarkedString::String(ref s) => s.lines().map(|i| i.to_string()).collect(),
-            MarkedString::LanguageString(ref ls) => {
-                let mut buf = Vec::new();
+        let s = match self {
+            MarkedString::String(ref s) => s,
+            MarkedString::LanguageString(ref ls) => &ls.value,
+        };
+        s.lines().map(|i| i.to_string()).collect()
+    }
 
-                buf.push(format!("```{}", ls.language));
-                buf.extend(ls.value.lines().map(|i| i.to_string()));
-                buf.push("```".to_string());
-
-                buf
-            }
+    fn vim_filetype(&self) -> Option<String> {
+        match self {
+            MarkedString::String(_) => Some("markdown".to_string()),
+            MarkedString::LanguageString(ref ls) => Some(ls.language.clone()),
         }
     }
 }
@@ -749,15 +750,50 @@ impl ToDisplay for MarkupContent {
     fn to_display(&self) -> Vec<String> {
         self.value.lines().map(str::to_string).collect()
     }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.kind {
+            MarkupKind::Markdown => Some("markdown".to_string()),
+            MarkupKind::PlainText => Some("text".to_string()),
+        }
+    }
 }
 
 impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => arr.iter().flat_map(ToDisplay::to_display).collect(),
+            HoverContents::Array(ref arr) => {
+                arr.iter().flat_map(|ms| {
+                    if let MarkedString::LanguageString(ref ls) = ms {
+                        let mut buf = Vec::new();
+
+                        buf.push(format!("```{}", ls.language));
+                        buf.extend(ls.value.lines().map(|i| i.to_string()));
+                        buf.push("```".to_string());
+
+                        buf
+                    } else {
+                        ms.to_display()
+                    }
+                }).collect()
+            },
             HoverContents::Markup(ref mc) => mc.to_display(),
         }
+    }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.contents {
+            HoverContents::Scalar(ref ms) => ms.vim_filetype(),
+            HoverContents::Array(_) => Some("markdown".to_string()),
+            HoverContents::Markup(ref mc) => mc.vim_filetype(),
+        }
+    }
+}
+
+impl ToDisplay for str {
+    fn to_display(&self) -> Vec<String> {
+        self.lines().map(|s| s.to_string()).collect()
     }
 }
 
