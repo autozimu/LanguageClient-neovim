@@ -726,7 +726,9 @@ impl ToString for NumberOrString {
 
 pub trait ToDisplay {
     fn to_display(&self) -> Vec<String>;
-    fn vim_filetype(&self) -> Option<String> { None }
+    fn vim_filetype(&self) -> Option<String> {
+        None
+    }
 }
 
 impl ToDisplay for lsp::MarkedString {
@@ -763,8 +765,9 @@ impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => {
-                arr.iter().flat_map(|ms| {
+            HoverContents::Array(ref arr) => arr
+                .iter()
+                .flat_map(|ms| {
                     if let MarkedString::LanguageString(ref ls) = ms {
                         let mut buf = Vec::new();
 
@@ -776,8 +779,7 @@ impl ToDisplay for Hover {
                     } else {
                         ms.to_display()
                     }
-                }).collect()
-            },
+                }).collect(),
             HoverContents::Markup(ref mc) => mc.to_display(),
         }
     }
