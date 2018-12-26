@@ -172,6 +172,7 @@ function! s:Edit(action, path) abort
     " Avoid the 'not saved' warning.
     if l:action ==# 'edit' && l:bufnr != -1
         execute 'buffer' l:bufnr
+        set buflisted
         return
     endif
 
