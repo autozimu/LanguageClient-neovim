@@ -14,10 +14,10 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use log::{info, warn, error, debug, log_enabled};
+use log::{debug, error, info, log_enabled, warn};
 
 #[allow(unused_imports)]
-use failure::{bail, format_err, Fail, err_msg, Error, ResultExt};
+use failure::{bail, err_msg, format_err, Error, Fail, ResultExt};
 
 use maplit::hashmap;
 
@@ -29,7 +29,7 @@ use serde_json::json;
 
 use jsonrpc_core::{self as rpc, Params, Value};
 
-use languageserver_types::{self as lsp, *};
+use lsp_types::{self as lsp, *};
 
 use url::Url;
 

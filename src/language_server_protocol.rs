@@ -372,24 +372,23 @@ impl LanguageClient {
 
             let buffer = self.vim()?.call("nvim_win_get_buf", json!([0]))?;
 
-            let source =
-                if let Some(hs) = self.get(|state| state.document_highlight_source)? {
-                    if hs.buffer == buffer {
-                        // If we want to highlight in the same buffer as last time, we can reuse
-                        // the previous source.
-                        Some(hs.source)
-                    } else {
-                        // Clear the highlight in the previous buffer.
-                        self.vim()?.notify(
-                            "nvim_buf_clear_highlight",
-                            json!([hs.buffer, hs.source, 0, -1]),
-                        )?;
-
-                        None
-                    }
+            let source = if let Some(hs) = self.get(|state| state.document_highlight_source)? {
+                if hs.buffer == buffer {
+                    // If we want to highlight in the same buffer as last time, we can reuse
+                    // the previous source.
+                    Some(hs.source)
                 } else {
+                    // Clear the highlight in the previous buffer.
+                    self.vim()?.notify(
+                        "nvim_buf_clear_highlight",
+                        json!([hs.buffer, hs.source, 0, -1]),
+                    )?;
+
                     None
-                };
+                }
+            } else {
+                None
+            };
 
             let source = match source {
                 Some(source) => source,
@@ -923,12 +922,12 @@ impl LanguageClient {
 
         let lines = to_display.to_display();
         if self.get(|state| state.is_nvim)? {
-            let bufnr: u64 = serde_json::from_value(self.call(None, "bufnr", bufname)?)?;
+            let bufnr: u64 = serde_json::from_value(self.vim()?.call("bufnr", bufname)?)?;
             self.vim()?
-                .notify("nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]),
-            )?;
+                .notify("nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
         } else {
-            self.vim()?.notify("setbufline", json!([bufname, 1, lines]))?;
+            self.vim()?
+                .notify("setbufline", json!([bufname, 1, lines]))?;
             // TODO: removing existing bottom lines.
         }
 
@@ -2604,7 +2603,7 @@ impl LanguageClient {
                         character
                     )
                 })
-        })?;
+        })??;
         self.preview(diag.message.as_str())?;
 
         info!("End {}", REQUEST__ExplainErrorAtPoint);
