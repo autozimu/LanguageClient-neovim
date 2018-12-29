@@ -13,24 +13,35 @@ from lsp.protocol import SymbolKind  # isort:skip  # noqa: I100
 
 MAX_FNAME_LEN = 30
 
-HighlightDefinition = namedtuple("HighlightDefinition", (
+_HighlightDefinition = namedtuple("HighlightDefinition", (
     "name",
     're',
     "contained",
     "contains",
     "nextgroup",
     'link',
-), defaults=(
-    False,  # contained
-    False,  # contains
-    None,   # next group
-    None,   # link
 ))
+
+
+def HighlightDefinition(name,
+                        re,
+                        contained=False,
+                        contains=None,
+                        nextgroup=None,
+                        link=None):
+
+    return _HighlightDefinition(name,
+                                re,
+                                contained,
+                                contains,
+                                nextgroup,
+                                link)
+
 
 SYMBOL_CANDIDATE_HIGHLIGHT_SYNTAX = [
     HighlightDefinition(
         name='location',
-        contains=['colon', 'number', 'path'],
+        contains=('colon', 'number', 'path'),
         nextgroup='kind',
         re=r'\([^:]\+:\)\?\d\+:\d\+',
     ),
@@ -84,7 +95,7 @@ def highlight_setup(source: Base, syntax: List[HighlightDefinition]) -> None:
             match.append("contains=" + ','.join(
                 mangle_name(i) for i in hl_def.contains
             ))
-        else:
+        elif hl_def.contains is None:
             match.append("contains=NONE")
 
         if hl_def.nextgroup is not None:
