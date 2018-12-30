@@ -520,24 +520,24 @@ pub fn decode_parameterLabel(
         lsp::ParameterLabel::Simple(ref label) => {
             let chunks: Vec<&str> = signature.split(label).collect();
             if chunks.len() != 2 {
-                return Err(err_msg("Parameter is not part of signature"))
+                return Err(err_msg("Parameter is not part of signature"));
             }
             let begin = chunks[0].to_string();
             let label = label.to_string();
             let end = chunks[1].to_string();
             Ok((begin, label, end))
-        },
+        }
         lsp::ParameterLabel::LabelOffsets([start, finish]) => {
             // Offsets are based on a UTF-16 string representation, inclusive start,
             // exclusive finish.
             let start = start.to_usize()?;
             let finish = finish.to_usize()?;
-            let utf16: Vec<u16> = signature
-                .encode_utf16()
-                .collect();
+            let utf16: Vec<u16> = signature.encode_utf16().collect();
             let begin = utf16.get(..start).ok_or(err_msg("Offset out of range"))?;
             let begin = String::from_utf16(begin)?;
-            let label = utf16.get(start..finish).ok_or(err_msg("Offset out of range"))?;
+            let label = utf16
+                .get(start..finish)
+                .ok_or(err_msg("Offset out of range"))?;
             let label = String::from_utf16(label)?;
             let end = utf16.get(finish..).ok_or(err_msg("Offset out of range"))?;
             let end = String::from_utf16(end)?;
