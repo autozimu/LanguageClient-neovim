@@ -1093,7 +1093,7 @@ impl State {
                     self.cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
                     let cur_file: String = self.eval("expand('%')")?;
                     self.echomsg_ellipsis(format!(
-                        "[LC]: {} {}:{}",
+                        "{} {}:{}",
                         cur_file,
                         loc.range.start.line + 1,
                         loc.range.start.character + 1
