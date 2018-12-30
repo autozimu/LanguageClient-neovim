@@ -935,6 +935,15 @@ impl State {
                             }),
                             ..CompletionCapability::default()
                         }),
+                        signature_help: Some(SignatureHelpCapability {
+                            signature_information: Some(SignatureInformationSettings {
+                                documentation_format: None,
+                                parameter_information: Some(ParameterInformationSettings {
+                                    label_offset_support: Some(true),
+                                }),
+                            }),
+                            ..SignatureHelpCapability::default()
+                        }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
@@ -1104,6 +1113,10 @@ impl State {
                     self.display_locations(&arr, &title)?
                 }
             },
+            Some(GotoDefinitionResponse::Link(_)) => {
+                self.echowarn("Definition links are not supported!")?;
+                return Ok(Value::Null);
+            }
         };
 
         info!("End {}", method);
@@ -1383,23 +1396,13 @@ impl State {
             active_parameter = None;
         }
 
-        if let Some(active_parameter) = active_parameter {
-            let mut cmd = "echo".to_owned();
-            let chunks: Vec<&str> = active_signature
-                .label
-                .split(&active_parameter.label)
-                .collect();
-            if chunks.len() == 2 {
-                let begin = chunks.get(0).cloned().unwrap_or_default();
-                let end = chunks.get(1).cloned().unwrap_or_default();
-                cmd += &format!(
-                    " | echon '{}' | echohl WarningMsg | echon '{}' | echohl None | echon '{}'",
-                    begin, active_parameter.label, end
-                );
-            } else {
-                // Active parameter is not part of signature.
-                cmd += &format!(" | echo '{}'", active_signature.label);
-            }
+        if let Some((begin, label, end)) = active_parameter.and_then(|active_parameter| {
+            decode_parameterLabel(&active_parameter.label, &active_signature.label).ok()
+        }) {
+            let cmd = format!(
+                "echo | echon '{}' | echohl WarningMsg | echon '{}' | echohl None | echon '{}'",
+                begin, label, end
+            );
             self.command(&cmd)?;
         } else {
             self.echo(&active_signature.label)?;
