@@ -533,13 +533,13 @@ pub fn decode_parameterLabel(
             let start = start.to_usize()?;
             let finish = finish.to_usize()?;
             let utf16: Vec<u16> = signature.encode_utf16().collect();
-            let begin = utf16.get(..start).ok_or(err_msg("Offset out of range"))?;
+            let begin = utf16.get(..start).ok_or_else(|| err_msg("Offset out of range"))?;
             let begin = String::from_utf16(begin)?;
             let label = utf16
                 .get(start..finish)
-                .ok_or(err_msg("Offset out of range"))?;
+                .ok_or_else(|| err_msg("Offset out of range"))?;
             let label = String::from_utf16(label)?;
-            let end = utf16.get(finish..).ok_or(err_msg("Offset out of range"))?;
+            let end = utf16.get(finish..).ok_or_else(|| err_msg("Offset out of range"))?;
             let end = String::from_utf16(end)?;
             Ok((begin, label, end))
         }
