@@ -61,11 +61,13 @@ pub fn get_rootPath<'a>(
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
-    }.or_else(|_| {
+    }
+    .or_else(|_| {
         traverse_up(path, |dir| {
             dir.join(".git").exists() || dir.join(".hg").exists() || dir.join(".svn").exists()
         })
-    }).or_else(|_| {
+    })
+    .or_else(|_| {
         let parent = path
             .parent()
             .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
@@ -162,14 +164,16 @@ fn test_apply_TextEdit() {
     let lines: Vec<String> = r#"fn main() {
 0;
 }
-"#.lines()
+"#
+    .lines()
     .map(|l| l.to_owned())
     .collect();
 
     let expect: Vec<String> = r#"fn main() {
     0;
 }
-"#.lines()
+"#
+    .lines()
     .map(|l| l.to_owned())
     .collect();
 
@@ -187,7 +191,8 @@ fn test_apply_TextEdit() {
         new_text: r#"fn main() {
     0;
 }
-"#.to_owned(),
+"#
+        .to_owned(),
     };
 
     assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
@@ -415,8 +420,8 @@ fn test_vim_cmd_args_to_value() {
     assert_eq!(
         vim_cmd_args_to_value(&cmdargs).unwrap(),
         json!({
-        "rootPath": "/tmp"
-    })
+            "rootPath": "/tmp"
+        })
     );
 }
 
@@ -427,9 +432,11 @@ pub fn diff_value<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<Strin
         | (&Value::Bool(_), &Value::Bool(_))
         | (&Value::Number(_), &Value::Number(_))
         | (&Value::String(_), &Value::String(_))
-        | (&Value::Array(_), &Value::Array(_)) => if v1 != v2 {
-            diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
-        },
+        | (&Value::Array(_), &Value::Array(_)) => {
+            if v1 != v2 {
+                diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
+            }
+        }
         (&Value::Object(ref map1), &Value::Object(ref map2)) => {
             let keys1: HashSet<&String> = map1.keys().collect();
             let keys2: HashSet<&String> = map2.keys().collect();
@@ -466,7 +473,7 @@ fn test_diff_value() {
             }),
             "state"
         ),
-        hashmap!{
+        hashmap! {
             "state.line".to_owned() => (json!(1), json!(3)),
         }
     );
