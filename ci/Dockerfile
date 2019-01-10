@@ -11,7 +11,7 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
         && apt-get install --yes nodejs \
         && npm install -g javascript-typescript-langserver@2.5.5
 
-RUN rustup component add rls-preview rust-analysis rust-src \
+RUN rustup component add rustfmt rls rust-analysis rust-src \
         && rustc --version \
         && rls --version
 
