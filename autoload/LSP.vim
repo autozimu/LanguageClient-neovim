@@ -2,8 +2,10 @@ function! LSP#filename() abort
     return expand('%:p')
 endfunction
 
-function! LSP#text() abort
-    let l:lines = getline(1, '$')
+function! LSP#text(...) abort
+    let l:buf = get(a:000, 0, '')
+
+    let l:lines = getbufline(l:buf, 1, '$')
     if l:lines[-1] !=# '' && &fixendofline
         let l:lines += ['']
     endif

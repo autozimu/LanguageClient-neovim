@@ -38,7 +38,7 @@ use serde_json::json;
 extern crate jsonrpc_core as rpc;
 use crate::rpc::{Params, Value};
 
-extern crate languageserver_types as lsp;
+extern crate lsp_types as lsp;
 use crate::lsp::*;
 
 extern crate url;

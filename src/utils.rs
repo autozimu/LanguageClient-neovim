@@ -61,11 +61,13 @@ pub fn get_rootPath<'a>(
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
-    }.or_else(|_| {
+    }
+    .or_else(|_| {
         traverse_up(path, |dir| {
             dir.join(".git").exists() || dir.join(".hg").exists() || dir.join(".svn").exists()
         })
-    }).or_else(|_| {
+    })
+    .or_else(|_| {
         let parent = path
             .parent()
             .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
@@ -162,14 +164,16 @@ fn test_apply_TextEdit() {
     let lines: Vec<String> = r#"fn main() {
 0;
 }
-"#.lines()
+"#
+    .lines()
     .map(|l| l.to_owned())
     .collect();
 
     let expect: Vec<String> = r#"fn main() {
     0;
 }
-"#.lines()
+"#
+    .lines()
     .map(|l| l.to_owned())
     .collect();
 
@@ -187,7 +191,8 @@ fn test_apply_TextEdit() {
         new_text: r#"fn main() {
     0;
 }
-"#.to_owned(),
+"#
+        .to_owned(),
     };
 
     assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
@@ -415,8 +420,8 @@ fn test_vim_cmd_args_to_value() {
     assert_eq!(
         vim_cmd_args_to_value(&cmdargs).unwrap(),
         json!({
-        "rootPath": "/tmp"
-    })
+            "rootPath": "/tmp"
+        })
     );
 }
 
@@ -427,9 +432,11 @@ pub fn diff_value<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<Strin
         | (&Value::Bool(_), &Value::Bool(_))
         | (&Value::Number(_), &Value::Number(_))
         | (&Value::String(_), &Value::String(_))
-        | (&Value::Array(_), &Value::Array(_)) => if v1 != v2 {
-            diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
-        },
+        | (&Value::Array(_), &Value::Array(_)) => {
+            if v1 != v2 {
+                diffs.insert(path.to_owned(), (v1.clone(), v2.clone()));
+            }
+        }
         (&Value::Object(ref map1), &Value::Object(ref map2)) => {
             let keys1: HashSet<&String> = map1.keys().collect();
             let keys2: HashSet<&String> = map2.keys().collect();
@@ -466,7 +473,7 @@ fn test_diff_value() {
             }),
             "state"
         ),
-        hashmap!{
+        hashmap! {
             "state.line".to_owned() => (json!(1), json!(3)),
         }
     );
@@ -500,5 +507,45 @@ pub fn get_default_initializationOptions(languageId: &str) -> Value {
             }
         }),
         _ => json!(Value::Null),
+    }
+}
+
+/// Given a parameter label and its containing signature, return the part before the label, the
+/// label itself, and the part after the label.
+pub fn decode_parameterLabel(
+    parameter_label: &lsp::ParameterLabel,
+    signature: &str,
+) -> Fallible<(String, String, String)> {
+    match *parameter_label {
+        lsp::ParameterLabel::Simple(ref label) => {
+            let chunks: Vec<&str> = signature.split(label).collect();
+            if chunks.len() != 2 {
+                return Err(err_msg("Parameter is not part of signature"));
+            }
+            let begin = chunks[0].to_string();
+            let label = label.to_string();
+            let end = chunks[1].to_string();
+            Ok((begin, label, end))
+        }
+        lsp::ParameterLabel::LabelOffsets([start, finish]) => {
+            // Offsets are based on a UTF-16 string representation, inclusive start,
+            // exclusive finish.
+            let start = start.to_usize()?;
+            let finish = finish.to_usize()?;
+            let utf16: Vec<u16> = signature.encode_utf16().collect();
+            let begin = utf16
+                .get(..start)
+                .ok_or_else(|| err_msg("Offset out of range"))?;
+            let begin = String::from_utf16(begin)?;
+            let label = utf16
+                .get(start..finish)
+                .ok_or_else(|| err_msg("Offset out of range"))?;
+            let label = String::from_utf16(label)?;
+            let end = utf16
+                .get(finish..)
+                .ok_or_else(|| err_msg("Offset out of range"))?;
+            let end = String::from_utf16(end)?;
+            Ok((begin, label, end))
+        }
     }
 }

@@ -9,10 +9,7 @@ pub enum LCError {
         languageId
     )]
     NoServerCommands { languageId: String },
-    #[fail(
-        display = "Language server is not running for: {}",
-        languageId
-    )]
+    #[fail(display = "Language server is not running for: {}", languageId)]
     ServerNotRunning { languageId: String },
 }
 
@@ -370,10 +367,12 @@ impl Sign {
 
     fn get_id(line: u64, severity: Option<DiagnosticSeverity>) -> u64 {
         let base_id = 75_000;
-        base_id + (line - 1) * 4 + severity
-            .unwrap_or(DiagnosticSeverity::Hint)
-            .to_int()
-            .unwrap_or(4)
+        base_id
+            + (line - 1) * 4
+            + severity
+                .unwrap_or(DiagnosticSeverity::Hint)
+                .to_int()
+                .unwrap_or(4)
             - 1
     }
 }
@@ -560,7 +559,7 @@ impl VimCompleteItem {
                 (Some(text_edit), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
-                    if text_edit.range.start.line != complete_position {
+                    if text_edit.range.start.character != complete_position {
                         word = text_edit
                             .new_text
                             .get((complete_position as usize)..)
@@ -726,21 +725,24 @@ impl ToString for NumberOrString {
 
 pub trait ToDisplay {
     fn to_display(&self) -> Vec<String>;
+    fn vim_filetype(&self) -> Option<String> {
+        None
+    }
 }
 
 impl ToDisplay for lsp::MarkedString {
     fn to_display(&self) -> Vec<String> {
-        match *self {
-            MarkedString::String(ref s) => s.lines().map(|i| i.to_string()).collect(),
-            MarkedString::LanguageString(ref ls) => {
-                let mut buf = Vec::new();
+        let s = match self {
+            MarkedString::String(ref s) => s,
+            MarkedString::LanguageString(ref ls) => &ls.value,
+        };
+        s.lines().map(|i| i.to_string()).collect()
+    }
 
-                buf.push(format!("```{}", ls.language));
-                buf.extend(ls.value.lines().map(|i| i.to_string()));
-                buf.push("```".to_string());
-
-                buf
-            }
+    fn vim_filetype(&self) -> Option<String> {
+        match self {
+            MarkedString::String(_) => Some("markdown".to_string()),
+            MarkedString::LanguageString(ref ls) => Some(ls.language.clone()),
         }
     }
 }
@@ -749,15 +751,51 @@ impl ToDisplay for MarkupContent {
     fn to_display(&self) -> Vec<String> {
         self.value.lines().map(str::to_string).collect()
     }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.kind {
+            MarkupKind::Markdown => Some("markdown".to_string()),
+            MarkupKind::PlainText => Some("text".to_string()),
+        }
+    }
 }
 
 impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => arr.iter().flat_map(ToDisplay::to_display).collect(),
+            HoverContents::Array(ref arr) => arr
+                .iter()
+                .flat_map(|ms| {
+                    if let MarkedString::LanguageString(ref ls) = ms {
+                        let mut buf = Vec::new();
+
+                        buf.push(format!("```{}", ls.language));
+                        buf.extend(ls.value.lines().map(|i| i.to_string()));
+                        buf.push("```".to_string());
+
+                        buf
+                    } else {
+                        ms.to_display()
+                    }
+                })
+                .collect(),
             HoverContents::Markup(ref mc) => mc.to_display(),
         }
+    }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.contents {
+            HoverContents::Scalar(ref ms) => ms.vim_filetype(),
+            HoverContents::Array(_) => Some("markdown".to_string()),
+            HoverContents::Markup(ref mc) => mc.vim_filetype(),
+        }
+    }
+}
+
+impl ToDisplay for str {
+    fn to_display(&self) -> Vec<String> {
+        self.lines().map(|s| s.to_string()).collect()
     }
 }
 
@@ -835,6 +873,7 @@ impl ToUsize for u64 {
 
 #[derive(Debug, PartialEq)]
 pub enum VimVar {
+    Bufnr,
     LanguageId,
     Filename,
     Line,
@@ -855,6 +894,7 @@ pub trait VimExp {
 impl VimExp for VimVar {
     fn to_key(&self) -> String {
         match *self {
+            VimVar::Bufnr => "bufnr",
             VimVar::LanguageId => "languageId",
             VimVar::Filename => "filename",
             VimVar::Line => "line",
@@ -865,11 +905,13 @@ impl VimExp for VimVar {
             VimVar::GotoCmd => "gotoCmd",
             VimVar::Handle => "handle",
             VimVar::IncludeDeclaration => "includeDeclaration",
-        }.to_owned()
+        }
+        .to_owned()
     }
 
     fn to_exp(&self) -> String {
         match *self {
+            VimVar::Bufnr => "bufnr('')",
             VimVar::LanguageId => "&filetype",
             VimVar::Filename => "LSP#filename()",
             VimVar::Line => "LSP#line()",
@@ -878,7 +920,8 @@ impl VimExp for VimVar {
             VimVar::Cword => "expand('<cword>')",
             VimVar::NewName | VimVar::GotoCmd => "v:null",
             VimVar::Handle | VimVar::IncludeDeclaration => "v:true",
-        }.to_owned()
+        }
+        .to_owned()
     }
 }
 

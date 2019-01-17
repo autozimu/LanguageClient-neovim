@@ -172,6 +172,7 @@ function! s:Edit(action, path) abort
     " Avoid the 'not saved' warning.
     if l:action ==# 'edit' && l:bufnr != -1
         execute 'buffer' l:bufnr
+        set buflisted
         return
     endif
 
@@ -447,7 +448,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     let l:params = a:params
     if type(a:params) == s:TYPE.dict && !skipAddParams
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
@@ -468,7 +469,7 @@ function! LanguageClient#Notify(method, params) abort
     let l:params = a:params
     if type(params) == s:TYPE.dict
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
@@ -745,13 +746,13 @@ function! s:ExecuteAutocmd(event) abort
 endfunction
 
 function! LanguageClient_runSync(fn, ...) abort
-    let s:LanguageClient_runSync_outputs = []
-    let l:arguments = add(a:000[:], s:LanguageClient_runSync_outputs)
+    let l:LanguageClient_runSync_outputs = []
+    let l:arguments = add(a:000[:], l:LanguageClient_runSync_outputs)
     call call(a:fn, l:arguments)
-    while len(s:LanguageClient_runSync_outputs) == 0
+    while len(l:LanguageClient_runSync_outputs) == 0
         sleep 100m
     endwhile
-    let l:output = remove(s:LanguageClient_runSync_outputs, 0)
+    let l:output = remove(l:LanguageClient_runSync_outputs, 0)
     return s:HandleOutput(l:output, v:true)
 endfunction
 

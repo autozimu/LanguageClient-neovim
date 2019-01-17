@@ -2,6 +2,14 @@ from typing import List, Dict
 from .base import Base
 
 
+DeniteOverrides = {
+    'Code Action': 'codeAction',
+    'Document Symbol': 'documentSymbol',
+    'Workspace Symbol': 'workspaceSymbol',
+    'References': 'references',
+}
+
+
 class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
@@ -10,10 +18,15 @@ class Source(Base):
         self.kind = 'command'
 
     def convert_to_candidate(self, item):
+        if item in DeniteOverrides:
+            cmd = 'call denite#start([{{"name": "{}", "args": []}}])'.format(
+                DeniteOverrides[item])
+        else:
+            cmd = ('call '
+                   'LanguageClient_handleContextMenuItem("{}")'.format(item))
         return {
             "word": item,
-            'action__command': 'call '
-            'LanguageClient_handleContextMenuItem("{}")'.format(item),
+            'action__command': cmd,
         }
 
     def gather_candidates(self, context: Dict) -> List[Dict]:
