@@ -162,6 +162,12 @@ Selection UI used when there are multiple entries.
 Default: If fzf is loaded, use "fzf", otherwise use "location-list".
 Valid options: "fzf" | "quickfix" | "location-list"
 
+2.7 g:LanguageClient_selectionUI_autoOpen                *LanguageClient_selectionUI_autoOpen*
+Selection UI auto open when selectionUI is not "fzf"
+
+Valid options: 1 | 0 
+Default: 1
+
 2.8 g:LanguageClient_trace                           *g:LanguageClient_trace*
 
 Trace setting passed to server.
