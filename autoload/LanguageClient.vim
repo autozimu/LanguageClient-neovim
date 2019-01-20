@@ -80,7 +80,7 @@ function! s:Echowarn(message) abort
 endfunction
 
 " timeout: skip function call f until this timeout, in seconds.
-function s:Debounce(timeout, f) abort
+function! s:Debounce(timeout, f) abort
     " Map function to its last execute time.
     let s:DebounceMap = {}
     let l:lastexectime = get(s:DebounceMap, a:f)
