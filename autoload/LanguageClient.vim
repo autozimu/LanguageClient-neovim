@@ -79,6 +79,19 @@ function! s:Echowarn(message) abort
     echohl WarningMsg | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
+" timeout: skip function call f until this timeout, in seconds.
+function s:Debounce(timeout, f) abort
+    " Map function to its last execute time.
+    let s:DebounceMap = {}
+    let l:lastexectime = get(s:DebounceMap, a:f)
+    if l:lastexectime == 0 || reltimefloat(reltime(l:lastexectime)) < a:timeout
+        let s:DebounceMap[a:f] = reltime()
+        return v:true
+    else
+        return v:false
+    endif
+endfunction
+
 function! s:Debug(message) abort
     if !exists('g:LanguageClient_loggingLevel')
         return
@@ -768,9 +781,11 @@ endfunction
 
 function! LanguageClient#handleFileType() abort
     try
-        call LanguageClient#Notify('languageClient/handleFileType', {
-                    \ 'filename': LSP#filename(),
-                    \ })
+        if s:Debounce(2, 'LanguageClient#handleFileType')
+            call LanguageClient#Notify('languageClient/handleFileType', {
+                        \ 'filename': LSP#filename(),
+                        \ })
+        endif
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry

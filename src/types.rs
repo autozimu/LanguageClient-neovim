@@ -95,7 +95,6 @@ pub struct State {
     #[serde(skip_serializing)]
     pub tx: crossbeam_channel::Sender<Call>,
 
-    pub starting_server: LanguageId,
     pub clients: HashMap<LanguageId, RpcClient>,
 
     pub capabilities: HashMap<String, Value>,
@@ -167,8 +166,6 @@ impl State {
 
         Ok(State {
             tx,
-
-            starting_server: None,
 
             clients: hashmap! {
                 None => client,

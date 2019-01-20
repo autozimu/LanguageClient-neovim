@@ -2160,7 +2160,7 @@ impl LanguageClient {
                 self.process_diagnostics(&filename, &diagnostics)?;
                 self.languageClient_handleCursorMoved(params)?;
             }
-        } else if self.get(|state| state.starting_server.clone())? != Some(languageId.clone()) {
+        } else {
             let autoStart: u8 = self.eval("!!get(g:, 'LanguageClient_autoStart', 1)")?;
             if autoStart == 1 {
                 let ret = self.languageClient_startServer(params);
@@ -2693,18 +2693,6 @@ impl LanguageClient {
     pub fn languageClient_startServer(&self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__StartServer);
         let (languageId,): (String,) = self.gather_args(&[VimVar::LanguageId], &params)?;
-        if Some(languageId.clone()) == self.get(|state| state.starting_server.clone())? {
-            info!(
-                "Language server ({}) is being started. Skipping.",
-                languageId
-            );
-            return Ok(Value::default());
-        }
-        self.update(|state| {
-            state.starting_server = Some(languageId.clone());
-            Ok(())
-        })?;
-
         let (cmdargs,): (Vec<String>,) = self.gather_args(&[("cmdargs", "[]")], params)?;
         let cmdparams = vim_cmd_args_to_value(&cmdargs)?;
         let params = params.combine(&cmdparams);
@@ -2817,10 +2805,6 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        self.update(|state| {
-            state.starting_server = None;
-            Ok(())
-        })?;
         info!("End {}", REQUEST__StartServer);
 
         if self.get(|state| state.clients.len())? == 2 {
