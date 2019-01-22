@@ -22,7 +22,7 @@ fn create_config(path: &Option<String>, level: LevelFilter) -> Fallible<Config> 
                 .truncate(true)
                 .open(path)
                 .with_context(|err| format!("Failed to open file ({}): {}", path, err))?;
-            #[allow(write_literal)]
+            #[allow(clippy::write_literal)]
             writeln!(
                 f,
                 "#######\nLanguageClient {} {}\n#######",
@@ -43,7 +43,7 @@ fn create_config(path: &Option<String>, level: LevelFilter) -> Fallible<Config> 
 }
 
 pub fn init() -> Fallible<Handle> {
-    let handle = log4rs::init_config(create_config(&None, LevelFilter::Warn)?)?;
+    let handle = log4rs::init_config(create_config(&None, LevelFilter::Info)?)?;
 
     Ok(handle)
 }

@@ -1,24 +1,60 @@
 use super::*;
+use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
 use crate::lsp::request::Request;
 
-impl State {
+impl LanguageClient {
+    pub fn handle_call(&self, msg: Call) -> Fallible<()> {
+        match msg {
+            Call::MethodCall(lang_id, method_call) => {
+                let result = self.handle_method_call(lang_id.as_deref(), &method_call);
+                if let Err(ref err) = result {
+                    if err.find_root_cause().downcast_ref::<LCError>().is_none() {
+                        error!(
+                            "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
+                            err,
+                            serde_json::to_string(&method_call).unwrap_or_default(),
+                            err
+                        );
+                    }
+                }
+                self.get_client(&lang_id)?
+                    .output(method_call.id.to_int()?, result)?;
+            }
+            Call::Notification(lang_id, notification) => {
+                let result = self.handle_notification(lang_id.as_deref(), &notification);
+                if let Err(ref err) = result {
+                    if err.downcast_ref::<LCError>().is_none() {
+                        error!(
+                            "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
+                            err,
+                            serde_json::to_string(&notification).unwrap_or_default(),
+                            err
+                        );
+                    }
+                }
+            }
+        }
+
+        // TODO
+        if let Err(err) = self.handle_fs_events() {
+            warn!("{:?}", err);
+        }
+
+        Ok(())
+    }
+
     pub fn handle_method_call(
-        &mut self,
+        &self,
         languageId: Option<&str>,
         method_call: &rpc::MethodCall,
     ) -> Fallible<Value> {
         let params = serde_json::to_value(method_call.params.clone())?;
 
-        let user_handler = self.get(|state| {
-            state
-                .user_handlers
-                .get(&method_call.method)
-                .cloned()
-                .ok_or_else(|| err_msg("No user handler"))
-        });
-        if let Ok(user_handler) = user_handler {
-            return self.call(None, &user_handler, params);
+        let user_handler =
+            self.get(|state| state.user_handlers.get(&method_call.method).cloned())?;
+        if let Some(user_handler) = user_handler {
+            return self.vim()?.call(&user_handler, params);
         }
 
         match method_call.method.as_str() {
@@ -83,28 +119,23 @@ impl State {
                     Some(languageId_target)
                 };
 
-                self.call(languageId_target.as_deref(), &method_call.method, &params)
+                self.get_client(&languageId_target)?
+                    .call(&method_call.method, &params)
             }
         }
     }
 
     pub fn handle_notification(
-        &mut self,
+        &self,
         languageId: Option<&str>,
         notification: &rpc::Notification,
     ) -> Fallible<()> {
         let params = serde_json::to_value(notification.params.clone())?;
 
-        let user_handler = self.get(|state| {
-            state
-                .user_handlers
-                .get(&notification.method)
-                .cloned()
-                .ok_or_else(|| err_msg("No user handler"))
-        });
-        if let Ok(user_handler) = user_handler {
-            self.call::<_, u8>(None, &user_handler, params.clone())?;
-            return Ok(());
+        let user_handler =
+            self.get(|state| state.user_handlers.get(&notification.method).cloned())?;
+        if let Some(user_handler) = user_handler {
+            return self.vim()?.notify(&user_handler, params.clone());
         }
 
         match notification.method.as_str() {
@@ -167,7 +198,8 @@ impl State {
                     Some(languageId_target)
                 };
 
-                self.notify(languageId_target.as_deref(), &notification.method, &params)?;
+                self.get_client(&languageId_target)?
+                    .notify(&notification.method, &params)?;
             }
         };
 
