@@ -151,6 +151,9 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
+        let selectionUI_autoOpen: u64 =
+            self.eval("get(g:, 'LanguageClient_selectionUI_autoOpen', 1)")?;
+
         let (diagnosticsSignsMax, documentHighlightDisplay): (Option<u64>, Value) = self.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -161,6 +164,7 @@ impl LanguageClient {
 
         // vimscript use 1 for true, 0 for false.
         let autoStart = autoStart == 1;
+        let selectionUI_autoOpen = selectionUI_autoOpen == 1;
         let loadSettings = loadSettings == 1;
 
         let trace = if let Some(t) = trace {
@@ -219,6 +223,7 @@ impl LanguageClient {
             state.autoStart = autoStart;
             state.serverCommands.extend(serverCommands);
             state.selectionUI = selectionUI;
+            state.selectionUI_autoOpen = selectionUI_autoOpen;
             state.trace = trace;
             state.diagnosticsEnable = diagnosticsEnable;
             state.diagnosticsList = diagnosticsList;
@@ -693,6 +698,7 @@ impl LanguageClient {
             };
 
         let selectionUI = self.get(|state| state.selectionUI)?;
+        let selectionUI_autoOpen = self.get(|state| state.selectionUI_autoOpen)?;
         match selectionUI {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
@@ -726,6 +732,9 @@ impl LanguageClient {
                     .collect();
                 let list = list?;
                 self.setqflist(&list, " ", title)?;
+                if selectionUI_autoOpen {
+                    self.command("botright copen")?;
+                }
                 self.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
@@ -735,6 +744,9 @@ impl LanguageClient {
                     .collect();
                 let list = list?;
                 self.setloclist(&list, " ", title)?;
+                if selectionUI_autoOpen {
+                    self.command("lopen")?;
+                }
                 self.echo("Location list updated.")?;
             }
         }
@@ -1245,6 +1257,7 @@ impl LanguageClient {
         let title = format!("[LC]: symbols for {}", filename);
 
         let selectionUI = self.get(|state| state.selectionUI)?;
+        let selectionUI_autoOpen = self.get(|state| state.selectionUI_autoOpen)?;
         match selectionUI {
             SelectionUI::FZF => {
                 let source: Vec<_> = symbols
@@ -1270,12 +1283,18 @@ impl LanguageClient {
                 let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list, " ", &title)?;
+                if selectionUI_autoOpen {
+                    self.command("botright copen")?;
+                }
                 self.echo("Document symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list, " ", &title)?;
+                if selectionUI_autoOpen {
+                    self.command("lopen")?;
+                }
                 self.echo("Document symbols populated to location list.")?;
             }
         }
@@ -1614,6 +1633,7 @@ impl LanguageClient {
         let title = "[LC]: workspace symbols";
 
         let selectionUI = self.get(|state| state.selectionUI)?;
+        let selectionUI_autoOpen = self.get(|state| state.selectionUI_autoOpen)?;
         match selectionUI {
             SelectionUI::FZF => {
                 let cwd: String = self.eval("getcwd()")?;
@@ -1644,12 +1664,18 @@ impl LanguageClient {
                 let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setqflist(&list, " ", title)?;
+                if selectionUI_autoOpen {
+                    self.command("botright copen")?;
+                }
                 self.echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
                 let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.setloclist(&list, " ", title)?;
+                if selectionUI_autoOpen {
+                    self.command("lopen")?;
+                }
                 self.echo("Workspace symbols populated to location list.")?;
             }
         }
