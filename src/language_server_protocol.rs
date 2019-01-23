@@ -1,4 +1,5 @@
 use super::*;
+use crate::vim::VirtualText;
 
 use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
@@ -151,13 +152,17 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
-        let selectionUI_autoOpen: u64 =
-            self.eval("get(g:, 'LanguageClient_selectionUI_autoOpen', 1)")?;
-
-        let (diagnosticsSignsMax, documentHighlightDisplay): (Option<u64>, Value) = self.eval(
+        let (diagnosticsSignsMax, documentHighlightDisplay, selectionUI_autoOpen, use_virtual_text): (
+            Option<u64>,
+            Value,
+            u8,
+            u8,
+        ) = self.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
+                "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
+                "s:useVirtualText()",
             ]
             .as_ref(),
         )?;
@@ -243,6 +248,7 @@ impl LanguageClient {
             state.wait_output_timeout = wait_output_timeout;
             state.hoverPreview = hoverPreview;
             state.completionPreferTextEdit = completionPreferTextEdit;
+            state.use_virtual_text = use_virtual_text == 1;
             state.loggingFile = loggingFile;
             state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
@@ -1883,7 +1889,20 @@ impl LanguageClient {
         // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
 
-        let diagnostics = params.diagnostics;
+        let mut diagnostics = params.diagnostics;
+        diagnostics.sort_by_key(
+            // First sort by line.
+            // Then severity descendingly. Error should come last since when processing item comes
+            // later will override its precedance.
+            // Then by character descendingly.
+            |diagnostic| {
+                (
+                    diagnostic.range.start.line,
+                    -(diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) as i8),
+                    -(diagnostic.range.start.line as i64),
+                )
+            },
+        );
 
         self.update(|state| {
             state
@@ -2258,8 +2277,13 @@ impl LanguageClient {
 
     pub fn languageClient_handleCursorMoved(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
-        let (languageId, filename, line): (String, String, u64) = self.gather_args(
-            &[VimVar::LanguageId, VimVar::Filename, VimVar::Line],
+        let (languageId, filename, bufnr, line): (String, String, i64, u64) = self.gather_args(
+            &[
+                VimVar::LanguageId,
+                VimVar::Filename,
+                VimVar::Bufnr,
+                VimVar::Line,
+            ],
             params,
         )?;
         if !self.get(|state| state.serverCommands.contains_key(&languageId))? {
@@ -2377,6 +2401,53 @@ impl LanguageClient {
 
             self.vim()?
                 .notify("s:AddHighlights", json!([source, highlights]))?;
+        }
+
+        if self.get(|state| state.use_virtual_text)? {
+            let namespace_id = if let Some(namespace_id) = self.get(|state| state.namespace_id)? {
+                namespace_id
+            } else {
+                let namespace_id = self.create_namespace("LanguageClient")?;
+                self.update(|state| {
+                    state.namespace_id = Some(namespace_id);
+                    Ok(())
+                })?;
+                namespace_id
+            };
+            let mut virtual_texts = vec![];
+            self.update(|state| {
+                if let Some(diagnostics) = state.diagnostics.get(&filename) {
+                    for diagnostic in diagnostics {
+                        if diagnostic.range.start.line >= visible_line_start
+                            && diagnostic.range.start.line <= visible_line_end
+                        {
+                            virtual_texts.push(VirtualText {
+                                line: diagnostic.range.start.line,
+                                text: diagnostic.message.clone(),
+                                hl_group: state
+                                    .diagnosticsDisplay
+                                    .get(
+                                        &diagnostic
+                                            .severity
+                                            .unwrap_or(DiagnosticSeverity::Hint)
+                                            .to_int()?,
+                                    )
+                                    .ok_or_else(|| err_msg("Failed to get display"))?
+                                    .virtualTexthl
+                                    .clone(),
+                            });
+                        }
+                    }
+                }
+                Ok(())
+            })?;
+            self.set_virtual_texts(
+                bufnr,
+                namespace_id,
+                visible_line_start,
+                visible_line_end,
+                &virtual_texts,
+            )?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);

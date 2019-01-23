@@ -115,6 +115,15 @@ function! s:hasSnippetSupport() abort
     return 0
 endfunction
 
+function! s:useVirtualText() abort
+    let l:use = s:GetVar('LanguageClient_useVirtualText')
+    if l:use !=# v:null
+        return !!l:use
+    endif
+
+    return exists('*nvim_buf_set_virtual_text')
+endfunction
+
 function! s:IsTrue(v) abort
     if type(a:v) ==# type(0)
         return a:v ==# 0 ? v:false : v:true
@@ -132,6 +141,20 @@ endfunction
 " Get all listed buffer file names.
 function! s:Bufnames() abort
     return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
+endfunction
+
+function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts) abort
+    " VirtualText: map with keys line, text and hl_group.
+
+    if !exists('*nvim_buf_set_virtual_text')
+        return
+    endif
+
+    call nvim_buf_clear_namespace(a:buf_id, a:ns_id, a:line_start, a:line_end)
+
+    for vt in a:virtual_texts
+        call nvim_buf_set_virtual_text(a:buf_id, a:ns_id, vt['line'], [[vt['text'], vt['hl_group']]], {})
+    endfor
 endfunction
 
 function! s:getInput(prompt, default) abort
@@ -199,7 +222,7 @@ function! s:AddHighlights(source, highlights) abort
 endfunction
 
 " Get an variable value.
-" First try buffer local, then global, then default, then v:null.
+" Get variable from uffer local, or else global, or else default, or else v:null.
 function! s:GetVar(...) abort
     let name = a:1
 

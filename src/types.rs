@@ -104,11 +104,13 @@ pub struct State {
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
     // filename => diagnostics.
+    // TODO: convert to filename => line => diagnostics, where line => diagnostics is a TreeMap.
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub signs: HashMap<String, Vec<Sign>>,
     pub signs_placed: HashMap<String, Vec<Sign>>,
+    pub namespace_id: Option<i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
@@ -145,6 +147,7 @@ pub struct State {
     pub wait_output_timeout: Duration,
     pub hoverPreview: HoverPreviewOption,
     pub completionPreferTextEdit: bool,
+    pub use_virtual_text: bool,
 
     pub loggingFile: Option<String>,
     pub loggingLevel: log::LevelFilter,
@@ -182,6 +185,7 @@ impl State {
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
             signs_placed: HashMap::new(),
+            namespace_id: None,
             highlight_source: None,
             highlights: HashMap::new(),
             highlights_placed: HashMap::new(),
@@ -214,6 +218,7 @@ impl State {
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
             completionPreferTextEdit: false,
+            use_virtual_text: true,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,
@@ -307,6 +312,7 @@ pub struct DiagnosticsDisplay {
     pub texthl: String,
     pub signText: String,
     pub signTexthl: String,
+    pub virtualTexthl: String,
 }
 
 impl DiagnosticsDisplay {
@@ -319,6 +325,7 @@ impl DiagnosticsDisplay {
                 texthl: "ALEError".to_owned(),
                 signText: "✖".to_owned(),
                 signTexthl: "ALEErrorSign".to_owned(),
+                virtualTexthl: "Error".to_owned(),
             },
         );
         map.insert(
@@ -328,6 +335,7 @@ impl DiagnosticsDisplay {
                 texthl: "ALEWarning".to_owned(),
                 signText: "⚠".to_owned(),
                 signTexthl: "ALEWarningSign".to_owned(),
+                virtualTexthl: "Todo".to_owned(),
             },
         );
         map.insert(
@@ -337,6 +345,7 @@ impl DiagnosticsDisplay {
                 texthl: "ALEInfo".to_owned(),
                 signText: "ℹ".to_owned(),
                 signTexthl: "ALEInfoSign".to_owned(),
+                virtualTexthl: "Todo".to_owned(),
             },
         );
         map.insert(
@@ -346,6 +355,7 @@ impl DiagnosticsDisplay {
                 texthl: "ALEInfo".to_owned(),
                 signText: "➤".to_owned(),
                 signTexthl: "ALEInfoSign".to_owned(),
+                virtualTexthl: "Todo".to_owned(),
             },
         );
         map

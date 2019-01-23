@@ -100,24 +100,28 @@ Default: >
             "texthl": "ALEError",
             "signText": "✖",
             "signTexthl": "ALEErrorSign",
+            "virtualTexthl": "Error",
         },
         2: {
             "name": "Warning",
             "texthl": "ALEWarning",
             "signText": "⚠",
             "signTexthl": "ALEWarningSign",
+            "virtualTexthl": "Todo",
         },
         3: {
             "name": "Information",
             "texthl": "ALEInfo",
             "signText": "ℹ",
             "signTexthl": "ALEInfoSign",
+            "virtualTexthl": "Todo",
         },
         4: {
             "name": "Hint",
             "texthl": "ALEInfo",
             "signText": "➤",
             "signTexthl": "ALEInfoSign",
+            "virtualTexthl": "Todo",
         },
     }
 
@@ -335,6 +339,13 @@ Default: >
             "texthl": "SpellRare",
         },
     }
+
+2.22 g:LanguageClient_useVirtualText          *g:LanguageClient_useVirtualText*
+
+Specify whether to use virtual text to display diagnostics.
+
+Default: 1 whenever virtual text is supported.
+Valid Options: 1 | 0
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
