@@ -95,6 +95,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub tx: crossbeam_channel::Sender<Call>,
 
+    #[serde(skip_serializing)]
     pub clients: HashMap<LanguageId, RpcClient>,
 
     pub capabilities: HashMap<String, Value>,
