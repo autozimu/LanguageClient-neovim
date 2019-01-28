@@ -636,6 +636,13 @@ function! LanguageClient#textDocument_formatting(...) abort
     return LanguageClient#Call('textDocument/formatting', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#textDocument_formatting_sync(...) abort
+    let l:result = LanguageClient_runSync('LanguageClient#textDocument_formatting', {
+                \ 'handle': v:true,
+                \ })
+    return l:result isnot v:null
+endfunction
+
 function! LanguageClient#textDocument_rangeFormatting(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
