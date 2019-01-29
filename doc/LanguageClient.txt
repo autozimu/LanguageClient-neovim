@@ -80,7 +80,7 @@ In the example above, 'run', 'stable', and 'rls' are arguments to the
 'rustup' command line tool.
 
 Or tcp connection string to the server, >
-    let g:LanguageCLient_servercommands = {
+    let g:LanguageCLient_serverCommands = {
         \ 'javascript': ['tcp://127.0.0.1:2089'],
         \ }
 
@@ -165,7 +165,7 @@ Valid options: "fzf" | "quickfix" | "location-list"
 2.7 g:LanguageClient_selectionUI_autoOpen                *LanguageClient_selectionUI_autoOpen*
 Selection UI auto open when selectionUI is not "fzf"
 
-Valid options: 1 | 0 
+Valid options: 1 | 0
 Default: 1
 
 2.8 g:LanguageClient_trace                           *g:LanguageClient_trace*
