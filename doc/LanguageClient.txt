@@ -265,7 +265,12 @@ Valid option: Array<String> | String
 
 Override detection of snippet support.
 
-Default: 1
+If this is not set, the language client will determine whether snippets are
+supported by looking for installed plugins that are known to support them.
+
+Set to 1 (or 0) to enable (or disable) snippet support, skipping the automatic
+detection.
+
 Valid options: 1 | 0
 
 2.18 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*

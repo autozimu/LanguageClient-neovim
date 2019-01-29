@@ -103,8 +103,8 @@ function! s:Debug(message) abort
 endfunction
 
 function! s:hasSnippetSupport() abort
-    if get(g:, 'LanguageClient_hasSnippetSupport', 1) !=# 1
-        return 0
+    if exists('g:LanguageClient_hasSnippetSupport')
+        return g:LanguageClient_hasSnippetSupport !=# 0
     endif
 
     " https://github.com/Shougo/neosnippet.vim
