@@ -107,16 +107,8 @@ function! s:hasSnippetSupport() abort
         return 0
     endif
 
-    " https://github.com/SirVer/ultisnips
-    if exists('g:did_plugin_ultisnips')
-        return 1
-    endif
     " https://github.com/Shougo/neosnippet.vim
     if exists('g:loaded_neosnippet')
-        return 1
-    endif
-    " https://github.com/garbas/vim-snipmate
-    if exists('g:loaded_snips')
         return 1
     endif
 
