@@ -220,7 +220,13 @@ Valid options: 1 | 0
 Log file location.
 
 Default: null
-Valid options: any valid path.
+Valid options: any valid path. Please note that `~` is not a valid path and you
+need to `expand` it.
+
+Example:
+
+    `let g:LanguageClient_loggingFile = expand('~/.vim/LanguageClient.log')``
+
 
 2.14 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
 
