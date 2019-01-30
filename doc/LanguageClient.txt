@@ -80,7 +80,7 @@ In the example above, 'run', 'stable', and 'rls' are arguments to the
 'rustup' command line tool.
 
 Or tcp connection string to the server, >
-    let g:LanguageCLient_serverCommands = {
+    let g:LanguageClient_serverCommands = {
         \ 'javascript': ['tcp://127.0.0.1:2089'],
         \ }
 
