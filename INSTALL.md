@@ -1,6 +1,6 @@
-# 1. Install neovim or vim
-
-Obviously you need [neovim](https://github.com/neovim/neovim#install-from-package) or [vim](http://www.vim.org/)!
+# 1. Requirements
+- neovim or
+- vim >= 8.0
 
 # 2. Install dependencies
 
