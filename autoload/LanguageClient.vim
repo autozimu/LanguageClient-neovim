@@ -291,7 +291,7 @@ function! s:HandleMessage(job, lines, event) abort
                         let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
                         let l:result = call(l:method, l:params)
                     endif
-                    if l:id != v:null
+                    if l:id isnot v:null
                         call LanguageClient#Write(json_encode({
                                     \ 'jsonrpc': '2.0',
                                     \ 'id': l:id,
@@ -300,7 +300,7 @@ function! s:HandleMessage(job, lines, event) abort
                     endif
                 catch
                     let l:exception = v:exception
-                    if l:id != v:null
+                    if l:id isnot v:null
                         try
                             call LanguageClient#Write(json_encode({
                                         \ 'jsonrpc': '2.0',
@@ -367,7 +367,7 @@ function! s:HandleOutput(output, ...) abort
 
     if has_key(a:output, 'result')
         " let l:result = string(a:result)
-        " if l:result !=# 'v:null'
+        " if l:result isnot v:null
             " echomsg l:result
         " endif
         return get(a:output, 'result')
