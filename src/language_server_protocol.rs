@@ -2122,10 +2122,11 @@ impl LanguageClient {
                     return None;
                 }
 
-                Some(match serde_json::to_string(v) {
-                    Ok(v) => Ok((k.clone(), v)),
-                    Err(err) => Err(err.into()),
-                })
+                if let serde_json::Value::String(v) = v {
+                    Some(Ok((k.clone(), v.clone())))
+                } else {
+                    None
+                }
             })
             .collect();
         let handlers = handlers?;
