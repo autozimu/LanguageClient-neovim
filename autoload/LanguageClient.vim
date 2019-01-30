@@ -117,7 +117,7 @@ endfunction
 
 function! s:useVirtualText() abort
     let l:use = s:GetVar('LanguageClient_useVirtualText')
-    if l:use !=# v:null
+    if l:use isnot v:null
         return !!l:use
     endif
 
