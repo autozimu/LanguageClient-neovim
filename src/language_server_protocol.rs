@@ -2424,7 +2424,7 @@ impl LanguageClient {
                         {
                             virtual_texts.push(VirtualText {
                                 line: diagnostic.range.start.line,
-                                text: diagnostic.message.clone(),
+                                text: diagnostic.message.replace("\n", "  ").clone(),
                                 hl_group: state
                                     .diagnosticsDisplay
                                     .get(
