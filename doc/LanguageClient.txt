@@ -232,21 +232,21 @@ Example:
     `let g:LanguageClient_loggingFile = expand('~/.vim/LanguageClient.log')``
 
 
-2.14 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
+2.15 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
 
 Logging level.
 
 Default: 'WARN'
 Valid options: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 
-2.14 g:LanguageClient_serverStderr             *g:LanguageClient_serverStderr*
+2.16 g:LanguageClient_serverStderr             *g:LanguageClient_serverStderr*
 
 Path for language server stderr.
 
 Default: None
 Valid options: any valid path.
 
-2.15 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
+2.17 g:LanguageClient_rootMarkers              *g:LanguageClient_rootMarkers*
 
 Customized project root markers. Generally a heuristic algorithm within this
 plugin should be able to detect project root automatically. This option is
@@ -264,14 +264,14 @@ Example setting 2. Map filetype to string array. >
 Default: v:null
 Valid option: Array<String> | Map<String, Array<String>>
 
-2.16 g:LanguageClient_fzfOptions                *g:LanguageClient_fzfOptions*
+2.18 g:LanguageClient_fzfOptions                *g:LanguageClient_fzfOptions*
 
 Customize fzf. Check fzf documentation for available options.
 
 Default: v:null
 Valid option: Array<String> | String
 
-2.17 g:LanguageClient_hasSnippetSupport   *g:LanguageClient_hasSnippetSupport*
+2.19 g:LanguageClient_hasSnippetSupport   *g:LanguageClient_hasSnippetSupport*
 
 Override detection of snippet support.
 
@@ -283,7 +283,7 @@ detection.
 
 Valid options: 1 | 0
 
-2.18 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*
+2.20 g:LanguageClient_waitOutputTimeout   *g:LanguageClient_waitOutputTimeout*
 
 Duration of time (in seconds) to wait for language server to return output
 before timing out.
@@ -291,7 +291,7 @@ before timing out.
 Default: 10
 Valid options: number
 
-2.19 g:LanguageClient_hoverPreview             *g:LanguageClient_hoverPreview*
+2.21 g:LanguageClient_hoverPreview             *g:LanguageClient_hoverPreview*
 
 Controls how hover output is displayed. Must be one of the following:
     Never  - Never use preview window, always echo hover output
@@ -301,14 +301,14 @@ Controls how hover output is displayed. Must be one of the following:
 Default: "Auto"
 Valid options: "Never", "Auto", "Always"
 
-2.20 g:LanguageClient_fzfContextMenu         *g:LanguageClient_fzfContextMenu*
+2.22 g:LanguageClient_fzfContextMenu         *g:LanguageClient_fzfContextMenu*
 
 Should FZF be used for `LanguageClient_contextMenu()`.
 
 Default: 1
 Valid options: 1 | 0
 
-2.21 g:LanguageClient_completionPreferTextEdit
+2.23 g:LanguageClient_completionPreferTextEdit
 *g:LanguageClient_completionPreferTextEdit*
 
 (Experimental) Should prefer use textEdit it is present in
@@ -320,7 +320,7 @@ neovim >= 0.3.0.
 Default: 0
 Valid options: 1 | 0
 
-2.22 g:LanguageClient_documentHighlightDisplay *g:LanguageClient_documentHighlightDisplay*
+2.24 g:LanguageClient_documentHighlightDisplay *g:LanguageClient_documentHighlightDisplay*
 
 Control how document highlights are displayed.
 
@@ -340,7 +340,7 @@ Default: >
         },
     }
 
-2.22 g:LanguageClient_useVirtualText          *g:LanguageClient_useVirtualText*
+2.25 g:LanguageClient_useVirtualText          *g:LanguageClient_useVirtualText*
 
 Specify whether to use virtual text to display diagnostics.
 
