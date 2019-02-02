@@ -1324,6 +1324,7 @@ impl LanguageClient {
                 params,
             )?;
 
+        let position = lsp::Position::new(line, character);
         // Unify filename.
         let filename = filename.canonicalize();
 
@@ -1333,12 +1334,7 @@ impl LanguageClient {
                 .get(&filename)
                 .unwrap_or(&vec![])
                 .iter()
-                .filter(|dn| {
-                    let start = dn.range.start;
-                    let end = dn.range.end;
-                    (line, character) >= (start.line, start.character)
-                        && (line, character) < (end.line, end.character)
-                })
+                .filter(|dn| position >= dn.range.start && position < dn.range.end)
                 .cloned()
                 .collect()
         })?;
@@ -2419,7 +2415,7 @@ impl LanguageClient {
             self.update(|state| {
                 if let Some(diagnostics) = state.diagnostics.get(&filename) {
                     for diagnostic in diagnostics {
-                        if diagnostic.range.start.line >= visible_line_start
+                        if diagnostic.range.end.line >= visible_line_start
                             && diagnostic.range.start.line <= visible_line_end
                         {
                             virtual_texts.push(VirtualText {
@@ -2682,16 +2678,14 @@ impl LanguageClient {
         info!("Begin {}", REQUEST__ExplainErrorAtPoint);
         let (filename, line, character): (String, u64, u64) =
             self.gather_args(&[VimVar::Filename, VimVar::Line, VimVar::Character], params)?;
+        let position = lsp::Position::new(line, character);
         let diag = self.get(|state| {
             state
                 .diagnostics
                 .get(&filename)
                 .ok_or_else(|| format_err!("No diagnostics found: filename: {}", filename,))?
                 .iter()
-                .find(|d| {
-                    (line, character) >= (d.range.start.line, d.range.start.character)
-                        && (line, character) < (d.range.end.line, d.range.end.character)
-                })
+                .find(|dn| position >= dn.range.start && position < dn.range.end)
                 .cloned()
                 .ok_or_else(|| {
                     format_err!(

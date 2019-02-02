@@ -5,3 +5,4 @@
 - Create Context to lazy load var/state from vim.
 - Async/await rust.
 - Benchmark batched sign operations to see if optimization is really needed.
+- Verify Position Ord.
