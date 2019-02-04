@@ -685,16 +685,7 @@ impl LanguageClient {
         }
 
         if self.get(|state| state.use_virtual_text)? {
-            let namespace_id = if let Some(namespace_id) = self.get(|state| state.namespace_id)? {
-                namespace_id
-            } else {
-                let namespace_id = self.create_namespace("LanguageClient")?;
-                self.update(|state| {
-                    state.namespace_id = Some(namespace_id);
-                    Ok(())
-                })?;
-                namespace_id
-            };
+            let namespace_id = self.get_or_create_namespace()?;
 
             let (bufnr, viewport): (i64, Viewport) =
                 self.gather_args(&[VimVar::Bufnr, VimVar::Viewport], &json!({}))?;
@@ -2462,16 +2453,7 @@ impl LanguageClient {
         }
 
         if self.get(|state| state.use_virtual_text)? {
-            let namespace_id = if let Some(namespace_id) = self.get(|state| state.namespace_id)? {
-                namespace_id
-            } else {
-                let namespace_id = self.create_namespace("LanguageClient")?;
-                self.update(|state| {
-                    state.namespace_id = Some(namespace_id);
-                    Ok(())
-                })?;
-                namespace_id
-            };
+            let namespace_id = self.get_or_create_namespace()?;
 
             for viewport in &viewport_diffs {
                 let mut virtual_texts = vec![];

@@ -47,6 +47,7 @@ mod logger;
 mod rpchandler;
 mod viewport;
 mod vim;
+mod vimext;
 
 mod rpcclient;
 
