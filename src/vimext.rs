@@ -6,7 +6,7 @@ impl LanguageClient {
         if let Some(namespace_id) = self.get(|state| state.namespace_id)? {
             Ok(namespace_id)
         } else {
-            let namespace_id = self.create_namespace("LanguageClient")?;
+            let namespace_id = self.vim()?.create_namespace("LanguageClient")?;
             self.update(|state| {
                 state.namespace_id = Some(namespace_id);
                 Ok(())

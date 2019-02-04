@@ -1,6 +1,7 @@
 use super::*;
 use crate::rpcclient::RpcClient;
 use crate::viewport::Viewport;
+use crate::vim::Vim;
 use std::sync::mpsc;
 
 pub type Fallible<T> = failure::Fallible<T>;
@@ -68,7 +69,9 @@ pub trait SyncWrite: Write + Sync + Send + Debug {}
 impl SyncWrite for BufWriter<ChildStdin> {}
 impl SyncWrite for BufWriter<TcpStream> {}
 
+/// Rpc message id.
 pub type Id = u64;
+/// Langauge server id.
 pub type LanguageId = Option<String>;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,6 +101,9 @@ pub struct State {
 
     #[serde(skip_serializing)]
     pub clients: HashMap<LanguageId, RpcClient>,
+
+    #[serde(skip_serializing)]
+    pub vim: Vim,
 
     pub capabilities: HashMap<String, Value>,
     pub registrations: Vec<Registration>,
@@ -173,9 +179,9 @@ impl State {
         Ok(State {
             tx,
 
-            clients: hashmap! {
-                None => client,
-            },
+            clients: HashMap::new(),
+
+            vim: Vim::new(client),
 
             capabilities: HashMap::new(),
             registrations: vec![],
@@ -1137,4 +1143,3 @@ pub struct VirtualText {
     pub text: String,
     pub hl_group: String,
 }
-

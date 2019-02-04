@@ -158,6 +158,13 @@ function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts
     endfor
 endfunction
 
+" Execute serious of ex commands.
+function! s:command(...) abort
+    for l:cmd in a:000
+        execute l:cmd
+    endfor
+endfunction
+
 function! s:getInput(prompt, default) abort
     call inputsave()
     let l:input = input(a:prompt, a:default)
@@ -283,15 +290,8 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:method = get(l:message, 'method')
                 let l:params = get(l:message, 'params')
                 try
-                    if l:method ==# 'execute'
-                        for l:cmd in l:params
-                            execute l:cmd
-                        endfor
-                        let l:result = 0
-                    else
-                        let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
-                        let l:result = call(l:method, l:params)
-                    endif
+                    let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
+                    let l:result = call(l:method, l:params)
                     if l:id isnot v:null
                         call LanguageClient#Write(json_encode({
                                     \ 'jsonrpc': '2.0',

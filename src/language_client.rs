@@ -1,4 +1,5 @@
 use super::*;
+use crate::vim::Vim;
 use std::ops::DerefMut;
 
 pub struct LanguageClient(pub Arc<Mutex<State>>);
@@ -40,5 +41,9 @@ impl LanguageClient {
             debug!("{}: {} ==> {}", k, v1, v2);
         }
         result
+    }
+
+    pub fn vim(&self) -> Fallible<Vim> {
+        self.get(|state| state.vim.clone())
     }
 }
