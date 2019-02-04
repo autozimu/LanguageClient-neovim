@@ -45,6 +45,7 @@ mod language_client;
 mod language_server_protocol;
 mod logger;
 mod rpchandler;
+mod viewport;
 mod vim;
 
 mod rpcclient;

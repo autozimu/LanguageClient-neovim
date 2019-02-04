@@ -40,3 +40,10 @@ endfunction
 function! LSP#visible_line_end() abort
     return line('w$') - 1
 endfunction
+
+function! LSP#viewport() abort
+    return {
+        \ 'start': LSP#visible_line_start(),
+        \ 'end': LSP#visible_line_end() + 1,
+        \ }
+endfunction

@@ -1,5 +1,6 @@
 use super::*;
 use crate::rpcclient::RpcClient;
+use crate::viewport::Viewport;
 use std::sync::mpsc;
 
 pub type Fallible<T> = failure::Fallible<T>;
@@ -126,6 +127,7 @@ pub struct State {
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_codeAction_commands: Vec<Command>,
+    pub viewport: Viewport,
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
@@ -198,6 +200,7 @@ impl State {
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_codeAction_commands: vec![],
+            viewport: Viewport::new(0, 0),
 
             serverCommands: HashMap::new(),
             autoStart: true,
@@ -892,6 +895,7 @@ pub enum VimVar {
     Filename,
     Line,
     Character,
+    Viewport,
     Text,
     Cword,
     NewName,
@@ -913,6 +917,7 @@ impl VimExp for VimVar {
             VimVar::Filename => "filename",
             VimVar::Line => "line",
             VimVar::Character => "character",
+            VimVar::Viewport => "viewport",
             VimVar::Text => "text",
             VimVar::Cword => "cword",
             VimVar::NewName => "newName",
@@ -930,6 +935,7 @@ impl VimExp for VimVar {
             VimVar::Filename => "LSP#filename()",
             VimVar::Line => "LSP#line()",
             VimVar::Character => "LSP#character()",
+            VimVar::Viewport => "LSP#viewport()",
             VimVar::Text => "LSP#text()",
             VimVar::Cword => "expand('<cword>')",
             VimVar::NewName | VimVar::GotoCmd => "v:null",

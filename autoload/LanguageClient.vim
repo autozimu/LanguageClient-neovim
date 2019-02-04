@@ -143,6 +143,7 @@ function! s:Bufnames() abort
     return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
 endfunction
 
+" Clear and set virtual texts between line_start and line_end (exclusive).
 function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts) abort
     " VirtualText: map with keys line, text and hl_group.
 
@@ -475,9 +476,11 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     let l:skipAddParams = get(a:000, 0, v:false)
     let l:params = a:params
     if type(a:params) == s:TYPE.dict && !skipAddParams
+        " TODO: put inside context.
         let l:params = extend({
                     \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
+                    \ 'viewport': LSP#viewport(),
                     \ }, l:params)
     endif
     return LanguageClient#Write(json_encode({
