@@ -1130,3 +1130,11 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
         })
     }
 }
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub struct VirtualText {
+    pub line: u64,
+    pub text: String,
+    pub hl_group: String,
+}
+

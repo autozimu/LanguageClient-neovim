@@ -1,5 +1,4 @@
 use super::*;
-use crate::vim::VirtualText;
 
 use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;

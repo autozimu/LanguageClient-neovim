@@ -2,13 +2,6 @@ use super::*;
 use crate::language_client::LanguageClient;
 use crate::rpcclient::RpcClient;
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
-pub struct VirtualText {
-    pub line: u64,
-    pub text: String,
-    pub hl_group: String,
-}
-
 impl LanguageClient {
     /////// Vim wrappers ///////
 
