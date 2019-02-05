@@ -1,5 +1,10 @@
 function! LSP#filename() abort
-    return expand('<afile>:p')
+    " When executing autocommand, `%` might have already changed.
+    let l:filename = expand('<afile>:p')
+    if !l:filename
+        let l:filename = expand('%:p')
+    endif
+    return l:filename
 endfunction
 
 function! LSP#text(...) abort
