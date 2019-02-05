@@ -1,5 +1,5 @@
 function! LSP#filename() abort
-    return expand('%:p')
+    return expand('<afile>:p')
 endfunction
 
 function! LSP#text(...) abort
