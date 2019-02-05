@@ -1833,17 +1833,15 @@ impl LanguageClient {
 
     pub fn textDocument_didChange(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::DidChangeTextDocument::METHOD);
-        let (bufnr, languageId, filename): (u64, String, String) = self.gather_args(
-            &[VimVar::Bufnr, VimVar::LanguageId, VimVar::Filename],
-            params,
-        )?;
+        let (languageId, filename): (String, String) =
+            self.gather_args(&[VimVar::LanguageId, VimVar::Filename], params)?;
         if !self.get(|state| state.text_documents.contains_key(&filename))? {
             info!("Not opened yet. Switching to didOpen.");
             return self.textDocument_didOpen(params);
         }
 
         let (text,): (Vec<String>,) =
-            self.gather_args(&[format!("LSP#text({})", bufnr)], params)?;
+            self.gather_args(&[format!("LSP#text('{}')", filename)], params)?;
 
         let text = text.join("\n");
         let text_state = self.get(|state| {

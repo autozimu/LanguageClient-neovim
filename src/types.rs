@@ -179,7 +179,9 @@ impl State {
         Ok(State {
             tx,
 
-            clients: HashMap::new(),
+            clients: hashmap! {
+                None => client.clone(),
+            },
 
             vim: Vim::new(client),
 

@@ -6,7 +6,7 @@ function! LSP#text(...) abort
     let l:buf = get(a:000, 0, '')
 
     let l:lines = getbufline(l:buf, 1, '$')
-    if l:lines[-1] !=# '' && &fixendofline
+    if len(l:lines) > 0 && l:lines[-1] !=# '' && &fixendofline
         let l:lines += ['']
     endif
     return l:lines
