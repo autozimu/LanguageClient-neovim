@@ -32,7 +32,8 @@ impl Vim {
     }
 
     pub fn getbufline(&self, bufname: &str, start: &str, end: &str) -> Fallible<Vec<String>> {
-	self.rpcclient.call("getbufline", json!([bufname, start, end]))
+        self.rpcclient
+            .call("getbufline", json!([bufname, start, end]))
     }
 
     pub fn echo(&self, message: impl AsRef<str>) -> Fallible<()> {
