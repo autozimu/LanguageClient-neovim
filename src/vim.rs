@@ -27,6 +27,14 @@ impl Vim {
 
     /// Function wrappers.
 
+    pub fn getbufvar<R: DeserializeOwned>(&self, bufname: &str, var: &str) -> Fallible<R> {
+        self.rpcclient.call("getbufvar", json!([bufname, var]))
+    }
+
+    pub fn getbufline(&self, bufname: &str, start: &str, end: &str) -> Fallible<Vec<String>> {
+	self.rpcclient.call("getbufline", json!([bufname, start, end]))
+    }
+
     pub fn echo(&self, message: impl AsRef<str>) -> Fallible<()> {
         self.rpcclient.notify("s:Echo", message.as_ref())
     }

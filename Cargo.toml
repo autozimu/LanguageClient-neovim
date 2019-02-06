@@ -27,6 +27,7 @@ regex = "1"
 glob = "0"
 notify = "4"
 shellexpand = "1"
+lazycell = "1"
 
 [package.metadata.release]
 no-dev-version = true

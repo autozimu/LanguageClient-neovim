@@ -52,3 +52,10 @@ function! LSP#viewport() abort
         \ 'end': LSP#visible_line_end() + 1,
         \ }
 endfunction
+
+function! LSP#position() abort
+	return {
+		\ 'line': LSP#line(),
+		\ 'character': LSP#character(),
+		\ }
+endfunction
