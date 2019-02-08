@@ -1,7 +1,9 @@
 use super::*;
 use crate::rpcclient::RpcClient;
+use crate::sign::Sign;
 use crate::viewport::Viewport;
 use crate::vim::Vim;
+use std::collections::BTreeMap;
 use std::sync::mpsc;
 
 pub type Fallible<T> = failure::Fallible<T>;
@@ -73,6 +75,8 @@ impl SyncWrite for BufWriter<TcpStream> {}
 pub type Id = u64;
 /// Language server id.
 pub type LanguageId = Option<String>;
+/// Buffer id/handle.
+pub type Bufnr = i64;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
@@ -89,7 +93,7 @@ pub enum Call {
 
 #[derive(Clone, Copy, Serialize)]
 pub struct HighlightSource {
-    pub buffer: u64,
+    pub buffer: Bufnr,
     pub source: u64,
 }
 
@@ -114,8 +118,9 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
-    pub signs: HashMap<String, Vec<Sign>>,
-    pub signs_placed: HashMap<String, Vec<Sign>>,
+    pub sign_next_id: u64,
+    /// Active signs.
+    pub signs: HashMap<String, BTreeMap<u64, Sign>>,
     pub namespace_id: Option<i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
@@ -133,7 +138,7 @@ pub struct State {
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_codeAction_commands: Vec<Command>,
-    pub viewport: Viewport,
+    pub viewports: HashMap<String, Viewport>,
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
@@ -192,8 +197,8 @@ impl State {
             text_documents_metadata: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
+            sign_next_id: 75_000,
             signs: HashMap::new(),
-            signs_placed: HashMap::new(),
             namespace_id: None,
             highlight_source: None,
             highlights: HashMap::new(),
@@ -208,7 +213,7 @@ impl State {
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_codeAction_commands: vec![],
-            viewport: Viewport::new(0, 0),
+            viewports: HashMap::new(),
 
             serverCommands: HashMap::new(),
             autoStart: true,
@@ -373,36 +378,6 @@ impl DiagnosticsDisplay {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Sign {
-    pub id: u64,
-    pub line: u64,
-    pub text: String,
-    pub severity: Option<DiagnosticSeverity>,
-}
-
-impl Sign {
-    pub fn new(line: u64, text: String, severity: Option<DiagnosticSeverity>) -> Sign {
-        Sign {
-            id: Self::get_id(line, severity),
-            line,
-            text,
-            severity,
-        }
-    }
-
-    fn get_id(line: u64, severity: Option<DiagnosticSeverity>) -> u64 {
-        let base_id = 75_000;
-        base_id
-            + (line - 1) * 4
-            + severity
-                .unwrap_or(DiagnosticSeverity::Hint)
-                .to_int()
-                .unwrap_or(4)
-            - 1
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentHighlightDisplay {
     pub name: String,
     pub texthl: String,
@@ -433,34 +408,6 @@ impl DocumentHighlightDisplay {
             },
         );
         map
-    }
-}
-
-impl std::cmp::Ord for Sign {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.id.cmp(&other.id)
-    }
-}
-
-impl std::cmp::PartialOrd for Sign {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl std::cmp::PartialEq for Sign {
-    fn eq(&self, other: &Self) -> bool {
-        // Quick check whether sign should be updated.
-        self.text == other.text && self.severity == other.severity
-    }
-}
-
-impl std::cmp::Eq for Sign {}
-
-use std::hash::{Hash, Hasher};
-impl Hash for Sign {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
     }
 }
 
@@ -898,61 +845,9 @@ impl ToUsize for u64 {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum VimVar {
-    Bufnr,
-    LanguageId,
-    Filename,
-    Line,
-    Character,
-    Viewport,
-    Text,
-    Cword,
-    NewName,
-    GotoCmd,
-    Handle,
-    IncludeDeclaration,
-}
-
 pub trait VimExp {
     fn to_key(&self) -> String;
     fn to_exp(&self) -> String;
-}
-
-impl VimExp for VimVar {
-    fn to_key(&self) -> String {
-        match *self {
-            VimVar::Bufnr => "bufnr",
-            VimVar::LanguageId => "languageId",
-            VimVar::Filename => "filename",
-            VimVar::Line => "line",
-            VimVar::Character => "character",
-            VimVar::Viewport => "viewport",
-            VimVar::Text => "text",
-            VimVar::Cword => "cword",
-            VimVar::NewName => "newName",
-            VimVar::GotoCmd => "gotoCmd",
-            VimVar::Handle => "handle",
-            VimVar::IncludeDeclaration => "includeDeclaration",
-        }
-        .to_owned()
-    }
-
-    fn to_exp(&self) -> String {
-        match *self {
-            VimVar::Bufnr => "bufnr('')",
-            VimVar::LanguageId => "&filetype",
-            VimVar::Filename => "LSP#filename()",
-            VimVar::Line => "LSP#line()",
-            VimVar::Character => "LSP#character()",
-            VimVar::Viewport => "LSP#viewport()",
-            VimVar::Text => "LSP#text()",
-            VimVar::Cword => "expand('<cword>')",
-            VimVar::NewName | VimVar::GotoCmd => "v:null",
-            VimVar::Handle | VimVar::IncludeDeclaration => "v:true",
-        }
-        .to_owned()
-    }
 }
 
 impl<'a> VimExp for &'a str {

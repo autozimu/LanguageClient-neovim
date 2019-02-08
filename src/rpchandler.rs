@@ -36,7 +36,7 @@ impl LanguageClient {
             }
         }
 
-        // TODO
+        // FIXME
         if let Err(err) = self.handle_fs_events() {
             warn!("{:?}", err);
         }
@@ -110,8 +110,8 @@ impl LanguageClient {
                     }
                 } else {
                     // Message from vim. Proxy to language server.
-                    let (languageId_target,): (String,) =
-                        self.gather_args(&[VimVar::LanguageId], &params)?;
+                    let filename = self.vim()?.get_filename(&params)?;
+                    let languageId_target = self.vim()?.get_languageId(&filename, &params)?;
                     info!(
                         "Proxy message directly to language server: {:?}",
                         method_call
@@ -189,8 +189,8 @@ impl LanguageClient {
                     }
                 } else {
                     // Message from vim. Proxy to language server.
-                    let (languageId_target,): (String,) =
-                        self.gather_args(&[VimVar::LanguageId], &params)?;
+                    let filename = self.vim()?.get_filename(&params)?;
+                    let languageId_target = self.vim()?.get_languageId(&filename, &params)?;
                     info!(
                         "Proxy message directly to language server: {:?}",
                         notification

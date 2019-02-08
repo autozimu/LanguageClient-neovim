@@ -158,6 +158,17 @@ function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts
     endfor
 endfunction
 
+function! s:set_signs(file, signs_to_delete, signs_to_add) abort
+    " TODO: Optimize to update sign instead of add + remove sign.
+    for l:sign in a:signs_to_add
+        let l:line = l:sign['line'] + 1
+        execute ":sign place " . l:sign['id'] . " line=" . l:line . " name=" . l:sign['name'] . " file=" . a:file
+    endfor
+    for l:sign in a:signs_to_delete
+        execute ":sign unplace " . l:sign['id']
+    endfor
+endfunction
+
 " Execute serious of ex commands.
 function! s:command(...) abort
     for l:cmd in a:000
@@ -480,7 +491,6 @@ function! LanguageClient#Call(method, params, callback, ...) abort
         let l:params = extend({
                     \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
-                    \ 'viewport': LSP#viewport(),
                     \ }, l:params)
     endif
     return LanguageClient#Write(json_encode({
@@ -529,9 +539,7 @@ function! LanguageClient#findLocations(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
-                \ 'line': LSP#line(),
-                \ 'character': LSP#character(),
+                \ 'position': LSP#position(),
                 \ 'gotoCmd': v:null,
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
@@ -809,6 +817,8 @@ function! LanguageClient#handleFileType() abort
         if s:Debounce(2, 'LanguageClient#handleFileType')
             call LanguageClient#Notify('languageClient/handleFileType', {
                         \ 'filename': LSP#filename(),
+                        \ 'position': LSP#position(),
+                        \ 'viewport': LSP#viewport(),
                         \ })
         endif
     catch
@@ -851,6 +861,8 @@ function! LanguageClient#handleBufDelete() abort
     endtry
 endfunction
 
+" TODO: Separate CursorMoved and ViewportChanged events. But after separating,
+" there will Mutex poison error.
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
     let l:cursor_line = getcurpos()[1] - 1
@@ -863,9 +875,8 @@ function! LanguageClient#handleCursorMoved() abort
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
                     \ 'buftype': &buftype,
                     \ 'filename': LSP#filename(),
-                    \ 'line': l:cursor_line,
-                    \ 'LSP#visible_line_start()': LSP#visible_line_start(),
-                    \ 'LSP#visible_line_end()': LSP#visible_line_end(),
+                    \ 'position': LSP#position(),
+                    \ 'viewport': LSP#viewport(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
