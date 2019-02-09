@@ -557,8 +557,10 @@ pub struct VimCompleteItem {
     pub icase: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dup: Option<u64>,
+    /// Deprecated. Use `user_data` instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub snippet: Option<String>,
+    /// Deprecated. Use `user_data` instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_snippet: Option<bool>,
     // NOTE: `user_data` can only be string in vim. So cannot specify concrete type here.
@@ -570,6 +572,8 @@ pub struct VimCompleteItem {
 pub struct VimCompleteItemUserData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lspitem: Option<CompletionItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
 }
 
 impl VimCompleteItem {
@@ -603,13 +607,10 @@ impl VimCompleteItem {
             }
         }
 
-        let is_snippet;
         let snippet;
         if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-            is_snippet = Some(true);
             snippet = Some(word.clone());
         } else {
-            is_snippet = None;
             snippet = None;
         };
 
@@ -620,6 +621,7 @@ impl VimCompleteItem {
 
         let user_data = VimCompleteItemUserData {
             lspitem: Some(lspitem.clone()),
+            snippet: snippet.clone(),
         };
 
         Ok(VimCompleteItem {
@@ -634,8 +636,8 @@ impl VimCompleteItem {
                 .replace("\n", " "),
             info,
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
+            is_snippet: Some(snippet.is_some()),
             snippet,
-            is_snippet,
             user_data: Some(serde_json::to_string(&user_data)?),
         })
     }
