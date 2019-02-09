@@ -86,6 +86,11 @@ Please see <http://langserver.org> and/or <https://microsoft.github.io/language-
 
 [LanguageClient.txt]: doc/LanguageClient.txt
 
+# Changelog
+See [Updates]. Subscribe the issue if you want to receive notifications.
+
+[Updates]: https://github.com/autozimu/LanguageClient-neovim/issues/35
+
 # Contributing
 
 [CONTRIBUTING](.github/CONTRIBUTING.md)
