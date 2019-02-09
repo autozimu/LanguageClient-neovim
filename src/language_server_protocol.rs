@@ -313,8 +313,7 @@ impl LanguageClient {
                     }
                 }
             }
-        }
-        if let Some(ref changes) = edit.changes {
+        } else if let Some(ref changes) = edit.changes {
             for (uri, edits) in changes {
                 self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
