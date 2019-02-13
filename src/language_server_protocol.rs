@@ -1439,7 +1439,6 @@ impl LanguageClient {
     }
 
     pub fn textDocument_completion(&self, params: &Value) -> Fallible<Value> {
-        self.textDocument_didChange(params)?;
         info!("Begin {}", lsp::request::Completion::METHOD);
 
         let (languageId, filename, line, character, handle): (String, String, u64, u64, bool) =
