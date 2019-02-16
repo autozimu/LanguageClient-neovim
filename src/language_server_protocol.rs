@@ -569,8 +569,20 @@ impl LanguageClient {
             })
             .collect();
 
-        // There might be multiple diagnostics for one line. Show only highest severity.
-        signs.sort_unstable();
+        // There might be multiple diagnostics for one line.
+        // Show the one with the highest severity.
+        // DiagnosticSeverity::Error is the minimum integer value, because it is the first in the enum
+        // This ensures that signs for Errors (in this vector) on a line
+        // are after Warnings and notices by subtracting the integer enum value of the severity.
+        // (the sign that is inserted most recently determines what shows up in the UI)
+        signs.sort_unstable_by_key(|a| {
+            a.line * 10
+                - a.severity
+                    .unwrap_or(DiagnosticSeverity::Hint)
+                    .to_int()
+                    .unwrap_or(4)
+        });
+
         signs.dedup();
         if let Some(diagnosticSignsMax) = self.get(|state| state.diagnosticsSignsMax)? {
             signs.truncate(diagnosticSignsMax as usize);
