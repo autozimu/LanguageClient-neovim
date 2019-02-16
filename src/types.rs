@@ -71,7 +71,7 @@ impl SyncWrite for BufWriter<TcpStream> {}
 
 /// Rpc message id.
 pub type Id = u64;
-/// Langauge server id.
+/// Language server id.
 pub type LanguageId = Option<String>;
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -57,7 +57,7 @@ Alternatively, set 'completefunc': >
 <
 If the language server supports, diagnostic/lint information will be displayed
 via gutter and syntax highlighting with real time editing. At the same time,
-those info are populated into quickfix list (or location list), which can be
+that info is populated into the quickfix list (or location list), which can be
 accessed by regular quickfix/location list operations.
 
 To use the language server with Vim's formatting operator |gq|, set 'formatexpr': >
@@ -476,7 +476,7 @@ Show code actions at current location.
 *LanguageClient_textDocument_completion()*
 Signature: LanguageClient#textDocument_completion(...)
 
-Get a list of completion items at current editing location. Note, this is an
+Get a list of completion items at current editing location. Note, this is a
 synchronous call.
 
 When using a supported completion manager (deoplete and
@@ -658,7 +658,7 @@ The MIT License.
 
 Please report all bugs at https://github.com/autozimu/LanguageClient-neovim/issues
 
-If you believe you've find a bug in this plugin, please first try to help
+If you believe you've found a bug in this plugin, please first try to help
 narrow down where the error happens, which will reduce bug fix time/effort
 significantly.
 
@@ -667,7 +667,7 @@ Experiment with VS Code plugin if the language server has one.
 Try increasing logging level to 'INFO' or 'DEBUG' using the
 |LanguageClient_setLoggingLevel| function, and check the log file.
 
-There is also an utility script in: >
+There is also a utility script in: >
 
     $RUNTIME/tests/wrapper-server.sh
 
