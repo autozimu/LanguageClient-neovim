@@ -203,7 +203,8 @@ Valid options: "Error" | "Warning" | "Info" | "Log"
 
 2.12 g:LanguageClient_settingsPath              *g:LanguageClient_settingsPath*
 
-Path for language server settings.
+Path for language server settings. If not an absolute path this is relative
+to the workspace directory.
 
 Example settings file content: >
     {
