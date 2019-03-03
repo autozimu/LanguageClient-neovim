@@ -2032,10 +2032,8 @@ impl LanguageClient {
                                 } else {
                                     notify::RecursiveMode::NonRecursive
                                 };
-                                watcher.watch(
-                                    w.glob_pattern.trim_end_matches("**"),
-                                    recursive_mode,
-                                )?;
+                                watcher
+                                    .watch(w.glob_pattern.trim_end_matches("**"), recursive_mode)?;
                             }
                         }
                         Ok(())
