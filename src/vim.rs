@@ -27,15 +27,6 @@ impl Vim {
 
     /// Function wrappers.
 
-    pub fn getbufvar<R: DeserializeOwned>(&self, bufname: &str, var: &str) -> Fallible<R> {
-        self.rpcclient.call("getbufvar", json!([bufname, var]))
-    }
-
-    pub fn getbufline(&self, bufname: &str, start: &str, end: &str) -> Fallible<Vec<String>> {
-        self.rpcclient
-            .call("getbufline", json!([bufname, start, end]))
-    }
-
     pub fn echo(&self, message: impl AsRef<str>) -> Fallible<()> {
         self.rpcclient.notify("s:Echo", message.as_ref())
     }
@@ -64,10 +55,6 @@ impl Vim {
 
     pub fn cursor(&self, lnum: u64, col: u64) -> Fallible<()> {
         self.rpcclient.notify("cursor", json!([lnum, col]))
-    }
-
-    pub fn setline(&self, lnum: u64, text: &[String]) -> Fallible<()> {
-        self.rpcclient.notify("setline", json!([lnum, text]))
     }
 
     pub fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Fallible<()> {
