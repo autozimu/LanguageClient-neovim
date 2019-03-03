@@ -495,7 +495,7 @@ where
 
         // Trim UNC prefixes.
         // See https://github.com/rust-lang/rust/issues/42869
-        path.trim_left_matches("\\\\?\\").into()
+        path.trim_start_matches("\\\\?\\").into()
     }
 }
 

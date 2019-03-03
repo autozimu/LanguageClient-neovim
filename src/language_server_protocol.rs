@@ -2033,7 +2033,7 @@ impl LanguageClient {
                                     notify::RecursiveMode::NonRecursive
                                 };
                                 watcher.watch(
-                                    w.glob_pattern.trim_right_matches("**"),
+                                    w.glob_pattern.trim_end_matches("**"),
                                     recursive_mode,
                                 )?;
                             }
