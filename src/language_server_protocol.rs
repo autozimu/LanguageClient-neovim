@@ -1330,13 +1330,23 @@ impl LanguageClient {
         if help.signatures.is_empty() {
             return Ok(Value::Null);
         }
+
+        // active_signature may be negative value.
+        // So if it is negative value, we convert it into zero.
+        let active_signature_index = help.active_signature.unwrap_or(0).max(0) as usize;
+
         let active_signature = help
             .signatures
-            .get(help.active_signature.unwrap_or(0).to_usize()?)
+            .get(active_signature_index)
             .ok_or_else(|| err_msg("Failed to get active signature"))?;
+
+        // active_signature may be negative value.
+        // So if it is negative value, we convert it into zero.
+        let active_parameter_index = help.active_parameter.unwrap_or(0).max(0) as usize;
+
         let active_parameter: Option<&ParameterInformation>;
         if let Some(ref parameters) = active_signature.parameters {
-            active_parameter = parameters.get(help.active_parameter.unwrap_or(0).to_usize()?);
+            active_parameter = parameters.get(active_parameter_index);
         } else {
             active_parameter = None;
         }
