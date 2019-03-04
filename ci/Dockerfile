@@ -1,4 +1,4 @@
-FROM rust:1.31-slim
+FROM rust:1.33-slim
 
 RUN echo 'deb http://deb.debian.org/debian stretch-backports main contrib non-free' >> /etc/apt/sources.list
 
