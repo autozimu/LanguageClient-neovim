@@ -162,10 +162,10 @@ function! s:set_signs(file, signs_to_delete, signs_to_add) abort
     " TODO: Optimize to update sign instead of add + remove sign.
     for l:sign in a:signs_to_add
         let l:line = l:sign['line'] + 1
-        execute ":sign place " . l:sign['id'] . " line=" . l:line . " name=" . l:sign['name'] . " file=" . a:file
+        execute ':sign place ' . l:sign['id'] . ' line=' . l:line . ' name=' . l:sign['name'] . ' file=' . a:file
     endfor
     for l:sign in a:signs_to_delete
-        execute ":sign unplace " . l:sign['id']
+        execute ':sign unplace ' . l:sign['id']
     endfor
 endfunction
 
