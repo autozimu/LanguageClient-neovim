@@ -820,12 +820,14 @@ impl LanguageClient {
         })??;
 
         let mut filenames = vec![];
-        self.get(|state| {
-            for f in state.diagnostics.keys() {
+        self.update(|state| {
+            for (f, diag_list) in state.diagnostics.iter_mut() {
                 if f.starts_with(&root) {
                     filenames.push(f.clone());
+                    diag_list.clear();
                 }
             }
+            Ok(())
         })?;
         for f in filenames {
             self.process_diagnostics(&f, &[])?;
@@ -833,7 +835,6 @@ impl LanguageClient {
         self.languageClient_handleCursorMoved(&Value::Null)?;
 
         self.update(|state| {
-            state.diagnostics.retain(|f, _| !f.starts_with(&root));
             state.clients.remove(&Some(languageId.into()));
             state.last_cursor_line = 0;
             state.text_documents.retain(|f, _| !f.starts_with(&root));
@@ -2191,35 +2192,25 @@ impl LanguageClient {
 
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let viewport = self.vim()?.get_viewport(params)?;
-        let viewport_diffs = self.update(|state| {
-            let diffs = viewport.diff(state.viewports.get(&filename));
-            state.viewports.insert(filename.clone(), viewport);
-            Ok(diffs)
-        })?;
 
         let mut signs_next: Vec<_> = self.update(|state| {
-            let mut signs = vec![];
-            for viewport in &viewport_diffs {
-                signs.extend(
-                    state
-                        .diagnostics
-                        .entry(filename.clone())
-                        .or_default()
-                        .iter()
-                        .filter_map(|diag| {
-                            if viewport.overlaps(diag.range) {
-                                let name = format!(
-                                    "LanguageClient{:?}",
-                                    diag.severity.unwrap_or(DiagnosticSeverity::Hint)
-                                );
-                                Some(Sign::new(diag.range.start.line, name))
-                            } else {
-                                None
-                            }
-                        }),
-                );
-            }
-            Ok(signs)
+            Ok(state
+                .diagnostics
+                .entry(filename.clone())
+                .or_default()
+                .iter()
+                .filter_map(|diag| {
+                    if viewport.overlaps(diag.range) {
+                        let name = format!(
+                            "LanguageClient{:?}",
+                            diag.severity.unwrap_or(DiagnosticSeverity::Hint)
+                        );
+                        Some(Sign::new(diag.range.start.line, name))
+                    } else {
+                        None
+                    }
+                })
+                .collect())
         })?;
         for sign in &mut signs_next {
             if sign.id == 0 {
@@ -2230,21 +2221,16 @@ impl LanguageClient {
             }
         }
         let signs_prev = self.update(|state| {
-            let mut signs = vec![];
-            for viewport in &viewport_diffs {
-                signs.extend(
-                    state
-                        .signs
-                        .entry(filename.clone())
-                        .or_default()
-                        .range(viewport.start..viewport.end)
-                        .map(|(_, sign)| sign.clone()),
-                );
-            }
-            Ok(signs)
+            Ok(state
+                .signs
+                .entry(filename.clone())
+                .or_default()
+                .range(viewport.start..viewport.end)
+                .map(|(_, sign)| sign.clone())
+                .collect())
         })?;
-        // TODO: diff.
-        self.vim()?.set_signs(&filename, &signs_prev, &signs_next)?;
+        // FIXME: diff.
+        self.vim()?.set_signs(&filename, &signs_next, &signs_prev)?;
         self.update(|state| {
             let signs = state.signs.entry(filename.clone()).or_default();
             for sign in signs_prev {
@@ -2310,38 +2296,35 @@ impl LanguageClient {
         if self.get(|state| state.use_virtual_text)? {
             let namespace_id = self.get_or_create_namespace()?;
 
-            for viewport in &viewport_diffs {
-                let mut virtual_texts = vec![];
-                self.update(|state| {
-                    if let Some(diag_list) = state.diagnostics.get(&filename) {
-                        for diag in diag_list {
-                            if viewport.overlaps(diag.range) {
-                                virtual_texts.push(VirtualText {
-                                    line: diag.range.start.line,
-                                    text: diag.message.replace("\n", "  ").clone(),
-                                    hl_group: state
-                                        .diagnosticsDisplay
-                                        .get(
-                                            &(diag.severity.unwrap_or(DiagnosticSeverity::Hint)
-                                                as u64),
-                                        )
-                                        .ok_or_else(|| err_msg("Failed to get display"))?
-                                        .virtualTexthl
-                                        .clone(),
-                                });
-                            }
+            let mut virtual_texts = vec![];
+            self.update(|state| {
+                if let Some(diag_list) = state.diagnostics.get(&filename) {
+                    for diag in diag_list {
+                        if viewport.overlaps(diag.range) {
+                            virtual_texts.push(VirtualText {
+                                line: diag.range.start.line,
+                                text: diag.message.replace("\n", "  ").clone(),
+                                hl_group: state
+                                    .diagnosticsDisplay
+                                    .get(
+                                        &(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64),
+                                    )
+                                    .ok_or_else(|| err_msg("Failed to get display"))?
+                                    .virtualTexthl
+                                    .clone(),
+                            });
                         }
                     }
-                    Ok(())
-                })?;
-                self.vim()?.set_virtual_texts(
-                    bufnr,
-                    namespace_id,
-                    viewport.start,
-                    viewport.end,
-                    &virtual_texts,
-                )?;
-            }
+                }
+                Ok(())
+            })?;
+            self.vim()?.set_virtual_texts(
+                bufnr,
+                namespace_id,
+                viewport.start,
+                viewport.end,
+                &virtual_texts,
+            )?;
         }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);

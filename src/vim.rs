@@ -212,12 +212,12 @@ impl Vim {
     pub fn set_signs(
         &self,
         filename: &str,
-        signs_to_delete: &Vec<Sign>,
         signs_to_add: &Vec<Sign>,
+        signs_to_delete: &Vec<Sign>,
     ) -> Fallible<i8> {
         self.rpcclient.call(
             "s:set_signs",
-            json!([filename, signs_to_delete, signs_to_add]),
+            json!([filename, signs_to_add, signs_to_delete]),
         )
     }
 }

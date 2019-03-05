@@ -158,7 +158,7 @@ function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts
     endfor
 endfunction
 
-function! s:set_signs(file, signs_to_delete, signs_to_add) abort
+function! s:set_signs(file, signs_to_add, signs_to_delete) abort
     " TODO: Optimize to update sign instead of add + remove sign.
     for l:sign in a:signs_to_add
         let l:line = l:sign['line'] + 1

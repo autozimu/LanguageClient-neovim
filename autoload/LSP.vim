@@ -43,7 +43,7 @@ endfunction
 function! LSP#viewport() abort
     return {
         \ 'start': line('w0') - 1,
-        \ 'end': line('w$') - 1,
+        \ 'end': line('w$'),
         \ }
 endfunction
 
