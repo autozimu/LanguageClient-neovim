@@ -16,3 +16,9 @@ impl Sign {
         }
     }
 }
+
+impl core::cmp::PartialEq for Sign {
+    fn eq(&self, other: &Self) -> bool {
+        self.line == other.line && self.name == other.name
+    }
+}

@@ -2193,7 +2193,7 @@ impl LanguageClient {
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let viewport = self.vim()?.get_viewport(params)?;
 
-        let mut signs_next: Vec<_> = self.update(|state| {
+        let signs_next: Vec<_> = self.update(|state| {
             Ok(state
                 .diagnostics
                 .entry(filename.clone())
@@ -2212,15 +2212,7 @@ impl LanguageClient {
                 })
                 .collect())
         })?;
-        for sign in &mut signs_next {
-            if sign.id == 0 {
-                sign.id = self.update(|state| {
-                    state.sign_next_id += 1;
-                    Ok(state.sign_next_id)
-                })?;
-            }
-        }
-        let signs_prev = self.update(|state| {
+        let signs_prev: Vec<_> = self.update(|state| {
             Ok(state
                 .signs
                 .entry(filename.clone())
@@ -2229,15 +2221,37 @@ impl LanguageClient {
                 .map(|(_, sign)| sign.clone())
                 .collect())
         })?;
-        // FIXME: diff.
-        self.vim()?.set_signs(&filename, &signs_next, &signs_prev)?;
+        let mut signs_to_add = vec![];
+        let mut signs_to_delete = vec![];
+        let diffs = diff::slice(&signs_next, &signs_prev);
+        for diff in diffs {
+            match diff {
+                diff::Result::Left(s) => {
+                    signs_to_add.push(s.clone());
+                }
+                diff::Result::Right(s) => {
+                    signs_to_delete.push(s.clone());
+                }
+                _ => {}
+            }
+        }
+        for sign in &mut signs_to_add {
+            if sign.id == 0 {
+                sign.id = self.update(|state| {
+                    state.sign_next_id += 1;
+                    Ok(state.sign_next_id)
+                })?;
+            }
+        }
+        self.vim()?
+            .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
         self.update(|state| {
             let signs = state.signs.entry(filename.clone()).or_default();
-            for sign in signs_prev {
-                signs.remove(&sign.line);
-            }
-            for sign in signs_next {
+            for sign in signs_to_add {
                 signs.insert(sign.line, sign);
+            }
+            for sign in signs_to_delete {
+                signs.remove(&sign.line);
             }
             Ok(())
         })?;
