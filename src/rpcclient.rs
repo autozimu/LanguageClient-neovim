@@ -1,6 +1,5 @@
 use super::*;
 use crate::types::{Call, RawMessage};
-use crate::vim;
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 
 #[derive(Clone, Serialize)]
