@@ -1036,6 +1036,14 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RawMessage {
+    Notification(rpc::Notification),
+    MethodCall(rpc::MethodCall),
+    Output(rpc::Output),
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize)]
 pub struct VirtualText {
     pub line: u64,

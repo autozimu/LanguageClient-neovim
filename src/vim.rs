@@ -221,12 +221,3 @@ impl Vim {
         )
     }
 }
-
-// TODO: move to types.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum RawMessage {
-    Notification(rpc::Notification),
-    MethodCall(rpc::MethodCall),
-    Output(rpc::Output),
-}
