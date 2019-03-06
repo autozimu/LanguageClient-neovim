@@ -1,5 +1,5 @@
 use super::*;
-use crate::types::Call;
+use crate::types::{Call, RawMessage};
 use crate::vim;
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 
@@ -10,7 +10,7 @@ pub struct RpcClient {
     #[serde(skip_serializing)]
     id: Arc<Mutex<Id>>,
     #[serde(skip_serializing)]
-    writer_tx: Sender<vim::RawMessage>,
+    writer_tx: Sender<RawMessage>,
     #[serde(skip_serializing)]
     reader_tx: Sender<(Id, Sender<rpc::Output>)>,
     pub process_id: Option<u32>,
@@ -79,7 +79,7 @@ impl RpcClient {
         };
         let (tx, rx) = bounded(1);
         self.reader_tx.send((id, tx))?;
-        self.writer_tx.send(vim::RawMessage::MethodCall(msg))?;
+        self.writer_tx.send(RawMessage::MethodCall(msg))?;
         // TODO: duration from config.
         match rx.recv_timeout(Duration::from_secs(60))? {
             rpc::Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
@@ -95,7 +95,7 @@ impl RpcClient {
             method: method.to_owned(),
             params: params.to_params()?,
         };
-        self.writer_tx.send(vim::RawMessage::Notification(msg))?;
+        self.writer_tx.send(RawMessage::Notification(msg))?;
         Ok(())
     }
 
@@ -113,7 +113,7 @@ impl RpcClient {
             }),
         };
 
-        self.writer_tx.send(vim::RawMessage::Output(output))?;
+        self.writer_tx.send(RawMessage::Output(output))?;
         Ok(())
     }
 }
@@ -181,13 +181,13 @@ fn loop_read(
         // TODO: cleanup.
         let message = message.unwrap();
         match message {
-            vim::RawMessage::MethodCall(method_call) => {
+            RawMessage::MethodCall(method_call) => {
                 sink.send(Call::MethodCall(languageId.clone(), method_call))?;
             }
-            vim::RawMessage::Notification(notification) => {
+            RawMessage::Notification(notification) => {
                 sink.send(Call::Notification(languageId.clone(), notification))?;
             }
-            vim::RawMessage::Output(output) => {
+            RawMessage::Output(output) => {
                 while let Ok((id, tx)) = reader_rx.try_recv() {
                     pending_outputs.insert(id, tx);
                 }
@@ -206,7 +206,7 @@ fn loop_read(
 
 fn loop_write(
     writer: impl Write,
-    rx: Receiver<vim::RawMessage>,
+    rx: Receiver<RawMessage>,
     languageId: LanguageId,
 ) -> Fallible<()> {
     let mut writer = writer;
