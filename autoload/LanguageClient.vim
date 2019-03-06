@@ -183,6 +183,13 @@ function! s:getInput(prompt, default) abort
     return l:input
 endfunction
 
+function! s:inputlist(...) abort
+    call inputsave()
+    let l:selection = inputlist(a:000)
+    call inputrestore()
+    return l:selection
+endfunction
+
 function! s:FZF(source, sink) abort
     if !get(g:, 'loaded_fzf')
         call s:Echoerr('FZF not loaded!')

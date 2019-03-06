@@ -70,6 +70,7 @@ impl LanguageClient {
             lsp::request::DocumentSymbolRequest::METHOD => {
                 self.textDocument_documentSymbol(&params)
             }
+            lsp::request::ShowMessageRequest::METHOD => self.window_showMessageRequest(&params),
             lsp::request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
             lsp::request::CodeActionRequest::METHOD => self.textDocument_codeAction(&params),
             lsp::request::Completion::METHOD => self.textDocument_completion(&params),

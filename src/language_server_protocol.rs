@@ -1824,6 +1824,32 @@ impl LanguageClient {
         Ok(())
     }
 
+    pub fn window_showMessageRequest(&self, params: &Value) -> Fallible<Value> {
+        info!("Begin {}", lsp::request::ShowMessageRequest::METHOD);
+        let msg_params: ShowMessageRequestParams = params.clone().to_lsp()?;
+        let msg_actions = msg_params.actions.unwrap_or_default();
+        let n_actions = msg_actions.len();
+        let actions: Vec<Value> = msg_actions
+            .into_iter()
+            .enumerate()
+            .map(|(i, item)| Value::String(format!("{}) {}", i + 1, item.title)))
+            .collect();
+        let mut options: Vec<Value> = Vec::with_capacity(actions.len() + 1);
+        options.push(Value::String(msg_params.message));
+        options.extend(actions);
+
+        let mut v = Value::Null;
+        let result: Option<i64> = self.vim()?.rpcclient.call("s:inputlist", options)?;
+        if let Some(answer) = result {
+            if answer > 0 && answer < (n_actions - 1) as i64 {
+                let raw_actions: Vec<Value> = try_get("actions", &params)?.unwrap_or_default();
+                v = raw_actions[(answer - 1) as usize].clone();
+            }
+        }
+        info!("End {}", lsp::request::ShowMessageRequest::METHOD);
+        Ok(v)
+    }
+
     pub fn client_registerCapability(&self, languageId: &str, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::RegisterCapability::METHOD);
         let params: RegistrationParams = params.clone().to_lsp()?;
