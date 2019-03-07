@@ -1828,7 +1828,6 @@ impl LanguageClient {
         info!("Begin {}", lsp::request::ShowMessageRequest::METHOD);
         let msg_params: ShowMessageRequestParams = params.clone().to_lsp()?;
         let msg_actions = msg_params.actions.unwrap_or_default();
-        let n_actions = msg_actions.len();
         let actions: Vec<Value> = msg_actions
             .into_iter()
             .enumerate()
