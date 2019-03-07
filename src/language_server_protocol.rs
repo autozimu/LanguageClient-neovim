@@ -1612,7 +1612,7 @@ impl LanguageClient {
         info!("Begin {}", lsp::notification::DidOpenTextDocument::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
-        let text = self.vim()?.getbufline(&filename, "0", "$")?;
+        let text = self.vim()?.get_text(&filename)?;
 
         let text_document = TextDocumentItem {
             uri: filename.to_url()?,
@@ -1656,7 +1656,7 @@ impl LanguageClient {
             return self.textDocument_didOpen(params);
         }
 
-        let text = self.vim()?.getbufline(&filename, "0", "$")?.join("\n");
+        let text = self.vim()?.get_text(&filename)?.join("\n");
         let text_state = self.get(|state| {
             state
                 .text_documents

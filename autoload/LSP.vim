@@ -9,6 +9,10 @@ function! LSP#filename() abort
     return l:filename
 endfunction
 
+" This function will return buffer text as required by LSP.
+"
+" The main difference with getbufline is that it checks fixendofline settings
+" and add extra line at ending if appropriate.
 function! LSP#text(...) abort
     let l:buf = get(a:000, 0, '')
 

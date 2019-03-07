@@ -101,15 +101,14 @@ impl Vim {
         Ok(insert_spaces == 1)
     }
 
+    pub fn get_text(&self, bufname: &str) -> Fallible<Vec<String>> {
+        self.rpcclient.call("LSP#text", json!([bufname]))
+    }
+
     pub fn get_handle(&self, params: &Value) -> Fallible<bool> {
         let key = "handle";
 
         try_get(key, params)?.map_or_else(|| Ok(true), Ok)
-    }
-
-    pub fn getbufline(&self, bufname: &str, start: &str, end: &str) -> Fallible<Vec<String>> {
-        self.rpcclient
-            .call("getbufline", json!([bufname, start, end]))
     }
 
     pub fn echo(&self, message: impl AsRef<str>) -> Fallible<()> {
