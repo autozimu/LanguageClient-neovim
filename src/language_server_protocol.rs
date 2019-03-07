@@ -1841,9 +1841,9 @@ impl LanguageClient {
         let mut v = Value::Null;
         let result: Option<i64> = self.vim()?.rpcclient.call("s:inputlist", options)?;
         if let Some(answer) = result {
-            if answer > 0 && answer < (n_actions - 1) as i64 {
-                let raw_actions: Vec<Value> = try_get("actions", &params)?.unwrap_or_default();
-                v = raw_actions[(answer - 1) as usize].clone();
+            let raw_actions: Vec<Value> = try_get("actions", &params)?.unwrap_or_default();
+            if let Some(action) = raw_actions.get((answer - 1) as usize) {
+                v = action.clone();
             }
         }
         info!("End {}", lsp::request::ShowMessageRequest::METHOD);
