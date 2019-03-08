@@ -1840,10 +1840,12 @@ impl LanguageClient {
         let msg_actions = msg_params.actions.unwrap_or_default();
         let mut options = Vec::with_capacity(msg_actions.len() + 1);
         options.push(msg_params.message);
-        options.extend(msg_actions
-            .iter()
-            .enumerate()
-            .map(|(i, item)| format!("{}) {}", i + 1, item.title)));
+        options.extend(
+            msg_actions
+                .iter()
+                .enumerate()
+                .map(|(i, item)| format!("{}) {}", i + 1, item.title)),
+        );
 
         let mut v = Value::Null;
         let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
