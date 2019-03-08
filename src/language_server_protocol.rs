@@ -1838,23 +1838,19 @@ impl LanguageClient {
         info!("Begin {}", lsp::request::ShowMessageRequest::METHOD);
         let msg_params: ShowMessageRequestParams = params.clone().to_lsp()?;
         let msg_actions = msg_params.actions.unwrap_or_default();
-        let actions: Vec<Value> = msg_actions
-            .into_iter()
+        let mut options = Vec::with_capacity(msg_actions.len() + 1);
+        options.push(msg_params.message);
+        options.extend(msg_actions
+            .iter()
             .enumerate()
-            .map(|(i, item)| Value::String(format!("{}) {}", i + 1, item.title)))
-            .collect();
-        let mut options: Vec<Value> = Vec::with_capacity(actions.len() + 1);
-        options.push(Value::String(msg_params.message));
-        options.extend(actions);
+            .map(|(i, item)| format!("{}) {}", i + 1, item.title)));
 
         let mut v = Value::Null;
-        let result: Option<i64> = self.vim()?.rpcclient.call("s:inputlist", options)?;
-        if let Some(answer) = result {
-            let raw_actions: Vec<Value> = try_get("actions", &params)?.unwrap_or_default();
-            if let Some(action) = raw_actions.get((answer - 1) as usize) {
-                v = action.clone();
-            }
+        let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
+        if let Some(index) = index {
+            v = serde_json::to_value(msg_actions.get(index - 1))?;
         }
+
         info!("End {}", lsp::request::ShowMessageRequest::METHOD);
         Ok(v)
     }
