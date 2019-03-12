@@ -218,7 +218,7 @@ function! s:Edit(action, path) abort
     " If editing current file, push current location to jump list.
     let l:bufnr = bufnr(a:path)
     if l:bufnr == bufnr('%')
-        execute 'normal m`'
+        execute 'normal! m`'
         return
     endif
 
