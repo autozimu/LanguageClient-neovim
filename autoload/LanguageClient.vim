@@ -8,6 +8,7 @@ let s:TYPE = {
 \   'dict':    type({}),
 \   'funcref': type(function('call'))
 \ }
+let s:FLOAT_WINDOW_AVAILABLE = has('nvim') && exists('*nvim_open_win')
 
 function! s:AddPrefix(message) abort
     return '[LC] ' . a:message
@@ -259,6 +260,104 @@ function! s:GetVar(...) abort
     else
         return get(a:000, 1, v:null)
     endif
+endfunction
+
+function! s:CloseFloatingHover(bufname, opened) abort
+    if getpos('.') == a:opened
+        " Just after opening floating window, CursorMoved event is run.
+        " To avoid closing floating window immediately, check the cursor
+        " was really moved
+        return
+    endif
+    autocmd! plugin-LC-neovim-close-hover
+    let bufnr = bufnr(a:bufname)
+    if bufnr == -1
+        return
+    endif
+    let winnr = bufwinnr(bufnr)
+    if winnr == -1
+        return
+    endif
+    execute winnr . 'wincmd c'
+endfunction
+
+" Open preview window. Window is open in:
+"   - Floating window on Neovim (0.4.0 or later)
+"   - Preview window on Neovim (0.3.0 or earlier) or Vim
+function! s:OpenHoverPreview(bufname, lines, filetype) abort
+    " Use local variable since parameter is not modifiable
+    let lines = a:lines
+
+    if s:FLOAT_WINDOW_AVAILABLE
+        let pos = getpos('.')
+
+        " Unlike preview window, :pclose does not close window. Instead, close
+        " hover window automatically when cursor is moved.
+        let params = printf('"%s", %s', a:bufname, string(pos))
+        augroup plugin-LC-neovim-close-hover
+            execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call <SID>CloseFloatingHover(' . params . ')'
+        augroup END
+
+        " Calculate width and height and give margin to lines
+        let width = 0
+        for index in range(len(lines))
+            let line = ' ' . lines[index]
+            let lw = strdisplaywidth(line)
+            if lw > width
+                let width = lw
+            endif
+            let lines[index] = line
+        endfor
+
+        " Give margin
+        let width += 1
+        let lines = [''] + lines + ['']
+        let height = len(lines)
+
+        " Calculate anchor
+        " Prefer North, but if there is no space, fallback into South
+        if pos[1] + height <= &lines
+            let vert = 'N'
+            let row = 1
+        else
+            let vert = 'S'
+            let row = 0
+        endif
+
+        " Prefer West, but if there is no space, fallback into East
+        if pos[2] + width <= &columns
+            let hor = 'W'
+            let col = 0
+        else
+            let hor = 'E'
+            let col = 1
+        endif
+
+        call nvim_open_win(bufnr('%'), v:true, width, height, {
+        \   'relative': 'cursor',
+        \   'anchor': vert . hor,
+        \   'row': row,
+        \   'col': col,
+        \ })
+
+        execute 'noswapfile edit!' a:bufname
+
+        setlocal winhl=Normal:CursorLine
+    else
+        execute 'silent! noswapfile pedit!' a:bufname
+        wincmd P
+    endif
+
+    setlocal buftype=nofile nobuflisted bufhidden=wipe nonumber norelativenumber signcolumn=no
+
+    if a:filetype isnot v:null
+        let &filetype = a:filetype
+    endif
+
+    call setline(1, lines)
+    setlocal nomodified nomodifiable
+
+    wincmd p
 endfunction
 
 let s:id = 1
