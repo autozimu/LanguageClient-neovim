@@ -271,7 +271,7 @@ function! s:CloseFloatingHoverAfterCursorMove(win_id, opened) abort
     endif
     autocmd! plugin-LC-neovim-close-hover
     let winnr = win_id2win(a:win_id)
-    if winnr == -1
+    if winnr == 0
         return
     endif
     execute winnr . 'wincmd c'
@@ -279,7 +279,7 @@ endfunction
 
 function! s:CloseFloatingHoverAfterEnterAnotherWin(win_id) abort
     let winnr = win_id2win(a:win_id)
-    if winnr == -1
+    if winnr == 0
         " Float window was already closed
         autocmd! plugin-LC-neovim-close-hover
         return
@@ -320,7 +320,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
         " Calculate anchor
         " Prefer North, but if there is no space, fallback into South
-        if pos[1] + height <= &lines
+        let bottom_line = line('w0') + winheight() - 1
+        if pos[1] + height <= bottom_line
             let vert = 'N'
             let row = 1
         else
