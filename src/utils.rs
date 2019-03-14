@@ -44,7 +44,7 @@ pub fn get_rootPath<'a>(
     match languageId {
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
-        "javascript" | "typescript" | "javascript.jsx" | "typescript.jsx" => {
+        "javascript" | "typescript" | "javascript.jsx" | "typescript.tsx" => {
             traverse_up(path, |dir| dir.join("package.json").exists())
         }
         "python" => traverse_up(path, |dir| {
