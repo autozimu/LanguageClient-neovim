@@ -208,3 +208,35 @@ def test_languageClient_registerHandlers(nvim):
 #                       if b.name.startswith('term://')), None) is None)
 
 #     assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)
+
+
+def test_textDocument_hover_float_window(nvim):
+    if not nvim.funcs.exists('*nvim_open_win'):
+        pytest.skip('Neovim 0.3.0 or earlier does not support floating window')
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    buf = nvim.current.buffer
+
+    nvim.funcs.cursor(13, 19)
+    pos = nvim.funcs.getpos('.')
+    nvim.funcs.LanguageClient_textDocument_hover()
+    time.sleep(1)
+    float_buf = next(
+        b for b in nvim.buffers if b.name.endswith('__LanguageClient__'))
+
+    # Check if float window is open
+    float_winnr = nvim.funcs.bufwinnr(float_buf.number)
+    assert float_winnr > 0
+
+    # Check if cursor is not moved
+    assert buf.number == nvim.current.buffer.number
+    assert pos == nvim.funcs.getpos('.')
+
+    # Move cursor to left
+    nvim.funcs.cursor(13, 17)
+
+    # Check float window buffer was closed by CursorMoved
+    assert all(
+        b for b in nvim.buffers if not b.name.endswith('__LanguageClient__'))
