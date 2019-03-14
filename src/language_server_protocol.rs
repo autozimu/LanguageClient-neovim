@@ -2250,9 +2250,7 @@ impl LanguageClient {
                 .into_iter()
                 .filter_map(|(_, group)| group.min_by_key(|(_, severity)| *severity))
                 .take(limit)
-                .map(|(line, severity)| {
-                    Sign::new(line, format!("LanguageClient{:?}", severity))
-                })
+                .map(|(line, severity)| Sign::new(line, format!("LanguageClient{:?}", severity)))
                 .collect())
         })?;
         let signs_prev: Vec<_> = self.update(|state| {
@@ -2260,7 +2258,7 @@ impl LanguageClient {
                 .signs
                 .entry(filename.clone())
                 .or_default()
-                .range(viewport.start..viewport.end)
+                .iter()
                 .map(|(_, sign)| sign.clone())
                 .collect())
         })?;
