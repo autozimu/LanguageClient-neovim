@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 failure = "0"
+itertools = "0.8"
 log = "0.4"
 log4rs = "0"
 structopt = "0"

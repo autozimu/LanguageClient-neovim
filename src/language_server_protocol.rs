@@ -7,6 +7,7 @@ use crate::lsp::request::Request;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use failure::err_msg;
+use itertools::Itertools;
 use notify::Watcher;
 use std::sync::mpsc;
 use vim::try_get;
@@ -2226,23 +2227,30 @@ impl LanguageClient {
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let viewport = self.vim()?.get_viewport(params)?;
 
+        // use the most severe diagnostic of each line as the sign
         let signs_next: Vec<_> = self.update(|state| {
+            let limit = if let Some(n) = state.diagnosticsSignsMax {
+                n as usize
+            } else {
+                usize::max_value()
+            };
             Ok(state
                 .diagnostics
                 .entry(filename.clone())
                 .or_default()
                 .iter()
-                .filter_map(|diag| {
-                    if viewport.overlaps(diag.range) {
-                        let name = format!(
-                            "LanguageClient{:?}",
-                            diag.severity.unwrap_or(DiagnosticSeverity::Hint)
-                        );
-                        Some(Sign::new(diag.range.start.line, name))
-                    } else {
-                        None
-                    }
+                .filter(|diag| viewport.overlaps(diag.range))
+                .map(|diag| {
+                    (
+                        diag.range.start.line,
+                        diag.severity.unwrap_or(DiagnosticSeverity::Hint),
+                    )
                 })
+                .group_by(|(line, _)| *line)
+                .into_iter()
+                .filter_map(|(_, group)| group.min_by_key(|(_, severity)| *severity))
+                .take(limit)
+                .map(|(line, severity)| Sign::new(line, format!("LanguageClient{:?}", severity)))
                 .collect())
         })?;
         let signs_prev: Vec<_> = self.update(|state| {
@@ -2250,7 +2258,7 @@ impl LanguageClient {
                 .signs
                 .entry(filename.clone())
                 .or_default()
-                .range(viewport.start..viewport.end)
+                .iter()
                 .map(|(_, sign)| sign.clone())
                 .collect())
         })?;
@@ -2280,11 +2288,13 @@ impl LanguageClient {
             .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
         self.update(|state| {
             let signs = state.signs.entry(filename.clone()).or_default();
-            for sign in signs_to_add {
-                signs.insert(sign.line, sign);
-            }
+            // signs might be deleted AND added in the same line to change severity,
+            // so deletions must be before additions
             for sign in signs_to_delete {
                 signs.remove(&sign.line);
+            }
+            for sign in signs_to_add {
+                signs.insert(sign.line, sign);
             }
             Ok(())
         })?;
