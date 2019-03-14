@@ -214,15 +214,20 @@ def test_textDocument_hover_float_window(nvim):
     if not nvim.funcs.exists('*nvim_open_win'):
         pytest.skip('Neovim 0.3.0 or earlier does not support floating window')
 
+    def _open_float_window():
+        nvim.funcs.cursor(13, 19)
+        pos = nvim.funcs.getpos('.')
+        nvim.funcs.LanguageClient_textDocument_hover()
+        time.sleep(1)
+        return pos
+
     nvim.command("edit! {}".format(PATH_INDEXJS))
     time.sleep(1)
 
     buf = nvim.current.buffer
 
-    nvim.funcs.cursor(13, 19)
-    pos = nvim.funcs.getpos('.')
-    nvim.funcs.LanguageClient_textDocument_hover()
-    time.sleep(1)
+    pos = _open_float_window()
+
     float_buf = next(
         b for b in nvim.buffers if b.name.endswith('__LanguageClient__'))
 
@@ -238,5 +243,19 @@ def test_textDocument_hover_float_window(nvim):
     nvim.funcs.cursor(13, 17)
 
     # Check float window buffer was closed by CursorMoved
+    assert all(
+        b for b in nvim.buffers if not b.name.endswith('__LanguageClient__'))
+
+    win_id = nvim.funcs.win_getid()
+    nvim.command('split')
+    assert win_id != nvim.funcs.win_getid()
+
+    _open_float_window()
+
+    # Move to another window
+    nvim.funcs.win_gotoid(win_id)
+    assert win_id == nvim.funcs.win_getid()
+
+    # Check float window buffer was closed by WinEnter
     assert all(
         b for b in nvim.buffers if not b.name.endswith('__LanguageClient__'))

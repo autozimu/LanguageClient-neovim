@@ -262,7 +262,7 @@ function! s:GetVar(...) abort
     endif
 endfunction
 
-function! s:CloseFloatingHoverAfterCursorMove(bufname, opened) abort
+function! s:CloseFloatingHoverAfterCursorMove(win_id, opened) abort
     if getpos('.') == a:opened
         " Just after opening floating window, CursorMoved event is run.
         " To avoid closing floating window immediately, check the cursor
@@ -270,7 +270,7 @@ function! s:CloseFloatingHoverAfterCursorMove(bufname, opened) abort
         return
     endif
     autocmd! plugin-LC-neovim-close-hover
-    let winnr = bufwinnr(bufnr(a:bufname))
+    let winnr = win_id2win(a:win_id)
     if winnr == -1
         return
     endif
@@ -279,7 +279,7 @@ endfunction
 
 function! s:CloseFloatingHoverAfterEnterAnotherWin(win_id) abort
     let winnr = win_id2win(a:win_id)
-    if winnr == 0
+    if winnr == -1
         " Float window was already closed
         autocmd! plugin-LC-neovim-close-hover
         return
@@ -301,13 +301,6 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
     if s:FLOAT_WINDOW_AVAILABLE
         let pos = getpos('.')
-
-        " Unlike preview window, :pclose does not close window. Instead, close
-        " hover window automatically when cursor is moved.
-        let call_after_move = printf('<SID>CloseFloatingHoverAfterCursorMove("%s", %s)', a:bufname, string(pos))
-        augroup plugin-LC-neovim-close-hover
-            execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call ' . call_after_move
-        augroup END
 
         " Calculate width and height and give margin to lines
         let width = 0
@@ -371,7 +364,13 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
     wincmd p
 
     if s:FLOAT_WINDOW_AVAILABLE
-        execute 'autocmd WinEnter * call <SID>CloseFloatingHoverAfterEnterAnotherWin(' . float_win_id . ')'
+        " Unlike preview window, :pclose does not close window. Instead, close
+        " hover window automatically when cursor is moved.
+        let call_after_move = printf('<SID>CloseFloatingHoverAfterCursorMove(%d, %s)', float_win_id, string(pos))
+        augroup plugin-LC-neovim-close-hover
+            execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call ' . call_after_move
+            execute 'autocmd WinEnter * call <SID>CloseFloatingHoverAfterEnterAnotherWin(' . float_win_id . ')'
+        augroup END
     endif
 endfunction
 
