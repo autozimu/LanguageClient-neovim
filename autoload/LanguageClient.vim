@@ -277,7 +277,7 @@ function! s:CloseFloatingHoverAfterCursorMove(win_id, opened) abort
     execute winnr . 'wincmd c'
 endfunction
 
-function! s:CloseFloatingHoverAfterEnterAnotherWin(win_id) abort
+function! s:CloseFloatingHoverAfterEnterAnotherBuf(win_id, bufnr) abort
     let winnr = win_id2win(a:win_id)
     if winnr == 0
         " Float window was already closed
@@ -286,6 +286,10 @@ function! s:CloseFloatingHoverAfterEnterAnotherWin(win_id) abort
     endif
     if winnr == winnr()
         " Cursor is moving into floating window. Do not close it
+        return
+    endif
+    if bufnr('%') == a:bufnr
+        " When current buffer opened hover window, it's not another buffer. Skipped
         return
     endif
     autocmd! plugin-LC-neovim-close-hover
@@ -298,6 +302,7 @@ endfunction
 function! s:OpenHoverPreview(bufname, lines, filetype) abort
     " Use local variable since parameter is not modifiable
     let lines = a:lines
+    let bufnr = bufnr('%')
 
     if s:FLOAT_WINDOW_AVAILABLE
         let pos = getpos('.')
@@ -320,7 +325,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
         " Calculate anchor
         " Prefer North, but if there is no space, fallback into South
-        let bottom_line = line('w0') + winheight() - 1
+        let bottom_line = line('w0') + winheight(0) - 1
         if pos[1] + height <= bottom_line
             let vert = 'N'
             let row = 1
@@ -338,7 +343,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
             let col = 1
         endif
 
-        let float_win_id = nvim_open_win(bufnr('%'), v:true, width, height, {
+        let float_win_id = nvim_open_win(bufnr, v:true, width, height, {
         \   'relative': 'cursor',
         \   'anchor': vert . hor,
         \   'row': row,
@@ -368,9 +373,10 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         " Unlike preview window, :pclose does not close window. Instead, close
         " hover window automatically when cursor is moved.
         let call_after_move = printf('<SID>CloseFloatingHoverAfterCursorMove(%d, %s)', float_win_id, string(pos))
+        let call_on_bufenter = printf('<SID>CloseFloatingHoverAfterEnterAnotherBuf(%d, %d)', float_win_id, bufnr)
         augroup plugin-LC-neovim-close-hover
             execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call ' . call_after_move
-            execute 'autocmd WinEnter * call <SID>CloseFloatingHoverAfterEnterAnotherWin(' . float_win_id . ')'
+            execute 'autocmd BufEnter * call ' . call_on_bufenter
         augroup END
     endif
 endfunction
