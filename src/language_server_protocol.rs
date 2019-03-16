@@ -2751,7 +2751,6 @@ impl LanguageClient {
             .into()
         };
         let message = format!("Project root: {}", root);
-        self.vim()?.echomsg_ellipsis(&message)?;
         info!("{}", message);
         self.update(|state| {
             state.roots.insert(languageId.clone(), root.clone());
