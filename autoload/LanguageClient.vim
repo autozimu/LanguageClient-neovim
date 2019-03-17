@@ -343,11 +343,13 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
             let col = 1
         endif
 
-        let float_win_id = nvim_open_win(bufnr, v:true, width, height, {
+        let float_win_id = nvim_open_win(bufnr, v:true, {
         \   'relative': 'cursor',
         \   'anchor': vert . hor,
         \   'row': row,
         \   'col': col,
+        \   'width': width,
+        \   'height': height,
         \ })
 
         execute 'noswapfile edit!' a:bufname
