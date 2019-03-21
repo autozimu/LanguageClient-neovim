@@ -315,7 +315,11 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         " Calculate width and height and give margin to lines
         let width = 0
         for index in range(len(lines))
-            let line = ' ' . lines[index]
+            let line = lines[index]
+            if line !=# ''
+                " Give a left margin
+                let line = ' ' . line
+            endif
             let lw = strdisplaywidth(line)
             if lw > width
                 let width = lw
