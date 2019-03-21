@@ -262,6 +262,10 @@ function! s:GetVar(...) abort
     endif
 endfunction
 
+function! s:ShouldUseFloatWindow() abort
+    return s:FLOAT_WINDOW_AVAILABLE && get(g:, 'LanguageClient_useFloatingHover', 1)
+endfunction
+
 function! s:CloseFloatingHoverOnCursorMove(win_id, opened) abort
     if getpos('.') == a:opened
         " Just after opening floating window, CursorMoved event is run.
@@ -304,7 +308,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
     let lines = a:lines
     let bufnr = bufnr('%')
 
-    if s:FLOAT_WINDOW_AVAILABLE
+    let use_float_win = s:ShouldUseFloatWindow()
+    if use_float_win
         let pos = getpos('.')
 
         " Calculate width and height and give margin to lines
@@ -371,7 +376,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
     wincmd p
 
-    if s:FLOAT_WINDOW_AVAILABLE
+    if use_float_win
         " Unlike preview window, :pclose does not close window. Instead, close
         " hover window automatically when cursor is moved.
         let call_after_move = printf('<SID>CloseFloatingHoverOnCursorMove(%d, %s)', float_win_id, string(pos))
@@ -664,7 +669,7 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
-    if s:FLOAT_WINDOW_AVAILABLE && s:MoveIntoHoverPreview()
+    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview()
         return
     endif
     let l:Callback = get(a:000, 1, v:null)
