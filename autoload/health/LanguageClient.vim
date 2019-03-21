@@ -15,11 +15,20 @@ function! s:checkBinary() abort
                     \ l:path)
     endif
 
-    let output = system([l:path, '--version'])
+    let output = substitute(system([l:path, '--version']), '\n$', '', '')
     call health#report_ok(output)
+endfunction
+
+function! s:checkFloatingWindow() abort
+    if !exists('*nvim_open_win')
+        call health#report_info('Floating window is not supported. Preview window will be used for hover')
+        return
+    endif
+    call health#report_ok('Floating window is supported and will be used for hover')
 endfunction
 
 function! health#LanguageClient#check() abort
     call s:checkJobFeature()
     call s:checkBinary()
+    call s:checkFloatingWindow()
 endfunction
