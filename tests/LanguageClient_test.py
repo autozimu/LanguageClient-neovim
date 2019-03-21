@@ -333,3 +333,29 @@ def test_textDocument_hover_float_window_move_cursor_into_window(nvim):
     # Check float window buffer was closed by :close in the window
     assert all(
         b for b in nvim.buffers if not b.name.endswith("__LanguageClient__"))
+
+
+def test_textDocument_hover_float_window_reopen_in_preview_window(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    _open_float_window(nvim)
+
+    try:
+        nvim.call("LanguageClient#openHoverInSeparateWindow")
+        preview_buf = next(
+            b for b in nvim.buffers if b.name.endswith("__LanguageClient__"))
+
+        winnr = nvim.funcs.bufwinnr(preview_buf.number)
+        assert winnr > 0
+
+        win_id = nvim.funcs.win_getid(winnr)
+        assert win_id > 0
+
+        assert nvim.api.win_get_option(win_id, 'previewwindow') == 1
+        assert nvim.api.buf_get_option(preview_buf, 'filetype') == 'markdown'
+    finally:
+        nvim.api.win_close(win_id, True)
