@@ -262,7 +262,7 @@ function! s:GetVar(...) abort
     endif
 endfunction
 
-function! s:CloseFloatingHoverAfterCursorMove(win_id, opened) abort
+function! s:CloseFloatingHoverOnCursorMove(win_id, opened) abort
     if getpos('.') == a:opened
         " Just after opening floating window, CursorMoved event is run.
         " To avoid closing floating window immediately, check the cursor
@@ -277,7 +277,7 @@ function! s:CloseFloatingHoverAfterCursorMove(win_id, opened) abort
     execute winnr . 'wincmd c'
 endfunction
 
-function! s:CloseFloatingHoverAfterEnterAnotherBuf(win_id, bufnr) abort
+function! s:CloseFloatingHoverOnBufEnter(win_id, bufnr) abort
     let winnr = win_id2win(a:win_id)
     if winnr == 0
         " Float window was already closed
@@ -374,13 +374,26 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
     if s:FLOAT_WINDOW_AVAILABLE
         " Unlike preview window, :pclose does not close window. Instead, close
         " hover window automatically when cursor is moved.
-        let call_after_move = printf('<SID>CloseFloatingHoverAfterCursorMove(%d, %s)', float_win_id, string(pos))
-        let call_on_bufenter = printf('<SID>CloseFloatingHoverAfterEnterAnotherBuf(%d, %d)', float_win_id, bufnr)
+        let call_after_move = printf('<SID>CloseFloatingHoverOnCursorMove(%d, %s)', float_win_id, string(pos))
+        let call_on_bufenter = printf('<SID>CloseFloatingHoverOnBufEnter(%d, %d)', float_win_id, bufnr)
         augroup plugin-LC-neovim-close-hover
             execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call ' . call_after_move
             execute 'autocmd BufEnter * call ' . call_on_bufenter
         augroup END
     endif
+endfunction
+
+function! s:MoveIntoHoverPreview() abort
+    for bufnr in range(1, bufnr('$'))
+        if bufname(bufnr) ==# '__LanguageClient__'
+            let winnr = bufwinnr(bufnr)
+            if winnr != -1
+                execute winnr . 'wincmd w'
+            endif
+            return v:true
+        endif
+    endfor
+    return v:false
 endfunction
 
 let s:id = 1
@@ -651,6 +664,9 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
+    if s:FLOAT_WINDOW_AVAILABLE && s:MoveIntoHoverPreview()
+        return
+    endif
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
