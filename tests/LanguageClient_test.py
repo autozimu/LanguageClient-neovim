@@ -309,3 +309,27 @@ def test_textDocument_hover_float_window_closed_on_switching_to_buffer(nvim):
             if not b.name.endswith("__LanguageClient__"))
     finally:
         nvim.command("bdelete! {}".format(another_bufnr))
+
+
+def test_textDocument_hover_float_window_move_cursor_into_window(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    prev_bufnr = nvim.current.buffer.number
+
+    _open_float_window(nvim)
+
+    # Moves cursor into floating window
+    nvim.funcs.LanguageClient_textDocument_hover()
+    assert nvim.current.buffer.name.endswith("__LanguageClient__")
+
+    # Close the window
+    nvim.command('close')
+    assert nvim.current.buffer.number == prev_bufnr
+
+    # Check float window buffer was closed by :close in the window
+    assert all(
+        b for b in nvim.buffers if not b.name.endswith("__LanguageClient__"))
