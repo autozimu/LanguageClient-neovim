@@ -345,7 +345,7 @@ def test_textDocument_hover_float_window_reopen_in_preview_window(nvim):
     _open_float_window(nvim)
 
     try:
-        nvim.call("LanguageClient#openHoverInSeparateWindow")
+        nvim.call("LanguageClient#reopenHoverInSeparateWindow")
         preview_buf = next(
             b for b in nvim.buffers if b.name.endswith("__LanguageClient__"))
 

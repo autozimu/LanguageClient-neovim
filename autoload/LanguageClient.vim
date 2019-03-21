@@ -1299,7 +1299,7 @@ function! LanguageClient#debugInfo(...) abort
     return LanguageClient#Call('languageClient/debugInfo', l:params, l:Callback)
 endfunction
 
-function! LanguageClient#openHoverInSeparateWindow() abort
+function! LanguageClient#reopenHoverInSeparateWindow() abort
     let bufnr = s:GetHoverPreviewBufnr()
     if bufnr == -1
         echo 'No hover found'
