@@ -110,17 +110,19 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
-        let (diagnosticsSignsMax, documentHighlightDisplay, selectionUI_autoOpen, use_virtual_text): (
-            Option<u64>,
-            Value,
-            u8,
-            u8,
-        ) = self.vim()?.eval(
+        let (
+            diagnosticsSignsMax,
+            documentHighlightDisplay,
+            selectionUI_autoOpen,
+            use_virtual_text,
+            echo_project_root,
+        ): (Option<u64>, Value, u8, u8, u8) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
+                "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
             ]
             .as_ref(),
         )?;
@@ -207,6 +209,7 @@ impl LanguageClient {
             state.hoverPreview = hoverPreview;
             state.completionPreferTextEdit = completionPreferTextEdit;
             state.use_virtual_text = use_virtual_text == 1;
+            state.echo_project_root = echo_project_root == 1;
             state.loggingFile = loggingFile;
             state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
@@ -2751,7 +2754,9 @@ impl LanguageClient {
             .into()
         };
         let message = format!("Project root: {}", root);
-        self.vim()?.echomsg_ellipsis(&message)?;
+        if self.get(|state| state.echo_project_root)? {
+            self.vim()?.echomsg_ellipsis(&message)?;
+        }
         info!("{}", message);
         self.update(|state| {
             state.roots.insert(languageId.clone(), root.clone());

@@ -160,6 +160,7 @@ pub struct State {
     pub hoverPreview: HoverPreviewOption,
     pub completionPreferTextEdit: bool,
     pub use_virtual_text: bool,
+    pub echo_project_root: bool,
 
     pub loggingFile: Option<String>,
     pub loggingLevel: log::LevelFilter,
@@ -234,6 +235,7 @@ impl State {
             hoverPreview: HoverPreviewOption::default(),
             completionPreferTextEdit: false,
             use_virtual_text: true,
+            echo_project_root: true,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,
