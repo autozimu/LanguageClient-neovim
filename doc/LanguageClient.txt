@@ -633,13 +633,6 @@ Signature: LanguageClient#debugInfo(...)
 
 Print out debug info.
 
-*LanguageClient#reopenHoverInSeparateWindow*
-Signature: LanguageClient#reopenHoverInSeparateWindow()
-
-When a hover is open in floating window, calling this function reopens the
-content in a separate preview window. This function is useful when you want to
-keep it open.
-
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
 

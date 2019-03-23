@@ -273,7 +273,7 @@ function! s:CloseFloatingHoverOnCursorMove(win_id, opened) abort
         " was really moved
         return
     endif
-    silent! autocmd! plugin-LC-neovim-close-hover
+    autocmd! plugin-LC-neovim-close-hover
     let winnr = win_id2win(a:win_id)
     if winnr == 0
         return
@@ -285,7 +285,7 @@ function! s:CloseFloatingHoverOnBufEnter(win_id, bufnr) abort
     let winnr = win_id2win(a:win_id)
     if winnr == 0
         " Float window was already closed
-        silent! autocmd! plugin-LC-neovim-close-hover
+        autocmd! plugin-LC-neovim-close-hover
         return
     endif
     if winnr == winnr()
@@ -296,7 +296,7 @@ function! s:CloseFloatingHoverOnBufEnter(win_id, bufnr) abort
         " When current buffer opened hover window, it's not another buffer. Skipped
         return
     endif
-    silent! autocmd! plugin-LC-neovim-close-hover
+    autocmd! plugin-LC-neovim-close-hover
     execute winnr . 'wincmd c'
 endfunction
 
@@ -392,22 +392,17 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
     endif
 endfunction
 
-function! s:GetHoverPreviewBufnr() abort
+function! s:MoveIntoHoverPreview() abort
     for bufnr in range(1, bufnr('$'))
         if bufname(bufnr) ==# '__LanguageClient__'
-            return bufnr
+            let winnr = bufwinnr(bufnr)
+            if winnr != -1
+                execute winnr . 'wincmd w'
+            endif
+            return v:true
         endif
     endfor
-    return -1
-endfunction
-
-function! s:MoveIntoHoverPreview() abort
-    let winnr = bufwinnr(s:GetHoverPreviewBufnr())
-    if winnr == -1
-        return v:false
-    endif
-    execute winnr . 'wincmd w'
-    return v:true
+    return v:false
 endfunction
 
 let s:id = 1
@@ -1301,32 +1296,6 @@ function! LanguageClient#debugInfo(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
     return LanguageClient#Call('languageClient/debugInfo', l:params, l:Callback)
-endfunction
-
-function! LanguageClient#reopenHoverInSeparateWindow() abort
-    let bufnr = s:GetHoverPreviewBufnr()
-    if bufnr == -1
-        echo 'No hover found'
-        return
-    endif
-
-    let lines = nvim_buf_get_lines(bufnr, 1, -1, v:false)
-    let filetype = nvim_buf_get_option(bufnr, 'filetype')
-    let name = bufname(bufnr)
-
-    silent! autocmd! plugin-LC-neovim-close-hover
-    let winnr = bufwinnr(bufnr)
-    if winnr != -1
-        execute winnr . 'wincmd c'
-    endif
-
-    execute 'silent! noswapfile pedit!' name
-    wincmd P
-    setlocal buftype=nofile nobuflisted bufhidden=wipe nonumber norelativenumber signcolumn=no
-    let &filetype = filetype
-    call setline(1, lines)
-    setlocal nomodified nomodifiable
-    wincmd p
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()
