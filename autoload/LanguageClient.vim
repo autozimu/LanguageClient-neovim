@@ -263,7 +263,8 @@ function! s:GetVar(...) abort
 endfunction
 
 function! s:ShouldUseFloatWindow() abort
-    return s:FLOAT_WINDOW_AVAILABLE && get(g:, 'LanguageClient_useFloatingHover', 1)
+    let use = s:GetVar('LanguageClient_useFloatingHover')
+    return s:FLOAT_WINDOW_AVAILABLE && (use || use is v:null)
 endfunction
 
 function! s:CloseFloatingHoverOnCursorMove(win_id, opened) abort
