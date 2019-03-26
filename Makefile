@@ -21,7 +21,7 @@ vint:
 	vint autoload plugin
 
 release:
-	cargo build --release
+	RUSTFLAGS="-C target-cpu=native" cargo build --release
 	cp -f target/release/languageclient bin/
 	chmod a+x bin/languageclient
 
