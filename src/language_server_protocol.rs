@@ -864,27 +864,12 @@ impl LanguageClient {
         D: ToDisplay + ?Sized,
     {
         let bufname = "__LanguageClient__";
-
-        let cmd = "silent! pedit! +setlocal\\ buftype=nofile\\ nobuflisted\\ noswapfile\\ nonumber";
-        let cmd = if let Some(ref ft) = to_display.vim_filetype() {
-            format!("{}\\ filetype={} {}", cmd, ft, bufname)
-        } else {
-            format!("{} {}", cmd, bufname)
-        };
-        self.vim()?.command(cmd)?;
-
+        let filetype = &to_display.vim_filetype();
         let lines = to_display.to_display();
-        if self.get(|state| state.is_nvim)? {
-            let bufnr: u64 = serde_json::from_value(self.vim()?.rpcclient.call("bufnr", bufname)?)?;
-            self.vim()?
-                .rpcclient
-                .notify("nvim_buf_set_lines", json!([bufnr, 0, -1, 0, lines]))?;
-        } else {
-            self.vim()?
-                .rpcclient
-                .notify("setbufline", json!([bufname, 1, lines]))?;
-            // TODO: removing existing bottom lines.
-        }
+
+        self.vim()?
+            .rpcclient
+            .notify("s:OpenHoverPreview", json!([bufname, lines, filetype]))?;
 
         Ok(())
     }

@@ -63,7 +63,6 @@ accessed by regular quickfix/location list operations.
 To use the language server with Vim's formatting operator |gq|, set 'formatexpr': >
     set formatexpr=LanguageClient#textDocument_rangeFormatting_sync()
 <
-
 ==============================================================================
 2. Configuration                                 *LanguageClientConfiguration*
 
@@ -348,6 +347,16 @@ Specify whether to use virtual text to display diagnostics.
 Default: 1 whenever virtual text is supported.
 Valid Options: 1 | 0
 
+2.26 g:LanguageClient_useFloatingHover *g:LanguageClient_useFloatingHover*
+
+When the value is set to 1, |LanguageClient#textDocument_hover()| opens
+documentation in a floating window instead of preview.
+This variable is effective only when the floating window feature is
+supported.
+
+Default: 1 when a floating window is supported, otherwise 0
+Valid Options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
@@ -396,6 +405,12 @@ For Denite users, a source with name 'contextMenu' is provided.
 Signature: LanguageClient#textDocument_hover(...)
 
 Show type info (and short doc) of identifier under cursor.
+
+If you're using Neovim 0.4.0 or later, this function opens documentation in a
+floating window. The window is automatically closed when you move the cursor.
+Or calling this function again just after opening the floating window moves
+the cursor into the window. It is useful when documentation is longer and you
+need to scroll down or you want to yank some text in the documentation.
 
 *LanguageClient#textDocument_definition()*
 *LanguageClient_textDocument_definition()*

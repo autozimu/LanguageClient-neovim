@@ -208,3 +208,128 @@ def test_languageClient_registerHandlers(nvim):
 #                       if b.name.startswith('term://')), None) is None)
 
 #     assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)
+
+
+def _open_float_window(nvim):
+    nvim.funcs.cursor(13, 19)
+    pos = nvim.funcs.getpos('.')
+    nvim.funcs.LanguageClient_textDocument_hover()
+    time.sleep(1)
+    return pos
+
+
+def test_textDocument_hover_float_window_closed_on_cursor_moved(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    buf = nvim.current.buffer
+
+    pos = _open_float_window(nvim)
+
+    float_buf = next(
+        b for b in nvim.buffers if b.name.endswith("__LanguageClient__"))
+
+    # Check if float window is open
+    float_winnr = nvim.funcs.bufwinnr(float_buf.number)
+    assert float_winnr > 0
+
+    # Check if cursor is not moved
+    assert buf.number == nvim.current.buffer.number
+    assert pos == nvim.funcs.getpos(".")
+
+    # Move cursor to left
+    nvim.funcs.cursor(13, 17)
+
+    # Check float window buffer was closed by CursorMoved
+    assert all(
+        b for b in nvim.buffers if not b.name.endswith("__LanguageClient__"))
+
+
+def test_textDocument_hover_float_window_closed_on_entering_window(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    win_id = nvim.funcs.win_getid()
+    nvim.command("split")
+    try:
+        assert win_id != nvim.funcs.win_getid()
+
+        _open_float_window(nvim)
+        assert win_id != nvim.funcs.win_getid()
+
+        # Move to another window
+        nvim.funcs.win_gotoid(win_id)
+        assert win_id == nvim.funcs.win_getid()
+
+        # Check float window buffer was closed by BufEnter
+        assert all(
+            b for b in nvim.buffers
+            if not b.name.endswith("__LanguageClient__"))
+    finally:
+        nvim.command("close!")
+
+
+def test_textDocument_hover_float_window_closed_on_switching_to_buffer(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    # Create a new buffer
+    nvim.command("enew!")
+
+    another_bufnr = nvim.current.buffer.number
+
+    try:
+        nvim.command("edit! {}".format(PATH_INDEXJS))
+        time.sleep(1)
+
+        source_bufnr = nvim.current.buffer.number
+
+        _open_float_window(nvim)
+
+        float_buf = next(
+            b for b in nvim.buffers if b.name.endswith("__LanguageClient__"))
+        float_winnr = nvim.funcs.bufwinnr(float_buf.number)
+        assert float_winnr > 0
+
+        assert nvim.current.buffer.number == source_bufnr
+
+        # Move to another buffer within the same window
+        nvim.command("buffer {}".format(another_bufnr))
+        assert nvim.current.buffer.number == another_bufnr
+
+        # Check float window buffer was closed by BufEnter
+        assert all(
+            b for b in nvim.buffers
+            if not b.name.endswith("__LanguageClient__"))
+    finally:
+        nvim.command("bdelete! {}".format(another_bufnr))
+
+
+def test_textDocument_hover_float_window_move_cursor_into_window(nvim):
+    if not nvim.funcs.exists("*nvim_open_win"):
+        pytest.skip("Neovim 0.3.0 or earlier does not support floating window")
+
+    nvim.command("edit! {}".format(PATH_INDEXJS))
+    time.sleep(1)
+
+    prev_bufnr = nvim.current.buffer.number
+
+    _open_float_window(nvim)
+
+    # Moves cursor into floating window
+    nvim.funcs.LanguageClient_textDocument_hover()
+    assert nvim.current.buffer.name.endswith("__LanguageClient__")
+
+    # Close the window
+    nvim.command('close')
+    assert nvim.current.buffer.number == prev_bufnr
+
+    # Check float window buffer was closed by :close in the window
+    assert all(
+        b for b in nvim.buffers if not b.name.endswith("__LanguageClient__"))
