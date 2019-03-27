@@ -341,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "languageclient"
-version = "0.1.143"
+version = "0.1.144"
 dependencies = [
  "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "diff 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
