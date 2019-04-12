@@ -296,7 +296,7 @@ impl LanguageClient {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
-                position: position,
+                position,
             },
         )?;
 
