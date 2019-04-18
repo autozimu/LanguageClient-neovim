@@ -4,20 +4,32 @@ $version = '0.1.145'
 $name = 'languageclient'
 $url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
-if ([Environment]::Is64BitOperatingSystem) {
-    $url += 'x86_64'
+# Set architecture
+if(!$IsLinux) {
+    $url += if ([Environment]::Is64BitOperatingSystem) {
+        'x86_64'
+    } else {
+        'i686'
+    }
 } else {
-    $url += 'i686'
+    # Detecting architecture is more involved on Linux
+    $arch = uname -sm
+    $url += switch ($arch) {
+        'Linux x86_64' { 'x86_64' }
+        'Linux i686' { 'i686' }
+        'Linux aarch64' { 'aarch64' }
+        Default { throw 'architecture not supported' }
+    }
 }
 
 $path = "$PSScriptRoot\bin\$name"
 $url += switch ($true) {
-    $IsMacOS { "-apple-darwin" }
-    $IsLinux { "-unknown-linux-musl" }
+    $IsMacOS { '-apple-darwin' }
+    $IsLinux { '-unknown-linux-musl' }
     Default {
         # Windows
-        $path += ".exe"
-        "-pc-windows-gnu.exe"
+        $path += '.exe'
+        '-pc-windows-gnu.exe'
     }
 }
 
