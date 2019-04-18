@@ -38,7 +38,7 @@ if (Test-Path -LiteralPath $path) {
 
 echo "Downloading $url ..."
 
-if(!$IsCoreCLR) {
+if (!$IsCoreCLR) {
     # We only need to do this for Windows PowerShell
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 }
