@@ -17,7 +17,7 @@ $url += switch ($true) {
     Default {
         # Windows
         $path += ".exe"
-        return "-pc-windows-gnu.exe"
+        "-pc-windows-gnu.exe"
     }
 }
 
