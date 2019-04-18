@@ -31,7 +31,7 @@ impl RpcClient {
         thread::Builder::new()
             .name(reader_thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_read(reader, reader_rx, sink, languageId_clone) {
+                if let Err(err) = loop_read(reader, reader_rx, &sink, &languageId_clone) {
                     error!("Thread {} exited with error: {:?}", reader_thread_name, err);
                 }
             })?;
@@ -42,7 +42,7 @@ impl RpcClient {
         thread::Builder::new()
             .name(writer_thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_write(writer, writer_rx, languageId_clone) {
+                if let Err(err) = loop_write(writer, &writer_rx, &languageId_clone) {
                     error!("Thread {} exited with error: {:?}", writer_thread_name, err);
                 }
             })?;
@@ -120,8 +120,8 @@ impl RpcClient {
 fn loop_read(
     reader: impl BufRead,
     reader_rx: Receiver<(Id, Sender<rpc::Output>)>,
-    sink: Sender<Call>,
-    languageId: LanguageId,
+    sink: &Sender<Call>,
+    languageId: &LanguageId,
 ) -> Fallible<()> {
     let mut pending_outputs = HashMap::new();
 
@@ -205,8 +205,8 @@ fn loop_read(
 
 fn loop_write(
     writer: impl Write,
-    rx: Receiver<RawMessage>,
-    languageId: LanguageId,
+    rx: &Receiver<RawMessage>,
+    languageId: &LanguageId,
 ) -> Fallible<()> {
     let mut writer = writer;
 
