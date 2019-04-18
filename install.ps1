@@ -1,19 +1,35 @@
+#!/usr/bin/env pwsh
+
 $version = '0.1.145'
 $name = 'languageclient'
 $url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
-if ($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
+if ([Environment]::Is64BitOperatingSystem) {
     $url += 'x86_64'
 } else {
     $url += 'i686'
 }
 
-$url += '-pc-windows-gnu.exe'
-
-$path = "$PSScriptRoot\bin\$name.exe"
-if (Test-Path $path) {
-    Remove-Item -Force $path
+$path = "$PSScriptRoot\bin\$name"
+$url += switch ($true) {
+    $IsMacOS { "-apple-darwin" }
+    $IsLinux { "-unknown-linux-musl" }
+    Default {
+        # Windows
+        $path += ".exe"
+        return "-pc-windows-gnu.exe"
+    }
 }
+
+if (Test-Path -LiteralPath $path) {
+    Remove-Item -Force -LiteralPath $path
+}
+
 echo "Downloading $url ..."
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+if(!$IsCoreCLR) {
+    # We only need to do this for Windows PowerShell
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 Invoke-WebRequest -Uri $url -OutFile $path
