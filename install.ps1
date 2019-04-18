@@ -4,32 +4,31 @@ $version = '0.1.145'
 $name = 'languageclient'
 $url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
-# Set architecture
-if(!$IsLinux) {
-    $url += if ([Environment]::Is64BitOperatingSystem) {
-        'x86_64'
-    } else {
-        'i686'
-    }
-} else {
-    # Detecting architecture is more involved on Linux
-    $arch = uname -sm
-    $url += switch ($arch) {
-        'Linux x86_64' { 'x86_64' }
-        'Linux i686' { 'i686' }
-        'Linux aarch64' { 'aarch64' }
-        Default { throw 'architecture not supported' }
-    }
-}
-
 $path = "$PSScriptRoot\bin\$name"
-$url += switch ($true) {
-    $IsMacOS { '-apple-darwin' }
-    $IsLinux { '-unknown-linux-musl' }
+
+switch ($true) {
+    $IsMacOS {
+        # MacOS is always x86_64
+        $url += 'x86_64-apple-darwin'
+    }
+    $IsLinux {
+        # Detecting architecture is more involved on Linux
+        $arch = uname -sm
+        $url += switch ($arch) {
+            'Linux x86_64' { 'x86_64' }
+            'Linux i686' { 'i686' }
+            'Linux aarch64' { 'aarch64' }
+            Default { throw 'architecture not supported' }
+        }
+        $url += '-unknown-linux-musl'
+    }
     Default {
         # Windows
+        $url += if ([Environment]::Is64BitOperatingSystem) { 'x86_64' } else { 'i686' }
+        $url += '-pc-windows-gnu.exe'
+        
+        # We need to tack on the .exe to the end of the download path
         $path += '.exe'
-        '-pc-windows-gnu.exe'
     }
 }
 
