@@ -210,7 +210,7 @@ function! s:FZF(source, sink) abort
                 \ 'sink': function(a:sink),
                 \ 'options': l:options,
                 \ }))
-    if has('nvim')
+    if has('nvim') && !has('nvim-0.4')
         call feedkeys('i')
     endif
 endfunction
