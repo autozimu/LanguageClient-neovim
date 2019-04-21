@@ -20,7 +20,7 @@ pub struct Vim {
 
 impl Vim {
     pub fn new(rpcclient: RpcClient) -> Self {
-        Vim { rpcclient }
+        Self { rpcclient }
     }
 
     /// Fundamental functions.

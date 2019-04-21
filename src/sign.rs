@@ -8,7 +8,7 @@ pub struct Sign {
 
 impl Sign {
     pub fn new(line: u64, name: String) -> Sign {
-        Sign {
+        Self {
             // Placeholder id. Will be updated when actually get displayed.
             id: 0,
             line,

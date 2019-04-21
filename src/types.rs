@@ -171,7 +171,7 @@ pub struct State {
 
 impl State {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(tx: crossbeam_channel::Sender<Call>) -> Fallible<State> {
+    pub fn new(tx: crossbeam_channel::Sender<Call>) -> Fallible<Self> {
         let logger = logger::init()?;
 
         let client = RpcClient::new(
@@ -182,7 +182,7 @@ impl State {
             tx.clone(),
         )?;
 
-        Ok(State {
+        Ok(Self {
             tx,
 
             clients: hashmap! {
@@ -333,11 +333,11 @@ pub struct DiagnosticsDisplay {
 }
 
 impl DiagnosticsDisplay {
-    pub fn default() -> HashMap<u64, DiagnosticsDisplay> {
+    pub fn default() -> HashMap<u64, Self> {
         let mut map = HashMap::new();
         map.insert(
             1,
-            DiagnosticsDisplay {
+            Self {
                 name: "Error".to_owned(),
                 texthl: "ALEError".to_owned(),
                 signText: "✖".to_owned(),
@@ -347,7 +347,7 @@ impl DiagnosticsDisplay {
         );
         map.insert(
             2,
-            DiagnosticsDisplay {
+            Self {
                 name: "Warning".to_owned(),
                 texthl: "ALEWarning".to_owned(),
                 signText: "⚠".to_owned(),
@@ -357,7 +357,7 @@ impl DiagnosticsDisplay {
         );
         map.insert(
             3,
-            DiagnosticsDisplay {
+            Self {
                 name: "Information".to_owned(),
                 texthl: "ALEInfo".to_owned(),
                 signText: "ℹ".to_owned(),
@@ -367,7 +367,7 @@ impl DiagnosticsDisplay {
         );
         map.insert(
             4,
-            DiagnosticsDisplay {
+            Self {
                 name: "Hint".to_owned(),
                 texthl: "ALEInfo".to_owned(),
                 signText: "➤".to_owned(),
@@ -386,25 +386,25 @@ pub struct DocumentHighlightDisplay {
 }
 
 impl DocumentHighlightDisplay {
-    pub fn default() -> HashMap<u64, DocumentHighlightDisplay> {
+    pub fn default() -> HashMap<u64, Self> {
         let mut map = HashMap::new();
         map.insert(
             1,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Text".to_owned(),
                 texthl: "SpellCap".to_owned(),
             },
         );
         map.insert(
             2,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Read".to_owned(),
                 texthl: "SpellLocal".to_owned(),
             },
         );
         map.insert(
             3,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Write".to_owned(),
                 texthl: "SpellRare".to_owned(),
             },
@@ -526,10 +526,7 @@ pub struct VimCompleteItemUserData {
 }
 
 impl VimCompleteItem {
-    pub fn from_lsp(
-        lspitem: &CompletionItem,
-        complete_position: Option<u64>,
-    ) -> Fallible<VimCompleteItem> {
+    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Fallible<Self> {
         let abbr = lspitem.label.clone();
         let mut word = lspitem.insert_text.clone().unwrap_or_default();
         if word.is_empty() {
@@ -573,7 +570,7 @@ impl VimCompleteItem {
             snippet: snippet.clone(),
         };
 
-        Ok(VimCompleteItem {
+        Ok(Self {
             word,
             abbr,
             icase: Some(1),
@@ -1027,7 +1024,7 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
     fn from_lsp(sym: &SymbolInformation) -> Fallible<Self> {
         let start = sym.location.range.start;
 
-        Ok(QuickfixEntry {
+        Ok(Self {
             filename: sym.location.uri.filepath()?.to_string_lossy().into_owned(),
             lnum: start.line + 1,
             col: Some(start.character + 1),
