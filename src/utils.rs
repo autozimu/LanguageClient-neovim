@@ -140,12 +140,12 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<Str
 
         let start = lines[..std::cmp::min(start_line, lines.len())]
             .iter()
-            .map(|l| l.len())
+            .map(String::len)
             .fold(0, |acc, l| acc + l + 1 /*line ending*/)
             + start_character;
         let end = lines[..std::cmp::min(end_line, lines.len())]
             .iter()
-            .map(|l| l.len())
+            .map(String::len)
             .fold(0, |acc, l| acc + l + 1 /*line ending*/)
             + end_character;
         edits_by_index.push((start, end, &edit.new_text));
@@ -158,7 +158,7 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<Str
         text = String::new() + &text[..start] + new_text + &text[end..];
     }
 
-    Ok(text.lines().map(|l| l.to_owned()).collect())
+    Ok(text.lines().map(ToOwned::to_owned).collect())
 }
 
 #[test]
