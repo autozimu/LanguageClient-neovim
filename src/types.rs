@@ -670,7 +670,7 @@ impl ToString for Hover {
             HoverContents::Scalar(ref ms) => ms.to_string(),
             HoverContents::Array(ref vec) => vec
                 .iter()
-                .map(|i| i.to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join("\n"),
             HoverContents::Markup(ref mc) => mc.to_string(),
@@ -709,7 +709,7 @@ impl ToDisplay for lsp::MarkedString {
             MarkedString::String(ref s) => s,
             MarkedString::LanguageString(ref ls) => &ls.value,
         };
-        s.lines().map(|i| i.to_string()).collect()
+        s.lines().map(String::from).collect()
     }
 
     fn vim_filetype(&self) -> Option<String> {
@@ -744,7 +744,7 @@ impl ToDisplay for Hover {
                         let mut buf = Vec::new();
 
                         buf.push(format!("```{}", ls.language));
-                        buf.extend(ls.value.lines().map(|i| i.to_string()));
+                        buf.extend(ls.value.lines().map(String::from));
                         buf.push("```".to_string());
 
                         buf
@@ -768,7 +768,7 @@ impl ToDisplay for Hover {
 
 impl ToDisplay for str {
     fn to_display(&self) -> Vec<String> {
-        self.lines().map(|s| s.to_string()).collect()
+        self.lines().map(String::from).collect()
     }
 }
 
@@ -795,7 +795,7 @@ impl LinesLen for Hover {
     fn lines_len(&self) -> usize {
         match self.contents {
             HoverContents::Scalar(ref c) => c.lines_len(),
-            HoverContents::Array(ref arr) => arr.iter().map(|i| i.lines_len()).sum(),
+            HoverContents::Array(ref arr) => arr.iter().map(LinesLen::lines_len).sum(),
             HoverContents::Markup(ref c) => c.lines_len(),
         }
     }

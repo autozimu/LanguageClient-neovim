@@ -2675,11 +2675,7 @@ impl LanguageClient {
             buf += "Idle";
         } else {
             // For RLS this can be "Build" or "Diagnostics" or "Indexing".
-            buf += params
-                .title
-                .as_ref()
-                .map(|title| title.as_ref())
-                .unwrap_or("Busy");
+            buf += params.title.as_ref().map(AsRef::as_ref).unwrap_or("Busy");
 
             // For RLS this is the crate name, present only if the progress isn't known.
             if let Some(message) = params.message {
