@@ -12,7 +12,7 @@ pub struct Viewport {
 impl Viewport {
     #[allow(dead_code)]
     pub fn new(start: u64, end: u64) -> Self {
-        Viewport { start, end }
+        Self { start, end }
     }
 
     fn contains(&self, line: u64) -> bool {

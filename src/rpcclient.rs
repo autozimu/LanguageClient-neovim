@@ -47,7 +47,7 @@ impl RpcClient {
                 }
             })?;
 
-        Ok(RpcClient {
+        Ok(Self {
             languageId,
             id: Arc::new(Mutex::new(0)),
             process_id,

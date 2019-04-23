@@ -25,7 +25,7 @@ impl LanguageClient {
 
     pub fn loop_call(&self, rx: &crossbeam_channel::Receiver<Call>) -> Fallible<()> {
         for call in rx.iter() {
-            let language_client = LanguageClient(self.0.clone());
+            let language_client = Self(self.0.clone());
             thread::spawn(move || {
                 if let Err(err) = language_client.handle_call(call) {
                     error!("Error handling request:\n{:?}", err);
