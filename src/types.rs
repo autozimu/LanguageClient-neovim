@@ -531,7 +531,9 @@ impl VimCompleteItem {
         let mut word = lspitem.insert_text.clone().unwrap_or_default();
         if word.is_empty() {
             match (lspitem.text_edit.clone(), complete_position) {
-                (Some(text_edit), Some(complete_position)) => {
+                (Some(ref text_edit), Some(complete_position))
+                    if !text_edit.new_text.is_empty() =>
+                {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
                     if text_edit.range.start.character != complete_position {
@@ -544,7 +546,7 @@ impl VimCompleteItem {
                         word = text_edit.new_text.clone();
                     }
                 }
-                (Some(text_edit), _) => {
+                (Some(ref text_edit), _) if !text_edit.new_text.is_empty() => {
                     word = text_edit.new_text.clone();
                 }
                 (_, _) => {
