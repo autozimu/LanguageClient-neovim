@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # Try install by
 #   - download binary
 #   - build with cargo
@@ -8,6 +8,7 @@ set -o errexit    # exit when command fails
 
 version=0.1.146
 name=languageclient
+cmd="${1:-download}"
 
 try_curl() {
     command -v curl > /dev/null && \
@@ -39,14 +40,22 @@ try_build() {
     fi
 }
 
+try_arch_download_with_build_fallback() {
+    case "${1}" in
+        "Linux x86_64") download $name-$version-x86_64-unknown-linux-musl ;;
+        "Linux i686") download $name-$version-i686-unknown-linux-musl ;;
+        "Linux aarch64") download $name-$version-aarch64-unknown-linux-gnu ;;
+        "Darwin x86_64") download $name-$version-x86_64-apple-darwin ;;
+        "FreeBSD amd64") download $name-$version-x86_64-unknown-freebsd ;;
+        *) echo "No pre-built binary available for ${arch}."; try_build ;;
+    esac
+}
+
 rm -f bin/languageclient
 
 arch=$(uname -sm)
-case "${arch}" in
-    "Linux x86_64") download $name-$version-x86_64-unknown-linux-musl ;;
-    "Linux i686") download $name-$version-i686-unknown-linux-musl ;;
-    "Linux aarch64") download $name-$version-aarch64-unknown-linux-gnu ;;
-    "Darwin x86_64") download $name-$version-x86_64-apple-darwin ;;
-    "FreeBSD amd64") download $name-$version-x86_64-unknown-freebsd ;;
-    *) echo "No pre-built binary available for ${arch}."; try_build ;;
+case "${cmd}" in
+    "download") try_arch_download_with_build_fallback "${arch}" ;;
+    "compile") try_build ;;
+    *) try_arch_download_with_build_fallback "${arch}" ;;
 esac
