@@ -1046,42 +1046,36 @@ impl LanguageClient {
 
         let response: Option<GotoDefinitionResponse> = result.clone().to_lsp()?;
 
-        match response {
-            None => {
-                self.vim()?.echowarn("Not found!")?;
-                return Ok(Value::Null);
-            }
-            Some(GotoDefinitionResponse::Scalar(loc)) => {
+        let locations = match response {
+            None => vec![],
+            Some(GotoDefinitionResponse::Scalar(loc)) => vec![loc],
+            Some(GotoDefinitionResponse::Array(arr)) => arr,
+            Some(GotoDefinitionResponse::Link(links)) => links
+                .into_iter()
+                .map(|link| Location::new(link.target_uri, link.target_selection_range))
+                .collect(),
+        };
+
+        match locations.len() {
+            0 => self.vim()?.echowarn("Not found!")?,
+            1 => {
+                let loc = locations.get(0).ok_or_else(|| err_msg("Not found!"))?;
                 self.vim()?.edit(&goto_cmd, loc.uri.filepath()?)?;
                 self.vim()?
                     .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
+                let cur_file: String = self.vim()?.eval("expand('%')")?;
+                self.vim()?.echomsg_ellipsis(format!(
+                    "{} {}:{}",
+                    cur_file,
+                    loc.range.start.line + 1,
+                    loc.range.start.character + 1
+                ))?;
             }
-            Some(GotoDefinitionResponse::Array(arr)) => match arr.len() {
-                0 => self.vim()?.echowarn("Not found!")?,
-                1 => {
-                    let loc = arr.get(0).ok_or_else(|| err_msg("Not found!"))?;
-                    self.vim()?.edit(&goto_cmd, loc.uri.filepath()?)?;
-                    self.vim()?
-                        .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
-                    let cur_file: String = self.vim()?.eval("expand('%')")?;
-                    self.vim()?.echomsg_ellipsis(format!(
-                        "{} {}:{}",
-                        cur_file,
-                        loc.range.start.line + 1,
-                        loc.range.start.character + 1
-                    ))?;
-                }
-                _ => {
-                    let title = format!("[LC]: search for {}", current_word);
-                    self.display_locations(&arr, &title)?
-                }
-            },
-            Some(GotoDefinitionResponse::Link(_)) => {
-                self.vim()?
-                    .echowarn("Definition links are not supported!")?;
-                return Ok(Value::Null);
+            _ => {
+                let title = format!("[LC]: search for {}", current_word);
+                self.display_locations(&locations, &title)?
             }
-        };
+        }
 
         info!("End {}", method);
         Ok(result)
