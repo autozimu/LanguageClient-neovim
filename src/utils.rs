@@ -51,6 +51,7 @@ pub fn get_rootPath<'a>(
             dir.join("setup.py").exists()
                 || dir.join("Pipfile").exists()
                 || dir.join("requirements.txt").exists()
+                || dir.join("pyproject.toml").exists()
         }),
         "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
         "cs" => traverse_up(path, is_dotnet_root),
