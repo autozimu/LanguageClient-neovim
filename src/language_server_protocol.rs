@@ -1236,7 +1236,22 @@ impl LanguageClient {
             },
         )?;
 
-        let commands: Vec<Command> = serde_json::from_value(result.clone())?;
+        use lsp::request::CodeActionRequest;
+        let code_action_response: <CodeActionRequest as Request>::Result =
+            serde_json::from_value(result.clone())?;
+
+        let commands = match code_action_response {
+            None => return Ok(result),
+            Some(response) => match response {
+                CodeActionResponse::Commands(commands) => commands,
+                CodeActionResponse::Actions(actions) => {
+                    actions
+                        .into_iter()
+                        .filter_map(|action| action.command)
+                        .collect()
+                }
+            },
+        };
 
         let source: Vec<_> = commands
             .iter()
