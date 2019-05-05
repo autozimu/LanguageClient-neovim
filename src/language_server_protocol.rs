@@ -251,9 +251,11 @@ impl LanguageClient {
     }
 
     fn apply_WorkspaceEdit(&self, edit: &WorkspaceEdit) -> Fallible<()> {
+        use self::{DocumentChangeOperation::*, ResourceOp::*};
+
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
-        let filename = self.vim()?.get_filename(&Value::Null)?;
-        let position = self.vim()?.get_position(&Value::Null)?;
+        let mut filename = self.vim()?.get_filename(&Value::Null)?;
+        let mut position = self.vim()?.get_position(&Value::Null)?;
 
         if let Some(ref changes) = edit.document_changes {
             match changes {
@@ -264,10 +266,19 @@ impl LanguageClient {
                 }
                 DocumentChanges::Operations(ref ops) => {
                     for op in ops {
-                        if let DocumentChangeOperation::Edit(ref e) = op {
-                            self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
+                        match op {
+                            Edit(ref e) => {
+                                self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?
+                            }
+                            Op(ref rop) => match rop {
+                                Create(file) => {
+                                    filename = file.uri.filepath()?.to_string_lossy().into_owned();
+                                    position = Position::default();
+                                }
+                                Rename(_file) => bail!("file renaming not yet supported."),
+                                Delete(_file) => bail!("file deletion not yet supported."),
+                            },
                         }
-                        // TODO: handle ResourceOp.
                     }
                 }
             }
