@@ -1296,12 +1296,10 @@ impl LanguageClient {
             None => return Ok(result),
             Some(response) => match response {
                 CodeActionResponse::Commands(commands) => commands,
-                CodeActionResponse::Actions(actions) => {
-                    actions
-                        .into_iter()
-                        .filter_map(|action| action.command)
-                        .collect()
-                }
+                CodeActionResponse::Actions(actions) => actions
+                    .into_iter()
+                    .filter_map(|action| action.command)
+                    .collect(),
             },
         };
 
