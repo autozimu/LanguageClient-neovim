@@ -804,20 +804,61 @@ impl LanguageClient {
         Ok(text.trim().into())
     }
 
+    fn edit_and_move(
+        &self,
+        (edit, cursor): (WorkspaceEdit, Option<TextDocumentPositionParams>),
+    ) -> Fallible<()> {
+        self.apply_WorkspaceEdit(&edit)?;
+
+        if let Some(cursor) = cursor {
+            self.vim()?
+                .cursor(cursor.position.line + 1, cursor.position.character + 1)?;
+        }
+
+        Ok(())
+    }
+
     fn try_handle_command_by_client(&self, cmd: &Command) -> Fallible<bool> {
+        use serde_json::{from_value, Map};
+
         if !CommandsClient.contains(&cmd.command.as_str()) {
             return Ok(false);
         }
 
-        if cmd.command == "java.apply.workspaceEdit" {
-            if let Some(ref edits) = cmd.arguments {
-                for edit in edits {
-                    let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
-                    self.apply_WorkspaceEdit(&edit)?;
+        match cmd.command.as_str() {
+            "java.apply.workspaceEdit" => {
+                if let Some(ref edits) = cmd.arguments {
+                    for edit in edits {
+                        let edit: WorkspaceEdit = from_value(edit.clone())?;
+                        self.apply_WorkspaceEdit(&edit)?;
+                    }
                 }
             }
-        } else {
-            bail!("Not implemented: {}", cmd.command);
+            "rust-analyzer.applySourceChange" => {
+                fn json_to_workspace_edit(
+                    json: Value,
+                ) -> Fallible<(WorkspaceEdit, Option<TextDocumentPositionParams>)> {
+                    let mut map: Map<String, Value> = from_value(json)?;
+                    let ws = from_value::<WorkspaceEdit>(
+                        map.remove("workspaceEdit").unwrap_or_default(),
+                    );
+                    let cursor = from_value::<TextDocumentPositionParams>(
+                        map.remove("cursorPosition").unwrap_or_default(),
+                    )
+                    .ok();
+
+                    ws.map(|ws| (ws, cursor))
+                        .map_err(|err| format_err!("invalid workspaceEdit: {}", err))
+                };
+
+                cmd.arguments
+                    .iter()
+                    .flat_map(Clone::clone)
+                    .map(json_to_workspace_edit)
+                    .try_for_each(|tuple| self.edit_and_move(tuple?))?
+            }
+
+            cmd => bail!("Not implemented: {}", cmd),
         }
 
         Ok(true)

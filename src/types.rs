@@ -55,7 +55,10 @@ pub const NOTIFICATION__WindowProgress: &str = "window/progress";
 pub const NOTIFICATION__LanguageStatus: &str = "language/status";
 pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 
-pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
+pub const CommandsClient: &[&str] = &[
+    "java.apply.workspaceEdit",
+    "rust-analyzer.applySourceChange",
+];
 
 // Vim variable names
 pub const VIM__ServerStatus: &str = "g:LanguageClient_serverStatus";
