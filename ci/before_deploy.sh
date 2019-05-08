@@ -7,6 +7,7 @@ package() {
     fi
 
     cp -f target/$TARGET/release/$BIN_NAME bin/$BIN_NAME_TAG
+    sha256sum "bin/$BIN_NAME_TAG" | tee "bin/$BIN_NAME_TAG.sha256"
 }
 
 release_tag() {
