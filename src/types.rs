@@ -137,7 +137,7 @@ pub struct State {
     pub is_nvim: bool,
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
-    pub stashed_codeAction_commands: Vec<Command>,
+    pub stashed_codeAction_actions: Vec<CodeAction>,
     pub viewports: HashMap<String, Viewport>,
 
     // User settings.
@@ -213,7 +213,7 @@ impl State {
             is_nvim: false,
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
-            stashed_codeAction_commands: vec![],
+            stashed_codeAction_actions: vec![],
             viewports: HashMap::new(),
 
             serverCommands: HashMap::new(),
