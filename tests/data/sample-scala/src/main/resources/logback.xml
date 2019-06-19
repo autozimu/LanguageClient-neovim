@@ -1,0 +1,41 @@
+<configuration>
+
+  <!-- Console output setting -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] [%-5level] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- File output setting -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+    <file>./logs/app.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>./logs/app.%i.log</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>3</maxIndex>
+    </rollingPolicy>
+
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>100KB</maxFileSize>
+    </triggeringPolicy>
+
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] [%-5level] %logger{36} - %msg%n</pattern>
+    </encoder>
+
+  </appender>
+
+  <!-- Output to console -->
+  <root>
+    <appender-ref ref="STDOUT" />
+  </root>
+
+  <!-- Output to file -->
+  <logger name="com.github.autozimu" level="DEBUG">
+    <appender-ref ref="FILE" />
+  </logger>
+
+</configuration>

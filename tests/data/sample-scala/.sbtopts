@@ -1,0 +1,7 @@
+-J-Dfile.encoding=UTF-8
+-J-XX:+CMSClassUnloadingEnabled
+-J-XX:ReservedCodeCacheSize=128M
+-J-XX:MetaspaceSize=256M
+-J-XX:MaxMetaspaceSize=512M
+-J-Xms2G
+-J-Xmx2G
