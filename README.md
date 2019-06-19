@@ -78,7 +78,10 @@ language services will be available right away. Happy hacking!
 
 # Language Servers
 
-Please see <http://langserver.org> and/or <https://microsoft.github.io/language-server-protocol/implementors/servers/>.
+**Note**, you will also need language server(s) to take advantages of
+this plugin. To find list of language server implementations and how
+to install them, please see <http://langserver.org> and/or
+<https://microsoft.github.io/language-server-protocol/implementors/servers/>.
 
 # Documentation
 
