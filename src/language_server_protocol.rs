@@ -1257,12 +1257,11 @@ impl LanguageClient {
         let source: Vec<_> = actions
             .iter()
             .map(|action| {
-                let kind = match action.kind.as_ref() {
-                    Some(kind) => kind,
-                    None => "action",
-                };
-
-                format!("{}: {}", kind, action.title)
+                format!(
+                    "{}: {}",
+                    action.kind.as_ref().map_or("action", String::as_ref),
+                    action.title
+                )
             })
             .collect();
 
@@ -2498,11 +2497,8 @@ impl LanguageClient {
             actions
                 .iter()
                 .find(|action| {
-                    let action_kind = match action.kind.as_ref() {
-                        Some(k) => k,
-                        None => kind,
-                    };
-                    action_kind == kind && action.title == title
+                    action.kind.as_ref().map_or(kind, String::as_ref) == kind
+                        && action.title == title
                 })
                 .cloned()
                 .ok_or_else(|| {
@@ -2511,20 +2507,18 @@ impl LanguageClient {
         })??;
 
         // Apply edit before command.
-        for edit in &action.edit {
+        if let Some(edit) = &action.edit {
             self.apply_WorkspaceEdit(edit)?;
         }
 
-        for command in &action.command {
-            if self.try_handle_command_by_client(&command)? {
-                break;
-            }
-
-            let params = json!({
+        if let Some(command) = &action.command {
+            if !self.try_handle_command_by_client(&command)? {
+                let params = json!({
                 "command": command.command,
                 "arguments": command.arguments,
-            });
-            self.workspace_executeCommand(&params)?;
+                });
+                self.workspace_executeCommand(&params)?;
+            }
         }
 
         self.update(|state| {
