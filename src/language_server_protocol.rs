@@ -487,12 +487,12 @@ impl LanguageClient {
             let line = entry.range.start.line;
             let mut msg = String::new();
             if let Some(severity) = entry.severity {
-                msg += &format!("[{:?}]", severity);
+                msg += &format!("[{:?}] ", severity);
             }
             if let Some(ref code) = entry.code {
                 let s = code.to_string();
                 if !s.is_empty() {
-                    msg += &format!("[{}]", s);
+                    msg += &format!("[{}] ", s);
                 }
             }
             msg += &entry.message;
