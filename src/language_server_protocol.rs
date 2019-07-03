@@ -1240,19 +1240,19 @@ impl LanguageClient {
 
         // Convert any Commands into CodeActions, so that the remainder of the handling can be
         // shared.
-        let actions = match response {
-            CodeActionResponse::Commands(commands) => commands
-                .into_iter()
-                .map(|command| CodeAction {
+        let actions: Vec<_> = response
+            .into_iter()
+            .map(|action_or_command| match action_or_command {
+                CodeActionOrCommand::Command(command) => CodeAction {
                     title: command.title.clone(),
                     kind: Some(command.command.clone()),
                     diagnostics: None,
                     edit: None,
                     command: Some(command),
-                })
-                .collect(),
-            CodeActionResponse::Actions(actions) => actions,
-        };
+                },
+                CodeActionOrCommand::CodeAction(action) => action,
+            })
+            .collect();
 
         let source: Vec<_> = actions
             .iter()
