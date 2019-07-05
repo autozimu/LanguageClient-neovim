@@ -370,7 +370,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         wincmd P
     endif
 
-    setlocal buftype=nofile nobuflisted bufhidden=wipe nonumber norelativenumber signcolumn=no
+    setlocal buftype=nofile nobuflisted bufhidden=wipe nonumber norelativenumber signcolumn=no modifiable
 
     if a:filetype isnot v:null
         let &filetype = a:filetype
