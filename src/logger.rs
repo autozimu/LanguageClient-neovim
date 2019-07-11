@@ -14,13 +14,16 @@ fn create_config(path: &Option<String>, level: LevelFilter) -> Fallible<Config> 
 
     let mut root_builder = Root::builder();
     if let Some(path) = path {
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        let path = shellexpand::tilde(&path).to_string();
+
         // Ensure log file writable.
         {
             let mut f = std::fs::OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(true)
-                .open(path)
+                .open(&path)
                 .with_context(|err| format!("Failed to open file ({}): {}", path, err))?;
             #[allow(clippy::write_literal)]
             writeln!(
