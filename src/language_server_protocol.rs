@@ -947,6 +947,22 @@ impl LanguageClient {
                             }),
                             ..SignatureHelpCapability::default()
                         }),
+                        declaration: Some(GotoCapability {
+                            link_support: Some(true),
+                            ..GotoCapability::default()
+                        }),
+                        definition: Some(GotoCapability {
+                            link_support: Some(true),
+                            ..GotoCapability::default()
+                        }),
+                        type_definition: Some(GotoCapability {
+                            link_support: Some(true),
+                            ..GotoCapability::default()
+                        }),
+                        implementation: Some(GotoCapability {
+                            link_support: Some(true),
+                            ..GotoCapability::default()
+                        }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
