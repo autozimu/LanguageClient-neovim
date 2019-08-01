@@ -2431,8 +2431,20 @@ impl LanguageClient {
         let mut edits = vec![];
         if self.get(|state| state.completionPreferTextEdit)? {
             if let Some(edit) = lspitem.text_edit {
-                self.vim()?.command("undo")?;
-                edits.push(edit.clone());
+                // The text edit should be at the completion point, and deleting the partial text
+                // that the user had typed when the language server provided the completion.
+                //
+                // We want to tweak the edit so that it instead deletes the completion that we've
+                // already inserted.
+                //
+                // Check that we're not doing anything stupid before going ahead with this.
+                let mut edit = edit.clone();
+                edit.range.end.character =
+                    edit.range.start.character + completed_item.word.len() as u64;
+                if edit.range.end != position || edit.range.start.line != edit.range.end.line {
+                    return Ok(());
+                }
+                edits.push(edit);
             };
         }
         if let Some(aedits) = lspitem.additional_text_edits {
