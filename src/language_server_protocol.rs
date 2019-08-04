@@ -1861,21 +1861,26 @@ impl LanguageClient {
 
     pub fn window_showMessageRequest(&self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", lsp::request::ShowMessageRequest::METHOD);
-        let msg_params: ShowMessageRequestParams = params.clone().to_lsp()?;
-        let msg_actions = msg_params.actions.unwrap_or_default();
-        let mut options = Vec::with_capacity(msg_actions.len() + 1);
-        options.push(msg_params.message);
-        options.extend(
-            msg_actions
-                .iter()
-                .enumerate()
-                .map(|(i, item)| format!("{}) {}", i + 1, item.title)),
-        );
-
         let mut v = Value::Null;
-        let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
-        if let Some(index) = index {
-            v = serde_json::to_value(msg_actions.get(index - 1))?;
+        let msg_params: ShowMessageRequestParams = params.clone().to_lsp()?;
+        let msg = format!("[{:?}] {}", msg_params.typ, msg_params.message);
+        let msg_actions = msg_params.actions.unwrap_or_default();
+        if msg_actions.is_empty() {
+            self.vim()?.echomsg(&msg)?;
+        } else {
+            let mut options = Vec::with_capacity(msg_actions.len() + 1);
+            options.push(msg);
+            options.extend(
+                msg_actions
+                    .iter()
+                    .enumerate()
+                    .map(|(i, item)| format!("{}) {}", i + 1, item.title)),
+            );
+
+            let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
+            if let Some(index) = index {
+                v = serde_json::to_value(msg_actions.get(index - 1))?;
+            }
         }
 
         info!("End {}", lsp::request::ShowMessageRequest::METHOD);
