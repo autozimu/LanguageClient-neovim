@@ -831,8 +831,8 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'LSP#range_start_line()': LSP#range_start_line(),
-                \ 'LSP#range_end_line()': LSP#range_end_line(),
+                \ 'range_start_line': LSP#range_start_line(),
+                \ 'range_end_line': LSP#range_end_line(),
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
