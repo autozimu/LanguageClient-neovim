@@ -324,6 +324,14 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
     let use_float_win = s:ShouldUseFloatWindow()
     if use_float_win
+        " When a language server takes a while to initialize and the user
+        " calls hover multiple times during that time (for example, via an
+        " automatic hover on cursor move setup), we will get a number of
+        " successive calls into this function resulting in many hover windows
+        " opened. This causes a number of issues, and we only really want one,
+        " so make sure that the previous hover window is closed.
+        call s:CloseFloatingHover()
+
         let pos = getpos('.')
 
         " Calculate width and height and give margin to lines
