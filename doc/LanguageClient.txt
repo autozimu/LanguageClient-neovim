@@ -617,10 +617,10 @@ Signature: LanguageClient#cquery_vars(...)
 
 Call $cquery/vars.
 
-*LanguageClient#java_classFileContent*
-Signature: LanguageClient#java_classFileContent(...)
+*LanguageClient#java_classFileContents*
+Signature: LanguageClient#java_classFileContents(...)
 
-Call java/classFileContent.
+Call java/classFileContents.
 
 *LanguageClient#explainErrorAtPoint*
 Signature: LanguageClient#explainErrorAtPoint(...)

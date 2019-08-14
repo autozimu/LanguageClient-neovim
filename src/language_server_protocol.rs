@@ -1080,7 +1080,12 @@ impl LanguageClient {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
                 let loc = locations.get(0).ok_or_else(|| err_msg("Not found!"))?;
-                self.vim()?.edit(&goto_cmd, loc.uri.filepath()?)?;
+                let path = loc.uri.filepath()?.to_string_lossy().into_owned();
+                if path.starts_with("jdt://") {
+                    self.java_classFileContents(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
+                } else {
+                    self.vim()?.edit(&goto_cmd, path)?;
+                }
                 self.vim()?
                     .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
                 let cur_file: String = self.vim()?.eval("expand('%')")?;
@@ -2990,6 +2995,27 @@ impl LanguageClient {
         let content: String = self
             .get_client(&Some(languageId.clone()))?
             .call(REQUEST__ClassFileContents, params)?;
+
+        let lines: Vec<String> = content
+            .lines()
+            .map(std::string::ToString::to_string)
+            .collect();
+
+        let goto_cmd = self
+            .vim()?
+            .get_goto_cmd(params)?
+            .unwrap_or_else(|| "edit".to_string());
+
+        let uri: String =
+            try_get("uri", params)?.ok_or_else(|| err_msg("uri not found in request!"))?;
+
+        self.vim()?
+            .rpcclient
+            .notify("s:Edit", json!([goto_cmd, uri]))?;
+
+        self.vim()?.setline(1, &lines)?;
+        self.vim()?
+            .command("setlocal buftype=nofile filetype=java noswapfile")?;
 
         info!("End {}", REQUEST__ClassFileContents);
         Ok(Value::String(content))
