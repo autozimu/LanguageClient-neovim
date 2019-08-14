@@ -1240,10 +1240,10 @@ function! LanguageClient#cquery_vars(...) abort
     return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
-function! LanguageClient#java_classFileContent(...) abort
+function! LanguageClient#java_classFileContents(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
-    return LanguageClient#Call('java/classFileContent', l:params, l:Callback)
+    return LanguageClient#Call('java/classFileContents', l:params, l:Callback)
 endfunction
 
 function! LanguageClient_contextMenuItems() abort

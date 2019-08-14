@@ -148,28 +148,8 @@ impl Vim {
 
     pub fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref().to_string_lossy();
-
         let goto = goto_cmd.as_deref().unwrap_or("edit");
         self.rpcclient.notify("s:Edit", json!([goto, path]))?;
-
-        if path.starts_with("jdt://") {
-            self.command("setlocal buftype=nofile filetype=java noswapfile")?;
-
-            // TODO
-            // let result = self.java_classFileContents(&json!({
-            //     VimVar::LanguageId.to_key(): "java",
-            //     "uri": path,
-            // }))?;
-            // let content = match result {
-            //     Value::String(s) => s,
-            //     _ => bail!("Unexpected type: {:?}", result),
-            // };
-            // let lines: Vec<String> = content
-            //     .lines()
-            //     .map(std::string::ToString::to_string)
-            //     .collect();
-            // self.setline(1, &lines)?;
-        }
         Ok(())
     }
 
