@@ -106,6 +106,10 @@ function! LanguageClient_cquery_vars(...)
     return call('LanguageClient#cquery_vars', a:000)
 endfunction
 
+function! LanguageClient_closeFloatingHover(...)
+    return call('LanguageClient#closeFloatingHover', a:000)
+endfunction
+
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient#exit()
 
