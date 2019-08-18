@@ -1145,10 +1145,12 @@ impl LanguageClient {
         let result = self.get_client(&Some(languageId.clone()))?.call(
             lsp::request::Rename::METHOD,
             RenameParams {
-                text_document: TextDocumentIdentifier {
-                    uri: filename.to_url()?,
+                text_document_position: TextDocumentPositionParams {
+                    text_document: TextDocumentIdentifier {
+                        uri: filename.to_url()?,
+                    },
+                    position,
                 },
-                position,
                 new_name,
             },
         )?;
