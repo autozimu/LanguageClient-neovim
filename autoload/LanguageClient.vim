@@ -644,8 +644,16 @@ function! LanguageClient#Write(message) abort
     endif
 endfunction
 
+function! s:SkipSendingMessage() abort
+    if expand('%') =~# '^jdt://'
+        return v:false
+    endif
+
+    return &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+endfunction
+
 function! LanguageClient#Call(method, params, callback, ...) abort
-    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+    if s:SkipSendingMessage()
         " call s:Debug('Skip sending message')
         return
     endif
@@ -675,7 +683,7 @@ function! LanguageClient#Call(method, params, callback, ...) abort
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
-    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+    if s:SkipSendingMessage()
         " call s:Debug('Skip sending message')
         return
     endif
