@@ -1,4 +1,4 @@
-FROM rust:1.33-slim
+FROM rust:1.37-slim
 
 RUN echo 'deb http://deb.debian.org/debian stretch-backports main contrib non-free' >> /etc/apt/sources.list
 
@@ -8,7 +8,7 @@ RUN apt-get update \
         && pip3 install neovim vim-vint
 
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
-        && apt-get install --yes nodejs \
+        && apt-get install --yes npm \
         && npm install -g javascript-typescript-langserver@2.5.5
 
 RUN rustup component add rustfmt rls rust-analysis rust-src \
