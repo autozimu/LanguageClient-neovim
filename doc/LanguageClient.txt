@@ -357,6 +357,16 @@ supported.
 Default: 1 when a floating window is supported, otherwise 0
 Valid Options: 1 | 0
 
+2.27 g:LanguageClient_virtualTextPrefix     *g:LanguageClient_virtualTextPrefix*
+
+When the value is set to a valid string and |g:LanguageClient_useVirtualText| is
+enabled, all virtual text lines are prefixed with the defined string.
+This variable is effective only when the virtual text feature is
+supported.
+
+Default: Empty string ('')
+Valid Options: string
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
