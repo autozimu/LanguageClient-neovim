@@ -302,7 +302,7 @@ impl LanguageClient {
                 self.apply_TextEdits(&uri.filepath()?, edits)?;
             }
         }
-        self.vim()?.edit(&None, &filename)?;
+        self.edit(&None, &filename)?;
         self.vim()?
             .cursor(position.line + 1, position.character + 1)?;
         debug!("End apply WorkspaceEdit");
@@ -436,7 +436,7 @@ impl LanguageClient {
         edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
         edits.reverse();
 
-        self.vim()?.edit(&None, path)?;
+        self.edit(&None, path)?;
 
         let mut lines: Vec<String> = self.vim()?.rpcclient.call("getline", json!([1, '$']))?;
         let lines_len_prev = lines.len();
@@ -909,6 +909,16 @@ impl LanguageClient {
         Ok(())
     }
 
+    fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Fallible<()> {
+        let path = path.as_ref().to_string_lossy();
+        if path.starts_with("jdt://") {
+            self.java_classFileContents(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
+            Ok(())
+        } else {
+            self.vim()?.edit(&goto_cmd, path.into_owned())
+        }
+    }
+
     /////// LSP ///////
 
     fn initialize(&self, params: &Value) -> Fallible<Value> {
@@ -1112,11 +1122,7 @@ impl LanguageClient {
             1 => {
                 let loc = locations.get(0).ok_or_else(|| err_msg("Not found!"))?;
                 let path = loc.uri.filepath()?.to_string_lossy().into_owned();
-                if path.starts_with("jdt://") {
-                    self.java_classFileContents(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
-                } else {
-                    self.vim()?.edit(&goto_cmd, path)?;
-                }
+                self.edit(&goto_cmd, path)?;
                 self.vim()?
                     .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
                 let cur_file: String = self.vim()?.eval("expand('%')")?;
@@ -2531,30 +2537,29 @@ impl LanguageClient {
             .split('\t')
             .next()
             .ok_or_else(|| format_err!("Failed to parse: {:?}", lines))?;
-        let mut tokens: Vec<_> = location.split_terminator(':').collect();
-        tokens.reverse();
-        let filename: String = if tokens.len() > 2 {
-            let relpath = tokens
-                .pop()
-                .ok_or_else(|| format_err!("Failed to get file path! tokens: {:?}", tokens))?
-                .to_owned();
-            let cwd: String = self.vim()?.eval("getcwd()")?;
-            Path::new(&cwd).join(relpath).to_string_lossy().into_owned()
+        let tokens: Vec<_> = location.split_terminator(':').collect();
+
+        let (filename, mut tokens_iter): (String, _) = if tokens.len() > 2 {
+            let end_index = tokens.len() - 2;
+            let path = tokens[..end_index].join(":");
+            let rest_tokens_iter = tokens[end_index..].iter();
+            (path, rest_tokens_iter)
         } else {
-            self.vim()?.get_filename(&params)?
+            (self.vim()?.get_filename(&params)?, tokens.iter())
         };
-        let line = tokens
-            .pop()
+
+        let line = tokens_iter
+            .next()
             .ok_or_else(|| format_err!("Failed to get line! tokens: {:?}", tokens))?
             .to_int()?
             - 1;
-        let character = tokens
-            .pop()
+        let character = tokens_iter
+            .next()
             .ok_or_else(|| format_err!("Failed to get character! tokens: {:?}", tokens))?
             .to_int()?
             - 1;
 
-        self.vim()?.edit(&None, &filename)?;
+        self.edit(&None, &filename)?;
         self.vim()?.cursor(line + 1, character + 1)?;
 
         info!("End {}", NOTIFICATION__FZFSinkLocation);
