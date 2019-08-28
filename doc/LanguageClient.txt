@@ -367,6 +367,13 @@ supported.
 Default: Empty string ('')
 Valid Options: string
 
+2.28 g:LanguageClient_diagnosticsMaxSeverity  *g:LanguageClient_diagnosticsMaxSeverity*
+
+Maximum severity to show diagnostic messages.
+
+Default: "Hint"
+Valid options: "Error" | "Warning" | "Information" | "Hint"
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

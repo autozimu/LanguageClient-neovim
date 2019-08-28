@@ -112,13 +112,15 @@ impl LanguageClient {
 
         let (
             diagnosticsSignsMax,
+            diagnostics_max_severity,
             documentHighlightDisplay,
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-        ): (Option<u64>, Value, u8, u8, u8) = self.vim()?.eval(
+        ): (Option<u64>, String, Value, u8, u8, u8) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
+                "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
                 "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
@@ -184,6 +186,18 @@ impl LanguageClient {
 
         let is_nvim = is_nvim == 1;
 
+        let diagnostics_max_severity = match diagnostics_max_severity.to_ascii_uppercase().as_str()
+        {
+            "ERROR" => DiagnosticSeverity::Error,
+            "WARNING" => DiagnosticSeverity::Warning,
+            "INFORMATION" => DiagnosticSeverity::Information,
+            "HINT" => DiagnosticSeverity::Hint,
+            _ => bail!(
+                "Invalid option for LanguageClient_diagnosticsMaxSeverity: {}",
+                diagnostics_max_severity
+            ),
+        };
+
         self.update(|state| {
             state.autoStart = autoStart;
             state.serverCommands.extend(serverCommands);
@@ -196,6 +210,7 @@ impl LanguageClient {
                 serde_json::to_value(&state.diagnosticsDisplay)?.combine(&diagnosticsDisplay),
             )?;
             state.diagnosticsSignsMax = diagnosticsSignsMax;
+            state.diagnostics_max_severity = diagnostics_max_severity;
             state.documentHighlightDisplay = serde_json::from_value(
                 serde_json::to_value(&state.documentHighlightDisplay)?
                     .combine(&documentHighlightDisplay),
@@ -1818,7 +1833,15 @@ impl LanguageClient {
         // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
 
-        let mut diagnostics = params.diagnostics;
+        let diagnostics_max_severity = self.get(|state| state.diagnostics_max_severity)?;
+        let mut diagnostics = params
+            .diagnostics
+            .iter()
+            .filter(|&diagnostic| {
+                diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) <= diagnostics_max_severity
+            })
+            .map(Clone::clone)
+            .collect::<Vec<_>>();
         diagnostics.sort_by_key(
             // First sort by line.
             // Then severity descendingly. Error should come last since when processing item comes
