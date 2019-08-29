@@ -988,6 +988,10 @@ impl LanguageClient {
                             link_support: Some(true),
                             ..GotoCapability::default()
                         }),
+                        publish_diagnostics: Some(PublishDiagnosticsCapability{
+                            related_information: Some(true),
+                            ..PublishDiagnosticsCapability::default()
+                        }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
