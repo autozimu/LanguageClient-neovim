@@ -1,7 +1,7 @@
 from .base import Base
 
 
-CompleteOutputs = "g:LanguageClient_omniCompleteResults"
+COMPLETE_OUTPUTS = "g:LanguageClient_omniCompleteResults"
 
 
 class Source(Base):
@@ -18,8 +18,8 @@ class Source(Base):
 
     def gather_candidates(self, context):
         if context["is_async"]:
-            outputs = self.vim.eval(CompleteOutputs)
-            if len(outputs) != 0:
+            outputs = self.vim.eval(COMPLETE_OUTPUTS)
+            if outputs:
                 context["is_async"] = False
                 # TODO: error handling.
                 candidates = outputs[0].get("result", [])
@@ -27,7 +27,7 @@ class Source(Base):
                 return candidates
         else:
             context["is_async"] = True
-            self.vim.command("let {} = []".format(CompleteOutputs))
+            self.vim.command("let {} = []".format(COMPLETE_OUTPUTS))
             character = (context["complete_position"]
                          + len(context["complete_str"]))
             self.vim.funcs.LanguageClient_omniComplete({
@@ -35,11 +35,3 @@ class Source(Base):
                 "complete_position": context["complete_position"],
             })
         return []
-
-
-# f = open("/tmp/deoplete.log", "w")
-
-
-# def log(message):
-#     f.writelines([message])
-#     f.flush()
