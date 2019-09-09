@@ -528,7 +528,7 @@ function! s:HandleMessage(job, lines, event) abort
     elseif a:event ==# 'stderr'
         call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
     elseif a:event ==# 'exit'
-        if type(a:lines) == type(0) && a:lines == 0
+        if type(a:lines) == type(0) && (a:lines == 0 || a:lines == 143)
             return
         endif
         call s:Debug('LanguageClient exited with: ' . string(a:lines))
