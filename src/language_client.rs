@@ -2,15 +2,40 @@ use super::*;
 use crate::vim::Vim;
 use std::ops::DerefMut;
 
-pub struct LanguageClient(pub Arc<Mutex<State>>);
+pub struct LanguageClient {
+    pub state_mutex: Arc<Mutex<State>>,
+    pub clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
+}
 
 impl LanguageClient {
     // NOTE: Don't expose this as public.
     // MutexGuard could easily halt the program when one guard is not released immediately after use.
     fn lock(&self) -> Fallible<MutexGuard<State>> {
-        self.0
+        self.state_mutex
             .lock()
             .map_err(|err| format_err!("Failed to lock state: {:?}", err))
+    }
+
+    // This fetches a mutex that is unique to the provided languageId.
+    //
+    // Here, we return a mutex instead of the mutex guard because we need to satisfy the borrow
+    // checker. Otherwise, there is no way to guarantee that the mutex in the hash map wouldn't be
+    // garbage collected as a result of another modification updating the hash map, while something was holding the lock
+    pub fn get_client_update_mutex(&self, languageId: LanguageId) -> Fallible<Arc<Mutex<()>>> {
+        let map_guard = self.clients_mutex.lock();
+        if map_guard.is_err() {
+            return Err(format_err!(
+                "Failed to lock client creation for languageId {:?}: {:?}",
+                languageId,
+                map_guard.unwrap_err()
+            ));
+        }
+        let mut map = map_guard.unwrap();
+        if !map.contains_key(&languageId) {
+            map.insert(languageId.clone(), Arc::new(Mutex::new(())));
+        }
+        let mutex: Arc<Mutex<()>> = map.get(&languageId).unwrap().clone();
+        Ok(mutex)
     }
 
     pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Fallible<T> {
