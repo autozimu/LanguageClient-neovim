@@ -624,7 +624,11 @@ impl LanguageClient {
                             let endLine =
                                 vec![dn.range.end.line + 1, 1, dn.range.end.character + 1];
                             middleLines.push(startLine);
-                            middleLines.push(endLine);
+                            // For a multi-ringe range ending at the exact start of the last line,
+                            // don't highlight the first character of the last line.
+                            if dn.range.end.character > 0 {
+                                middleLines.push(endLine);
+                            }
                             middleLines
                         }
                     })
