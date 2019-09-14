@@ -1,4 +1,8 @@
-set -ex
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+set -o xtrace
 
 package() {
     BIN_NAME_TAG=$CRATE_NAME-$TRAVIS_TAG-$TARGET
@@ -16,7 +20,7 @@ release_tag() {
     git config --global user.email "travis@travis-ci.org"
     git config --global user.name "Travis CI"
 
-    git add --force bin/$BIN_NAME
+    git add --force bin/$BIN_NAME{,.sha256}
     SHA=$(git rev-parse --short HEAD)
     git commit --message "Add binary. $SHA. $TRAVIS_TAG-$TARGET."
     tagname="binary-$TRAVIS_TAG-$TARGET"
@@ -25,6 +29,11 @@ release_tag() {
 
     git reset --hard HEAD^
 }
+
+if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+    brew update && brew install coreutils && \
+        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+fi
 
 TARGETS=(${TARGETS//:/ })
 for TARGET in "${TARGETS[@]}"; do

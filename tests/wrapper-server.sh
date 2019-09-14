@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Tee server stdio into log file.
 
 if test -z "$TMP"; then
