@@ -31,8 +31,7 @@ release_tag() {
 }
 
 if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    brew update && brew install coreutils && \
-        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+    export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 fi
 
 TARGETS=(${TARGETS//:/ })
