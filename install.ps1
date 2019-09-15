@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 
-$version = '0.1.150'
+$version = '0.1.151'
 $name = 'languageclient'
 $url = "https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/$name-$version-"
 
