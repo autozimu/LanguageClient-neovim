@@ -6,7 +6,7 @@
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
 
-version=0.1.153
+version=v0.1.153
 name=languageclient
 
 try_curl() {
