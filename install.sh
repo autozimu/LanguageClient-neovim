@@ -6,7 +6,7 @@
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
 
-version=0.1.153
+version=0.1.154
 name=languageclient
 
 try_curl() {
@@ -41,7 +41,7 @@ try_build() {
 
 bin=bin/languageclient
 if [ -f "$bin" ]; then
-    installed_version=0.1.153
+    installed_version=0.1.154
     case "${installed_version}" in
         *${version}*) echo "Version is equal to ${version}, skip install." ; exit 0 ;;
         *) rm -f "$bin" ;;
