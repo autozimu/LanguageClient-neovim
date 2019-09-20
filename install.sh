@@ -41,7 +41,7 @@ try_build() {
 
 bin=bin/languageclient
 if [ -f "$bin" ]; then
-    installed_version=0.1.154
+    installed_version=$($bin -V)
     case "${installed_version}" in
         *${version}*) echo "Version is equal to ${version}, skip install." ; exit 0 ;;
         *) rm -f "$bin" ;;
