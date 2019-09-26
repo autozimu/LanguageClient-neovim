@@ -2747,6 +2747,7 @@ impl LanguageClient {
 
         let mut explanation = diag.message;
         if let Some(related_information) = diag.related_information {
+            explanation = format!("{}\n", explanation);
             for ri in related_information {
                 let prefix = format!("{}/", rootUri);
                 let uri = if ri.location.uri.as_str().starts_with(prefix.as_str()) {
