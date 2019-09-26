@@ -2471,8 +2471,8 @@ impl LanguageClient {
             let namespace_id = self.get_or_create_namespace()?;
             let mut virtual_texts = vec![];
 
-            // leave `virtual_texts` empty if hideVirtualTextsOnInsert unless
-            // hideVirtualTextsOnInsert is set to `false` or we are not in insert mode
+            // leave `virtual_texts` empty unless hideVirtualTextsOnInsert is set to `false` or we
+            // are not in insert mode
             if !self.get(|state| state.hideVirtualTextsOnInsert)?
                 || self.vim()?.get_mode()? != Mode::Insert
             {
