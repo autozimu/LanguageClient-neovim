@@ -2740,7 +2740,37 @@ impl LanguageClient {
                     )
                 })
         })??;
-        self.preview(diag.message.as_str())?;
+
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+        let root = self.get(|state| state.roots.get(&languageId).cloned().unwrap_or_default())?;
+        let rootUri = root.to_url()?;
+
+        let mut explanation = diag.message;
+        if let Some(related_information) = diag.related_information {
+            for ri in related_information {
+                let prefix = format!("{}/", rootUri);
+                let uri = if ri.location.uri.as_str().starts_with(prefix.as_str()) {
+                    // Heuristic: if start of stringified URI matches rootUri, abbreviate it away
+                    &ri.location.uri.as_str()[rootUri.as_str().len() + 1..]
+                } else {
+                    ri.location.uri.as_str()
+                };
+                if ri.location.uri.scheme() == "file" {
+                    explanation = format!(
+                        "{}\n{}:{}: {}",
+                        explanation,
+                        uri,
+                        &ri.location.range.start.line + 1,
+                        &ri.message
+                    );
+                } else {
+                    // Heuristic: if scheme is not file, don't show line numbers
+                    explanation = format!("{}\n{}: {}", explanation, uri, &ri.message);
+                }
+            }
+        }
+
+        self.preview(explanation.as_str())?;
 
         info!("End {}", REQUEST__ExplainErrorAtPoint);
         Ok(Value::Null)
