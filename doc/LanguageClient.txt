@@ -374,6 +374,13 @@ Maximum severity to show diagnostic messages.
 Default: "Hint"
 Valid options: "Error" | "Warning" | "Information" | "Hint"
 
+2.29 g:LanguageClient_hideVirtualTextsOnInsert *g:LanguageClient_hideVirtualTextsOnInsert*
+
+Hides all virtual texts for the current buffer while editing in insert mode.
+
+Default: 1
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

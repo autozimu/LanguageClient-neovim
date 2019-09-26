@@ -139,6 +139,7 @@ pub struct State {
     pub viewports: HashMap<String, Viewport>,
 
     // User settings.
+    pub hideVirtualTextsOnInsert: bool,
     pub serverCommands: HashMap<String, Vec<String>>,
     pub autoStart: bool,
     pub selectionUI: SelectionUI,
@@ -215,6 +216,7 @@ impl State {
             stashed_codeAction_actions: vec![],
             viewports: HashMap::new(),
 
+            hideVirtualTextsOnInsert: true,
             serverCommands: HashMap::new(),
             autoStart: true,
             selectionUI: SelectionUI::LocationList,

@@ -10,7 +10,7 @@ use failure::err_msg;
 use itertools::Itertools;
 use notify::Watcher;
 use std::sync::mpsc;
-use vim::try_get;
+use vim::{try_get, Mode};
 
 impl LanguageClient {
     pub fn get_client(&self, lang_id: &LanguageId) -> Fallible<RpcClient> {
@@ -201,6 +201,12 @@ impl LanguageClient {
             ),
         };
 
+        let hideVirtualTextsOnInsert: u8 = self
+            .vim()?
+            .eval("get(g:, 'LanguageClient_hideVirtualTextsOnInsert', 1)")
+            .unwrap_or(1);
+        let hideVirtualTextsOnInsert = hideVirtualTextsOnInsert == 1;
+
         self.update(|state| {
             state.autoStart = autoStart;
             state.serverCommands.extend(serverCommands);
@@ -232,6 +238,7 @@ impl LanguageClient {
             state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
             state.is_nvim = is_nvim;
+            state.hideVirtualTextsOnInsert = hideVirtualTextsOnInsert;
             Ok(())
         })?;
 
@@ -1793,6 +1800,24 @@ impl LanguageClient {
             },
         )?;
 
+        // hide virtual texts while editing in insert mode
+        if self.get(|state| state.hideVirtualTextsOnInsert)?
+            && self.get(|state| state.use_virtual_text)?
+            && self.vim()?.get_mode()? == Mode::Insert
+        {
+            let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+            let viewport = self.vim()?.get_viewport(params)?;
+            let namespace_id = self.get_or_create_namespace()?;
+
+            self.vim()?.set_virtual_texts(
+                bufnr,
+                namespace_id,
+                viewport.start,
+                viewport.end,
+                &Vec::new(),
+            )?;
+        }
+
         info!("End {}", lsp::notification::DidChangeTextDocument::METHOD);
         Ok(())
     }
@@ -2444,29 +2469,37 @@ impl LanguageClient {
 
         if self.get(|state| state.use_virtual_text)? {
             let namespace_id = self.get_or_create_namespace()?;
-
             let mut virtual_texts = vec![];
-            self.update(|state| {
-                if let Some(diag_list) = state.diagnostics.get(&filename) {
-                    for diag in diag_list {
-                        if viewport.overlaps(diag.range) {
-                            virtual_texts.push(VirtualText {
-                                line: diag.range.start.line,
-                                text: diag.message.replace("\n", "  ").clone(),
-                                hl_group: state
-                                    .diagnosticsDisplay
-                                    .get(
-                                        &(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64),
-                                    )
-                                    .ok_or_else(|| err_msg("Failed to get display"))?
-                                    .virtualTexthl
-                                    .clone(),
-                            });
+
+            // leave `virtual_texts` empty if hideVirtualTextsOnInsert unless
+            // hideVirtualTextsOnInsert is set to `false` or we are not in insert mode
+            if !self.get(|state| state.hideVirtualTextsOnInsert)?
+                || self.vim()?.get_mode()? != Mode::Insert
+            {
+                self.update(|state| {
+                    if let Some(diag_list) = state.diagnostics.get(&filename) {
+                        for diag in diag_list {
+                            if viewport.overlaps(diag.range) {
+                                virtual_texts.push(VirtualText {
+                                    line: diag.range.start.line,
+                                    text: diag.message.replace("\n", "  ").clone(),
+                                    hl_group: state
+                                        .diagnosticsDisplay
+                                        .get(
+                                            &(diag.severity.unwrap_or(DiagnosticSeverity::Hint)
+                                                as u64),
+                                        )
+                                        .ok_or_else(|| err_msg("Failed to get display"))?
+                                        .virtualTexthl
+                                        .clone(),
+                                });
+                            }
                         }
                     }
-                }
-                Ok(())
-            })?;
+                    Ok(())
+                })?;
+            }
+
             self.vim()?.set_virtual_texts(
                 bufnr,
                 namespace_id,
