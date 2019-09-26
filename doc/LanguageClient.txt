@@ -400,7 +400,7 @@ the root of a project is detected using g:LanguageClient_rootMarkers.
 Default: 1 to display the messages
 Valid options: 1 | 0
 
-2.30 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
+2.32 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
 
 String to list/map map. Defines the mapping of semantic highlighting "scopes" to
 highlight groups. This depends on the LSP server supporting the proposed
@@ -501,9 +501,13 @@ Example configuration for eclipse.jdt.ls:
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
 
 
-2.31 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
+2.33 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
 
 Indicates whether completionItem additional text edits should be applied.
+
+2.34 g:LanguageClient_hideVirtualTextsOnInsert *g:LanguageClient_hideVirtualTextsOnInsert*
+
+Hides all virtual texts for the current buffer while editing in insert mode.
 
 Default: 1
 Valid options: 1 | 0

@@ -155,6 +155,7 @@ pub struct State {
     pub stashed_codeAction_actions: Vec<CodeAction>,
 
     // User settings.
+    pub hideVirtualTextsOnInsert: bool,
     pub serverCommands: HashMap<String, Vec<String>>,
     // languageId => (scope_regex => highlight group)
     pub semanticHighlightMaps: HashMap<String, HashMap<String, String>>,
@@ -238,6 +239,7 @@ impl State {
             last_line_diagnostic: " ".into(),
             stashed_codeAction_actions: vec![],
 
+            hideVirtualTextsOnInsert: true,
             serverCommands: HashMap::new(),
             semanticHighlightMaps: HashMap::new(),
             semanticScopeSeparator: ":".into(),
