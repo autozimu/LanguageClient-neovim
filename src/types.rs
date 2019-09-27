@@ -527,7 +527,7 @@ pub struct VimCompleteItemUserData {
 
 impl VimCompleteItem {
     pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Fallible<Self> {
-        info!(
+        debug!(
             "LSP CompletionItem to VimCompleteItem: {:?}, {:?}",
             lspitem, complete_position
         );

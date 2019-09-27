@@ -9,7 +9,7 @@ edition = "2018"
 [package.metadata.release]
 no-dev-version = true
 pre-release-replacements = [
-    { file = "install.sh", search = "version=.*", replace = "version={{version}}" },
+    { file = "install.sh", search = "^version=.*", replace = "version={{version}}" },
     { file = "install.ps1", search = "version = '.*'", replace = "version = '{{version}}'" }
 ]
 pre-release-hook = ["cargo", "build"]
