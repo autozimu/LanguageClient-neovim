@@ -1,4 +1,5 @@
 use super::*;
+use super::types::OptionDeref;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use crate::viewport::Viewport;
@@ -148,7 +149,7 @@ impl Vim {
 
     pub fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref().to_string_lossy();
-        let goto = goto_cmd.as_deref().unwrap_or("edit");
+        let goto = OptionDeref::as_deref(goto_cmd).unwrap_or("edit");
         self.rpcclient.notify("s:Edit", json!([goto, path]))?;
         Ok(())
     }
