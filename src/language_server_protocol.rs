@@ -841,10 +841,12 @@ impl LanguageClient {
                     for edit in edits {
                         let edit: WorkspaceEditWithCursor = serde_json::from_value(edit.clone())?;
                         self.apply_WorkspaceEdit(&edit.workspaceEdit)?;
-                        self.vim()?.cursor(
-                            edit.cursorPosition.position.line + 1,
-                            edit.cursorPosition.position.character + 1,
-                        )?;
+                        if let Some(cursorPosition) = edit.cursorPosition {
+                            self.vim()?.cursor(
+                                cursorPosition.position.line + 1,
+                                cursorPosition.position.character + 1,
+                            )?;
+                        }
                     }
                 }
             }

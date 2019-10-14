@@ -1037,5 +1037,5 @@ pub struct VirtualText {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceEditWithCursor {
     pub workspaceEdit: WorkspaceEdit,
-    pub cursorPosition: TextDocumentPositionParams,
+    pub cursorPosition: Option<TextDocumentPositionParams>,
 }
