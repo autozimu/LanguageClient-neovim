@@ -43,6 +43,17 @@ Plug 'autozimu/LanguageClient-neovim', {
 Plug 'junegunn/fzf'
 ```
 
+Using [`dein`](https://github.com/Shougo/dein.vim):
+
+```vim
+  call dein#add('autozimu/LanguageClient-neovim', {                                                                                    
+  \ 'rev': 'next',
+  \ 'build': 'bash install.sh'
+  \ })
+  
+  call dein#add('junegunn/fzf') " (Optional) Multi-entry selection UI.
+```
+
 Example configuration
 
 ```vim
