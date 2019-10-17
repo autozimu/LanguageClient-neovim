@@ -534,10 +534,18 @@ impl VimCompleteItem {
         let abbr = lspitem.label.clone();
 
         let word = lspitem.insert_text.clone().unwrap_or_else(|| {
+            if lspitem.insert_text_format == Some(InsertTextFormat::Snippet)
+                || lspitem
+                    .text_edit
+                    .as_ref()
+                    .map(|text_edit| text_edit.new_text.is_empty())
+                    .unwrap_or(true)
+            {
+                return lspitem.label.clone();
+            }
+
             match (lspitem.text_edit.clone(), complete_position) {
-                (Some(ref text_edit), Some(complete_position))
-                    if !text_edit.new_text.is_empty() =>
-                {
+                (Some(ref text_edit), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
                     if text_edit.range.start.character != complete_position {
@@ -550,9 +558,7 @@ impl VimCompleteItem {
                         text_edit.new_text.clone()
                     }
                 }
-                (Some(ref text_edit), _) if !text_edit.new_text.is_empty() => {
-                    text_edit.new_text.clone()
-                }
+                (Some(ref text_edit), _) => text_edit.new_text.clone(),
                 (_, _) => lspitem.label.clone(),
             }
         });
