@@ -68,6 +68,18 @@ Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
 this plugin. Install corresponding language servers. Restart neovim/vim and
 language services will be available right away. Happy hacking!
 
+**Format on save:**
+
+A common use case is running your language server's autoformatter on save. 
+Here's an example configuration for Rust files:
+
+```
+autocmd BufWritePre *.rs call LanguageClient#textDocument_formatting_sync()
+```
+
+Make sure you use `LanguageClient#textDocument_formatting_sync()` and not 
+`LanguageClient_textDocument_formatting()`, since the latter operates asynchronously.
+
 # Install
 
 [INSTALL](INSTALL.md)
