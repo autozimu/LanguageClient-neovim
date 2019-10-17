@@ -1,5 +1,5 @@
-use super::*;
 use super::types::OptionDeref;
+use super::*;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use crate::viewport::Viewport;

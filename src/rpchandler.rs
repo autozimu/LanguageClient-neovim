@@ -1,5 +1,5 @@
-use super::*;
 use super::types::OptionDeref;
+use super::*;
 use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
 use crate::lsp::request::Request;
@@ -23,7 +23,8 @@ impl LanguageClient {
                     .output(method_call.id.to_int()?, result)?;
             }
             Call::Notification(lang_id, notification) => {
-                let result = self.handle_notification(OptionDeref::as_deref(&lang_id), &notification);
+                let result =
+                    self.handle_notification(OptionDeref::as_deref(&lang_id), &notification);
                 if let Err(ref err) = result {
                     if err.downcast_ref::<LCError>().is_none() {
                         error!(
