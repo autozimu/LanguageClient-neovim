@@ -1045,6 +1045,53 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
     }
 }
 
+impl FromLSP<Vec<lsp::SymbolInformation>> for Vec<QuickfixEntry> {
+    fn from_lsp(symbols: &Vec<lsp::SymbolInformation>) -> Fallible<Self> {
+        symbols.iter().map(QuickfixEntry::from_lsp).collect()
+    }
+}
+
+impl FromLSP<Vec<lsp::DocumentSymbol>> for Vec<QuickfixEntry> {
+    fn from_lsp(document_symbols: &Vec<lsp::DocumentSymbol>) -> Fallible<Self> {
+        let mut symbols = Vec::new();
+
+        fn walk_document_symbol(
+            buffer: &mut Vec<QuickfixEntry>,
+            parent: Option<&str>,
+            ds: &lsp::DocumentSymbol,
+        ) {
+            let start = ds.selection_range.start;
+
+            let name = if let Some(parent) = parent {
+                format!("{}::{}", parent, ds.name)
+            } else {
+                ds.name.clone()
+            };
+
+            buffer.push(QuickfixEntry {
+                filename: "".to_string(),
+                lnum: start.line + 1,
+                col: Some(start.character + 1),
+                text: Some(name),
+                nr: None,
+                typ: None,
+            });
+
+            if let Some(children) = &ds.children {
+                for child in children {
+                    walk_document_symbol(buffer, Some(&ds.name), child);
+                }
+            }
+        }
+
+        for ds in document_symbols {
+            walk_document_symbol(&mut symbols, None, ds);
+        }
+
+        Ok(symbols)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum RawMessage {
