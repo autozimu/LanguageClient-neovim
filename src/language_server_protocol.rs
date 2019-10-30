@@ -1938,6 +1938,12 @@ impl LanguageClient {
         );
 
         self.update(|state| {
+            match state.diagnosticsList {
+                DiagnosticsList::Location => {
+                    state.diagnostics.clear();
+                },
+                _ => {}
+            };
             state
                 .diagnostics
                 .insert(filename.clone(), diagnostics.clone());
