@@ -22,7 +22,9 @@ vint:
 
 release:
 	cargo build --release
-	cp -f target/release/languageclient bin/
+	[ -z "${CARGO_TARGET_DIR}" ] && \
+		cp -f target/release/languageclient bin/ || \
+		cp -f ${CARGO_TARGET_DIR}/release/languageclient bin/
 	chmod a+x bin/languageclient
 
 bump-version:
