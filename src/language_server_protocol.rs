@@ -1941,7 +1941,7 @@ impl LanguageClient {
             match state.diagnosticsList {
                 DiagnosticsList::Location => {
                     state.diagnostics.clear();
-                },
+                }
                 _ => {}
             };
             state
