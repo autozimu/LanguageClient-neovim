@@ -1299,7 +1299,7 @@ impl LanguageClient {
                         flat.iter().map(QuickfixEntry::from_lsp).collect()
                     }
                     Some(lsp::DocumentSymbolResponse::Nested(nested)) => {
-                        <(Vec<QuickfixEntry>)>::from_lsp(&nested)
+                        <Vec<QuickfixEntry>>::from_lsp(&nested)
                     }
                     _ => Ok(Vec::new()),
                 };
@@ -1318,7 +1318,7 @@ impl LanguageClient {
                         flat.iter().map(QuickfixEntry::from_lsp).collect()
                     }
                     Some(lsp::DocumentSymbolResponse::Nested(nested)) => {
-                        <(Vec<QuickfixEntry>)>::from_lsp(&nested)
+                        <Vec<QuickfixEntry>>::from_lsp(&nested)
                     }
                     _ => Ok(Vec::new()),
                 };
