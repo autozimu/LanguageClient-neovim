@@ -239,6 +239,24 @@ function! s:Edit(action, path) abort
     execute l:action . ' ' . fnameescape(a:path)
 endfunction
 
+function! s:UpdateTagStack(tagname) abort
+    if !exists('*gettagstack') || !exists('*settagstack')
+        return
+    endif
+
+    let l:tagstack = gettagstack()
+    if l:tagstack.curidx <= l:tagstack.length
+        call remove(l:tagstack.items, l:tagstack.curidx - 1, -1)
+        let l:tagstack.curidx = len(l:tagstack.items) + 1
+    endif
+
+    let l:from = [bufnr('%'), line('.'), col('.'), 0]
+    call add(l:tagstack.items, {'from': l:from, 'tagname': a:tagname})
+
+    let l:winid = win_getid()
+    call settagstack(winid, {'curidx': l:tagstack.curidx + 1, 'items': l:tagstack.items}, 'r')
+endfunction
+
 " Batch version of `matchdelete()`.
 function! s:MatchDelete(ids) abort
     for l:id in a:ids

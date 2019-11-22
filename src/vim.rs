@@ -171,6 +171,11 @@ impl Vim {
         Ok(())
     }
 
+    pub fn update_tagstack(&self, tagname: &str) -> Fallible<()> {
+        self.rpcclient.notify("s:UpdateTagStack", tagname)?;
+        Ok(())
+    }
+
     pub fn create_namespace(&self, name: &str) -> Fallible<i64> {
         self.rpcclient.call("nvim_create_namespace", [name])
     }
