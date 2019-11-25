@@ -115,14 +115,16 @@ impl LanguageClient {
 
         let (
             diagnosticsSignsMax,
+            diagnosticsSorting,
             diagnostics_max_severity,
             documentHighlightDisplay,
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-        ): (Option<u64>, String, Value, u8, u8, u8) = self.vim()?.eval(
+        ): (Option<u64>, u8, String, Value, u8, u8, u8) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
+                "!!get(g:, 'LanguageClient_diagnosticsSorting', 1)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
                 "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
@@ -161,6 +163,8 @@ impl LanguageClient {
             Duration::from_millis((wait_output_timeout.unwrap_or(10.0) * 1000.0) as u64);
 
         let diagnosticsEnable = diagnosticsEnable == 1;
+
+        let diagnosticsSorting = diagnosticsSorting == 1;
 
         let diagnosticsList = if let Some(s) = diagnosticsList {
             DiagnosticsList::from_str(&s)?
@@ -213,6 +217,7 @@ impl LanguageClient {
                 serde_json::to_value(&state.diagnosticsDisplay)?.combine(&diagnosticsDisplay),
             )?;
             state.diagnosticsSignsMax = diagnosticsSignsMax;
+            state.diagnosticsSorting = diagnosticsSorting;
             state.diagnostics_max_severity = diagnostics_max_severity;
             state.documentHighlightDisplay = serde_json::from_value(
                 serde_json::to_value(&state.documentHighlightDisplay)?
@@ -1923,19 +1928,23 @@ impl LanguageClient {
             })
             .map(Clone::clone)
             .collect::<Vec<_>>();
-        diagnostics.sort_by_key(
-            // First sort by line.
-            // Then severity descendingly. Error should come last since when processing item comes
-            // later will override its precedance.
-            // Then by character descendingly.
-            |diagnostic| {
-                (
-                    diagnostic.range.start.line,
-                    -(diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) as i8),
-                    -(diagnostic.range.start.line as i64),
-                )
-            },
-        );
+
+        let diagnosticsSorting = self.get(|state| state.diagnosticsSorting)?;
+        if diagnosticsSorting {
+            diagnostics.sort_by_key(
+                // First sort by line.
+                // Then severity descendingly. Error should come last since when processing item comes
+                // later will override its precedance.
+                // Then by character descendingly.
+                |diagnostic| {
+                    (
+                        diagnostic.range.start.line,
+                        -(diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) as i8),
+                        -(diagnostic.range.start.line as i64),
+                    )
+                },
+            );
+        }
 
         self.update(|state| {
             state
