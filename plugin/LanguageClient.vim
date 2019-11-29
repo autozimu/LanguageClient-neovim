@@ -156,6 +156,7 @@ endfunction
 
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop call LanguageClient#shutdown()
+command! LanguageClientInstallBinaries :call LanguageClient#installBinaries()
 
 function! s:OnBufEnter()
   if !LanguageClient#HasCommand(&filetype)

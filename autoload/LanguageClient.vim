@@ -794,11 +794,21 @@ function! LanguageClient#binaryPath() abort
     return l:path . l:filename
 endfunction
 
+function! LanguageClient#installBinaries()
+    let l:installsh = 'cd ' . s:root . ' && ./install.sh'
+    let l:output = split(system(l:installsh), '\n')
+    for l:line in l:output
+        echomsg l:line
+    endfor
+    echomsg "Success."
+endfunction
+
 function! s:Launch() abort
     let l:binpath = LanguageClient#binaryPath()
 
     if executable(l:binpath) != 1
-        call s:Echoerr('LanguageClient: binary (' . l:binpath . ') doesn''t exists! Please check installation guide.')
+        call s:Echoerr('LanguageClient: binary (' . l:binpath . ') doesn''t exists!')
+        call s:Echoerr('Run :LanguageClientInstallBinaries or check installation guide.')
         return 0
     endif
 
