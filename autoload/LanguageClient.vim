@@ -794,13 +794,13 @@ function! LanguageClient#binaryPath() abort
     return l:path . l:filename
 endfunction
 
-function! LanguageClient#installBinaries()
+function! LanguageClient#installBinaries() abort
     let l:installsh = 'cd ' . s:root . ' && ./install.sh'
     let l:output = split(system(l:installsh), '\n')
     for l:line in l:output
         echomsg l:line
     endfor
-    echomsg "Success."
+    echomsg 'Success.'
 endfunction
 
 function! s:Launch() abort
