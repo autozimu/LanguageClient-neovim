@@ -1923,19 +1923,6 @@ impl LanguageClient {
             })
             .map(Clone::clone)
             .collect::<Vec<_>>();
-        diagnostics.sort_by_key(
-            // First sort by line.
-            // Then severity descendingly. Error should come last since when processing item comes
-            // later will override its precedance.
-            // Then by character descendingly.
-            |diagnostic| {
-                (
-                    diagnostic.range.start.line,
-                    -(diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) as i8),
-                    -(diagnostic.range.start.line as i64),
-                )
-            },
-        );
 
         self.update(|state| {
             state
@@ -1949,6 +1936,20 @@ impl LanguageClient {
         if filename != current_filename.canonicalize() {
             return Ok(());
         }
+
+        // Sort diagnostics as pre-process for display.
+        // First sort by line.
+        // Then severity descending. Error should come last since when processing item comes
+        // later will override its precedence.
+        // Then by character descending.
+        diagnostics.sort_by_key(|diagnostic| {
+            (
+                diagnostic.range.start.line,
+                -(diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) as i8),
+                -(diagnostic.range.start.line as i64),
+            )
+        });
+
         self.process_diagnostics(&current_filename, &diagnostics)?;
         self.update(|state| {
             state.viewports.remove(&filename);
