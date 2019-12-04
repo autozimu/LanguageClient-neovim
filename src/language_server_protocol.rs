@@ -496,6 +496,11 @@ impl LanguageClient {
         Ok(())
     }
 
+    fn update_tagstack(&self, tagname: &str) -> Fallible<()> {
+        self.vim()?.update_tagstack(tagname)?;
+        Ok(())
+    }
+
     fn process_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Fallible<()> {
         if !self.get(|state| state.text_documents.contains_key(filename))? {
             return Ok(());
@@ -1135,6 +1140,7 @@ impl LanguageClient {
             1 => {
                 let loc = locations.get(0).ok_or_else(|| err_msg("Not found!"))?;
                 let path = loc.uri.filepath()?.to_string_lossy().into_owned();
+                self.update_tagstack(&current_word)?;
                 self.edit(&goto_cmd, path)?;
                 self.vim()?
                     .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
