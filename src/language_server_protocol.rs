@@ -319,7 +319,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, &Value::Null)?;
         let position = self.vim()?.get_position(&Value::Null)?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::DocumentHighlightRequest::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
@@ -999,7 +999,6 @@ impl LanguageClient {
                         }),
                         publish_diagnostics: Some(PublishDiagnosticsCapability {
                             related_information: Some(true),
-                            ..PublishDiagnosticsCapability::default()
                         }),
                         ..TextDocumentClientCapabilities::default()
                     }),
@@ -1044,7 +1043,7 @@ impl LanguageClient {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
-        self.get_client(&Some(languageId.clone()))?
+        self.get_client(&Some(languageId))?
             .notify(lsp::notification::Initialized::METHOD, InitializedParams {})?;
         info!("End {}", lsp::notification::Initialized::METHOD);
         Ok(())
@@ -1057,7 +1056,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::HoverRequest::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
@@ -1110,9 +1109,7 @@ impl LanguageClient {
         })?
         .combine(params);
 
-        let result = self
-            .get_client(&Some(languageId.clone()))?
-            .call(&method, &params)?;
+        let result = self.get_client(&Some(languageId))?.call(&method, &params)?;
 
         if !self.vim()?.get_handle(&params)? {
             return Ok(result);
@@ -1176,7 +1173,7 @@ impl LanguageClient {
             return Ok(Value::Null);
         }
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::Rename::METHOD,
             RenameParams {
                 text_document_position: TextDocumentPositionParams {
@@ -1210,7 +1207,7 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::DocumentSymbolRequest::METHOD,
             DocumentSymbolParams {
                 text_document: TextDocumentIdentifier {
@@ -1358,7 +1355,7 @@ impl LanguageClient {
                 .collect()
         })?;
 
-        let result: Value = self.get_client(&Some(languageId.clone()))?.call(
+        let result: Value = self.get_client(&Some(languageId))?.call(
             lsp::request::CodeActionRequest::METHOD,
             CodeActionParams {
                 text_document: TextDocumentIdentifier {
@@ -1428,7 +1425,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::Completion::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
@@ -1453,7 +1450,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::SignatureHelpRequest::METHOD,
             TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier {
@@ -1537,7 +1534,7 @@ impl LanguageClient {
 
         let tab_size = self.vim()?.get_tab_size()?;
         let insert_spaces = self.vim()?.get_insert_spaces(&filename)?;
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::Formatting::METHOD,
             DocumentFormattingParams {
                 text_document: TextDocumentIdentifier {
@@ -1578,7 +1575,7 @@ impl LanguageClient {
 
         let tab_size = self.vim()?.get_tab_size()?;
         let insert_spaces = self.vim()?.get_insert_spaces(&filename)?;
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::RangeFormatting::METHOD,
             DocumentRangeFormattingParams {
                 text_document: TextDocumentIdentifier {
@@ -1626,7 +1623,7 @@ impl LanguageClient {
             .ok_or_else(|| err_msg("completionItem not found in request!"))?;
 
         let result = self
-            .get_client(&Some(languageId.clone()))?
+            .get_client(&Some(languageId))?
             .call(lsp::request::ResolveCompletionItem::METHOD, completion_item)?;
 
         if !self.vim()?.get_handle(params)? {
@@ -1649,7 +1646,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
         let query = try_get("query", params)?.unwrap_or_default();
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::WorkspaceSymbol::METHOD,
             WorkspaceSymbolParams { query },
         )?;
@@ -1724,7 +1721,7 @@ impl LanguageClient {
         let arguments: Vec<Value> = try_get("arguments", params)?
             .ok_or_else(|| err_msg("argument not found in request!"))?;
 
-        let result = self.get_client(&Some(languageId.clone()))?.call(
+        let result = self.get_client(&Some(languageId))?.call(
             lsp::request::ExecuteCommand::METHOD,
             ExecuteCommandParams { command, arguments },
         )?;
@@ -1754,7 +1751,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let settings: Value = try_get("settings", params)?.unwrap_or_default();
 
-        self.get_client(&Some(languageId.clone()))?.notify(
+        self.get_client(&Some(languageId))?.notify(
             lsp::notification::DidChangeConfiguration::METHOD,
             DidChangeConfigurationParams { settings },
         )?;
@@ -1842,7 +1839,7 @@ impl LanguageClient {
             Ok(version)
         })?;
 
-        self.get_client(&Some(languageId.clone()))?.notify(
+        self.get_client(&Some(languageId))?.notify(
             lsp::notification::DidChangeTextDocument::METHOD,
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
@@ -1871,10 +1868,10 @@ impl LanguageClient {
 
         let uri = filename.to_url()?;
 
-        self.get_client(&Some(languageId.clone()))?.notify(
+        self.get_client(&Some(languageId))?.notify(
             lsp::notification::DidSaveTextDocument::METHOD,
             DidSaveTextDocumentParams {
-                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                text_document: TextDocumentIdentifier { uri },
             },
         )?;
 
@@ -1887,7 +1884,7 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
-        self.get_client(&Some(languageId.clone()))?.notify(
+        self.get_client(&Some(languageId))?.notify(
             lsp::notification::DidCloseTextDocument::METHOD,
             DidCloseTextDocumentParams {
                 text_document: TextDocumentIdentifier {
@@ -2571,7 +2568,7 @@ impl LanguageClient {
                 // already inserted.
                 //
                 // Check that we're not doing anything stupid before going ahead with this.
-                let mut edit = edit.clone();
+                let mut edit = edit;
                 edit.range.end.character =
                     edit.range.start.character + completed_item.word.len() as u64;
                 if edit.range.end != position || edit.range.start.line != edit.range.end.line {
@@ -2581,7 +2578,7 @@ impl LanguageClient {
             };
         }
         if let Some(aedits) = lspitem.additional_text_edits {
-            edits.extend(aedits.clone());
+            edits.extend(aedits);
         };
 
         if edits.is_empty() {
@@ -3156,7 +3153,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
         let params: DidChangeWatchedFilesParams = params.clone().to_lsp()?;
-        self.get_client(&Some(languageId.clone()))?
+        self.get_client(&Some(languageId))?
             .notify(lsp::notification::DidChangeWatchedFiles::METHOD, params)?;
 
         info!("End {}", lsp::notification::DidChangeWatchedFiles::METHOD);
@@ -3169,7 +3166,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
         let content: String = self
-            .get_client(&Some(languageId.clone()))?
+            .get_client(&Some(languageId))?
             .call(REQUEST__ClassFileContents, params)?;
 
         let lines: Vec<String> = content

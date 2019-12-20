@@ -23,14 +23,13 @@ impl LanguageClient {
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
     pub fn get_client_update_mutex(&self, languageId: LanguageId) -> Fallible<Arc<Mutex<()>>> {
         let map_guard = self.clients_mutex.lock();
-        if map_guard.is_err() {
-            return Err(format_err!(
+        let mut map = map_guard.or_else(|err| {
+            Err(format_err!(
                 "Failed to lock client creation for languageId {:?}: {:?}",
                 languageId,
-                map_guard.unwrap_err()
-            ));
-        }
-        let mut map = map_guard.unwrap();
+                err,
+            ))
+        })?;
         if !map.contains_key(&languageId) {
             map.insert(languageId.clone(), Arc::new(Mutex::new(())));
         }

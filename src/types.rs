@@ -861,11 +861,11 @@ pub trait VimExp {
 
 impl<'a> VimExp for &'a str {
     fn to_key(&self) -> String {
-        self.to_string()
+        (*self).to_string()
     }
 
     fn to_exp(&self) -> String {
-        self.to_string()
+        (*self).to_string()
     }
 }
 
