@@ -1,6 +1,6 @@
 use super::*;
 use crate::types::{Call, RawMessage};
-use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 
 #[derive(Clone, Serialize)]
 pub struct RpcClient {
