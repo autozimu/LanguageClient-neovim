@@ -16,7 +16,7 @@ impl Viewport {
     }
 
     fn contains(&self, line: u64) -> bool {
-        line >= self.start && line < self.end
+        line >= self.start && line <= self.end
     }
 
     pub fn overlaps(&self, range: Range) -> bool {
