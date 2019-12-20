@@ -138,7 +138,7 @@ impl LanguageClient {
         let user_handler =
             self.get(|state| state.user_handlers.get(&notification.method).cloned())?;
         if let Some(user_handler) = user_handler {
-            return self.vim()?.rpcclient.notify(&user_handler, params.clone());
+            return self.vim()?.rpcclient.notify(&user_handler, params);
         }
 
         match notification.method.as_str() {
