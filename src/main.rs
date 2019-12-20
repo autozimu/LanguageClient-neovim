@@ -60,7 +60,7 @@ fn main() -> Fallible<()> {
     let args = Arguments::clap().version(version.as_str());
     let _ = args.get_matches();
 
-    let (tx, rx) = crossbeam_channel::unbounded();
+    let (tx, rx) = crossbeam::channel::unbounded();
     let language_client = language_client::LanguageClient {
         state_mutex: Arc::new(Mutex::new(State::new(tx)?)),
         clients_mutex: Arc::new(Mutex::new(HashMap::new())),

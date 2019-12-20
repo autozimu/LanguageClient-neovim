@@ -23,7 +23,7 @@ impl LanguageClient {
             })
     }
 
-    pub fn loop_call(&self, rx: &crossbeam_channel::Receiver<Call>) -> Fallible<()> {
+    pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
         for call in rx.iter() {
             let language_client = LanguageClient {
                 state_mutex: self.state_mutex.clone(),

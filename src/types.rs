@@ -99,7 +99,7 @@ pub struct HighlightSource {
 pub struct State {
     // Program state.
     #[serde(skip_serializing)]
-    pub tx: crossbeam_channel::Sender<Call>,
+    pub tx: crossbeam::channel::Sender<Call>,
 
     #[serde(skip_serializing)]
     pub clients: HashMap<LanguageId, RpcClient>,
@@ -170,7 +170,7 @@ pub struct State {
 
 impl State {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(tx: crossbeam_channel::Sender<Call>) -> Fallible<Self> {
+    pub fn new(tx: crossbeam::channel::Sender<Call>) -> Fallible<Self> {
         let logger = logger::init()?;
 
         let client = RpcClient::new(
