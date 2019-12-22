@@ -1948,10 +1948,6 @@ impl LanguageClient {
         });
 
         self.process_diagnostics(&current_filename, &diagnostics)?;
-        self.update(|state| {
-            state.viewports.remove(&filename);
-            Ok(())
-        })?;
         self.languageClient_handleCursorMoved(&Value::Null)?;
         self.vim()?
             .rpcclient
