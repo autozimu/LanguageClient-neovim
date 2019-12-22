@@ -1631,7 +1631,7 @@ impl LanguageClient {
         }
 
         // TODO: proper integration.
-        let msg = format!("comletionItem/resolve result not handled: {:?}", result);
+        let msg = format!("completionItem/resolve result not handled: {:?}", result);
         warn!("{}", msg);
         self.vim()?.echowarn(&msg)?;
 

@@ -2,7 +2,7 @@ use lsp_types::*;
 
 /// Visible lines of editor.
 ///
-/// Inclusive at start, exclusive at end. Both start aned end are 0-based.
+/// Inclusive at start, exclusive at end. Both start and end are 0-based.
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Copy, Clone)]
 pub struct Viewport {
     pub start: u64,
