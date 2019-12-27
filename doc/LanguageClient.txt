@@ -352,9 +352,21 @@ Valid Options: 1 | 0
 When the value is set to 1, |LanguageClient#textDocument_hover()| opens
 documentation in a floating window instead of preview.
 This variable is effective only when the floating window feature is
-supported.
+supported. Check by running >
+    :echomsg exists('nvim_open_win')
 
 Default: 1 when a floating window is supported, otherwise 0
+Valid Options: 1 | 0
+
+2.26 g:LanguageClient_usePopupHover           *g:LanguageClient_usePopupHover*
+
+When the value is set to 1, |LanguageClient#textDocument_hover()| opens
+documentation in a popup window instead of preview.
+This variable is effective only when the popup window feature is
+supported, which is supported only in vim 8.2+. Check by running >
+    :echomsg has('popupwin')
+
+Default: 1 when a popup window is supported, otherwise 0
 Valid Options: 1 | 0
 
 2.27 g:LanguageClient_virtualTextPrefix     *g:LanguageClient_virtualTextPrefix*
