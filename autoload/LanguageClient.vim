@@ -120,7 +120,7 @@ endfunction
 function! s:useVirtualText() abort
     let l:use = s:GetVar('LanguageClient_useVirtualText')
     if l:use isnot v:null
-        return !!l:use
+        return l:use
     endif
 
     return exists('*nvim_buf_set_virtual_text')
@@ -833,11 +833,23 @@ function! LanguageClient#workspace_symbol(...) abort
     return LanguageClient#Call('workspace/symbol', l:params, l:Callback)
 endfunction
 
-function! LanguageClient#textDocument_codeAction(...) abort
+function! LanguageClient#textDocument_codeLens(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'handle': s:IsFalse(l:Callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/codeLens', l:params, l:Callback)
+endfunction
+
+function! LanguageClient#textDocument_codeAction(...) abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:Callback),
@@ -1299,6 +1311,17 @@ function! LanguageClient#java_classFileContents(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
     return LanguageClient#Call('java/classFileContents', l:params, l:Callback)
+endfunction
+
+function! LanguageClient#codeLensAction(...) abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('LanguageClient_CodeLensAction', l:params, l:Callback)
 endfunction
 
 function! LanguageClient_contextMenuItems() abort

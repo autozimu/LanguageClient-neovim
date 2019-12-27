@@ -344,8 +344,8 @@ Default: >
 
 Specify whether to use virtual text to display diagnostics.
 
-Default: 1 whenever virtual text is supported.
-Valid Options: 1 | 0
+Default: "CodeLens" whenever virtual text is supported.
+Valid Options: "All" | "No" | "CodeLens" | "Diagnostics"
 
 2.26 g:LanguageClient_useFloatingHover *g:LanguageClient_useFloatingHover*
 
@@ -488,6 +488,19 @@ Example bindings combining with tpope/vim-abolish:
     noremap <leader>ru :call LanguageClient#textDocument_rename(
                 \ {'newName': Abolish.uppercase(expand('<cword>'))})<CR>
 <
+
+*LanguageClient#textDocument_codeLens()*
+*LanguageClient_textDocument_codeLens()*
+Signature: LanguageClient#textDocument_codeLens(...)
+
+Computes and displays the codeLens for the currently open file.
+
+*LanguageClient#textDocument_codeLensAction()*
+*LanguageClient_textDocument_codeLensAction()*
+Signature: LanguageClient#textDocument_codeLensAction(...)
+
+Runs the action associated with the codeLens at the current line. If does
+nothing if the codeLens is not actionable.
 
 *LanguageClient#textDocument_documentSymbol()*
 *LanguageClient_textDocument_documentSymbol()*
