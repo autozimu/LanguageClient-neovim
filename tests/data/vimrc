@@ -18,6 +18,7 @@ autocmd BufRead *.rs setlocal filetype=rust
 
 let g:LanguageClient_devel = 1
 let g:LanguageClient_loggingLevel = 'INFO'
+let g:LanguageClient_useVirtualText = 'CodeLens'
 let g:LanguageClient_loggingFile = expand('~/.local/share/nvim/LanguageClient.log')
 let g:LanguageClient_serverStderr = expand('~/.local/share/nvim/LanguageServer.log')
 let g:LanguageClient_serverCommands = {

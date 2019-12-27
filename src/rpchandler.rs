@@ -78,6 +78,7 @@ impl LanguageClient {
             lsp::request::References::METHOD => self.textDocument_references(&params),
             lsp::request::Formatting::METHOD => self.textDocument_formatting(&params),
             lsp::request::RangeFormatting::METHOD => self.textDocument_rangeFormatting(&params),
+            lsp::request::CodeLensRequest::METHOD => self.textDocument_codeLens(&params),
             lsp::request::ResolveCompletionItem::METHOD => self.completionItem_resolve(&params),
             lsp::request::ExecuteCommand::METHOD => self.workspace_executeCommand(&params),
             lsp::request::ApplyWorkspaceEdit::METHOD => self.workspace_applyEdit(&params),
@@ -98,6 +99,7 @@ impl LanguageClient {
             REQUEST__OmniComplete => self.languageClient_omniComplete(&params),
             REQUEST__ClassFileContents => self.java_classFileContents(&params),
             REQUEST__DebugInfo => self.debug_info(&params),
+            REQUEST__CodeLensAction => self.languageClient_handleCodeLensAction(&params),
 
             _ => {
                 let languageId_target = if languageId.is_some() {
