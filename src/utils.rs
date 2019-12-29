@@ -214,7 +214,7 @@ fn test_apply_TextEdit_overlong_end() {
                 character: 0,
             },
             end: Position {
-                line: 99999999,
+                line: 99_999_999,
                 character: 0,
             },
         },
