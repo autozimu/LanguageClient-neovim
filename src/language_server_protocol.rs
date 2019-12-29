@@ -2582,8 +2582,13 @@ impl LanguageClient {
         }
 
         self.apply_TextEdits(filename, &edits)?;
+        let updated_position = calc_cursorpos_after_TextEdits(position, &edits);
+        debug!(
+            "Update cursorpos after completion text edits: {:?} -> {:?}",
+            &position, updated_position
+        );
         self.vim()?
-            .cursor(position.line + 1, position.character + 1)
+            .cursor(updated_position.line + 1, updated_position.character + 1)
     }
 
     pub fn languageClient_FZFSinkLocation(&self, params: &Value) -> Fallible<()> {

@@ -130,6 +130,50 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     }
 }
 
+fn newlines_in_range(range: Range) -> u64 {
+    range.end.line - range.start.line
+}
+
+fn newlines_in_str(str: &str) -> u64 {
+    str.matches('\n').count().max(str.matches('\r').count()) as u64
+}
+
+fn character_difference_in_last_edit_line(e: &TextEdit) -> u64 {
+    (e.new_text.lines().last().unwrap_or("").chars().count() as u64)
+        - (e.range.end.character
+            + if e.range.start.line == e.range.end.line {
+                e.range.start.character
+            } else {
+                0
+            })
+}
+
+fn calc_cursor_column_after_TextEdit(edit: &TextEdit, prev_position: (u64, u64)) -> u64 {
+    // Edit happens in same line and before cursor
+    if (edit.range.end.line == prev_position.0) && (edit.range.end.character <= prev_position.1) {
+        prev_position.1 + character_difference_in_last_edit_line(edit)
+    } else {
+        prev_position.1
+    }
+}
+
+pub fn calc_cursorpos_after_TextEdits(cursor_pos: Position, edits: &[TextEdit]) -> Position {
+    let updated = edits
+        .iter()
+        .fold((cursor_pos.line, cursor_pos.character), |acc, e| {
+            let updated_line = acc.0 + newlines_in_str(&e.new_text) - newlines_in_range(e.range);
+            (
+                updated_line,
+                // Update cursor column if edit in same line left to cursorpos
+                calc_cursor_column_after_TextEdit(e, (updated_line, acc.1)),
+            )
+        });
+    Position {
+        line: updated.0,
+        character: updated.1,
+    }
+}
+
 pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<String>> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
