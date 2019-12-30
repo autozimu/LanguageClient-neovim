@@ -1372,7 +1372,8 @@ impl LanguageClient {
             },
         )?;
 
-        let response: CodeActionResponse = serde_json::from_value(result.clone())?;
+        let response: Option<CodeActionResponse> = serde_json::from_value(result.clone())?;
+        let response = response.unwrap_or_else(|| vec![]);
 
         // Convert any Commands into CodeActions, so that the remainder of the handling can be
         // shared.
