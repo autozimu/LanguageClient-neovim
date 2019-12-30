@@ -45,6 +45,7 @@ mod language_client;
 mod language_server_protocol;
 mod logger;
 mod rpchandler;
+mod rust_analyser;
 mod sign;
 mod viewport;
 mod vim;

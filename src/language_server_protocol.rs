@@ -1891,6 +1891,9 @@ impl LanguageClient {
             .notify("s:ExecuteAutocmd", "LanguageClientTextDocumentDidOpenPost")?;
 
         self.textDocument_codeLens(params)?;
+        if "rust" == &languageId {
+            self.rust_analyser_inlay_hints(params)?;
+        }
 
         info!("End {}", lsp::notification::DidOpenTextDocument::METHOD);
         Ok(())
@@ -1937,7 +1940,7 @@ impl LanguageClient {
             Ok(version)
         })?;
 
-        self.get_client(&Some(languageId))?.notify(
+        self.get_client(&Some(languageId.clone()))?.notify(
             lsp::notification::DidChangeTextDocument::METHOD,
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
@@ -1953,6 +1956,9 @@ impl LanguageClient {
         )?;
 
         self.textDocument_codeLens(params)?;
+        if "rust" == &languageId {
+            self.rust_analyser_inlay_hints(params)?;
+        }
 
         info!("End {}", lsp::notification::DidChangeTextDocument::METHOD);
         Ok(())
@@ -2643,6 +2649,21 @@ impl LanguageClient {
                         hl_group: "Comment".into(),
                     })
                 }
+            }
+            let inlay_hints = self.get(|state| {
+                state
+                    .inlay_hints
+                    .get(&filename)
+                    .cloned()
+                    .unwrap_or_else(|| vec![])
+            })?;
+
+            for hint in inlay_hints {
+                virtual_texts.push(VirtualText {
+                    line: hint.range.start.line,
+                    text: hint.label,
+                    hl_group: "Comment".into(),
+                })
             }
         }
 
@@ -3342,5 +3363,32 @@ impl LanguageClient {
         self.vim()?.echo(&msg)?;
         info!("End {}", REQUEST__DebugInfo);
         Ok(json!(msg))
+    }
+
+    pub fn rust_analyser_inlay_hints(&self, params: &Value) -> Fallible<Value> {
+        info!("Begin {}", rust_analyser::InlayHintRequest::METHOD);
+        let filename = self.vim()?.get_filename(params)?;
+        let language_id = self.vim()?.get_languageId(&filename, params)?;
+        let client = self.get_client(&Some(language_id))?;
+        let input = rust_analyser::InlayHintsParams {
+            text_document: TextDocumentIdentifier {
+                uri: filename.to_url()?,
+            },
+        };
+
+        debug!("input {:?}", &input);
+        let results: Value = client.call(REQUEST__InlayHints, &input)?;
+        debug!("result {:?}", &results);
+
+        let inlay_hints: Option<Vec<rust_analyser::InlayHint>> =
+            serde_json::from_value(results.clone())?;
+        if let Some(inlay_hints) = inlay_hints {
+            self.update(|state| {
+                state.inlay_hints.insert(filename.to_owned(), inlay_hints);
+                Ok(Value::Null)
+            })?;
+        }
+        info!("End {}", rust_analyser::InlayHintRequest::METHOD);
+        Ok(results)
     }
 }

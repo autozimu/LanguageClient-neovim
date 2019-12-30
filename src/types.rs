@@ -1,5 +1,6 @@
 use super::*;
 use crate::rpcclient::RpcClient;
+use crate::rust_analyser::InlayHint;
 use crate::sign::Sign;
 use crate::vim::Vim;
 use std::collections::BTreeMap;
@@ -46,6 +47,7 @@ pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
 pub const NOTIFICATION__ClearDocumentHighlight: &str = "languageClient/clearDocumentHighlight";
 
 // Extensions by language servers.
+pub const REQUEST__InlayHints: &str = "rust-analyzer/inlayHints";
 pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
 pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
 pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
@@ -124,6 +126,8 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
     pub code_lens: HashMap<String, Vec<CodeLens>>,
+    // filename => codeLens.
+    pub inlay_hints: HashMap<String, Vec<InlayHint>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub sign_next_id: u64,
@@ -205,6 +209,7 @@ impl State {
             text_documents: HashMap::new(),
             text_documents_metadata: HashMap::new(),
             code_lens: HashMap::new(),
+            inlay_hints: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
             sign_next_id: 75_000,
