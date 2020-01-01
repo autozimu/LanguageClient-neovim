@@ -344,7 +344,7 @@ Default: >
 
 Specify whether to use virtual text to display diagnostics.
 
-Default: "CodeLens" whenever virtual text is supported.
+Default: "All" whenever virtual text is supported.
 Valid Options: "All" | "No" | "CodeLens" | "Diagnostics"
 
 2.26 g:LanguageClient_useFloatingHover *g:LanguageClient_useFloatingHover*
@@ -487,7 +487,7 @@ Computes and displays the codeLens for the currently open file.
 *LanguageClient_textDocument_codeLensAction()*
 Signature: LanguageClient#textDocument_codeLensAction(...)
 
-Runs the action associated with the codeLens at the current line. If does
+Runs the action associated with the codeLens at the current line. It does
 nothing if the codeLens is not actionable.
 
 *LanguageClient#textDocument_documentSymbol()*

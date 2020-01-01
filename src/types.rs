@@ -32,7 +32,7 @@ pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
 pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoint";
 pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
-pub const REQUEST__CodeLensAction: &str = "LanguageClient_CodeLensAction";
+pub const REQUEST__CodeLensAction: &str = "LanguageClient/handleCodeLensAction";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
@@ -243,7 +243,7 @@ impl State {
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
             completionPreferTextEdit: false,
-            use_virtual_text: UseVirtualText::CodeLens,
+            use_virtual_text: UseVirtualText::All,
             echo_project_root: true,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,

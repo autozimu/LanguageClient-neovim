@@ -122,7 +122,11 @@ function! s:useVirtualText() abort
         return l:use
     endif
 
-    return exists('*nvim_buf_set_virtual_text')
+    if exists('*nvim_buf_set_virtual_text')
+        return 'All'
+    else
+        return 'No'
+    endif
 endfunction
 
 function! s:IsTrue(v) abort
@@ -1296,7 +1300,7 @@ function! LanguageClient#java_classFileContents(...) abort
     return LanguageClient#Call('java/classFileContents', l:params, l:Callback)
 endfunction
 
-function! LanguageClient#codeLensAction(...) abort
+function! LanguageClient#handleCodeLensAction(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
@@ -1304,7 +1308,7 @@ function! LanguageClient#codeLensAction(...) abort
                 \ 'character': LSP#character(),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return LanguageClient#Call('LanguageClient_CodeLensAction', l:params, l:Callback)
+    return LanguageClient#Call('LanguageClient/handleCodeLensAction', l:params, l:Callback)
 endfunction
 
 function! LanguageClient_contextMenuItems() abort

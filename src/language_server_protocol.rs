@@ -851,14 +851,20 @@ impl LanguageClient {
                 }
             }
             "rust-analyzer.runSingle" | "rust-analyzer.run" => {
+                let has_term: i32 = self.vim()?.eval("exists(':terminal')")?;
+                if has_term == 0 {
+                    bail!("Terminal support is required for this action");
+                }
+
                 if let Some(ref args) = cmd.arguments {
-                    let args = args[0].clone();
-                    let bin: String =
-                        try_get("bin", &args)?.ok_or_else(|| err_msg("no bin found"))?;
-                    let arguments: Vec<String> = try_get("args", &args)?.unwrap_or_else(|| vec![]);
-                    let cmd = format!("term {} {}", bin, arguments.join(" "));
-                    let cmd = cmd.replace('"', "");
-                    self.vim()?.command(cmd)?;
+                    if let Some(args) = args.first().cloned() {
+                        let bin: String =
+                            try_get("bin", &args)?.ok_or_else(|| err_msg("no bin found"))?;
+                        let arguments: Vec<String> = try_get("args", &args)?.unwrap_or_default();
+                        let cmd = format!("term {} {}", bin, arguments.join(" "));
+                        let cmd = cmd.replace('"', "");
+                        self.vim()?.command(cmd)?;
+                    }
                 }
             }
             // TODO: implement all other rust-analyzer actions
@@ -1781,7 +1787,13 @@ impl LanguageClient {
         let mut code_lens: Vec<CodeLens> =
             self.get(|state| state.code_lens.get(filename.as_str()).cloned().unwrap())?;
         code_lens.retain(|cl| cl.range.start.line == line);
-        if code_lens.len() != 1 {
+        if code_lens.is_empty() {
+            warn!("No actions associated with this codeLens");
+            return Ok(Value::Null);
+        }
+
+        if code_lens.len() > 1 {
+            warn!("Mulitple actions associated with this codeLens");
             return Ok(Value::Null);
         }
 
@@ -2619,25 +2631,17 @@ impl LanguageClient {
         // code lens
         if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
             let filename = self.vim()?.get_filename(params)?;
-            let code_lenses = self.get(|state| {
-                state
-                    .code_lens
-                    .get(&filename)
-                    .cloned()
-                    .unwrap_or_else(|| vec![])
-            })?;
+            let code_lenses =
+                self.get(|state| state.code_lens.get(&filename).cloned().unwrap_or_default())?;
 
             for cl in code_lenses {
-                if cl.command.is_none() {
-                    continue;
+                if let Some(command) = cl.command {
+                    virtual_texts.push(VirtualText {
+                        line: cl.range.start.line,
+                        text: command.title,
+                        hl_group: "Comment".into(),
+                    })
                 }
-                let command = cl.command.unwrap();
-
-                virtual_texts.push(VirtualText {
-                    line: cl.range.start.line,
-                    text: command.title,
-                    hl_group: "Comment".into(),
-                })
             }
         }
 
