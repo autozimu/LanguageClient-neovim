@@ -120,7 +120,8 @@ impl LanguageClient {
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-        ): (Option<u64>, String, Value, u8, u8, u8) = self.vim()?.eval(
+            highlight_symbol_under_cursor,
+        ): (Option<u64>, String, Value, u8, u8, u8, u8) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
@@ -128,6 +129,7 @@ impl LanguageClient {
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
                 "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
+                "get(g:, 'LanguageClient_highlightSymbolUnderCursor', 1)",
             ]
             .as_ref(),
         )?;
@@ -232,6 +234,7 @@ impl LanguageClient {
             state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
             state.is_nvim = is_nvim;
+            state.highlight_symbol_under_cursor = highlight_symbol_under_cursor == 1;
             Ok(())
         })?;
 
@@ -1089,44 +1092,41 @@ impl LanguageClient {
         Ok(result)
     }
 
-    /// Generic find locations, e.g, definitions, references.
-    pub fn find_locations(&self, params: &Value) -> Fallible<Value> {
-        self.textDocument_didChange(params)?;
-        let method: String =
-            try_get("method", params)?.ok_or_else(|| err_msg("method not found in request!"))?;
-        info!("Begin {}", method);
+    fn get_references(&self, method: &str, params: &Value) -> Fallible<Value> {
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
-        let current_word = self.vim()?.get_current_word(params)?;
-        let goto_cmd = self.vim()?.get_goto_cmd(params)?;
 
-        let params = serde_json::to_value(TextDocumentPositionParams {
+        let params = json!({
+            "method": lsp::request::References::METHOD,
+            "context": ReferenceContext {
+                include_declaration: true,
+            }
+        })
+        .combine(&serde_json::to_value(TextDocumentPositionParams {
             text_document: TextDocumentIdentifier {
                 uri: filename.to_url()?,
             },
             position,
-        })?
+        })?)
         .combine(params);
 
-        let result = self.get_client(&Some(languageId))?.call(&method, &params)?;
+        self.get_client(&Some(languageId))?.call(method, params)
+    }
 
+    /// Generic find locations, e.g, definitions, references.
+    pub fn find_locations(&self, params: &Value) -> Fallible<Value> {
+        let method: String =
+            try_get("method", params)?.ok_or_else(|| err_msg("method not found in request!"))?;
+        info!("Begin {}", method);
+        let goto_cmd = self.vim()?.get_goto_cmd(params)?;
+        let result = self.get_references(&method, params)?;
+        let current_word = self.vim()?.get_current_word(params)?;
         if !self.vim()?.get_handle(&params)? {
             return Ok(result);
         }
 
-        let response: Option<GotoDefinitionResponse> = result.clone().to_lsp()?;
-
-        let locations = match response {
-            None => vec![],
-            Some(GotoDefinitionResponse::Scalar(loc)) => vec![loc],
-            Some(GotoDefinitionResponse::Array(arr)) => arr,
-            Some(GotoDefinitionResponse::Link(links)) => links
-                .into_iter()
-                .map(|link| Location::new(link.target_uri, link.target_selection_range))
-                .collect(),
-        };
-
+        let locations = parse_locations(&result)?;
         match locations.len() {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
@@ -2342,8 +2342,19 @@ impl LanguageClient {
     pub fn languageClient_handleCursorMoved(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__HandleCursorMoved);
         let filename = self.vim()?.get_filename(params)?;
+        let is_nvim = self.get(|state| state.is_nvim)?;
+        // if highlight_symbol_under_cursor is enabled, clear namespace on cursor move to remove
+        // highlight from CursorHold
+        if self.get(|state| state.highlight_symbol_under_cursor)? && is_nvim {
+            let buffer = self.vim()?.get_bufnr(&filename, params)?;
+            self.vim()?
+                .rpcclient
+                .notify("nvim_buf_clear_highlight", json!([buffer, -1, 0, -1]))?;
+        }
+
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let line = self.vim()?.get_position(params)?.line;
+
         if !self.get(|state| state.serverCommands.contains_key(&languageId))? {
             return Ok(());
         }
@@ -3156,6 +3167,47 @@ impl LanguageClient {
         Ok(())
     }
 
+    pub fn highlight_symbol(&self, params: &Value) -> Fallible<Value> {
+        let should_highlight: bool = self.get(|state| state.highlight_symbol_under_cursor)?;
+        let is_nvim = self.get(|state| state.is_nvim)?;
+        if !should_highlight || !is_nvim {
+            return Ok(Value::Null);
+        }
+
+        let filename = self.vim()?.get_filename(params)?;
+        let buffer = self.vim()?.get_bufnr(&filename, params)?;
+
+        let locations = self
+            .get_references(lsp::request::References::METHOD, params)
+            .unwrap_or_default();
+        if let Value::Null = locations {
+            return Ok(Value::Null);
+        }
+        let locations = parse_locations(&locations)?;
+
+        let mut highlights = vec![];
+        for location in locations {
+            let location: Location = location;
+            let range = location.range;
+            highlights.push(Highlight {
+                line: range.start.line,
+                character_start: range.start.character,
+                character_end: range.end.character,
+                group: "Bold".to_owned(),
+                text: String::new(),
+            });
+        }
+
+        self.vim()?
+            .rpcclient
+            .notify("nvim_buf_clear_highlight", json!([buffer, -1, 0, -1]))?;
+
+        self.vim()?
+            .rpcclient
+            .notify("s:AddHighlights", json!([-1, highlights]))?;
+        Ok(Value::Null)
+    }
+
     pub fn java_classFileContents(&self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__ClassFileContents);
         let filename = self.vim()?.get_filename(params)?;
@@ -3222,4 +3274,18 @@ impl LanguageClient {
         info!("End {}", REQUEST__DebugInfo);
         Ok(json!(msg))
     }
+}
+
+fn parse_locations(result: &Value) -> Fallible<Vec<Location>> {
+    let response: Option<GotoDefinitionResponse> = result.clone().to_lsp()?;
+
+    Ok(match response {
+        None => vec![],
+        Some(GotoDefinitionResponse::Scalar(loc)) => vec![loc],
+        Some(GotoDefinitionResponse::Array(arr)) => arr,
+        Some(GotoDefinitionResponse::Link(links)) => links
+            .into_iter()
+            .map(|link| Location::new(link.target_uri, link.target_selection_range))
+            .collect(),
+    })
 }

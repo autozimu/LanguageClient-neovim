@@ -894,6 +894,21 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
     return LanguageClient#Call('textDocument/rangeFormatting', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#highlightSymbol() abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'range_start_line': LSP#range_start_line(),
+                \ 'range_end_line': LSP#range_end_line(),
+                \ 'handle': s:IsFalse(l:Callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('languageClient/highlightSymbol', l:params, l:Callback)
+endfunction
+
 function! LanguageClient#completionItem_resolve(completion_item, ...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
@@ -1076,11 +1091,7 @@ endfunction
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
     let l:cursor_line = getcurpos()[1] - 1
-    if l:cursor_line == s:last_cursor_line
-        return
-    endif
     let s:last_cursor_line = l:cursor_line
-
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
                     \ 'buftype': &buftype,

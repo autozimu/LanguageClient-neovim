@@ -125,6 +125,9 @@ augroup languageClient
         autocmd TextChangedP * call LanguageClient#handleTextChanged()
     endif
     autocmd CursorMoved * call LanguageClient#handleCursorMoved()
+    if get(g:, 'LanguageClient_highlightSymbolUnderCursor', 1) && has('nvim')
+      autocmd CursorHold * call LanguageClient#highlightSymbol()
+    endif
     autocmd VimLeavePre * call LanguageClient#handleVimLeavePre()
 
     autocmd CompleteDone * call LanguageClient#handleCompleteDone()

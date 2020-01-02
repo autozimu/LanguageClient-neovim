@@ -98,6 +98,7 @@ impl LanguageClient {
             REQUEST__OmniComplete => self.languageClient_omniComplete(&params),
             REQUEST__ClassFileContents => self.java_classFileContents(&params),
             REQUEST__DebugInfo => self.debug_info(&params),
+            REQUEST__HighlightSymbol => self.highlight_symbol(&params),
 
             _ => {
                 let languageId_target = if languageId.is_some() {

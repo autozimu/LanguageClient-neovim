@@ -32,6 +32,7 @@ pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
 pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoint";
 pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
+pub const REQUEST__HighlightSymbol: &str = "languageClient/highlightSymbol";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
@@ -158,6 +159,7 @@ pub struct State {
     pub completionPreferTextEdit: bool,
     pub use_virtual_text: bool,
     pub echo_project_root: bool,
+    pub highlight_symbol_under_cursor: bool,
 
     pub loggingFile: Option<String>,
     pub loggingLevel: log::LevelFilter,
@@ -233,6 +235,7 @@ impl State {
             completionPreferTextEdit: false,
             use_virtual_text: true,
             echo_project_root: true,
+            highlight_symbol_under_cursor: true,
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,

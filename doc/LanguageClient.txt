@@ -386,6 +386,13 @@ Maximum severity to show diagnostic messages.
 Default: "Hint"
 Valid options: "Error" | "Warning" | "Information" | "Hint"
 
+2.29 g:LanguageClient_highlightSymbolUnderCursor *g:LanguageClient_highlightSymbolUnderCursor*
+
+Highlights the symbol under the cursor after `updatetime`.
+
+Default: 1
+Valid options: 0 | 1
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
@@ -660,6 +667,11 @@ Show detailed error under cursor.
 Signature: LanguageClient#debugInfo(...)
 
 Print out debug info.
+
+*LanguageClient#highlightSymbolUnderCursor*
+Signature: LanguageClient#highlightSymbolUnderCursor(...)
+
+Highlights the references of the symbol under the cursor.
 
 ==============================================================================
 5. Events                                               *LanguageClientEvents*
