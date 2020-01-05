@@ -577,16 +577,22 @@ impl VimCompleteItem {
             snippet: snippet.clone(),
         };
 
+        let menu = lspitem
+            .detail
+            .clone()
+            .unwrap_or_default()
+            .replace("\n", " ");
+
         Ok(Self {
-            word,
-            abbr,
+            word: word
+                .replace(&menu.to_string(), "")
+                .replace(&" -".to_string(), ""),
+            abbr: abbr
+                .replace(&menu.to_string(), "")
+                .replace(&" -".to_string(), ""),
             icase: Some(1),
             dup: Some(1),
-            menu: lspitem
-                .detail
-                .clone()
-                .unwrap_or_default()
-                .replace("\n", " "),
+            menu,
             info,
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
             is_snippet: Some(snippet.is_some()),
