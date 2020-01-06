@@ -362,46 +362,51 @@ impl LanguageClient {
 
             let buffer = self.vim()?.get_bufnr(&filename, params)?;
 
-            let source = if let Some(hs) = self.get(|state| state.document_highlight_source)? {
-                if hs.buffer == buffer {
-                    // If we want to highlight in the same buffer as last time, we can reuse
-                    // the previous source.
-                    Some(hs.source)
+            // The following code needs to be inside the critical section as a whole to update
+            // everything correctly and not leave hanging highlights.
+            self.update(|state| {
+                let source = if let Some(hs) = state.document_highlight_source {
+                    if hs.buffer == buffer {
+                        // If we want to highlight in the same buffer as last time, we can reuse
+                        // the previous source.
+                        Some(hs.source)
+                    } else {
+                        // Clear the highlight in the previous buffer.
+                        state.vim.rpcclient.notify(
+                            "nvim_buf_clear_highlight",
+                            json!([hs.buffer, hs.source, 0, -1]),
+                        )?;
+
+                        None
+                    }
                 } else {
-                    // Clear the highlight in the previous buffer.
-                    self.vim()?.rpcclient.notify(
-                        "nvim_buf_clear_highlight",
-                        json!([hs.buffer, hs.source, 0, -1]),
-                    )?;
-
                     None
-                }
-            } else {
-                None
-            };
+                };
 
-            let source = match source {
-                Some(source) => source,
-                None => {
-                    // Create a new source.
-                    let source = self.vim()?.rpcclient.call(
-                        "nvim_buf_add_highlight",
-                        json!([buffer, 0, "Error", 1, 1, 1]),
-                    )?;
-                    self.update(|state| {
+                let source = match source {
+                    Some(source) => source,
+                    None => {
+                        // Create a new source.
+                        let source = state.vim.rpcclient.call(
+                            "nvim_buf_add_highlight",
+                            json!([buffer, 0, "Error", 1, 1, 1]),
+                        )?;
                         state.document_highlight_source = Some(HighlightSource { buffer, source });
-                        Ok(())
-                    })?;
-                    source
-                }
-            };
+                        source
+                    }
+                };
 
-            self.vim()?
-                .rpcclient
-                .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
-            self.vim()?
-                .rpcclient
-                .notify("s:AddHighlights", json!([source, highlights]))?;
+                state
+                    .vim
+                    .rpcclient
+                    .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
+                state
+                    .vim
+                    .rpcclient
+                    .notify("s:AddHighlights", json!([source, highlights]))?;
+
+                Ok(())
+            })?;
         }
 
         info!("End {}", lsp::request::DocumentHighlightRequest::METHOD);
@@ -411,12 +416,18 @@ impl LanguageClient {
     pub fn languageClient_clearDocumentHighlight(&self, _params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__ClearDocumentHighlight);
 
-        let buffer_source = self.update(|state| Ok(state.document_highlight_source.take()))?;
-        if let Some(HighlightSource { buffer, source }) = buffer_source {
-            self.vim()?
-                .rpcclient
-                .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
-        }
+        // The following code needs to be inside the critical section as a whole to update
+        // everything correctly and not leave hanging highlights.
+        self.update(|state| {
+            if let Some(HighlightSource { buffer, source }) = state.document_highlight_source.take()
+            {
+                state
+                    .vim
+                    .rpcclient
+                    .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
+            }
+            Ok(())
+        })?;
 
         info!("End {}", NOTIFICATION__ClearDocumentHighlight);
         Ok(())
