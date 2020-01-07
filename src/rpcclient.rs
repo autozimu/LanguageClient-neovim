@@ -166,7 +166,7 @@ fn loop_read(
         if message.is_empty() {
             continue;
         }
-        info!("<= {:?} {}", languageId, message);
+        debug!("<= {:?} {}", languageId, message);
         // FIXME: Remove extra `meta` property from javascript-typescript-langserver.
         let s = message.replace(r#","meta":{}"#, "");
         let message = serde_json::from_str(&s);
