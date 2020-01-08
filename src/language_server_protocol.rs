@@ -1829,41 +1829,72 @@ impl LanguageClient {
             return Ok(Value::Null);
         }
 
-        info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_languageId(&filename, params)?;
-        let client = self.get_client(&Some(language_id))?;
-        let input = lsp::CodeLensParams {
-            text_document: TextDocumentIdentifier {
-                uri: filename.to_url()?,
-            },
-        };
+        let capabilities = self.get(|state| state.capabilities.clone())?;
+        if let Some(initialize_result) = capabilities.get(&language_id) {
+            // XXX: the capabilities state field stores the initialize result, not the capabilities
+            // themselves, so we need to deserialize to InitializeResult.
+            let initialize_result: InitializeResult =
+                serde_json::from_value(initialize_result.clone())?;
+            let capabilities = initialize_result.capabilities;
+            if capabilities.code_lens_provider.is_some() {
+                info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
+                let client = self.get_client(&Some(language_id))?;
+                let input = lsp::CodeLensParams {
+                    text_document: TextDocumentIdentifier {
+                        uri: filename.to_url()?,
+                    },
+                };
 
-        let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
+                let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
+                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
 
-        let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
-        let mut resolved_code_lens = vec![];
-        if let Some(code_lens) = code_lens {
-            for item in code_lens {
-                let mut item = item;
-                if let Some(_d) = &item.data {
-                    if let Some(cl) = client.call(lsp::request::CodeLensResolve::METHOD, &item)? {
-                        item = cl;
+                if capabilities
+                    .code_lens_provider
+                    .unwrap()
+                    .resolve_provider
+                    .is_some()
+                {
+                    let mut resolved_code_lens = vec![];
+                    if let Some(code_lens) = code_lens {
+                        for item in code_lens {
+                            let mut item = item;
+                            if let Some(_d) = &item.data {
+                                if let Some(cl) =
+                                    client.call(lsp::request::CodeLensResolve::METHOD, &item)?
+                                {
+                                    item = cl;
+                                }
+                            }
+                            resolved_code_lens.push(item);
+                        }
                     }
+
+                    self.update(|state| {
+                        state
+                            .code_lens
+                            .insert(filename.to_owned(), resolved_code_lens);
+                        Ok(Value::Null)
+                    })?;
+                } else if let Some(code_lens) = code_lens {
+                    self.update(|state| {
+                        state.code_lens.insert(filename.to_owned(), code_lens);
+                        Ok(Value::Null)
+                    })?;
                 }
-                resolved_code_lens.push(item);
+
+                info!("End {}", lsp::request::CodeLensRequest::METHOD);
+                return Ok(results);
+            } else {
+                info!(
+                    "CodeLens not supported. Skipping {}",
+                    lsp::request::CodeLensRequest::METHOD
+                );
             }
         }
 
-        self.update(|state| {
-            state
-                .code_lens
-                .insert(filename.to_owned(), resolved_code_lens);
-            Ok(Value::Null)
-        })?;
-
-        info!("End {}", lsp::request::CodeLensRequest::METHOD);
-        Ok(results)
+        Ok(Value::Null)
     }
 
     pub fn textDocument_didOpen(&self, params: &Value) -> Fallible<()> {
