@@ -26,6 +26,7 @@ impl LanguageClient {
     pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
         for call in rx.iter() {
             let language_client = LanguageClient {
+                version: self.version.clone(),
                 state_mutex: self.state_mutex.clone(),
                 clients_mutex: self.clients_mutex.clone(), // not sure if useful to clone this
             };
@@ -1004,8 +1005,14 @@ impl LanguageClient {
 
         let result: Value = self.get_client(&Some(languageId.clone()))?.call(
             lsp::request::Initialize::METHOD,
+            #[allow(deprecated)]
             InitializeParams {
+                client_info: Some(ClientInfo {
+                    name: "LanguageClient-neovim".into(),
+                    version: Some((*self.version).clone()),
+                }),
                 process_id: Some(u64::from(std::process::id())),
+                /* deprecated in lsp types, but can't initialize without it */
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
                 initialization_options,
@@ -1045,6 +1052,7 @@ impl LanguageClient {
                         }),
                         publish_diagnostics: Some(PublishDiagnosticsCapability {
                             related_information: Some(true),
+                            ..PublishDiagnosticsCapability::default()
                         }),
                         code_lens: Some(GenericCapability {
                             dynamic_registration: Some(true),
@@ -1232,6 +1240,7 @@ impl LanguageClient {
                     position,
                 },
                 new_name,
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1418,6 +1427,8 @@ impl LanguageClient {
                     diagnostics,
                     only: None,
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
             },
         )?;
 
@@ -1435,6 +1446,7 @@ impl LanguageClient {
                     diagnostics: None,
                     edit: None,
                     command: Some(command),
+                    ..CodeAction::default()
                 },
                 CodeActionOrCommand::CodeAction(action) => action,
             })
@@ -1594,7 +1606,9 @@ impl LanguageClient {
                     tab_size,
                     insert_spaces,
                     properties: HashMap::new(),
+                    ..FormattingOptions::default()
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1635,6 +1649,7 @@ impl LanguageClient {
                     tab_size,
                     insert_spaces,
                     properties: HashMap::new(),
+                    ..FormattingOptions::default()
                 },
                 range: Range {
                     start: Position {
@@ -1646,6 +1661,7 @@ impl LanguageClient {
                         character: 0,
                     },
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1698,7 +1714,11 @@ impl LanguageClient {
         let query = try_get("query", params)?.unwrap_or_default();
         let result = self.get_client(&Some(languageId))?.call(
             lsp::request::WorkspaceSymbol::METHOD,
-            WorkspaceSymbolParams { query },
+            WorkspaceSymbolParams {
+                query,
+                partial_result_params: PartialResultParams::default(),
+                work_done_progress_params: WorkDoneProgressParams::default(),
+            },
         )?;
 
         if !self.vim()?.get_handle(params)? {
@@ -1773,7 +1793,11 @@ impl LanguageClient {
 
         let result = self.get_client(&Some(languageId))?.call(
             lsp::request::ExecuteCommand::METHOD,
-            ExecuteCommandParams { command, arguments },
+            ExecuteCommandParams {
+                command,
+                arguments,
+                work_done_progress_params: WorkDoneProgressParams::default()
+            },
         )?;
         info!("End {}", lsp::request::ExecuteCommand::METHOD);
         Ok(result)
@@ -1871,6 +1895,8 @@ impl LanguageClient {
                     text_document: TextDocumentIdentifier {
                         uri: filename.to_url()?,
                     },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default()
                 };
 
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
