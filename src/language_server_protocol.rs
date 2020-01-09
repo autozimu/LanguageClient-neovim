@@ -2547,49 +2547,47 @@ impl LanguageClient {
                 .map(|(line, severity)| Sign::new(line, format!("LanguageClient{:?}", severity)))
                 .collect())
         })?;
-        let signs_prev: Vec<_> = self.update(|state| {
-            Ok(state
+        self.update(|state| {
+            let signs_prev: Vec<_> = state
                 .signs
                 .entry(filename.clone())
                 .or_default()
                 .iter()
                 .map(|(_, sign)| sign.clone())
-                .collect())
-        })?;
-        let mut signs_to_add = vec![];
-        let mut signs_to_delete = vec![];
-        let diffs = diff::slice(&signs_next, &signs_prev);
-        for diff in diffs {
-            match diff {
-                diff::Result::Left(s) => {
-                    signs_to_add.push(s.clone());
+                .collect();
+            let mut signs_to_add = vec![];
+            let mut signs_to_delete = vec![];
+            let diffs = diff::slice(&signs_next, &signs_prev);
+            for diff in diffs {
+                match diff {
+                    diff::Result::Left(s) => {
+                        signs_to_add.push(s.clone());
+                    }
+                    diff::Result::Right(s) => {
+                        signs_to_delete.push(s.clone());
+                    }
+                    _ => {}
                 }
-                diff::Result::Right(s) => {
-                    signs_to_delete.push(s.clone());
-                }
-                _ => {}
             }
-        }
-        for sign in &mut signs_to_add {
-            if sign.id == 0 {
-                sign.id = self.update(|state| {
+            for sign in &mut signs_to_add {
+                if sign.id == 0 {
                     state.sign_next_id += 1;
-                    Ok(state.sign_next_id)
-                })?;
+                    sign.id = state.sign_next_id;
+                }
             }
-        }
-        self.vim()?
-            .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
-        self.update(|state| {
+
             let signs = state.signs.entry(filename.clone()).or_default();
             // signs might be deleted AND added in the same line to change severity,
             // so deletions must be before additions
-            for sign in signs_to_delete {
+            for sign in &signs_to_delete {
                 signs.remove(&sign.line);
             }
-            for sign in signs_to_add {
-                signs.insert(sign.line, sign);
+            for sign in &signs_to_add {
+                signs.insert(sign.line, sign.clone());
             }
+            state
+                .vim
+                .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
             Ok(())
         })?;
 
