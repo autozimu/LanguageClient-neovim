@@ -495,9 +495,9 @@ Signature: LanguageClient#textDocument_codeLens(...)
 
 Computes and displays the codeLens for the currently open file.
 
-*LanguageClient#textDocument_codeLensAction()*
-*LanguageClient_textDocument_codeLensAction()*
-Signature: LanguageClient#textDocument_codeLensAction(...)
+*LanguageClient#handleCodeLensAction()*
+*LanguageClient_handleCodeLensAction()*
+Signature: LanguageClient#handleCodeLensAction(...)
 
 Runs the action associated with the codeLens at the current line. It does
 nothing if the codeLens is not actionable.
