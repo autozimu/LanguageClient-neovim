@@ -1,4 +1,5 @@
 #![allow(non_snake_case, non_upper_case_globals)]
+#![deny(clippy::option_unwrap_used)]
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;

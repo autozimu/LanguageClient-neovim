@@ -1796,26 +1796,35 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let line = self.vim()?.get_position(params)?.line;
 
-        let mut code_lens: Vec<CodeLens> =
-            self.get(|state| state.code_lens.get(filename.as_str()).cloned().unwrap())?;
-        code_lens.retain(|cl| cl.range.start.line == line);
+        let code_lens: Vec<CodeLens> = self.get(|state| {
+            state
+                .code_lens
+                .get(&filename)
+                .cloned()
+                .unwrap_or_else(Vec::new)
+                .into_iter()
+                .filter(|action| action.range.start.line == line)
+                .collect()
+        })?;
         if code_lens.is_empty() {
             warn!("No actions associated with this codeLens");
             return Ok(Value::Null);
         }
 
         if code_lens.len() > 1 {
-            warn!("Mulitple actions associated with this codeLens");
+            warn!("Multiple actions associated with this codeLens");
             return Ok(Value::Null);
         }
 
-        if let Some(command) = code_lens.pop().unwrap().command {
-            if !self.try_handle_command_by_client(&command)? {
-                let params = json!({
-                "command": command.command,
-                "arguments": command.arguments,
-                });
-                self.workspace_executeCommand(&params)?;
+        if let Some(code_lens_action) = code_lens.get(0) {
+            if let Some(command) = &code_lens_action.command {
+                if !self.try_handle_command_by_client(&command)? {
+                    let params = json!({
+                    "command": command.command,
+                    "arguments": command.arguments,
+                    });
+                    self.workspace_executeCommand(&params)?;
+                }
             }
         }
 
@@ -1838,7 +1847,7 @@ impl LanguageClient {
             let initialize_result: InitializeResult =
                 serde_json::from_value(initialize_result.clone())?;
             let capabilities = initialize_result.capabilities;
-            if capabilities.code_lens_provider.is_some() {
+            if let Some(code_lens_provider) = capabilities.code_lens_provider {
                 info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
                 let client = self.get_client(&Some(language_id))?;
                 let input = lsp::CodeLensParams {
@@ -1850,12 +1859,7 @@ impl LanguageClient {
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
                 let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
 
-                if capabilities
-                    .code_lens_provider
-                    .unwrap()
-                    .resolve_provider
-                    .is_some()
-                {
+                if code_lens_provider.resolve_provider.is_some() {
                     let mut resolved_code_lens = vec![];
                     if let Some(code_lens) = code_lens {
                         for item in code_lens {
@@ -2346,18 +2350,10 @@ impl LanguageClient {
         let result = self.textDocument_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
-        let mut matches = match result {
+        let matches = match result {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         };
-        if !matches.iter().any(|m| m.sort_text.is_none()) {
-            matches.sort_by(|m1, m2| {
-                m1.sort_text
-                    .as_ref()
-                    .unwrap()
-                    .cmp(m2.sort_text.as_ref().unwrap())
-            });
-        }
 
         let complete_position: Option<u64> = try_get("complete_position", params)?;
 
