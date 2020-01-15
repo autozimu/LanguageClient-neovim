@@ -33,6 +33,8 @@ pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoi
 pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
 pub const REQUEST__CodeLensAction: &str = "LanguageClient/handleCodeLensAction";
+pub const REQUEST__SemanticScopes: &str = "languageClient/semanticScopes";
+pub const REQUEST__ShowSemanticHighlightSymbols: &str = "languageClient/showSemanticHighlightSymbols";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
@@ -120,6 +122,11 @@ pub struct State {
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
+    pub semantic_scopes: HashMap<String, Vec<Vec<String>>>,
+    pub semantic_scope_to_hl_group_table: HashMap<String, Vec<Option<String>>>,
+    // filename => semantic highlights.
+    pub semantic_highlights_syms: HashMap<String, Vec<SemanticHighlightingInformation>>,
+    pub semantic_highlights: HashMap<String, Vec<Highlight>>,
     // filename => diagnostics.
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
@@ -129,7 +136,7 @@ pub struct State {
     pub sign_next_id: u64,
     /// Active signs.
     pub signs: HashMap<String, BTreeMap<u64, Sign>>,
-    pub namespace_id: Option<i64>,
+    pub namespace_ids: HashMap<String, i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
@@ -149,6 +156,7 @@ pub struct State {
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
+    pub semanticHighlightMaps: HashMap<String, Vec<(Value, String)>>,
     pub autoStart: bool,
     pub selectionUI: SelectionUI,
     pub selectionUI_autoOpen: bool,
@@ -204,12 +212,16 @@ impl State {
             roots: HashMap::new(),
             text_documents: HashMap::new(),
             text_documents_metadata: HashMap::new(),
+            semantic_scopes: HashMap::new(),
+            semantic_scope_to_hl_group_table: HashMap::new(),
+            semantic_highlights_syms: HashMap::new(),
+            semantic_highlights: HashMap::new(),
             code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
             sign_next_id: 75_000,
             signs: HashMap::new(),
-            namespace_id: None,
+            namespace_ids: HashMap::new(),
             highlight_source: None,
             highlights: HashMap::new(),
             highlights_placed: HashMap::new(),
@@ -225,6 +237,7 @@ impl State {
             stashed_codeAction_actions: vec![],
 
             serverCommands: HashMap::new(),
+            semanticHighlightMaps: HashMap::new(),
             autoStart: true,
             selectionUI: SelectionUI::LocationList,
             selectionUI_autoOpen: true,
@@ -276,6 +289,20 @@ impl FromStr for SelectionUI {
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
             _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
+        }
+    }
+}
+
+pub enum LCNamespace {
+    VirtualText,
+    SemanticHighlight,
+}
+
+impl LCNamespace {
+    pub fn name(&self) -> String {
+        match self {
+            LCNamespace::VirtualText => "LanguageClient_VirtualText".into(),
+            LCNamespace::SemanticHighlight => "LanguageClient_SemanticHighlight".into(),
         }
     }
 }
@@ -436,6 +463,135 @@ impl PartialEq for Highlight {
         // Quick check whether highlight should be updated.
         self.text == other.text && self.group == other.group
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClearNamespace {
+    pub line_start: u64,
+    pub line_end: u64,
+}
+
+/// Helper type for semantic highlighting
+#[derive(Debug)]
+pub enum SemanticHighlightMatcher {
+    /// Check if the array contains the string
+    Str(String),
+    /// Checks that the entire array matches (same length)
+    Array(Vec<String>),
+    /// Checks that the array starts with this
+    ArrayStart(Vec<String>),
+    /// Checks that the array ends with this
+    ArrayEnd(Vec<String>),
+    /// Checks that any subsequence of he array matches this
+    ArrayContains(Vec<String>),
+}
+
+impl SemanticHighlightMatcher {
+    pub fn matches(&self, scope_arr: &[String]) -> bool {
+        use SemanticHighlightMatcher::*;
+
+        match self {
+            Str(s) => scope_arr.contains(s),
+            Array(match_arr) => Self::slices_match(match_arr, scope_arr),
+            ArrayStart(match_arr) => {
+                if scope_arr.len() >= match_arr.len() {
+                    Self::slices_match(match_arr, &scope_arr[..match_arr.len()])
+                } else {
+                    false
+                }
+            },
+            ArrayEnd(match_arr) => {
+                if scope_arr.len() >= match_arr.len() {
+                    Self::slices_match(match_arr, &scope_arr[scope_arr.len() - match_arr.len()..])
+                } else {
+                    false
+                }
+            },
+            ArrayContains(match_arr) => {
+                if scope_arr.len() >= match_arr.len() {
+                    for offset in 0..=(scope_arr.len() - match_arr.len()) {
+                        if Self::slices_match(match_arr, &scope_arr[offset..offset + match_arr.len()]) {
+                            return true;
+                        }
+                    }
+
+                    false
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn slices_match(a: &[String], b: &[String]) -> bool {
+        if a.len() == b.len() {
+            for (i, v) in a.iter().enumerate() {
+                if *v != "*" && b[i] != *v {
+                    return false;
+                }
+            }
+
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[test]
+fn test_semantic_hl_matcher_str() {
+    let matcher = SemanticHighlightMatcher::Str("Hello".into());
+
+    assert!(matcher.matches(&vec!["Hello".into()]));
+    assert!(matcher.matches(&vec!["X".into(), "HELLO".into(), "Hello".into(), "ABCD".into()]));
+    assert!(matcher.matches(&vec!["Hello".into(), "ABCD".into(), "X".into()]));
+    assert!(!matcher.matches(&vec!["ABCD".into(), "X".into()]));
+}
+
+#[test]
+fn test_semantic_hl_matcher_array() {
+    let v = vec!["A".into(), "B".into()];
+    let arr = SemanticHighlightMatcher::Array(v.clone());
+    let arr_s = SemanticHighlightMatcher::ArrayStart(v.clone());
+    let arr_e = SemanticHighlightMatcher::ArrayEnd(v.clone());
+    let arr_c = SemanticHighlightMatcher::ArrayContains(v.clone());
+
+    let t1 = vec!["A".into(), "B".into()];
+    let t2 = vec!["FFF".into(), "A".into(), "B".into(), "ABCD".into()];
+    let t3 = vec!["Hello".into(), "A".into(), "B".into()];
+    let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
+
+    let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
+        (arr.matches(v), arr_s.matches(v), arr_e.matches(v), arr_c.matches(v))
+    };
+
+    assert_eq!(do_matches(&t1), (true, true, true, true));
+    assert_eq!(do_matches(&t2), (false, false, false, true));
+    assert_eq!(do_matches(&t3), (false, false, true, true));
+    assert_eq!(do_matches(&t4), (false, true, false, true));
+}
+
+#[test]
+fn test_semantic_hl_matcher_array_glob() {
+    let v = vec!["A".into(), "*".into()];
+    let arr = SemanticHighlightMatcher::Array(v.clone());
+    let arr_s = SemanticHighlightMatcher::ArrayStart(v.clone());
+    let arr_e = SemanticHighlightMatcher::ArrayEnd(v.clone());
+    let arr_c = SemanticHighlightMatcher::ArrayContains(v.clone());
+
+    let t1 = vec!["A".into(), "B".into()];
+    let t2 = vec!["FFF".into(), "A".into(), "B".into(), "ABCD".into()];
+    let t3 = vec!["Hello".into(), "A".into(), "B".into()];
+    let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
+
+    let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
+        (arr.matches(v), arr_s.matches(v), arr_e.matches(v), arr_c.matches(v))
+    };
+
+    assert_eq!(do_matches(&t1), (true, true, true, true));
+    assert_eq!(do_matches(&t2), (false, false, false, true));
+    assert_eq!(do_matches(&t3), (false, false, true, true));
+    assert_eq!(do_matches(&t4), (false, true, false, true));
 }
 
 #[derive(Debug, Serialize, Deserialize)]

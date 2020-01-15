@@ -100,6 +100,8 @@ impl LanguageClient {
             REQUEST__ClassFileContents => self.java_classFileContents(&params),
             REQUEST__DebugInfo => self.debug_info(&params),
             REQUEST__CodeLensAction => self.languageClient_handleCodeLensAction(&params),
+            REQUEST__SemanticScopes => self.languageClient_semanticScopes(&params),
+            REQUEST__ShowSemanticHighlightSymbols => self.languageClient_semanticHlSyms(&params),
 
             _ => {
                 let languageId_target = if languageId.is_some() {
@@ -155,6 +157,9 @@ impl LanguageClient {
             }
             lsp::notification::PublishDiagnostics::METHOD => {
                 self.textDocument_publishDiagnostics(&params)?
+            }
+            lsp::notification::SemanticHighlighting::METHOD => {
+                self.textDocument_semanticHighlight(&params)?
             }
             lsp::notification::LogMessage::METHOD => self.window_logMessage(&params)?,
             lsp::notification::ShowMessage::METHOD => self.window_showMessage(&params)?,

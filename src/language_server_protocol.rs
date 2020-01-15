@@ -121,7 +121,16 @@ impl LanguageClient {
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-        ): (Option<u64>, String, Value, u8, UseVirtualText, u8) = self.vim()?.eval(
+            userSemanticHighlightMaps,
+        ): (
+            Option<u64>,
+            String,
+            Value,
+            u8,
+            UseVirtualText,
+            u8,
+            HashMap<String, Value>,
+        ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
@@ -129,6 +138,7 @@ impl LanguageClient {
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
                 "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
+                "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
             ]
             .as_ref(),
         )?;
@@ -202,8 +212,48 @@ impl LanguageClient {
             ),
         };
 
+        let mut semanticHighlightMaps = HashMap::new();
+
+        for (languageId, v) in userSemanticHighlightMaps {
+            let mut mapping_pairs = Vec::new();
+            match v {
+                Value::Object(mapping) => {
+                    mapping_pairs.extend(
+                        mapping.into_iter()
+                            .map(|(hl_group, val)| (val, hl_group))
+                    );
+                },
+                Value::Array(values) => {
+                    for (idx, v2) in values.into_iter().enumerate() {
+                        match v2 {
+                            Value::Object(mapping) => {
+                                mapping_pairs.extend(
+                                    mapping.into_iter()
+                                        .map(|(hl_group, val)| (val, hl_group))
+                                );
+                            },
+                            _ => {
+                                error!("Invalid SemanticHighlightMap for language ({}) at index ({}): {}",
+                                    languageId, idx, v2);
+                            }
+                        }
+                    }
+                },
+                _ => {
+                    error!("Invalid SemanticHighlightMap for language ({}): {}",
+                        languageId, v);
+                }
+            }
+
+            semanticHighlightMaps.insert(languageId, mapping_pairs);
+        }
+
+        let semanticHlUpdateLanguageIds : Vec<String> = semanticHighlightMaps.keys().cloned().collect();
+
         self.update(|state| {
             state.autoStart = autoStart;
+            state.semanticHighlightMaps = semanticHighlightMaps;
+            state.semantic_scope_to_hl_group_table.clear();
             state.serverCommands.extend(serverCommands);
             state.selectionUI = selectionUI;
             state.selectionUI_autoOpen = selectionUI_autoOpen;
@@ -235,6 +285,10 @@ impl LanguageClient {
             state.is_nvim = is_nvim;
             Ok(())
         })?;
+
+        for languageId in semanticHlUpdateLanguageIds {
+            self.updateSemanticHighlightTables(&languageId)?;
+        }
 
         info!("End sync settings");
         Ok(())
@@ -819,6 +873,135 @@ impl LanguageClient {
         Ok(())
     }
 
+    fn parseSemanticScopes(&self, languageId: &str, result: &Value) -> Fallible<()> {
+        info!("Begin parse Semantic Scopes");
+        let result: InitializeResult = serde_json::from_value(result.clone())?;
+
+        if let Some(capability) = result.capabilities.semantic_highlighting {
+            self.update(|state| {
+                state.semantic_scopes.insert(languageId.into(), capability.scopes.unwrap_or_default());
+                Ok(())
+            })?;
+        }
+
+        info!("End parse Semantic Scopes");
+        Ok(())
+    }
+
+    fn buildSemanticHighlightMatchers(all_scope_names: HashSet<String>, user_mapping: &[(Value, String)]) -> Vec<(SemanticHighlightMatcher, String)> {
+        let mut highlight_mappings = Vec::new();
+
+        for (mapping_type, highlight_group) in user_mapping.iter() {
+            match mapping_type {
+                Value::Array(arr) => {
+                    let mut scopes = Vec::new();
+
+                    for v in arr {
+                        match v {
+                            Value::String(s) => {
+                                if all_scope_names.contains(s) {
+                                    scopes.push(s.clone());
+                                } else {
+                                    warn!("Invalid Semantic Highlight Scope: {}", s);
+                                    break;
+                                }
+                            },
+                            _ => {
+                                warn!("Invalid Semantic Highlighting Mapping: {} -> {}",
+                                    highlight_group, mapping_type);
+                                break;
+                            }
+                        }
+                    }
+
+                    if scopes.len() == arr.len() {
+                        highlight_mappings.push((
+                                match (scopes.first().map(|s| &s[..]), scopes.last().map(|s| &s[..])) {
+                                    (Some("**"), Some("**")) => {
+                                        scopes.pop();
+                                        scopes.remove(0);
+                                        SemanticHighlightMatcher::ArrayContains(scopes)
+                                    },
+                                    (_, Some("**")) => {
+                                        scopes.pop();
+                                        SemanticHighlightMatcher::ArrayStart(scopes)
+                                    },
+                                    (Some("**"), _) => {
+                                        scopes.remove(0);
+                                        SemanticHighlightMatcher::ArrayEnd(scopes)
+                                    },
+                                    (_, _) => SemanticHighlightMatcher::Array(scopes)
+                                },
+                                highlight_group.clone()
+                        ));
+                    }
+                },
+                Value::String(s) => {
+                    if all_scope_names.contains(s) {
+                        highlight_mappings.push((
+                                SemanticHighlightMatcher::Str(s.clone()),
+                                highlight_group.clone()
+                        ));
+                    } else {
+                        warn!("Invalid Semantic Highlight Scope: {}", s);
+                    }
+                },
+                _ => {
+                    warn!("Invalid Semantic Highlighting Mapping: {} -> {}",
+                        highlight_group, mapping_type);
+                }
+            }
+        }
+
+        highlight_mappings
+    }
+
+    /// Build the Semantic Highlight Lookup Table of
+    ///
+    /// ScopeIndex -> Option<HighlightGroup>
+    fn updateSemanticHighlightTables(&self, languageId: &str) -> Fallible<()> {
+        info!("Begin updateSemanticHighlightTables");
+        let (opt_scopes, opt_hl_map) = self.get(|state|
+            (state.semantic_scopes.get(languageId).cloned(), state.semanticHighlightMaps.get(languageId).cloned())
+        )?;
+
+        if let (Some(semantic_scopes), Some(semanticHighlightMap)) = (opt_scopes, opt_hl_map) {
+            let mut all_scope_names = HashSet::new();
+            all_scope_names.insert("*".into());
+            all_scope_names.insert("**".into());
+            semantic_scopes.iter().for_each(|v| {
+                v.iter().for_each(|s| {
+                    all_scope_names.insert(s.clone());
+                });
+            });
+
+            let matchers = Self::buildSemanticHighlightMatchers(
+                all_scope_names, &semanticHighlightMap);
+
+            let table: Vec<Option<String>> = semantic_scopes.iter()
+                .map(|scope_arr| {
+                    matchers.iter()
+                        .find_map(|(matcher, hl_group)| {
+                            if matcher.matches(scope_arr) { Some(hl_group.clone()) }
+                            else { None }
+                        })
+                })
+                .collect();
+
+            self.update(|state| {
+                state.semantic_scope_to_hl_group_table.insert(languageId.into(), table);
+                Ok(())
+            })?;
+        } else {
+            self.update(|state| {
+                state.semantic_scope_to_hl_group_table.remove(languageId);
+                Ok(())
+            })?;
+        }
+        info!("End updateSemanticHighlightTables");
+        Ok(())
+    }
+
     fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Fallible<String> {
         let value = self.vim()?.rpcclient.call(
             "getbufline",
@@ -1057,6 +1240,9 @@ impl LanguageClient {
                         code_lens: Some(GenericCapability {
                             dynamic_registration: Some(true),
                         }),
+                        semantic_highlighting_capabilities: Some(SemanticHighlightingClientCapability {
+                            semantic_highlighting: true
+                        }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
@@ -1092,6 +1278,11 @@ impl LanguageClient {
             error!("{}\n{:?}", message, e);
             self.vim()?.echoerr(&message)?;
         }
+        if let Err(e) = self.parseSemanticScopes(&languageId, &result) {
+            let message = format!("LanguageClient: failed to parse semantic scopes: {}", e);
+            error!("{}\n{:?}", message, e);
+            self.vim()?.echoerr(&message)?;
+        }
 
         Ok(result)
     }
@@ -1100,6 +1291,7 @@ impl LanguageClient {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
+        self.updateSemanticHighlightTables(&languageId)?;
         self.get_client(&Some(languageId))?
             .notify(lsp::notification::Initialized::METHOD, InitializedParams {})?;
         info!("End {}", lsp::notification::Initialized::METHOD);
@@ -2146,6 +2338,159 @@ impl LanguageClient {
         Ok(())
     }
 
+    pub fn textDocument_semanticHighlight(&self, params: &Value) -> Fallible<()> {
+        info!("Begin {}", lsp::notification::SemanticHighlighting::METHOD);
+        let mut params: SemanticHighlightingParams = params.clone().to_lsp()?;
+
+        // TODO: Do we need to handle the versioning of the file?
+        let mut filename = params.text_document.uri.filepath()?.to_string_lossy().into_owned();
+        // Workaround bug: remove first '/' in case of '/C:/blabla'.
+        if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
+            filename.remove(0);
+        }
+        // Unify name to avoid mismatch due to case insensitivity.
+        let filename = filename.canonicalize();
+        let languageId = self.vim()?.get_languageId(&filename, &Value::Null)?;
+
+        let opt_hl_table = self.get(|state| state.semantic_scope_to_hl_group_table.get(&languageId).cloned())?;
+
+        // Sort lines in ascending order
+        params.lines.sort_by(|a, b| a.line.cmp(&b.line));
+
+        if let Some(hl_table) = opt_hl_table {
+            let ns_id = self.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
+
+            let buffer = self.vim()?.get_bufnr(&filename, &Value::Null)?;
+
+            if buffer == -1 {
+                error!("Received Semantic Highlighting for non-open buffer: {}", filename);
+                return Ok(());
+            }
+
+            let mut highlights = Vec::new();
+            let mut clears : Vec<ClearNamespace> = Vec::new();
+
+            for line in &params.lines {
+                if line.line < 0 {
+                    continue;
+                }
+
+                let mut line_has_sym = false;
+
+                for token in &line.tokens {
+                    if token.length == 0 {
+                        continue;
+                    }
+
+                    if let Some(Some(group)) = hl_table.get(token.scope as usize) {
+                        highlights.push(Highlight {
+                            line: line.line as u64,
+                            character_start: token.character as u64,
+                            character_end: token.character as u64 + token.length as u64,
+                            group: group.clone(),
+                            text: String::new(),
+                        });
+
+                        line_has_sym = true;
+                    }
+                }
+
+                if line_has_sym {
+                    // Try to coalesce adjacent lines to reduce the API calls
+                    match clears.last_mut() {
+                        Some(last) => {
+                            if last.line_end == line.line as u64 {
+                                last.line_end += 1;
+                            } else {
+                                clears.push(ClearNamespace {
+                                    line_start: line.line as u64,
+                                    line_end: line.line as u64 + 1,
+                                });
+                            }
+                        },
+                        None => {
+                            clears.push(ClearNamespace {
+                                line_start: line.line as u64,
+                                line_end: line.line as u64 + 1,
+                            });
+                        }
+                    }
+                }
+            }
+
+            let mut num_semantic_hls = 0;
+            let num_new_semantic_hls = highlights.len();
+
+            self.update(|state| {
+                state.semantic_highlights_syms.insert(languageId.clone(), params.lines);
+
+                state.vim.rpcclient.notify(
+                    "s:ApplySemanticHighlights",
+                    json!([buffer, ns_id, clears, highlights])
+                )?;
+
+
+                let mut old_semantic_hls = state.semantic_highlights
+                    .insert(languageId.clone(), Vec::new())
+                    .unwrap_or_default();
+
+                // FIXME: These are most likely invalid due to new/deleted lines
+                //        shifting the highlighted regions from their original positions
+                //
+                //        Technically this would break incremental semantic highlighting
+                //        but it seems like no server implements this right now
+                //
+                //        If this is not cleared the array of highlights can grow very large.
+                old_semantic_hls.clear();
+
+                let mut existing_hls = old_semantic_hls.into_iter().peekable();
+                let mut new_hls = highlights.into_iter().peekable();
+                let semantic_hls = state.semantic_highlights.get_mut(&languageId).unwrap();
+
+                loop {
+                    match (existing_hls.peek(), new_hls.peek()) {
+                        (Some(existing_hl), Some(new_hl)) => {
+                            use std::cmp::Ordering;
+
+                            match existing_hl.line.cmp(&new_hl.line) {
+                                Ordering::Less => { semantic_hls.push(existing_hls.next().expect("unreachable")); },
+                                Ordering::Greater => { semantic_hls.push(new_hls.next().expect("unreachable")); },
+                                Ordering::Equal => { 
+                                    // existing highlight on same line as new, it gets cleared
+                                    existing_hls.next();
+                                }
+                            }
+                        }
+                        (Some(_), None) => {
+                            semantic_hls.push(existing_hls.next().expect("unreachable"));
+                        }
+                        (None, Some(_)) => {
+                            semantic_hls.push(new_hls.next().expect("unreachable"));
+                        }
+                        (None, None) => {
+                            break;
+                        }
+                    }
+                }
+
+                num_semantic_hls = semantic_hls.len();
+
+                Ok(())
+            })?;
+
+            info!("Applied Semantic Highlighting for {} Symbols ({} new)",
+                num_semantic_hls, num_new_semantic_hls)
+        } else {
+            self.update(|state| {
+                state.semantic_highlights_syms.insert(languageId.clone(), params.lines);
+                Ok(())
+            })?;
+        }
+
+        info!("End {}", lsp::notification::SemanticHighlighting::METHOD);
+        Ok(())
+    }
+
     pub fn window_logMessage(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp::notification::LogMessage::METHOD);
         let params: LogMessageParams = params.clone().to_lsp()?;
@@ -2727,7 +3072,7 @@ impl LanguageClient {
         }
 
         if self.get(|state| state.is_nvim)? {
-            let namespace_id = self.get_or_create_namespace()?;
+            let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
             self.vim()?.set_virtual_texts(
                 bufnr,
                 namespace_id,
@@ -2888,6 +3233,67 @@ impl LanguageClient {
 
         info!("End {}", NOTIFICATION__FZFSinkCommand);
         Ok(())
+    }
+
+    pub fn languageClient_semanticScopes(&self, params: &Value) -> Fallible<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        let (scopes, mut scope_mapping) = self.get(|state| (
+                state.semantic_scopes.get(&languageId).cloned().unwrap_or_default(),
+                state.semantic_scope_to_hl_group_table.get(&languageId).cloned().unwrap_or_default()
+        ))?;
+
+        let mut semantic_scopes = Vec::new();
+
+        // If the user has not set up highlighting yet the table does not exist
+        if scopes.len() > scope_mapping.len() {
+            scope_mapping.resize(scopes.len(), None);
+        }
+
+        for (scope, opt_hl_group) in scopes.iter().zip(scope_mapping.iter()) {
+            if let Some(hl_group) = opt_hl_group {
+                semantic_scopes.push(json!({
+                    "scope": scope,
+                    "hl_group": hl_group,
+                }));
+            } else {
+                semantic_scopes.push(json!({
+                    "scope": scope,
+                    "hl_group": "None",
+                }));
+            }
+        }
+
+        Ok(json!(semantic_scopes))
+    }
+
+    pub fn languageClient_semanticHlSyms(&self, params: &Value) -> Fallible<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        let (opt_scopes, opt_syms) = self.get(|state|
+            (state.semantic_scopes.get(&languageId).cloned(), state.semantic_highlights_syms.get(&languageId).cloned())
+        )?;
+
+        if let (Some(scopes), Some(syms)) = (opt_scopes, opt_syms) {
+            let mut symbols = Vec::new();
+
+            for sym in syms {
+                for token in sym.tokens {
+                    symbols.push(json!({
+                        "line": sym.line as u64,
+                        "character_start": token.character as u64,
+                        "character_end": token.character as u64 + token.length as u64,
+                        "scope": scopes.get(token.scope as usize).cloned().unwrap_or_default()
+                    }));
+                }
+            }
+
+            Ok(json!(symbols))
+        } else {
+            Ok(json!([]))
+        }
     }
 
     pub fn NCM_refresh(&self, params: &Value) -> Fallible<Value> {
