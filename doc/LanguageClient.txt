@@ -386,6 +386,14 @@ Maximum severity to show diagnostic messages.
 Default: "Hint"
 Valid options: "Error" | "Warning" | "Information" | "Hint"
 
+2.29 g:LanguageClient_echoProjectRoot  *g:LanguageClient_echoProjectRoot*
+
+Whether to echo messages in vim of the form: "Project root: /home/user/myproject" when
+the root of a project is detected using g:LanguageClient_rootMarkers.
+
+Default: 1 to display the messages
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
