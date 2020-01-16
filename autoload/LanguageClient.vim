@@ -1393,7 +1393,7 @@ function! LanguageClient_semanticScopes(...) abort
     return LanguageClient#Call('languageClient/semanticScopes', l:params, l:Callback)
 endfunction
 
-function! s:print_semantic_scopes(response)
+function! s:print_semantic_scopes(response) abort
     let l:scope_mappings = a:response.result
 
     let l:msg = ''
