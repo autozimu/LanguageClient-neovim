@@ -2536,6 +2536,7 @@ impl LanguageClient {
                         diag.severity.unwrap_or(DiagnosticSeverity::Hint),
                     )
                 })
+                .sorted_by_key(|(line, _)| *line)
                 .group_by(|(line, _)| *line)
                 .into_iter()
                 .filter_map(|(_, group)| group.min_by_key(|(_, severity)| *severity))
