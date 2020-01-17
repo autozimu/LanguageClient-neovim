@@ -34,7 +34,8 @@ pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
 pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
 pub const REQUEST__CodeLensAction: &str = "LanguageClient/handleCodeLensAction";
 pub const REQUEST__SemanticScopes: &str = "languageClient/semanticScopes";
-pub const REQUEST__ShowSemanticHighlightSymbols: &str = "languageClient/showSemanticHighlightSymbols";
+pub const REQUEST__ShowSemanticHighlightSymbols: &str =
+    "languageClient/showSemanticHighlightSymbols";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
@@ -499,18 +500,21 @@ impl SemanticHighlightMatcher {
                 } else {
                     false
                 }
-            },
+            }
             ArrayEnd(match_arr) => {
                 if scope_arr.len() >= match_arr.len() {
                     Self::slices_match(match_arr, &scope_arr[scope_arr.len() - match_arr.len()..])
                 } else {
                     false
                 }
-            },
+            }
             ArrayContains(match_arr) => {
                 if scope_arr.len() >= match_arr.len() {
                     for offset in 0..=(scope_arr.len() - match_arr.len()) {
-                        if Self::slices_match(match_arr, &scope_arr[offset..offset + match_arr.len()]) {
+                        if Self::slices_match(
+                            match_arr,
+                            &scope_arr[offset..offset + match_arr.len()],
+                        ) {
                             return true;
                         }
                     }
@@ -543,7 +547,12 @@ fn test_semantic_hl_matcher_str() {
     let matcher = SemanticHighlightMatcher::Str("Hello".into());
 
     assert!(matcher.matches(&vec!["Hello".into()]));
-    assert!(matcher.matches(&vec!["X".into(), "HELLO".into(), "Hello".into(), "ABCD".into()]));
+    assert!(matcher.matches(&vec![
+        "X".into(),
+        "HELLO".into(),
+        "Hello".into(),
+        "ABCD".into()
+    ]));
     assert!(matcher.matches(&vec!["Hello".into(), "ABCD".into(), "X".into()]));
     assert!(!matcher.matches(&vec!["ABCD".into(), "X".into()]));
 }
@@ -562,7 +571,12 @@ fn test_semantic_hl_matcher_array() {
     let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
 
     let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
-        (arr.matches(v), arr_s.matches(v), arr_e.matches(v), arr_c.matches(v))
+        (
+            arr.matches(v),
+            arr_s.matches(v),
+            arr_e.matches(v),
+            arr_c.matches(v),
+        )
     };
 
     assert_eq!(do_matches(&t1), (true, true, true, true));
@@ -585,7 +599,12 @@ fn test_semantic_hl_matcher_array_glob() {
     let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
 
     let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
-        (arr.matches(v), arr_s.matches(v), arr_e.matches(v), arr_c.matches(v))
+        (
+            arr.matches(v),
+            arr_s.matches(v),
+            arr_e.matches(v),
+            arr_c.matches(v),
+        )
     };
 
     assert_eq!(do_matches(&t1), (true, true, true, true));
