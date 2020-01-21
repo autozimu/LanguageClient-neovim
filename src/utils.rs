@@ -464,3 +464,122 @@ pub fn decode_parameterLabel(
         }
     }
 }
+
+pub fn buildSemanticHighlightMatchers(
+    all_scope_names: HashSet<String>,
+    user_mapping: &[(Vec<String>, String)],
+) -> Vec<(SemanticHighlightMatcher, String)> {
+    let mut highlight_mappings = Vec::new();
+
+    for (scope_arr, highlight_group) in user_mapping {
+        let mut scopes = Vec::new();
+
+        for s in scope_arr {
+            if all_scope_names.contains(s) {
+                scopes.push(s.clone());
+            } else {
+                warn!("Invalid Semantic Highlight Scope: {}", s);
+                break;
+            }
+        }
+
+        if scopes.len() == scope_arr.len() {
+            highlight_mappings.push((
+                match (
+                    scopes.first().map(|s| &s[..]),
+                    scopes.last().map(|s| &s[..]),
+                ) {
+                    (Some("**"), Some("**")) => {
+                        scopes.pop();
+                        scopes.remove(0);
+                        SemanticHighlightMatcher::ArrayContains(scopes)
+                    }
+                    (_, Some("**")) => {
+                        scopes.pop();
+                        SemanticHighlightMatcher::ArrayStart(scopes)
+                    }
+                    (Some("**"), _) => {
+                        scopes.remove(0);
+                        SemanticHighlightMatcher::ArrayEnd(scopes)
+                    }
+                    (_, _) => SemanticHighlightMatcher::Array(scopes),
+                },
+                highlight_group.clone(),
+            ));
+        }
+    }
+
+    highlight_mappings
+}
+
+#[test]
+fn test_buildMatchers() {
+    let all_scope_names = ["**", "*", "X", "Y", "Z"]
+        .into_iter()
+        .map(|s| (*s).into())
+        .collect();
+
+    let mappings: Vec<_> = [
+        (vec!["X", "Y", "Z"], "HL1"),
+        (vec!["X", "*", "Z"], "HL2"),
+        (vec!["X", "*", "Z", "**"], "HL3"),
+        (vec!["**", "X", "*", "Z"], "HL4"),
+        (vec!["**", "X", "*", "Z", "**"], "HL5"),
+    ]
+    .into_iter()
+    .map(|(v, hl)| (v.into_iter().map(|s| (*s).into()).collect(), (*hl).into()))
+    .collect();
+
+    let matchers = buildSemanticHighlightMatchers(all_scope_names, &mappings);
+
+    let mut it = matchers.iter();
+    match it.next().map(|(m, hl)| (m, &hl[..])) {
+        Some((SemanticHighlightMatcher::Array(arr), "HL1")) => {
+            assert_eq!(
+                *arr,
+                vec![String::from("X"), String::from("Y"), String::from("Z")]
+            );
+        }
+        _ => panic!("HL1 does not match!"),
+    };
+
+    match it.next().map(|(m, hl)| (m, &hl[..])) {
+        Some((SemanticHighlightMatcher::Array(arr), "HL2")) => {
+            assert_eq!(
+                *arr,
+                vec![String::from("X"), String::from("*"), String::from("Z")]
+            );
+        }
+        _ => panic!("HL2 does not match!"),
+    };
+
+    match it.next().map(|(m, hl)| (m, &hl[..])) {
+        Some((SemanticHighlightMatcher::ArrayStart(arr), "HL3")) => {
+            assert_eq!(
+                *arr,
+                vec![String::from("X"), String::from("*"), String::from("Z")]
+            );
+        }
+        _ => panic!("HL3 does not match!"),
+    };
+
+    match it.next().map(|(m, hl)| (m, &hl[..])) {
+        Some((SemanticHighlightMatcher::ArrayEnd(arr), "HL4")) => {
+            assert_eq!(
+                *arr,
+                vec![String::from("X"), String::from("*"), String::from("Z")]
+            );
+        }
+        _ => panic!("HL4 does not match!"),
+    };
+
+    match it.next().map(|(m, hl)| (m, &hl[..])) {
+        Some((SemanticHighlightMatcher::ArrayContains(arr), "HL5")) => {
+            assert_eq!(
+                *arr,
+                vec![String::from("X"), String::from("*"), String::from("Z")]
+            );
+        }
+        _ => panic!("HL5 does not match!"),
+    };
+}

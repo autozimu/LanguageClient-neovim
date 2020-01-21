@@ -870,53 +870,6 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn buildSemanticHighlightMatchers(
-        all_scope_names: HashSet<String>,
-        user_mapping: &[(Vec<String>, String)],
-    ) -> Vec<(SemanticHighlightMatcher, String)> {
-        let mut highlight_mappings = Vec::new();
-
-        for (scope_arr, highlight_group) in user_mapping {
-            let mut scopes = Vec::new();
-
-            for s in scope_arr {
-                if all_scope_names.contains(s) {
-                    scopes.push(s.clone());
-                } else {
-                    warn!("Invalid Semantic Highlight Scope: {}", s);
-                    break;
-                }
-            }
-
-            if scopes.len() == scope_arr.len() {
-                highlight_mappings.push((
-                    match (
-                        scopes.first().map(|s| &s[..]),
-                        scopes.last().map(|s| &s[..]),
-                    ) {
-                        (Some("**"), Some("**")) => {
-                            scopes.pop();
-                            scopes.remove(0);
-                            SemanticHighlightMatcher::ArrayContains(scopes)
-                        }
-                        (_, Some("**")) => {
-                            scopes.pop();
-                            SemanticHighlightMatcher::ArrayStart(scopes)
-                        }
-                        (Some("**"), _) => {
-                            scopes.remove(0);
-                            SemanticHighlightMatcher::ArrayEnd(scopes)
-                        }
-                        (_, _) => SemanticHighlightMatcher::Array(scopes),
-                    },
-                    highlight_group.clone(),
-                ));
-            }
-        }
-
-        highlight_mappings
-    }
-
     /// Build the Semantic Highlight Lookup Table of
     ///
     /// ScopeIndex -> Option<HighlightGroup>
@@ -939,8 +892,7 @@ impl LanguageClient {
                 });
             });
 
-            let matchers =
-                Self::buildSemanticHighlightMatchers(all_scope_names, &semanticHighlightMap);
+            let matchers = buildSemanticHighlightMatchers(all_scope_names, &semanticHighlightMap);
 
             let table: Vec<Option<String>> = semantic_scopes
                 .iter()
