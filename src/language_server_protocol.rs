@@ -2321,52 +2321,70 @@ impl LanguageClient {
                 return Ok(());
             }
 
-            let mut highlights = Vec::new();
-
-            for line in &semantic_hl_state.symbols {
-                for token in &line.tokens {
-                    if token.length == 0 {
-                        continue;
-                    }
-
-                    if let Some(Some(group)) = hl_table.get(token.scope as usize) {
-                        highlights.push(Highlight {
-                            line: line.line as u64,
-                            character_start: token.character as u64,
-                            character_end: token.character as u64 + token.length as u64,
-                            group: group.clone(),
-                            text: String::new(),
-                        });
-                    }
-                }
-            }
-
-            let mut clears = Vec::new();
-            let clear_begin;
-            let clear_end; // exclusive
-
             /*
              * Currently servers update entire regions of text at a time or a
              * single line so simply clear between the first and last line to
              * ensure no highlights are left dangling
              */
-            match (
-                semantic_hl_state.symbols.first(),
-                semantic_hl_state.symbols.last(),
-            ) {
-                (Some(start), Some(end)) => {
-                    clears.push(ClearNamespace {
-                        line_start: start.line as u64,
-                        line_end: end.line as u64 + 1,
-                    });
+            let mut clear_region: Option<(u64, u64)> = None;
+            let mut highlights = Vec::with_capacity(semantic_hl_state.symbols.len());
 
-                    clear_begin = start.line as u64;
-                    clear_end = end.line as u64 + 1;
+            for line in &semantic_hl_state.symbols {
+                if let Some(tokens) = &line.tokens {
+                    for token in tokens {
+                        if token.length == 0 {
+                            continue;
+                        }
+
+                        if let Some(Some(group)) = hl_table.get(token.scope as usize) {
+                            highlights.push(Highlight {
+                                line: line.line as u64,
+                                character_start: token.character as u64,
+                                character_end: token.character as u64 + token.length as u64,
+                                group: group.clone(),
+                                text: String::new(),
+                            });
+                        }
+                    }
+
+                    match clear_region {
+                        Some((begin, _)) => {
+                            clear_region = Some((begin, line.line as u64 + 1));
+                        }
+                        None => {
+                            clear_region = Some((line.line as u64, line.line as u64 + 1));
+                        }
+                    }
                 }
-                (_, _) => {
-                    clear_begin = 0 as u64;
-                    clear_end = 0 as u64;
+            }
+
+            info!(
+                "Semantic Highlighting Region [{}, {}]:",
+                semantic_hl_state
+                    .symbols
+                    .first()
+                    .map_or(-1, |h| h.line as i64),
+                semantic_hl_state
+                    .symbols
+                    .last()
+                    .map_or(-1, |h| h.line as i64)
+            );
+
+            info!(
+                "Semantic Highlighting Region (Parsed) [{}, {}]:",
+                highlights.first().map_or(-1, |h| h.line as i64),
+                highlights.last().map_or(-1, |h| h.line as i64)
+            );
+
+            let mut clears = Vec::new();
+            match clear_region {
+                Some((begin, end)) => {
+                    clears.push(ClearNamespace {
+                        line_start: begin,
+                        line_end: end,
+                    });
                 }
+                None => {}
             }
 
             let mut num_semantic_hls = 0;
@@ -2403,8 +2421,8 @@ impl LanguageClient {
 
                             match existing_hl.line.cmp(&new_hl.line) {
                                 Ordering::Less => {
-                                    if clear_begin <= existing_hl.line
-                                        && existing_hl.line < clear_end
+                                    if clear_region.unwrap_or((0, 0)).0 <= existing_hl.line
+                                        && existing_hl.line < clear_region.unwrap_or((0, 0)).1
                                     {
                                         // within clear region, this highlight gets cleared
                                         existing_hls.next();
@@ -3260,7 +3278,7 @@ impl LanguageClient {
             let mut symbols = Vec::new();
 
             for sym in hl_state.symbols {
-                for token in sym.tokens {
+                for token in sym.tokens.unwrap_or_default() {
                     symbols.push(json!({
                         "line": sym.line as u64,
                         "character_start": token.character as u64,
