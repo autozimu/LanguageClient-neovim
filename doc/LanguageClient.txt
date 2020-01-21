@@ -411,19 +411,8 @@ https://github.com/microsoft/vscode-languageserver-node/issues/368
 
 
 Like |g:LanguageClient_serverCommands| this is a map where the keys are
-filetypes. However the value at each key can be either:
-
-1. A map of highlight group name (see |highlight-groups|) => list of strings:
->
-    let g:LanguageClient_semanticHighlightMaps = {
-        \ 'java': {
-        \   "Function": ['entity.name.function.java', '**'],
-        \   "Type": ['entity.name.type.class.java', '**'],
-        \ }
-        \ }
-
-2. A list of maps from #1, this is to allow for multiple patterns for the same
-   highlight group.
+filetypes. However in this case the values are a list of maps that map
+highlight group names (see |highlight-groups|) to a lists of strings.
 >
     let g:LanguageClient_semanticHighlightMaps = {
         \ 'java': [
@@ -436,14 +425,14 @@ filetypes. However the value at each key can be either:
 
 The maps associate the highlight group with a semantic scope matching pattern.
 Any symbols that have a scope that matches the pattern will be highlighted
-wtih that highlight group.
+with that highlight group.
 
 There are a fixed set of semantic scopes defined by the LSP server on startup.
-These can be viewed by calling |LanguageClient_semanticScopes| which will
+These can be viewed by calling |LanguageClient_showSemanticScopes| which will
 show all the semantic scopes and their currently mapped highlight group for
 the currently open buffer's filetype.
 >
-     call LanguageClient_semanticScopes()
+     call LanguageClient_showSemanticScopes()
 
      == Output from eclipse.jdt.ls ==
 
@@ -483,24 +472,24 @@ while hovering over the text of interest.
 In order for a pattern to match a semantic scope the lists must fully match
 in length and list items.
 >
-     ['x', 'y', 'z'] == ['x', 'y', 'z']
+     ['x', 'y', 'z'] matches ['x', 'y', 'z']
 
 To make this easier two special strings '*' and '**' were added:
 
 Any ('*'):
 When a '*' is present it can match any SINGLE string at that position.
 >
-     ['x', '*', 'z'] == ['x', 'y', 'z']
-     ['x', '*', 'z'] != ['x', 'abc', 'y', 'z']
+     ['x', '*', 'z'] matches ['x', 'y', 'z']
+     ['x', '*', 'z'] does not match ['x', 'abc', 'y', 'z']
 
 Glob ('**'):
 When a '**' is present at the beginning and/or the end of the list it matches
 an arbitrary number of strings in its place. Currently, putting '**' in the
 middle is not implemented.
 >
-     ['x', 'y', '**'] == ['x', 'y', 'z', '1', '2', '3']
-     ['**', '123', '**'] == ['x', 'y', 'z', '123', '1', '2', '3']
-     ['**', 'y', 'z'] != ['x', 'y', 'z', '1', '2', '3']
+     ['x', 'y', '**'] matches ['x', 'y', 'z', '1', '2', '3']
+     ['**', '123', '**'] matches ['x', 'y', 'z', '123', '1', '2', '3']
+     ['**', 'y', 'z'] does not match ['x', 'y', 'z', '1', '2', '3']
 
 
 Example configuration for eclipse.jdt.ls:
@@ -796,14 +785,14 @@ Signature: LanguageClient#java_classFileContents(...)
 
 Call java/classFileContents.
 
-*LanguageClient_semanticScopes*
-Signature: LanguageClient_semanticScopes(...)
+*LanguageClient_showSemanticScopes*
+Signature: LanguageClient_showSemanticScopes(...)
 
 Get all Semantic Scopes and their associated highlight groups for the current
 filetype (filetype of the currently open buffer) and print them.
 
 *LanguageClient_showCursorSemanticHighlightSymbols*
-Signature: LanguageClient_showCursorSemanticHighlightSymbols()
+Signature: LanguageClient_showCursorSemanticHighlightSymbols(...)
 
 Get the Semantic Scope of the symbol currently under the cursor.
 The result gets displayed in a popup.

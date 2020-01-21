@@ -1386,7 +1386,7 @@ function! LanguageClient_contextMenu() abort
     return LanguageClient_handleContextMenuItem(l:options[l:selection - 1])
 endfunction
 
-function! LanguageClient_semanticScopes(...) abort
+function! LanguageClient_showSemanticScopes(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, function('s:print_semantic_scopes'))
 
@@ -1420,8 +1420,11 @@ function! LanguageClient#showSemanticHighlightSymbols(...) abort
     return LanguageClient#Call('languageClient/showSemanticHighlightSymbols', l:params, l:Callback)
 endfunction
 
-function! LanguageClient_showCursorSemanticHighlightSymbols() abort
-    return LanguageClient#showSemanticHighlightSymbols({}, function('s:print_cursor_semantic_symbol'))
+function! LanguageClient_showCursorSemanticHighlightSymbols(...) abort
+    let l:params = get(a:000, 0, {})
+    let l:Callback = get(a:000, 1, function('s:print_cursor_semantic_symbol'))
+
+    return LanguageClient#showSemanticHighlightSymbols(l:params, l:Callback)
 endfunction
 
 function! s:print_cursor_semantic_symbol(response) abort
