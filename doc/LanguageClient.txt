@@ -425,7 +425,8 @@ highlight group names (see |highlight-groups|) to a lists of strings.
 
 The maps associate the highlight group with a semantic scope matching pattern.
 Any symbols that have a scope that matches the pattern will be highlighted
-with that highlight group.
+with that highlight group. They will match in the order they are listed (first
+to last), the first matched pattern's highlight group will be used.
 
 There are a fixed set of semantic scopes defined by the LSP server on startup.
 These can be viewed by calling |LanguageClient_showSemanticScopes| which will
