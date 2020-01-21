@@ -157,7 +157,8 @@ pub struct State {
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
-    pub semanticHighlightMaps: HashMap<String, Vec<(Value, String)>>,
+    // languageId => (scope1 => hlgroup1, scope2 => hlgroup2, ...)
+    pub semanticHighlightMaps: HashMap<String, Vec<(Vec<String>, String)>>,
     pub autoStart: bool,
     pub selectionUI: SelectionUI,
     pub selectionUI_autoOpen: bool,
@@ -475,8 +476,6 @@ pub struct ClearNamespace {
 /// Helper type for semantic highlighting
 #[derive(Debug)]
 pub enum SemanticHighlightMatcher {
-    /// Check if the array contains the string
-    Str(String),
     /// Checks that the entire array matches (same length)
     Array(Vec<String>),
     /// Checks that the array starts with this
@@ -492,7 +491,6 @@ impl SemanticHighlightMatcher {
         use SemanticHighlightMatcher::*;
 
         match self {
-            Str(s) => scope_arr.contains(s),
             Array(match_arr) => Self::slices_match(match_arr, scope_arr),
             ArrayStart(match_arr) => {
                 if scope_arr.len() >= match_arr.len() {
@@ -540,21 +538,6 @@ impl SemanticHighlightMatcher {
             false
         }
     }
-}
-
-#[test]
-fn test_semantic_hl_matcher_str() {
-    let matcher = SemanticHighlightMatcher::Str("Hello".into());
-
-    assert!(matcher.matches(&vec!["Hello".into()]));
-    assert!(matcher.matches(&vec![
-        "X".into(),
-        "HELLO".into(),
-        "Hello".into(),
-        "ABCD".into()
-    ]));
-    assert!(matcher.matches(&vec!["Hello".into(), "ABCD".into(), "X".into()]));
-    assert!(!matcher.matches(&vec!["ABCD".into(), "X".into()]));
 }
 
 #[test]

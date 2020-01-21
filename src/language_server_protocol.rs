@@ -114,6 +114,7 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
+        #[allow(clippy::type_complexity)]
         let (
             diagnosticsSignsMax,
             diagnostics_max_severity,
@@ -129,7 +130,7 @@ impl LanguageClient {
             u8,
             UseVirtualText,
             u8,
-            HashMap<String, Value>,
+            HashMap<String, Vec<HashMap<String, Vec<String>>>>,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -213,42 +214,19 @@ impl LanguageClient {
         };
 
         let mut semanticHighlightMaps = HashMap::new();
+        let mut semanticHlUpdateLanguageIds = Vec::new();
 
-        for (languageId, v) in userSemanticHighlightMaps {
-            let mut mapping_pairs = Vec::new();
-            match v {
-                Value::Object(mapping) => {
-                    mapping_pairs
-                        .extend(mapping.into_iter().map(|(hl_group, val)| (val, hl_group)));
-                }
-                Value::Array(values) => {
-                    for (idx, v2) in values.into_iter().enumerate() {
-                        match v2 {
-                            Value::Object(mapping) => {
-                                mapping_pairs.extend(
-                                    mapping.into_iter().map(|(hl_group, val)| (val, hl_group)),
-                                );
-                            }
-                            _ => {
-                                error!("Invalid SemanticHighlightMap for language ({}) at index ({}): {}",
-                                    languageId, idx, v2);
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    error!(
-                        "Invalid SemanticHighlightMap for language ({}): {}",
-                        languageId, v
-                    );
-                }
+        for (languageId, languageMaps) in userSemanticHighlightMaps {
+            let mut mappingPairs = Vec::new();
+            for languageMap in languageMaps {
+                mappingPairs.extend(languageMap.into_iter()
+                    .map(|(hlGroup, scopeArr)| (scopeArr, hlGroup)));
             }
 
-            semanticHighlightMaps.insert(languageId, mapping_pairs);
+            semanticHlUpdateLanguageIds.push(languageId.clone());
+            semanticHighlightMaps.insert(languageId, mappingPairs);
         }
 
-        let semanticHlUpdateLanguageIds: Vec<String> =
-            semanticHighlightMaps.keys().cloned().collect();
 
         self.update(|state| {
             state.autoStart = autoStart;
@@ -892,76 +870,45 @@ impl LanguageClient {
 
     fn buildSemanticHighlightMatchers(
         all_scope_names: HashSet<String>,
-        user_mapping: &[(Value, String)],
+        user_mapping: &[(Vec<String>, String)],
     ) -> Vec<(SemanticHighlightMatcher, String)> {
         let mut highlight_mappings = Vec::new();
 
-        for (mapping_type, highlight_group) in user_mapping.iter() {
-            match mapping_type {
-                Value::Array(arr) => {
-                    let mut scopes = Vec::new();
+        for (scope_arr, highlight_group) in user_mapping {
+            let mut scopes = Vec::new();
 
-                    for v in arr {
-                        match v {
-                            Value::String(s) => {
-                                if all_scope_names.contains(s) {
-                                    scopes.push(s.clone());
-                                } else {
-                                    warn!("Invalid Semantic Highlight Scope: {}", s);
-                                    break;
-                                }
-                            }
-                            _ => {
-                                warn!(
-                                    "Invalid Semantic Highlighting Mapping: {} -> {}",
-                                    highlight_group, mapping_type
-                                );
-                                break;
-                            }
-                        }
-                    }
+            for s in scope_arr {
+                if all_scope_names.contains(s) {
+                    scopes.push(s.clone());
+                } else {
+                    warn!("Invalid Semantic Highlight Scope: {}", s);
+                    break;
+                }
+            }
 
-                    if scopes.len() == arr.len() {
-                        highlight_mappings.push((
-                            match (
-                                scopes.first().map(|s| &s[..]),
-                                scopes.last().map(|s| &s[..]),
-                            ) {
-                                (Some("**"), Some("**")) => {
-                                    scopes.pop();
-                                    scopes.remove(0);
-                                    SemanticHighlightMatcher::ArrayContains(scopes)
-                                }
-                                (_, Some("**")) => {
-                                    scopes.pop();
-                                    SemanticHighlightMatcher::ArrayStart(scopes)
-                                }
-                                (Some("**"), _) => {
-                                    scopes.remove(0);
-                                    SemanticHighlightMatcher::ArrayEnd(scopes)
-                                }
-                                (_, _) => SemanticHighlightMatcher::Array(scopes),
-                            },
-                            highlight_group.clone(),
+            if scopes.len() == scope_arr.len() {
+                highlight_mappings.push((
+                        match (
+                            scopes.first().map(|s| &s[..]),
+                            scopes.last().map(|s| &s[..]),
+                        ) {
+                            (Some("**"), Some("**")) => {
+                                scopes.pop();
+                                scopes.remove(0);
+                                SemanticHighlightMatcher::ArrayContains(scopes)
+                            }
+                            (_, Some("**")) => {
+                                scopes.pop();
+                                SemanticHighlightMatcher::ArrayStart(scopes)
+                            }
+                            (Some("**"), _) => {
+                                scopes.remove(0);
+                                SemanticHighlightMatcher::ArrayEnd(scopes)
+                            }
+                            (_, _) => SemanticHighlightMatcher::Array(scopes),
+                        },
+                        highlight_group.clone(),
                         ));
-                    }
-                }
-                Value::String(s) => {
-                    if all_scope_names.contains(s) {
-                        highlight_mappings.push((
-                            SemanticHighlightMatcher::Str(s.clone()),
-                            highlight_group.clone(),
-                        ));
-                    } else {
-                        warn!("Invalid Semantic Highlight Scope: {}", s);
-                    }
-                }
-                _ => {
-                    warn!(
-                        "Invalid Semantic Highlighting Mapping: {} -> {}",
-                        highlight_group, mapping_type
-                    );
-                }
             }
         }
 
