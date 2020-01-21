@@ -499,9 +499,9 @@ Example configuration for eclipse.jdt.ls:
                  \ {"JavaStaticMemberFunction": ['storage.modifier.static.java', 'entity.name.function.java', '**']},
                  \ {"JavaMemberVariable": ['meta.definition.variable.java', 'meta.class.body.java', 'meta.class.java', '**']},
                  \ {"Function": ['entity.name.function.java', '**']},
-                 \ {"Function": ['*', 'entity.name.function.java', '**']},
+                 \ {"Function": ['**', 'entity.name.function.java', '**']},
                  \ {"Type": ['entity.name.type.class.java', '**']},
-                 \ {"Type": ['*', 'entity.name.type.class.java', '**']},
+                 \ {"Type": ['**', 'entity.name.type.class.java', '**']},
                  \ ]
 
      highlight! JavaStaticMemberFunction ctermfg=Green cterm=none guifg=Green gui=none
