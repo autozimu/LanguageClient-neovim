@@ -219,14 +219,16 @@ impl LanguageClient {
         for (languageId, languageMaps) in userSemanticHighlightMaps {
             let mut mappingPairs = Vec::new();
             for languageMap in languageMaps {
-                mappingPairs.extend(languageMap.into_iter()
-                    .map(|(hlGroup, scopeArr)| (scopeArr, hlGroup)));
+                mappingPairs.extend(
+                    languageMap
+                        .into_iter()
+                        .map(|(hlGroup, scopeArr)| (scopeArr, hlGroup)),
+                );
             }
 
             semanticHlUpdateLanguageIds.push(languageId.clone());
             semanticHighlightMaps.insert(languageId, mappingPairs);
         }
-
 
         self.update(|state| {
             state.autoStart = autoStart;
@@ -888,27 +890,27 @@ impl LanguageClient {
 
             if scopes.len() == scope_arr.len() {
                 highlight_mappings.push((
-                        match (
-                            scopes.first().map(|s| &s[..]),
-                            scopes.last().map(|s| &s[..]),
-                        ) {
-                            (Some("**"), Some("**")) => {
-                                scopes.pop();
-                                scopes.remove(0);
-                                SemanticHighlightMatcher::ArrayContains(scopes)
-                            }
-                            (_, Some("**")) => {
-                                scopes.pop();
-                                SemanticHighlightMatcher::ArrayStart(scopes)
-                            }
-                            (Some("**"), _) => {
-                                scopes.remove(0);
-                                SemanticHighlightMatcher::ArrayEnd(scopes)
-                            }
-                            (_, _) => SemanticHighlightMatcher::Array(scopes),
-                        },
-                        highlight_group.clone(),
-                        ));
+                    match (
+                        scopes.first().map(|s| &s[..]),
+                        scopes.last().map(|s| &s[..]),
+                    ) {
+                        (Some("**"), Some("**")) => {
+                            scopes.pop();
+                            scopes.remove(0);
+                            SemanticHighlightMatcher::ArrayContains(scopes)
+                        }
+                        (_, Some("**")) => {
+                            scopes.pop();
+                            SemanticHighlightMatcher::ArrayStart(scopes)
+                        }
+                        (Some("**"), _) => {
+                            scopes.remove(0);
+                            SemanticHighlightMatcher::ArrayEnd(scopes)
+                        }
+                        (_, _) => SemanticHighlightMatcher::Array(scopes),
+                    },
+                    highlight_group.clone(),
+                ));
             }
         }
 
@@ -2336,6 +2338,24 @@ impl LanguageClient {
         // Sort lines in ascending order
         params.lines.sort_by(|a, b| a.line.cmp(&b.line));
 
+        // Remove obviously invalid values
+        while let Some(line_info) = params.lines.first() {
+            if line_info.line >= 0 {
+                break;
+            } else {
+                warn!(
+                    "Invalid Semantic Highlight Line: {}",
+                    params.lines.remove(0).line
+                );
+            }
+        }
+
+        let semantic_hl_state = TextDocumentSemanticHighlightState {
+            last_version: params.text_document.version,
+            symbols: params.lines,
+            highlights: None,
+        };
+
         if let Some(hl_table) = opt_hl_table {
             let ns_id = self.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
 
@@ -2350,15 +2370,8 @@ impl LanguageClient {
             }
 
             let mut highlights = Vec::new();
-            let mut clears: Vec<ClearNamespace> = Vec::new();
 
-            for line in &params.lines {
-                if line.line < 0 {
-                    continue;
-                }
-
-                let mut line_has_sym = false;
-
+            for line in &semantic_hl_state.symbols {
                 for token in &line.tokens {
                     if token.length == 0 {
                         continue;
@@ -2372,31 +2385,35 @@ impl LanguageClient {
                             group: group.clone(),
                             text: String::new(),
                         });
-
-                        line_has_sym = true;
                     }
                 }
+            }
 
-                if line_has_sym {
-                    // Try to coalesce adjacent lines to reduce the API calls
-                    match clears.last_mut() {
-                        Some(last) => {
-                            if last.line_end == line.line as u64 {
-                                last.line_end += 1;
-                            } else {
-                                clears.push(ClearNamespace {
-                                    line_start: line.line as u64,
-                                    line_end: line.line as u64 + 1,
-                                });
-                            }
-                        }
-                        None => {
-                            clears.push(ClearNamespace {
-                                line_start: line.line as u64,
-                                line_end: line.line as u64 + 1,
-                            });
-                        }
-                    }
+            let mut clears = Vec::new();
+            let clear_begin;
+            let clear_end; // exclusive
+
+            /*
+             * Currently servers update entire regions of text at a time or a
+             * single line so simply clear between the first and last line to
+             * ensure no highlights are left dangling
+             */
+            match (
+                semantic_hl_state.symbols.first(),
+                semantic_hl_state.symbols.last(),
+            ) {
+                (Some(start), Some(end)) => {
+                    clears.push(ClearNamespace {
+                        line_start: start.line as u64,
+                        line_end: end.line as u64 + 1,
+                    });
+
+                    clear_begin = start.line as u64;
+                    clear_end = end.line as u64 + 1;
+                }
+                (_, _) => {
+                    clear_begin = 0 as u64;
+                    clear_end = 0 as u64;
                 }
             }
 
@@ -2404,33 +2421,29 @@ impl LanguageClient {
             let num_new_semantic_hls = highlights.len();
 
             self.update(|state| {
-                state
-                    .semantic_highlights_syms
-                    .insert(languageId.clone(), params.lines);
-
                 state.vim.rpcclient.notify(
                     "s:ApplySemanticHighlights",
                     json!([buffer, ns_id, clears, highlights]),
                 )?;
 
-                let mut old_semantic_hls = state
+                let old_semantic_hl_state = state
                     .semantic_highlights
-                    .insert(languageId.clone(), Vec::new())
-                    .unwrap_or_default();
+                    .insert(languageId.clone(), semantic_hl_state);
 
-                // FIXME: These are most likely invalid due to new/deleted lines
-                //        shifting the highlighted regions from their original positions
-                //
-                //        Technically this would break incremental semantic highlighting
-                //        but it seems like no server implements this right now
-                //
-                //        If this is not cleared the array of highlights can grow very large.
-                old_semantic_hls.clear();
+                let semantic_hl_state = state.semantic_highlights.get_mut(&languageId).unwrap();
 
-                let mut existing_hls = old_semantic_hls.into_iter().peekable();
+                let mut combined_hls = Vec::with_capacity(highlights.len());
+
+                let mut existing_hls = old_semantic_hl_state
+                    .map_or(Vec::new(), |hl_state| {
+                        hl_state.highlights.unwrap_or_default()
+                    })
+                    .into_iter()
+                    .peekable();
+
                 let mut new_hls = highlights.into_iter().peekable();
-                let semantic_hls = state.semantic_highlights.get_mut(&languageId).unwrap();
 
+                // Incrementally update the highlighting
                 loop {
                     match (existing_hls.peek(), new_hls.peek()) {
                         (Some(existing_hl), Some(new_hl)) => {
@@ -2438,10 +2451,18 @@ impl LanguageClient {
 
                             match existing_hl.line.cmp(&new_hl.line) {
                                 Ordering::Less => {
-                                    semantic_hls.push(existing_hls.next().expect("unreachable"));
+                                    if clear_begin <= existing_hl.line
+                                        && existing_hl.line < clear_end
+                                    {
+                                        // within clear region, this highlight gets cleared
+                                        existing_hls.next();
+                                    } else {
+                                        combined_hls
+                                            .push(existing_hls.next().expect("unreachable"));
+                                    }
                                 }
                                 Ordering::Greater => {
-                                    semantic_hls.push(new_hls.next().expect("unreachable"));
+                                    combined_hls.push(new_hls.next().expect("unreachable"));
                                 }
                                 Ordering::Equal => {
                                     // existing highlight on same line as new, it gets cleared
@@ -2450,10 +2471,10 @@ impl LanguageClient {
                             }
                         }
                         (Some(_), None) => {
-                            semantic_hls.push(existing_hls.next().expect("unreachable"));
+                            combined_hls.push(existing_hls.next().expect("unreachable"));
                         }
                         (None, Some(_)) => {
-                            semantic_hls.push(new_hls.next().expect("unreachable"));
+                            combined_hls.push(new_hls.next().expect("unreachable"));
                         }
                         (None, None) => {
                             break;
@@ -2461,7 +2482,9 @@ impl LanguageClient {
                     }
                 }
 
-                num_semantic_hls = semantic_hls.len();
+                num_semantic_hls = combined_hls.len();
+
+                semantic_hl_state.highlights = Some(combined_hls);
 
                 Ok(())
             })?;
@@ -2473,8 +2496,8 @@ impl LanguageClient {
         } else {
             self.update(|state| {
                 state
-                    .semantic_highlights_syms
-                    .insert(languageId.clone(), params.lines);
+                    .semantic_highlights
+                    .insert(languageId.clone(), semantic_hl_state);
                 Ok(())
             })?;
         }
@@ -3274,17 +3297,17 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
-        let (opt_scopes, opt_syms) = self.get(|state| {
+        let (opt_scopes, opt_hl_state) = self.get(|state| {
             (
                 state.semantic_scopes.get(&languageId).cloned(),
-                state.semantic_highlights_syms.get(&languageId).cloned(),
+                state.semantic_highlights.get(&languageId).cloned(),
             )
         })?;
 
-        if let (Some(scopes), Some(syms)) = (opt_scopes, opt_syms) {
+        if let (Some(scopes), Some(hl_state)) = (opt_scopes, opt_hl_state) {
             let mut symbols = Vec::new();
 
-            for sym in syms {
+            for sym in hl_state.symbols {
                 for token in sym.tokens {
                     symbols.push(json!({
                         "line": sym.line as u64,

@@ -125,9 +125,8 @@ pub struct State {
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
     pub semantic_scopes: HashMap<String, Vec<Vec<String>>>,
     pub semantic_scope_to_hl_group_table: HashMap<String, Vec<Option<String>>>,
-    // filename => semantic highlights.
-    pub semantic_highlights_syms: HashMap<String, Vec<SemanticHighlightingInformation>>,
-    pub semantic_highlights: HashMap<String, Vec<Highlight>>,
+    // filename => semantic highlight state
+    pub semantic_highlights: HashMap<String, TextDocumentSemanticHighlightState>,
     // filename => diagnostics.
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
@@ -216,7 +215,6 @@ impl State {
             text_documents_metadata: HashMap::new(),
             semantic_scopes: HashMap::new(),
             semantic_scope_to_hl_group_table: HashMap::new(),
-            semantic_highlights_syms: HashMap::new(),
             semantic_highlights: HashMap::new(),
             code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
@@ -449,6 +447,13 @@ impl DocumentHighlightDisplay {
         );
         map
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextDocumentSemanticHighlightState {
+    pub last_version: Option<i64>,
+    pub symbols: Vec<SemanticHighlightingInformation>,
+    pub highlights: Option<Vec<Highlight>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
