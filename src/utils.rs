@@ -241,11 +241,12 @@ pub fn apply_TextEdits(
         let end = std::cmp::min(end, text.len());
         text = String::new() + &text[..start] + new_text + &text[end..];
 
-        // Update offset only if the edit's start and end are both before it.
+        // Update offset only if the edit's entire are before it.
         // Edits after the offset do not affect it.
-        // Edits whose range contains the offset cause unpredictable effect.
-        if end < offset {
+        // Edits covering the offset cause unpredictable effect.
+        if end <= offset {
             offset += new_text.len();
+            offset -= new_text.matches("\r\n").count(); // line ending is counted as one offset
             offset -= std::cmp::min(offset, end - start);
         }
     }
@@ -300,8 +301,8 @@ fn test_apply_TextEdit() {
 
     let position = Position::new(0, 0);
 
-    // Ignore returned position since the edit contains current position and the new position is
-    // undefined in this case
+    // Ignore returned position since the edit's range covers current position and the new position
+    // is undefined in this case
     let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
     assert_eq!(result, expect);
 }
@@ -310,7 +311,7 @@ fn test_apply_TextEdit() {
 fn test_apply_TextEdit_overlong_end() {
     let lines: Vec<String> = r#"abc = 123"#.lines().map(|l| l.to_owned()).collect();
 
-    let expected_lines: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
+    let expect: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
 
     let edit = TextEdit {
         range: Range {
@@ -327,7 +328,80 @@ fn test_apply_TextEdit_overlong_end() {
     };
 
     let position = Position::new(0, 1);
-    let expected_position = Position::new(0, 1);
+
+    let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
+    assert_eq!(result, expect);
+}
+
+#[test]
+fn test_apply_TextEdit_position() {
+    let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let expected_lines: Vec<String> = "newline\nabcde = 123"
+        .lines()
+        .map(|l| l.to_owned())
+        .collect();
+
+    let edits = [
+        TextEdit {
+            range: Range {
+                start: Position {
+                    line: 0,
+                    character: 1,
+                },
+                end: Position {
+                    line: 0,
+                    character: 3,
+                },
+            },
+            new_text: "bcde".to_owned(),
+        },
+        TextEdit {
+            range: Range {
+                start: Position {
+                    line: 0,
+                    character: 0,
+                },
+                end: Position {
+                    line: 0,
+                    character: 0,
+                },
+            },
+            new_text: "newline\n".to_owned(),
+        },
+    ];
+
+    let position = Position::new(0, 4);
+    let expected_position = Position::new(1, 6);
+
+    assert_eq!(
+        apply_TextEdits(&lines, &edits, &position).unwrap(),
+        (expected_lines, expected_position)
+    );
+}
+
+#[test]
+fn test_apply_TextEdit_CRLF() {
+    let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let expected_lines: Vec<String> = "a\r\nbc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let edit = TextEdit {
+        range: Range {
+            start: Position {
+                line: 0,
+                character: 0,
+            },
+            end: Position {
+                line: 0,
+                character: 1,
+            },
+        },
+        new_text: "a\r\n".to_owned(),
+    };
+
+    let position = Position::new(0, 2);
+    let expected_position = Position::new(1, 1);
 
     assert_eq!(
         apply_TextEdits(&lines, &[edit], &position).unwrap(),
