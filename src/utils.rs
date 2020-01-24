@@ -241,7 +241,7 @@ pub fn apply_TextEdits(
         let end = std::cmp::min(end, text.len());
         text = String::new() + &text[..start] + new_text + &text[end..];
 
-        // Update offset only if the edit's entire are before it.
+        // Update offset only if the edit's entire range is before it.
         // Edits after the offset do not affect it.
         // Edits covering the offset cause unpredictable effect.
         if end <= offset {
