@@ -8,8 +8,8 @@ use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use failure::err_msg;
 use notify::Watcher;
-use std::sync::mpsc;
 use std::cmp;
+use std::sync::mpsc;
 use vim::try_get;
 
 impl LanguageClient {
@@ -2540,15 +2540,16 @@ impl LanguageClient {
             // find the most severe diagnostic on each line
             let mut signs = BTreeMap::new();
             for (line, severity) in diagnostics_in_view {
-                signs.entry(line)
-                    .and_modify(|s| { *s = cmp::min(*s, severity) })
+                signs
+                    .entry(line)
+                    .and_modify(|s| *s = cmp::min(*s, severity))
                     .or_insert(severity);
             }
             Ok(signs
-               .iter()
-               .take(limit)
-               .map(|(line, severity)| Sign::new(*line, format!("LanguageClient{:?}", severity)))
-               .collect())
+                .iter()
+                .take(limit)
+                .map(|(line, severity)| Sign::new(*line, format!("LanguageClient{:?}", severity)))
+                .collect())
         })?;
         self.update(|state| {
             let signs_prev: Vec<_> = state
