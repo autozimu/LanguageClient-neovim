@@ -127,7 +127,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub sign_next_id: u64,
-    /// Active signs.
+    /// Active signs. Filename -> line number, Sign.
     pub signs: HashMap<String, BTreeMap<u64, Sign>>,
     pub namespace_id: Option<i64>,
     pub highlight_source: Option<u64>,

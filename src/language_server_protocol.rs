@@ -7,9 +7,9 @@ use crate::lsp::request::Request;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use failure::err_msg;
-use itertools::Itertools;
 use notify::Watcher;
 use std::sync::mpsc;
+use std::cmp;
 use vim::try_get;
 
 impl LanguageClient {
@@ -2524,25 +2524,31 @@ impl LanguageClient {
             } else {
                 usize::max_value()
             };
-            Ok(state
+
+            let diagnostics_in_view = state
                 .diagnostics
                 .entry(filename.clone())
                 .or_default()
                 .iter()
-                .filter(|diag| viewport.overlaps(diag.range))
                 .map(|diag| {
                     (
                         diag.range.start.line,
                         diag.severity.unwrap_or(DiagnosticSeverity::Hint),
                     )
-                })
-                .sorted_by_key(|(line, _)| *line)
-                .group_by(|(line, _)| *line)
-                .into_iter()
-                .filter_map(|(_, group)| group.min_by_key(|(_, severity)| *severity))
-                .take(limit)
-                .map(|(line, severity)| Sign::new(line, format!("LanguageClient{:?}", severity)))
-                .collect())
+                });
+
+            // find the most severe diagnostic on each line
+            let mut signs = BTreeMap::new();
+            for (line, severity) in diagnostics_in_view {
+                signs.entry(line)
+                    .and_modify(|s| { *s = cmp::min(*s, severity) })
+                    .or_insert(severity);
+            }
+            Ok(signs
+               .iter()
+               .take(limit)
+               .map(|(line, severity)| Sign::new(*line, format!("LanguageClient{:?}", severity)))
+               .collect())
         })?;
         self.update(|state| {
             let signs_prev: Vec<_> = state
@@ -2577,10 +2583,10 @@ impl LanguageClient {
             // signs might be deleted AND added in the same line to change severity,
             // so deletions must be before additions
             for sign in &signs_to_delete {
-                signs.remove(&sign.line);
+                signs.remove(&sign.id);
             }
             for sign in &signs_to_add {
-                signs.insert(sign.line, sign.clone());
+                signs.insert(sign.id, sign.clone());
             }
             state
                 .vim
