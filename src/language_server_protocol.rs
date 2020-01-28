@@ -847,6 +847,23 @@ impl LanguageClient {
                     }
                 }
             }
+            "rust-analyzer.selectAndApplySourceChange" => {
+                if let Some(ref edits) = cmd.arguments {
+                    for edit in edits {
+                        let workspace_edits: Vec<WorkspaceEditWithCursor> =
+                            serde_json::from_value(edit.clone())?;
+                        for edit in workspace_edits {
+                            self.apply_WorkspaceEdit(&edit.workspaceEdit)?;
+                            if let Some(cursorPosition) = edit.cursorPosition {
+                                self.vim()?.cursor(
+                                    cursorPosition.position.line + 1,
+                                    cursorPosition.position.character + 1,
+                                )?;
+                            }
+                        }
+                    }
+                }
+            }
             "rust-analyzer.applySourceChange" => {
                 if let Some(ref edits) = cmd.arguments {
                     for edit in edits {
