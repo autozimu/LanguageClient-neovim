@@ -2683,14 +2683,16 @@ impl LanguageClient {
             }
         }
 
-        let namespace_id = self.get_or_create_namespace()?;
-        self.vim()?.set_virtual_texts(
-            bufnr,
-            namespace_id,
-            viewport.start,
-            viewport.end,
-            &virtual_texts,
-        )?;
+        if self.get(|state| state.is_nvim)? {
+            let namespace_id = self.get_or_create_namespace()?;
+            self.vim()?.set_virtual_texts(
+                bufnr,
+                namespace_id,
+                viewport.start,
+                viewport.end,
+                &virtual_texts,
+            )?;
+        }
 
         info!("End {}", NOTIFICATION__HandleCursorMoved);
         Ok(())
