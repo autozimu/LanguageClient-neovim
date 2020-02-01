@@ -404,12 +404,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
         execute 'noswapfile edit!' a:bufname
 
-        let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight')
-        if l:float_win_highlight is v:null
-            let float_win_highlight = 'CursorLine'
-        endif
-
-        execute printf('setlocal winhl=Normal:%s', float_win_highlight)
+        let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight', 'Normal:CursorLine')
+        execute printf('setlocal winhl=%s', float_win_highlight)
     elseif display_approach ==# 'popup_win'
         let pop_win_id = popup_atcursor(a:lines, {})
         call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)

@@ -362,7 +362,7 @@ Valid Options: 1 | 0
 
 Control how floating window hover highlights are displayed.
 
-Default: CursorLine
+Default: Normal:CursorLine
 
 2.28 g:LanguageClient_usePopupHover           *g:LanguageClient_usePopupHover*
 
