@@ -209,15 +209,18 @@ impl LanguageClient {
             state.trace = trace;
             state.diagnosticsEnable = diagnosticsEnable;
             state.diagnosticsList = diagnosticsList;
-            state.diagnosticsDisplay = serde_json::from_value(
-                serde_json::to_value(&state.diagnosticsDisplay)?.combine(&diagnosticsDisplay),
-            )?;
+            json_utils::into_iter_map(diagnosticsDisplay)?.try_for_each(|result| {
+                result.map(|(key, value)| {
+                    state.diagnosticsDisplay.insert(key, value);
+                })
+            })?;
             state.diagnosticsSignsMax = diagnosticsSignsMax;
             state.diagnostics_max_severity = diagnostics_max_severity;
-            state.documentHighlightDisplay = serde_json::from_value(
-                serde_json::to_value(&state.documentHighlightDisplay)?
-                    .combine(&documentHighlightDisplay),
-            )?;
+            json_utils::into_iter_map(documentHighlightDisplay)?.try_for_each(|result| {
+                result.map(|(key, value)| {
+                    state.documentHighlightDisplay.insert(key, value);
+                })
+            })?;
             state.windowLogMessageLevel = windowLogMessageLevel;
             state.settingsPath = settingsPath;
             state.loadSettings = loadSettings;
@@ -333,15 +336,12 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let document_highlight: Option<Vec<DocumentHighlight>> =
-            serde_json::from_value(result.clone())?;
-        if let Some(document_highlight) = document_highlight {
+        if let Some(document_highlight) = json_utils::iter_opt_vec(&result)? {
             let documentHighlightDisplay =
                 self.get(|state| state.documentHighlightDisplay.clone())?;
             let highlights = document_highlight
-                .into_iter()
-                .map(|DocumentHighlight { range, kind }| {
-                    Ok(Highlight {
+                .map(|result| match result {
+                    Ok(DocumentHighlight { range, kind }) => Ok(Highlight {
                         line: range.start.line,
                         character_start: range.start.character,
                         character_end: range.end.character,
@@ -356,7 +356,8 @@ impl LanguageClient {
                             .texthl
                             .clone(),
                         text: String::new(),
-                    })
+                    }),
+                    Err(err) => Err(err.into()),
                 })
                 .collect::<Fallible<Vec<_>>>()?;
 
@@ -743,7 +744,7 @@ impl LanguageClient {
             return Ok(());
         }
 
-        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        let result: InitializeResult = json_utils::from_value(result)?;
         if result.capabilities.completion_provider.is_none() {
             return Ok(());
         }
@@ -784,7 +785,7 @@ impl LanguageClient {
             return Ok(());
         }
 
-        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        let result: InitializeResult = json_utils::from_value(result)?;
         if result.capabilities.completion_provider.is_none() {
             return Ok(());
         }
@@ -823,8 +824,10 @@ impl LanguageClient {
             "getbufline",
             json!([path.as_ref().to_string_lossy(), line + 1]),
         )?;
-        let mut texts: Vec<String> = serde_json::from_value(value)?;
-        let mut text = texts.pop().unwrap_or_default();
+        let mut text: String = json_utils::into_iter_vec(value)?
+            .last()
+            .transpose()?
+            .unwrap_or_default();
 
         if text.is_empty() {
             let reader = BufReader::new(File::open(path)?);
@@ -842,7 +845,7 @@ impl LanguageClient {
             "java.apply.workspaceEdit" => {
                 if let Some(ref edits) = cmd.arguments {
                     for edit in edits {
-                        let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
+                        let edit: WorkspaceEdit = json_utils::from_value(edit)?;
                         self.apply_WorkspaceEdit(&edit)?;
                     }
                 }
@@ -850,7 +853,7 @@ impl LanguageClient {
             "rust-analyzer.applySourceChange" => {
                 if let Some(ref edits) = cmd.arguments {
                     for edit in edits {
-                        let edit: WorkspaceEditWithCursor = serde_json::from_value(edit.clone())?;
+                        let edit: WorkspaceEditWithCursor = json_utils::from_value(edit)?;
                         self.apply_WorkspaceEdit(&edit.workspaceEdit)?;
                         if let Some(cursorPosition) = edit.cursorPosition {
                             self.vim()?.cursor(
@@ -1102,7 +1105,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let hover: Option<Hover> = serde_json::from_value(result.clone())?;
+        let hover: Option<Hover> = json_utils::from_value_opt(&result)?;
         if let Some(hover) = hover {
             let hoverPreview = self.get(|state| state.hoverPreview)?;
             let use_preview = match hoverPreview {
@@ -1225,7 +1228,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let edit: WorkspaceEdit = serde_json::from_value(result.clone())?;
+        let edit: WorkspaceEdit = json_utils::from_value(&result)?;
         self.apply_WorkspaceEdit(&edit)?;
 
         info!("End {}", lsp::request::Rename::METHOD);
@@ -1253,7 +1256,7 @@ impl LanguageClient {
         }
 
         let syms: <lsp::request::DocumentSymbolRequest as lsp::request::Request>::Result =
-            serde_json::from_value(result.clone())?;
+            json_utils::from_value(&result)?;
 
         let title = format!("[LC]: symbols for {}", filename);
 
@@ -1404,7 +1407,7 @@ impl LanguageClient {
             },
         )?;
 
-        let response: Option<CodeActionResponse> = serde_json::from_value(result.clone())?;
+        let response: Option<CodeActionResponse> = json_utils::from_value_opt(&result)?;
         let response = response.unwrap_or_else(|| vec![]);
 
         // Convert any Commands into CodeActions, so that the remainder of the handling can be
@@ -1585,7 +1588,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits: Option<Vec<TextEdit>> = json_utils::from_value_opt(&result)?;
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
@@ -1636,7 +1639,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits: Option<Vec<TextEdit>> = json_utils::from_value_opt(&result)?;
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
@@ -1688,7 +1691,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
+        let symbols = json_utils::iter_vec(&result)?;
         let title = "[LC]: workspace symbols";
 
         let selectionUI = self.get(|state| state.selectionUI)?;
@@ -1697,19 +1700,22 @@ impl LanguageClient {
             SelectionUI::FZF => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
                 let source: Fallible<Vec<_>> = symbols
-                    .iter()
-                    .map(|sym| {
-                        let filename = sym.location.uri.filepath()?;
-                        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
-                        let start = sym.location.range.start;
-                        Ok(format!(
-                            "{}:{}:{}:\t{}\t\t{:?}",
-                            relpath.to_string_lossy(),
-                            start.line + 1,
-                            start.character + 1,
-                            sym.name,
-                            sym.kind
-                        ))
+                    .map(|sym: Result<SymbolInformation, _>| match sym {
+                        Ok(sym) => {
+                            let filename = sym.location.uri.filepath()?;
+                            let relpath =
+                                diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
+                            let start = sym.location.range.start;
+                            Ok(format!(
+                                "{}:{}:{}:\t{}\t\t{:?}",
+                                relpath.to_string_lossy(),
+                                start.line + 1,
+                                start.character + 1,
+                                sym.name,
+                                sym.kind
+                            ))
+                        }
+                        Err(error) => Err(error.into()),
                     })
                     .collect();
                 let source = source?;
@@ -1720,7 +1726,12 @@ impl LanguageClient {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols
+                    .map(|sym| match sym {
+                        Ok(sym) => QuickfixEntry::from_lsp(&sym),
+                        Err(err) => Err(err.into()),
+                    })
+                    .collect();
                 let list = list?;
                 self.vim()?.setqflist(&list, " ", title)?;
                 if selectionUI_autoOpen {
@@ -1730,7 +1741,12 @@ impl LanguageClient {
                     .echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
-                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Fallible<Vec<_>> = symbols
+                    .map(|sym| match sym {
+                        Ok(sym) => QuickfixEntry::from_lsp(&sym),
+                        Err(err) => Err(err.into()),
+                    })
+                    .collect();
                 let list = list?;
                 self.vim()?.setloclist(&list, " ", title)?;
                 if selectionUI_autoOpen {
@@ -1844,8 +1860,7 @@ impl LanguageClient {
         if let Some(initialize_result) = capabilities.get(&language_id) {
             // XXX: the capabilities state field stores the initialize result, not the capabilities
             // themselves, so we need to deserialize to InitializeResult.
-            let initialize_result: InitializeResult =
-                serde_json::from_value(initialize_result.clone())?;
+            let initialize_result: InitializeResult = json_utils::from_value(initialize_result)?;
             let capabilities = initialize_result.capabilities;
             if let Some(code_lens_provider) = capabilities.code_lens_provider {
                 info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
@@ -1857,13 +1872,12 @@ impl LanguageClient {
                 };
 
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
-                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
 
                 if code_lens_provider.resolve_provider.is_some() {
                     let mut resolved_code_lens = vec![];
-                    if let Some(code_lens) = code_lens {
+                    if let Some(code_lens) = json_utils::iter_opt_vec(&results)? {
                         for item in code_lens {
-                            let mut item = item;
+                            let mut item: CodeLens = item?;
                             if let Some(_d) = &item.data {
                                 if let Some(cl) =
                                     client.call(lsp::request::CodeLensResolve::METHOD, &item)?
@@ -1881,9 +1895,10 @@ impl LanguageClient {
                             .insert(filename.to_owned(), resolved_code_lens);
                         Ok(Value::Null)
                     })?;
-                } else if let Some(code_lens) = code_lens {
+                } else if let Some(code_lens) = json_utils::iter_opt_vec(&results)? {
+                    let code_lens: Result<Vec<_>, _> = code_lens.collect();
                     self.update(|state| {
-                        state.code_lens.insert(filename.to_owned(), code_lens);
+                        state.code_lens.insert(filename.to_owned(), code_lens?);
                         Ok(Value::Null)
                     })?;
                 }
@@ -2161,7 +2176,7 @@ impl LanguageClient {
             match r.method.as_str() {
                 lsp::notification::DidChangeWatchedFiles::METHOD => {
                     let opt: DidChangeWatchedFilesRegistrationOptions =
-                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                        json_utils::from_opt_value(r.register_options.as_ref())?;
                     if !self.get(|state| state.watchers.contains_key(languageId))? {
                         let (watcher_tx, watcher_rx) = mpsc::channel();
                         // TODO: configurable duration.
@@ -2221,7 +2236,7 @@ impl LanguageClient {
             match r.method.as_str() {
                 lsp::notification::DidChangeWatchedFiles::METHOD => {
                     let opt: DidChangeWatchedFilesRegistrationOptions =
-                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                        json_utils::from_opt_value(r.register_options.as_ref())?;
                     self.update(|state| {
                         if let Some(ref mut watcher) = state.watchers.get_mut(languageId) {
                             for w in opt.watchers {
@@ -2748,24 +2763,16 @@ impl LanguageClient {
 
     pub fn languageClient_FZFSinkLocation(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", NOTIFICATION__FZFSinkLocation);
-        let params = match params {
-            Value::Array(ref arr) => Value::Array(arr.clone()),
-            _ => {
-                bail!("Expecting array params!");
-            }
-        };
 
-        let lines: Vec<String> = serde_json::from_value(params.clone())?;
-        if lines.is_empty() {
+        let line: String = json_utils::iter_vec(&params)?.next().ok_or_else(|| {
             err_msg("No selection!");
-        }
+            format_err!("Failed to get line! lines: {:?}", &params)
+        })??;
 
-        let location = lines
-            .get(0)
-            .ok_or_else(|| format_err!("Failed to get line! lines: {:?}", lines))?
+        let location = line
             .split('\t')
             .next()
-            .ok_or_else(|| format_err!("Failed to parse: {:?}", lines))?;
+            .ok_or_else(|| format_err!("Failed to parse: {:?}", line))?;
         let tokens: Vec<_> = location.split_terminator(':').collect();
 
         let (filename, mut tokens_iter): (String, _) = if tokens.len() > 2 {
@@ -2849,7 +2856,7 @@ impl LanguageClient {
 
     pub fn NCM_refresh(&self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__NCMRefresh);
-        let params: NCMRefreshParams = serde_json::from_value(rpc::to_value(params.clone())?)?;
+        let params: NCMRefreshParams = json_utils::from_value(params)?;
         let NCMRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
@@ -2891,10 +2898,10 @@ impl LanguageClient {
     pub fn NCM2_on_complete(&self, params: &Value) -> Fallible<Value> {
         info!("Begin {}", REQUEST__NCM2OnComplete);
 
-        let orig_ctx: Value = serde_json::from_value(rpc::to_value(params.clone())?)?;
+        let orig_ctx: Value = json_utils::from_value(params)?;
         let orig_ctx = &orig_ctx["ctx"];
 
-        let ctx: NCM2Context = serde_json::from_value(orig_ctx.clone())?;
+        let ctx: NCM2Context = json_utils::from_value(orig_ctx)?;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
         }
@@ -2912,7 +2919,7 @@ impl LanguageClient {
         let is_incomplete;
         let matches;
         if let Ok(ref value) = result {
-            let completion = serde_json::from_value(value.clone())?;
+            let completion = json_utils::from_value(value)?;
             is_incomplete = match completion {
                 CompletionResponse::List(ref list) => list.is_incomplete,
                 _ => false,
