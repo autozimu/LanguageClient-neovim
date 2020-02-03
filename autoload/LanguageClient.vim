@@ -259,7 +259,7 @@ function! s:AddHighlights(source, highlights) abort
 endfunction
 
 " Get an variable value.
-" Get variable from uffer local, or else global, or else default, or else v:null.
+" Get variable from buffer local, or else global, or else default, or else v:null.
 function! s:GetVar(...) abort
     let name = a:1
 
@@ -404,7 +404,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
 
         execute 'noswapfile edit!' a:bufname
 
-        setlocal winhl=Normal:CursorLine
+        let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight', 'Normal:CursorLine')
+        execute printf('setlocal winhl=%s', float_win_highlight)
     elseif display_approach ==# 'popup_win'
         let pop_win_id = popup_atcursor(a:lines, {})
         call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)
