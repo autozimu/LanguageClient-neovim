@@ -411,22 +411,23 @@ https://github.com/microsoft/vscode-languageserver-node/issues/368
 
 
 Like |g:LanguageClient_serverCommands| this is a map where the keys are
-filetypes. However in this case the values are a list of maps that map
-highlight group names (see |highlight-groups|) to a lists of strings.
+filetypes. However each submap has |regexp| keys and highlight group names
+as values (see |highlight-groups|).
 >
     let g:LanguageClient_semanticHighlightMaps = {
-        \ 'java': [
-        \   {"Function": ['entity.name.function.java', '**']},
-        \   {"Type": ['entity.name.type.class.java', '**']},
-        \   {"Function": ['*', 'entity.name.function.java', '**']},
-        \   {"Type": ['*', 'entity.name.type.class.java', '**']},
-        \ ]
+        \ 'java': {
+        \   '^entity.name.function.java': 'Function',
+        \   '^entity.name.type.class.java': 'Type',
+        \   '^[^:]*entity.name.function.java': 'Function',
+        \   '^[^:]entity.name.type.class.java': 'Type'
+        \ }
         \ }
 
-The maps associate the highlight group with a semantic scope matching pattern.
-Any symbols that have a scope that matches the pattern will be highlighted
-with that highlight group. They will match in the order they are listed (first
-to last), the first matched pattern's highlight group will be used.
+The |regexp| in the keys will be used to match semantic scopes. Then any symbols
+that have a semantic scope that matches the key will be highlighted with the
+associated highlight group value. Currently there is no defined order if a
+semantic scope can match multiple keys, so it is recommended to make the keys
+more specific to only match the desired scope(s).
 
 There are a fixed set of semantic scopes defined by the LSP server on startup.
 These can be viewed by calling |LanguageClient_showSemanticScopes| which will
@@ -456,9 +457,8 @@ the currently open buffer's filetype.
 
      ...
 
-Like the patterns, the semantic scope is a list of strings. They are printed
-with increasing indent to make it easier to read. For example the first scope
-is:
+Each semantic scope is a list of strings. They are printed with increasing
+indent to make it easier to read. For example the first scope is:
 >
      ['invalid.deprecated.java', 'meta.class.java', 'source.java']
 
@@ -470,40 +470,32 @@ while hovering over the text of interest.
 >
      call LanguageClient_showCursorSemanticHighlightSymbols()
 
-In order for a pattern to match a semantic scope the lists must fully match
-in length and list items.
+When matching the semantic scopes to keys in |LanguageClient_semanticHighlightMaps|,
+the scopes are concatentated using |LanguageClient_semanticScopeSeparator|
+which is set to the string |':'| by default. For the previous example the
+semantic scope would have this string form using the default separator:
 >
-     ['x', 'y', 'z'] matches ['x', 'y', 'z']
+     invalid.deprecated.java:meta.class.java:source.java
 
-To make this easier two special strings '*' and '**' were added:
-
-Any ('*'):
-When a '*' is present it can match any SINGLE string at that position.
+Here are a couple of example |regexp| keys that can/cannot match this scope:
 >
-     ['x', '*', 'z'] matches ['x', 'y', 'z']
-     ['x', '*', 'z'] does not match ['x', 'abc', 'y', 'z']
-
-Glob ('**'):
-When a '**' is present at the beginning and/or the end of the list it matches
-an arbitrary number of strings in its place. Currently, putting '**' in the
-middle is not implemented.
->
-     ['x', 'y', '**'] matches ['x', 'y', 'z', '1', '2', '3']
-     ['**', '123', '**'] matches ['x', 'y', 'z', '123', '1', '2', '3']
-     ['**', 'y', 'z'] does not match ['x', 'y', 'z', '1', '2', '3']
-
+     'meta.class.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
+     '^meta.class.java' !~ 'invalid.deprecated.java:meta.class.java:source.java'
+     '^invalid.deprecated.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
+     'source.java$' =~ 'invalid.deprecated.java:meta.class.java:source.java'
+     'meta.class.java:source.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
+     'invalid.deprecated.java:.*:source.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
 
 Example configuration for eclipse.jdt.ls:
 >
      let g:LanguageClient_semanticHighlightMaps = {}
-     let g:LanguageClient_semanticHighlightMaps['java'] = [
-                 \ {"JavaStaticMemberFunction": ['storage.modifier.static.java', 'entity.name.function.java', '**']},
-                 \ {"JavaMemberVariable": ['meta.definition.variable.java', 'meta.class.body.java', 'meta.class.java', '**']},
-                 \ {"Function": ['entity.name.function.java', '**']},
-                 \ {"Function": ['**', 'entity.name.function.java', '**']},
-                 \ {"Type": ['entity.name.type.class.java', '**']},
-                 \ {"Type": ['**', 'entity.name.type.class.java', '**']},
-                 \ ]
+     let g:LanguageClient_semanticHighlightMaps['java'] = {
+       \ '^storage.modifier.static.java:entity.name.function.java': 'JavaStaticMemberFunction',
+       \ '^meta.definition.variable.java:meta.class.body.java:meta.class.java': 'JavaMemberVariable',
+       \ '^entity.name.function.java': 'Function',
+       \ '^[^:]*entity.name.function.java': 'Function',
+       \ '^[^:]*entity.name.type.class.java': 'Type',
+       \ }
 
      highlight! JavaStaticMemberFunction ctermfg=Green cterm=none guifg=Green gui=none
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic

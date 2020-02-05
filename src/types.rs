@@ -156,8 +156,9 @@ pub struct State {
 
     // User settings.
     pub serverCommands: HashMap<String, Vec<String>>,
-    // languageId => (scope1 => hlgroup1, scope2 => hlgroup2, ...)
-    pub semanticHighlightMaps: HashMap<String, Vec<(Vec<String>, String)>>,
+    // languageId => (scope_regex => highlight group)
+    pub semanticHighlightMaps: HashMap<String, HashMap<String, String>>,
+    pub semanticScopeSeparator: String,
     pub autoStart: bool,
     pub selectionUI: SelectionUI,
     pub selectionUI_autoOpen: bool,
@@ -238,6 +239,7 @@ impl State {
 
             serverCommands: HashMap::new(),
             semanticHighlightMaps: HashMap::new(),
+            semanticScopeSeparator: ":".into(),
             autoStart: true,
             selectionUI: SelectionUI::LocationList,
             selectionUI_autoOpen: true,
@@ -476,129 +478,6 @@ impl PartialEq for Highlight {
 pub struct ClearNamespace {
     pub line_start: u64,
     pub line_end: u64,
-}
-
-/// Helper type for semantic highlighting
-#[derive(Debug)]
-pub enum SemanticHighlightMatcher {
-    /// Checks that the entire array matches (same length)
-    Array(Vec<String>),
-    /// Checks that the array starts with this
-    ArrayStart(Vec<String>),
-    /// Checks that the array ends with this
-    ArrayEnd(Vec<String>),
-    /// Checks that any subsequence of he array matches this
-    ArrayContains(Vec<String>),
-}
-
-impl SemanticHighlightMatcher {
-    pub fn matches(&self, scope_arr: &[String]) -> bool {
-        use SemanticHighlightMatcher::*;
-
-        match self {
-            Array(match_arr) => Self::slices_match(match_arr, scope_arr),
-            ArrayStart(match_arr) => {
-                if scope_arr.len() >= match_arr.len() {
-                    Self::slices_match(match_arr, &scope_arr[..match_arr.len()])
-                } else {
-                    false
-                }
-            }
-            ArrayEnd(match_arr) => {
-                if scope_arr.len() >= match_arr.len() {
-                    Self::slices_match(match_arr, &scope_arr[scope_arr.len() - match_arr.len()..])
-                } else {
-                    false
-                }
-            }
-            ArrayContains(match_arr) => {
-                if scope_arr.len() >= match_arr.len() {
-                    for offset in 0..=(scope_arr.len() - match_arr.len()) {
-                        if Self::slices_match(
-                            match_arr,
-                            &scope_arr[offset..offset + match_arr.len()],
-                        ) {
-                            return true;
-                        }
-                    }
-
-                    false
-                } else {
-                    false
-                }
-            }
-        }
-    }
-
-    fn slices_match(a: &[String], b: &[String]) -> bool {
-        if a.len() == b.len() {
-            for (i, v) in a.iter().enumerate() {
-                if *v != "*" && b[i] != *v {
-                    return false;
-                }
-            }
-
-            true
-        } else {
-            false
-        }
-    }
-}
-
-#[test]
-fn test_semantic_hl_matcher_array() {
-    let v = vec!["A".into(), "B".into()];
-    let arr = SemanticHighlightMatcher::Array(v.clone());
-    let arr_s = SemanticHighlightMatcher::ArrayStart(v.clone());
-    let arr_e = SemanticHighlightMatcher::ArrayEnd(v.clone());
-    let arr_c = SemanticHighlightMatcher::ArrayContains(v.clone());
-
-    let t1 = vec!["A".into(), "B".into()];
-    let t2 = vec!["FFF".into(), "A".into(), "B".into(), "ABCD".into()];
-    let t3 = vec!["Hello".into(), "A".into(), "B".into()];
-    let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
-
-    let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
-        (
-            arr.matches(v),
-            arr_s.matches(v),
-            arr_e.matches(v),
-            arr_c.matches(v),
-        )
-    };
-
-    assert_eq!(do_matches(&t1), (true, true, true, true));
-    assert_eq!(do_matches(&t2), (false, false, false, true));
-    assert_eq!(do_matches(&t3), (false, false, true, true));
-    assert_eq!(do_matches(&t4), (false, true, false, true));
-}
-
-#[test]
-fn test_semantic_hl_matcher_array_glob() {
-    let v = vec!["A".into(), "*".into()];
-    let arr = SemanticHighlightMatcher::Array(v.clone());
-    let arr_s = SemanticHighlightMatcher::ArrayStart(v.clone());
-    let arr_e = SemanticHighlightMatcher::ArrayEnd(v.clone());
-    let arr_c = SemanticHighlightMatcher::ArrayContains(v.clone());
-
-    let t1 = vec!["A".into(), "B".into()];
-    let t2 = vec!["FFF".into(), "A".into(), "B".into(), "ABCD".into()];
-    let t3 = vec!["Hello".into(), "A".into(), "B".into()];
-    let t4 = vec!["A".into(), "B".into(), "CC".into(), "D".into()];
-
-    let do_matches = |v: &[String]| -> (bool, bool, bool, bool) {
-        (
-            arr.matches(v),
-            arr_s.matches(v),
-            arr_e.matches(v),
-            arr_c.matches(v),
-        )
-    };
-
-    assert_eq!(do_matches(&t1), (true, true, true, true));
-    assert_eq!(do_matches(&t2), (false, false, false, true));
-    assert_eq!(do_matches(&t3), (false, false, true, true));
-    assert_eq!(do_matches(&t4), (false, true, false, true));
 }
 
 #[derive(Debug, Serialize, Deserialize)]

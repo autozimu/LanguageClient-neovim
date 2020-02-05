@@ -122,7 +122,8 @@ impl LanguageClient {
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-            userSemanticHighlightMaps,
+            semanticHighlightMaps,
+            semanticScopeSeparator,
         ): (
             Option<u64>,
             String,
@@ -130,7 +131,8 @@ impl LanguageClient {
             u8,
             UseVirtualText,
             u8,
-            HashMap<String, Vec<HashMap<String, Vec<String>>>>,
+            HashMap<String, HashMap<String, String>>,
+            String,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -140,6 +142,7 @@ impl LanguageClient {
                 "s:useVirtualText()",
                 "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
                 "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
+                "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
             ]
             .as_ref(),
         )?;
@@ -213,26 +216,13 @@ impl LanguageClient {
             ),
         };
 
-        let mut semanticHighlightMaps = HashMap::new();
-        let mut semanticHlUpdateLanguageIds = Vec::new();
-
-        for (languageId, languageMaps) in userSemanticHighlightMaps {
-            let mut mappingPairs = Vec::new();
-            for languageMap in languageMaps {
-                mappingPairs.extend(
-                    languageMap
-                        .into_iter()
-                        .map(|(hlGroup, scopeArr)| (scopeArr, hlGroup)),
-                );
-            }
-
-            semanticHlUpdateLanguageIds.push(languageId.clone());
-            semanticHighlightMaps.insert(languageId, mappingPairs);
-        }
+        let semanticHlUpdateLanguageIds: Vec<String> =
+            semanticHighlightMaps.keys().cloned().collect();
 
         self.update(|state| {
             state.autoStart = autoStart;
             state.semanticHighlightMaps = semanticHighlightMaps;
+            state.semanticScopeSeparator = semanticScopeSeparator;
             state.semantic_scope_to_hl_group_table.clear();
             state.serverCommands.extend(serverCommands);
             state.selectionUI = selectionUI;
@@ -875,37 +865,42 @@ impl LanguageClient {
     /// ScopeIndex -> Option<HighlightGroup>
     fn updateSemanticHighlightTables(&self, languageId: &str) -> Fallible<()> {
         info!("Begin updateSemanticHighlightTables");
-        let (opt_scopes, opt_hl_map) = self.get(|state| {
+        let (opt_scopes, opt_hl_map, scopeSeparator) = self.get(|state| {
             (
                 state.semantic_scopes.get(languageId).cloned(),
                 state.semanticHighlightMaps.get(languageId).cloned(),
+                state.semanticScopeSeparator.clone(),
             )
         })?;
 
         if let (Some(semantic_scopes), Some(semanticHighlightMap)) = (opt_scopes, opt_hl_map) {
-            let mut all_scope_names = HashSet::new();
-            all_scope_names.insert("*".into());
-            all_scope_names.insert("**".into());
-            semantic_scopes.iter().for_each(|v| {
-                v.iter().for_each(|s| {
-                    all_scope_names.insert(s.clone());
-                });
-            });
+            let mut table: Vec<Option<String>> = Vec::new();
 
-            let matchers = buildSemanticHighlightMatchers(all_scope_names, &semanticHighlightMap);
+            for scope_list in semantic_scopes {
+                // Combine all scopes ["scopeA", "scopeB", ...] -> "scopeA:scopeB:..."
+                let scope_str = scope_list.iter().join(&scopeSeparator);
 
-            let table: Vec<Option<String>> = semantic_scopes
-                .iter()
-                .map(|scope_arr| {
-                    matchers.iter().find_map(|(matcher, hl_group)| {
-                        if matcher.matches(scope_arr) {
-                            Some(hl_group.clone())
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .collect();
+                let mut matched = false;
+                for (scope_regex, hl_group) in &semanticHighlightMap {
+                    let match_expr = format!(
+                        "({} =~ {})",
+                        convert_to_vim_str(&scope_str),
+                        convert_to_vim_str(scope_regex)
+                    );
+
+                    let matches: i32 = self.vim()?.eval(match_expr)?;
+
+                    if matches == 1 {
+                        table.push(Some(hl_group.clone()));
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if !matched {
+                    table.push(None);
+                }
+            }
 
             self.update(|state| {
                 state
@@ -2377,14 +2372,11 @@ impl LanguageClient {
             );
 
             let mut clears = Vec::new();
-            match clear_region {
-                Some((begin, end)) => {
-                    clears.push(ClearNamespace {
-                        line_start: begin,
-                        line_end: end,
-                    });
-                }
-                None => {}
+            if let Some((begin, end)) = clear_region {
+                clears.push(ClearNamespace {
+                    line_start: begin,
+                    line_end: end,
+                });
             }
 
             let mut num_semantic_hls = 0;
