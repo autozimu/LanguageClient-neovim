@@ -400,7 +400,7 @@ the root of a project is detected using g:LanguageClient_rootMarkers.
 Default: 1 to display the messages
 Valid options: 1 | 0
 
-2.30 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
+2.32 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
 
 String to list/map map. Defines the mapping of semantic highlighting "scopes" to
 highlight groups. This depends on the LSP server supporting the proposed
@@ -501,12 +501,44 @@ Example configuration for eclipse.jdt.ls:
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
 
 
-2.31 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
+2.33 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
 
 Indicates whether completionItem additional text edits should be applied.
 
 Default: 1
 Valid options: 1 | 0
+
+2.34 g:LanguageClient_preferredMarkupKind *g:LanguageClient_preferredMarkupKind*
+
+Sets the preferred markup kind. This value is sent to the server and is
+normally used to decide whether to send plaintext or markdown in things like
+hover or completion items docunmentation.
+
+This should be set to an array of values with the preferred markup kinds in
+order of preferrence. Leaving this config unset, will send `null` to the
+server, effectively letting it decide which markup kind to use.
+
+Example setting 1. Set the preferred markup kind to `plaintext`
+  ```
+  let g:LanguageClient_preferredMarkupKind: ['plaintext']
+  ```
+
+Example setting 2. Set the preferred markup kind to `plaintext` and `markdown`
+as a fallback.
+
+  ```
+  let g:LanguageClient_preferredMarkupKind: ['plaintext', 'markdown']
+  ```
+
+Example setting 3. Set the preferred markup kind to `markdown`
+
+  ```
+  let g:LanguageClient_preferredMarkupKind: ['markdown']
+
+This setting may have no effect of the server decides not to honour it.
+
+Default: v:null
+Valid options: Array<String>
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*

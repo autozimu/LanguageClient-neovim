@@ -125,6 +125,7 @@ impl LanguageClient {
             semanticHighlightMaps,
             semanticScopeSeparator,
             applyCompletionAdditionalTextEdits,
+            preferred_markup_kind,
         ): (
             Option<u64>,
             String,
@@ -135,6 +136,7 @@ impl LanguageClient {
             HashMap<String, HashMap<String, String>>,
             String,
             u8,
+            Option<Vec<String>>,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -146,6 +148,7 @@ impl LanguageClient {
                 "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
                 "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
                 "get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1)",
+                "get(g:, 'LanguageClient_preferredMarkupKind', v:null)",
             ]
             .as_ref(),
         )?;
@@ -223,6 +226,18 @@ impl LanguageClient {
         let semanticHlUpdateLanguageIds: Vec<String> =
             semanticHighlightMaps.keys().cloned().collect();
 
+        let preferred_markup_kind: Option<Vec<MarkupKind>> = if preferred_markup_kind.is_some() {
+            serde_json::from_value(Value::Array(
+                preferred_markup_kind
+                    .unwrap()
+                    .into_iter()
+                    .map(|x| Value::String(x))
+                    .collect(),
+            ))?
+        } else {
+            None
+        };
+
         self.update(|state| {
             state.autoStart = autoStart;
             state.semanticHighlightMaps = semanticHighlightMaps;
@@ -258,6 +273,7 @@ impl LanguageClient {
             state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
             state.is_nvim = is_nvim;
+            state.preferred_markup_kind = preferred_markup_kind;
             Ok(())
         })?;
 
@@ -1131,6 +1147,7 @@ impl LanguageClient {
         };
 
         let trace = self.get(|state| state.trace)?;
+        let preferred_markup_kind = self.get(|state| state.preferred_markup_kind.clone())?;
 
         let result: Value = self.get_client(&Some(languageId.clone()))?.call(
             lsp::request::Initialize::METHOD,
@@ -1150,13 +1167,14 @@ impl LanguageClient {
                         completion: Some(CompletionCapability {
                             completion_item: Some(CompletionItemCapability {
                                 snippet_support: Some(has_snippet_support),
+                                documentation_format: preferred_markup_kind.clone(),
                                 ..CompletionItemCapability::default()
                             }),
                             ..CompletionCapability::default()
                         }),
                         signature_help: Some(SignatureHelpCapability {
                             signature_information: Some(SignatureInformationSettings {
-                                documentation_format: None,
+                                documentation_format: preferred_markup_kind.clone(),
                                 parameter_information: Some(ParameterInformationSettings {
                                     label_offset_support: Some(true),
                                 }),
@@ -1191,6 +1209,10 @@ impl LanguageClient {
                                 semantic_highlighting: true,
                             },
                         ),
+                        hover: Some(HoverCapability {
+                            content_format: preferred_markup_kind,
+                            ..HoverCapability::default()
+                        }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {

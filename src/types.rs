@@ -186,6 +186,7 @@ pub struct State {
     pub serverStderr: Option<String>,
     #[serde(skip_serializing)]
     pub logger: log4rs::Handle,
+    pub preferred_markup_kind: Option<Vec<MarkupKind>>,
 }
 
 impl State {
@@ -265,6 +266,7 @@ impl State {
             loggingFile: None,
             loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,
+            preferred_markup_kind: None,
 
             logger,
         })
