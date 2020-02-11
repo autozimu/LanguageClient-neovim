@@ -1768,8 +1768,7 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let command: String =
             try_get("command", params)?.ok_or_else(|| err_msg("command not found in request!"))?;
-        let arguments: Vec<Value> = try_get("arguments", params)?
-            .ok_or_else(|| err_msg("argument not found in request!"))?;
+        let arguments: Vec<Value> = try_get("arguments", params)?.unwrap_or_default();
 
         let result = self.get_client(&Some(languageId))?.call(
             lsp::request::ExecuteCommand::METHOD,
