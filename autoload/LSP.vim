@@ -1,6 +1,6 @@
 " TODO: make buffer aware.
 
-function! LSP#GetQfListIdForTitle(title)
+function! LSP#GetQfListIdForTitle(title) abort
 	echom a:title
 	let headnr=getqflist({ 'id':0 ,'nr':'$', 'title': 0}).nr
 	while headnr >= 0
