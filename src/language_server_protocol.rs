@@ -685,11 +685,11 @@ impl LanguageClient {
         match diagnostics_list {
             DiagnosticsList::Quickfix => {
                 //Has to be atomic
-                self.update(|state|  {
+                self.update(|state| {
                     let id = state.vim.getqfid(title)?;
                     if id != -1 {
-                        state.vim.updateqflist(&qflist,title,id)
-                    }else {
+                        state.vim.updateqflist(&qflist, title, id)
+                    } else {
                         state.vim.addnewqflist(&qflist, title)
                     }
                 })?;
