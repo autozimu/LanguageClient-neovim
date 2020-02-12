@@ -206,6 +206,25 @@ impl Vim {
         Ok(())
     }
 
+    pub fn updateqflist(&self, list: &[QuickfixEntry],title: &str, id: i32) -> Result<()> {
+        info!("Begin updateqflist");
+        let parms = json!([[], "r" ,{"title":title,"id":id, "items":list}]);
+        self.rpcclient.notify("setqflist", parms)?;
+        Ok(())
+    }
+
+    pub fn addnewqflist(&self, list: &[QuickfixEntry],title: &str) -> Result<()> {
+        info!("Begin addnewqflist");
+        let parms = json!([[], " ",{"title":title, "items":list}]);
+        self.rpcclient.notify("setqflist", parms)?;
+        Ok(())
+    }
+
+    pub fn getqfid(&self, title: &str) -> Result<i32> {
+        info!("Begin getqfid");
+        self.rpcclient.call("LSP#GetQfListIdForTitle",title)
+    }
+
     pub fn setqflist(&self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
         info!("Begin setqflist");
         let parms = json!([list, action]);

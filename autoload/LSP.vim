@@ -1,5 +1,18 @@
 " TODO: make buffer aware.
 
+function! LSP#GetQfListIdForTitle(title)
+	echom a:title
+	let headnr=getqflist({ 'id':0 ,'nr':'$', 'title': 0}).nr
+	while headnr >= 0
+		let qflistat= getqflist({'id':0,'nr':headnr,'title':0})
+		if qflistat.title==a:title
+			return qflistat.id
+		endif
+		let headnr = headnr-1
+	endwhile
+	return-1 "not found
+endfunction
+
 function! LSP#filename() abort
     " When executing autocommand, `%` might have already changed.
     let l:filename = expand('<afile>:p')

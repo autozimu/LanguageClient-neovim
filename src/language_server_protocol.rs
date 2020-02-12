@@ -684,7 +684,15 @@ impl LanguageClient {
         let diagnostics_list = self.get(|state| state.diagnostics_list)?;
         match diagnostics_list {
             DiagnosticsList::Quickfix => {
-                self.vim()?.setqflist(&qflist, "r", title)?;
+                //Has to be atomic
+                self.update(|state|  {
+                    let id = state.vim.getqfid(title)?;
+                    if id != -1 {
+                        state.vim.updateqflist(&qflist,title,id)
+                    }else {
+                        state.vim.addnewqflist(&qflist, title)
+                    }
+                })?;
             }
             DiagnosticsList::Location => {
                 self.vim()?.setloclist(&qflist, "r", title)?;
