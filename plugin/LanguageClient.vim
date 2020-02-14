@@ -2,6 +2,10 @@ if !exists('g:LanguageClient_serverCommands')
     let g:LanguageClient_serverCommands = {}
 endif
 
+if !exists('g:LanguageClient_semanticHighlightMaps')
+    let g:LanguageClient_semanticHighlightMaps = {}
+endif
+
 function! LanguageClient_textDocument_hover(...)
     return call('LanguageClient#textDocument_hover', a:000)
 endfunction

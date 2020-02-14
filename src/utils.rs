@@ -464,3 +464,39 @@ pub fn decode_parameterLabel(
         }
     }
 }
+
+/// Given a string, convert it into a string for vimscript
+/// The string gets surrounded by single quotes.
+///
+/// Existing single quotes will get escaped by inserting
+/// another single quote in place.
+///
+/// E.g.
+/// abcdefg -> 'abcdefg'
+/// abdcef'g -> 'abcdef''g'
+pub fn convert_to_vim_str(s: &str) -> String {
+    let mut vs = String::with_capacity(s.len());
+
+    vs.push('\'');
+
+    for i in s.chars() {
+        if i == '\'' {
+            vs.push(i);
+        }
+
+        vs.push(i);
+    }
+
+    vs.push('\'');
+
+    vs
+}
+
+#[test]
+fn test_convert_to_vim_str() {
+    assert_eq!(convert_to_vim_str("abcdefg"), "'abcdefg'");
+    assert_eq!(convert_to_vim_str("'abcdefg"), "'''abcdefg'");
+    assert_eq!(convert_to_vim_str("'x'x'x'x'"), "'''x''x''x''x'''");
+    assert_eq!(convert_to_vim_str("xyz'''ffff"), "'xyz''''''ffff'");
+    assert_eq!(convert_to_vim_str("'''"), "''''''''");
+}

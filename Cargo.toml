@@ -27,7 +27,7 @@ serde_derive = "1"
 serde_json = "1"
 crossbeam = "0.7.3"
 jsonrpc-core = "12"
-lsp-types = "0.60"
+lsp-types = { version = "0.70.0", features = ["proposed"] }
 url = "2"
 pathdiff = "0"
 diff = "0"

@@ -26,6 +26,7 @@ impl LanguageClient {
     pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
         for call in rx.iter() {
             let language_client = LanguageClient {
+                version: self.version.clone(),
                 state_mutex: self.state_mutex.clone(),
                 clients_mutex: self.clients_mutex.clone(), // not sure if useful to clone this
             };
@@ -113,6 +114,7 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
+        #[allow(clippy::type_complexity)]
         let (
             diagnosticsSignsMax,
             diagnostics_max_severity,
@@ -120,7 +122,18 @@ impl LanguageClient {
             selectionUI_autoOpen,
             use_virtual_text,
             echo_project_root,
-        ): (Option<u64>, String, Value, u8, UseVirtualText, u8) = self.vim()?.eval(
+            semanticHighlightMaps,
+            semanticScopeSeparator,
+        ): (
+            Option<u64>,
+            String,
+            Value,
+            u8,
+            UseVirtualText,
+            u8,
+            HashMap<String, HashMap<String, String>>,
+            String,
+        ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
@@ -128,6 +141,8 @@ impl LanguageClient {
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
                 "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
+                "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
+                "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
             ]
             .as_ref(),
         )?;
@@ -201,8 +216,14 @@ impl LanguageClient {
             ),
         };
 
+        let semanticHlUpdateLanguageIds: Vec<String> =
+            semanticHighlightMaps.keys().cloned().collect();
+
         self.update(|state| {
             state.autoStart = autoStart;
+            state.semanticHighlightMaps = semanticHighlightMaps;
+            state.semanticScopeSeparator = semanticScopeSeparator;
+            state.semantic_scope_to_hl_group_table.clear();
             state.serverCommands.extend(serverCommands);
             state.selectionUI = selectionUI;
             state.selectionUI_autoOpen = selectionUI_autoOpen;
@@ -234,6 +255,10 @@ impl LanguageClient {
             state.is_nvim = is_nvim;
             Ok(())
         })?;
+
+        for languageId in semanticHlUpdateLanguageIds {
+            self.updateSemanticHighlightTables(&languageId)?;
+        }
 
         info!("End sync settings");
         Ok(())
@@ -818,6 +843,81 @@ impl LanguageClient {
         Ok(())
     }
 
+    fn parseSemanticScopes(&self, languageId: &str, result: &Value) -> Fallible<()> {
+        info!("Begin parse Semantic Scopes");
+        let result: InitializeResult = serde_json::from_value(result.clone())?;
+
+        if let Some(capability) = result.capabilities.semantic_highlighting {
+            self.update(|state| {
+                state
+                    .semantic_scopes
+                    .insert(languageId.into(), capability.scopes.unwrap_or_default());
+                Ok(())
+            })?;
+        }
+
+        info!("End parse Semantic Scopes");
+        Ok(())
+    }
+
+    /// Build the Semantic Highlight Lookup Table of
+    ///
+    /// ScopeIndex -> Option<HighlightGroup>
+    fn updateSemanticHighlightTables(&self, languageId: &str) -> Fallible<()> {
+        info!("Begin updateSemanticHighlightTables");
+        let (opt_scopes, opt_hl_map, scopeSeparator) = self.get(|state| {
+            (
+                state.semantic_scopes.get(languageId).cloned(),
+                state.semanticHighlightMaps.get(languageId).cloned(),
+                state.semanticScopeSeparator.clone(),
+            )
+        })?;
+
+        if let (Some(semantic_scopes), Some(semanticHighlightMap)) = (opt_scopes, opt_hl_map) {
+            let mut table: Vec<Option<String>> = Vec::new();
+
+            for scope_list in semantic_scopes {
+                // Combine all scopes ["scopeA", "scopeB", ...] -> "scopeA:scopeB:..."
+                let scope_str = scope_list.iter().join(&scopeSeparator);
+
+                let mut matched = false;
+                for (scope_regex, hl_group) in &semanticHighlightMap {
+                    let match_expr = format!(
+                        "({} =~ {})",
+                        convert_to_vim_str(&scope_str),
+                        convert_to_vim_str(scope_regex)
+                    );
+
+                    let matches: i32 = self.vim()?.eval(match_expr)?;
+
+                    if matches == 1 {
+                        table.push(Some(hl_group.clone()));
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if !matched {
+                    table.push(None);
+                }
+            }
+
+            self.update(|state| {
+                state
+                    .semantic_scope_to_hl_group_table
+                    .insert(languageId.into(), table);
+                Ok(())
+            })?;
+        } else {
+            self.update(|state| {
+                state.semantic_scope_to_hl_group_table.remove(languageId);
+                Ok(())
+            })?;
+        }
+        info!("End updateSemanticHighlightTables");
+        Ok(())
+    }
+
     fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Fallible<String> {
         let value = self.vim()?.rpcclient.call(
             "getbufline",
@@ -1004,8 +1104,14 @@ impl LanguageClient {
 
         let result: Value = self.get_client(&Some(languageId.clone()))?.call(
             lsp::request::Initialize::METHOD,
+            #[allow(deprecated)]
             InitializeParams {
+                client_info: Some(ClientInfo {
+                    name: "LanguageClient-neovim".into(),
+                    version: Some((*self.version).clone()),
+                }),
                 process_id: Some(u64::from(std::process::id())),
+                /* deprecated in lsp types, but can't initialize without it */
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
                 initialization_options,
@@ -1045,10 +1151,16 @@ impl LanguageClient {
                         }),
                         publish_diagnostics: Some(PublishDiagnosticsCapability {
                             related_information: Some(true),
+                            ..PublishDiagnosticsCapability::default()
                         }),
                         code_lens: Some(GenericCapability {
                             dynamic_registration: Some(true),
                         }),
+                        semantic_highlighting_capabilities: Some(
+                            SemanticHighlightingClientCapability {
+                                semantic_highlighting: true,
+                            },
+                        ),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
@@ -1084,6 +1196,11 @@ impl LanguageClient {
             error!("{}\n{:?}", message, e);
             self.vim()?.echoerr(&message)?;
         }
+        if let Err(e) = self.parseSemanticScopes(&languageId, &result) {
+            let message = format!("LanguageClient: failed to parse semantic scopes: {}", e);
+            error!("{}\n{:?}", message, e);
+            self.vim()?.echoerr(&message)?;
+        }
 
         Ok(result)
     }
@@ -1092,6 +1209,7 @@ impl LanguageClient {
         info!("Begin {}", lsp::notification::Initialized::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
+        self.updateSemanticHighlightTables(&languageId)?;
         self.get_client(&Some(languageId))?
             .notify(lsp::notification::Initialized::METHOD, InitializedParams {})?;
         info!("End {}", lsp::notification::Initialized::METHOD);
@@ -1232,6 +1350,7 @@ impl LanguageClient {
                     position,
                 },
                 new_name,
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1418,6 +1537,8 @@ impl LanguageClient {
                     diagnostics,
                     only: None,
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
             },
         )?;
 
@@ -1435,6 +1556,7 @@ impl LanguageClient {
                     diagnostics: None,
                     edit: None,
                     command: Some(command),
+                    ..CodeAction::default()
                 },
                 CodeActionOrCommand::CodeAction(action) => action,
             })
@@ -1594,7 +1716,9 @@ impl LanguageClient {
                     tab_size,
                     insert_spaces,
                     properties: HashMap::new(),
+                    ..FormattingOptions::default()
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1635,6 +1759,7 @@ impl LanguageClient {
                     tab_size,
                     insert_spaces,
                     properties: HashMap::new(),
+                    ..FormattingOptions::default()
                 },
                 range: Range {
                     start: Position {
@@ -1646,6 +1771,7 @@ impl LanguageClient {
                         character: 0,
                     },
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
 
@@ -1698,7 +1824,11 @@ impl LanguageClient {
         let query = try_get("query", params)?.unwrap_or_default();
         let result = self.get_client(&Some(languageId))?.call(
             lsp::request::WorkspaceSymbol::METHOD,
-            WorkspaceSymbolParams { query },
+            WorkspaceSymbolParams {
+                query,
+                partial_result_params: PartialResultParams::default(),
+                work_done_progress_params: WorkDoneProgressParams::default(),
+            },
         )?;
 
         if !self.vim()?.get_handle(params)? {
@@ -1773,7 +1903,11 @@ impl LanguageClient {
 
         let result = self.get_client(&Some(languageId))?.call(
             lsp::request::ExecuteCommand::METHOD,
-            ExecuteCommandParams { command, arguments },
+            ExecuteCommandParams {
+                command,
+                arguments,
+                work_done_progress_params: WorkDoneProgressParams::default(),
+            },
         )?;
         info!("End {}", lsp::request::ExecuteCommand::METHOD);
         Ok(result)
@@ -1871,6 +2005,8 @@ impl LanguageClient {
                     text_document: TextDocumentIdentifier {
                         uri: filename.to_url()?,
                     },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default(),
                 };
 
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
@@ -2117,6 +2253,218 @@ impl LanguageClient {
             .notify("s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
         info!("End {}", lsp::notification::PublishDiagnostics::METHOD);
+        Ok(())
+    }
+
+    pub fn textDocument_semanticHighlight(&self, params: &Value) -> Fallible<()> {
+        info!("Begin {}", lsp::notification::SemanticHighlighting::METHOD);
+        let mut params: SemanticHighlightingParams = params.clone().to_lsp()?;
+
+        // TODO: Do we need to handle the versioning of the file?
+        let mut filename = params
+            .text_document
+            .uri
+            .filepath()?
+            .to_string_lossy()
+            .into_owned();
+        // Workaround bug: remove first '/' in case of '/C:/blabla'.
+        if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
+            filename.remove(0);
+        }
+        // Unify name to avoid mismatch due to case insensitivity.
+        let filename = filename.canonicalize();
+        let languageId = self.vim()?.get_languageId(&filename, &Value::Null)?;
+
+        let opt_hl_table = self.get(|state| {
+            state
+                .semantic_scope_to_hl_group_table
+                .get(&languageId)
+                .cloned()
+        })?;
+
+        // Sort lines in ascending order
+        params.lines.sort_by(|a, b| a.line.cmp(&b.line));
+
+        // Remove obviously invalid values
+        while let Some(line_info) = params.lines.first() {
+            if line_info.line >= 0 {
+                break;
+            } else {
+                warn!(
+                    "Invalid Semantic Highlight Line: {}",
+                    params.lines.remove(0).line
+                );
+            }
+        }
+
+        let semantic_hl_state = TextDocumentSemanticHighlightState {
+            last_version: params.text_document.version,
+            symbols: params.lines,
+            highlights: None,
+        };
+
+        if let Some(hl_table) = opt_hl_table {
+            let ns_id = self.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
+
+            let buffer = self.vim()?.get_bufnr(&filename, &Value::Null)?;
+
+            if buffer == -1 {
+                error!(
+                    "Received Semantic Highlighting for non-open buffer: {}",
+                    filename
+                );
+                return Ok(());
+            }
+
+            /*
+             * Currently servers update entire regions of text at a time or a
+             * single line so simply clear between the first and last line to
+             * ensure no highlights are left dangling
+             */
+            let mut clear_region: Option<(u64, u64)> = None;
+            let mut highlights = Vec::with_capacity(semantic_hl_state.symbols.len());
+
+            for line in &semantic_hl_state.symbols {
+                if let Some(tokens) = &line.tokens {
+                    for token in tokens {
+                        if token.length == 0 {
+                            continue;
+                        }
+
+                        if let Some(Some(group)) = hl_table.get(token.scope as usize) {
+                            highlights.push(Highlight {
+                                line: line.line as u64,
+                                character_start: token.character as u64,
+                                character_end: token.character as u64 + token.length as u64,
+                                group: group.clone(),
+                                text: String::new(),
+                            });
+                        }
+                    }
+
+                    match clear_region {
+                        Some((begin, _)) => {
+                            clear_region = Some((begin, line.line as u64 + 1));
+                        }
+                        None => {
+                            clear_region = Some((line.line as u64, line.line as u64 + 1));
+                        }
+                    }
+                }
+            }
+
+            info!(
+                "Semantic Highlighting Region [{}, {}]:",
+                semantic_hl_state
+                    .symbols
+                    .first()
+                    .map_or(-1, |h| h.line as i64),
+                semantic_hl_state
+                    .symbols
+                    .last()
+                    .map_or(-1, |h| h.line as i64)
+            );
+
+            info!(
+                "Semantic Highlighting Region (Parsed) [{}, {}]:",
+                highlights.first().map_or(-1, |h| h.line as i64),
+                highlights.last().map_or(-1, |h| h.line as i64)
+            );
+
+            let mut clears = Vec::new();
+            if let Some((begin, end)) = clear_region {
+                clears.push(ClearNamespace {
+                    line_start: begin,
+                    line_end: end,
+                });
+            }
+
+            let mut num_semantic_hls = 0;
+            let num_new_semantic_hls = highlights.len();
+
+            self.update(|state| {
+                state.vim.rpcclient.notify(
+                    "s:ApplySemanticHighlights",
+                    json!([buffer, ns_id, clears, highlights]),
+                )?;
+
+                let old_semantic_hl_state = state
+                    .semantic_highlights
+                    .insert(languageId.clone(), semantic_hl_state);
+
+                let semantic_hl_state = state.semantic_highlights.get_mut(&languageId).unwrap();
+
+                let mut combined_hls = Vec::with_capacity(highlights.len());
+
+                let mut existing_hls = old_semantic_hl_state
+                    .map_or(Vec::new(), |hl_state| {
+                        hl_state.highlights.unwrap_or_default()
+                    })
+                    .into_iter()
+                    .peekable();
+
+                let mut new_hls = highlights.into_iter().peekable();
+
+                // Incrementally update the highlighting
+                loop {
+                    match (existing_hls.peek(), new_hls.peek()) {
+                        (Some(existing_hl), Some(new_hl)) => {
+                            use std::cmp::Ordering;
+
+                            match existing_hl.line.cmp(&new_hl.line) {
+                                Ordering::Less => {
+                                    if clear_region.unwrap_or((0, 0)).0 <= existing_hl.line
+                                        && existing_hl.line < clear_region.unwrap_or((0, 0)).1
+                                    {
+                                        // within clear region, this highlight gets cleared
+                                        existing_hls.next();
+                                    } else {
+                                        combined_hls
+                                            .push(existing_hls.next().expect("unreachable"));
+                                    }
+                                }
+                                Ordering::Greater => {
+                                    combined_hls.push(new_hls.next().expect("unreachable"));
+                                }
+                                Ordering::Equal => {
+                                    // existing highlight on same line as new, it gets cleared
+                                    existing_hls.next();
+                                }
+                            }
+                        }
+                        (Some(_), None) => {
+                            combined_hls.push(existing_hls.next().expect("unreachable"));
+                        }
+                        (None, Some(_)) => {
+                            combined_hls.push(new_hls.next().expect("unreachable"));
+                        }
+                        (None, None) => {
+                            break;
+                        }
+                    }
+                }
+
+                num_semantic_hls = combined_hls.len();
+
+                semantic_hl_state.highlights = Some(combined_hls);
+
+                Ok(())
+            })?;
+
+            info!(
+                "Applied Semantic Highlighting for {} Symbols ({} new)",
+                num_semantic_hls, num_new_semantic_hls
+            )
+        } else {
+            self.update(|state| {
+                state
+                    .semantic_highlights
+                    .insert(languageId.clone(), semantic_hl_state);
+                Ok(())
+            })?;
+        }
+
+        info!("End {}", lsp::notification::SemanticHighlighting::METHOD);
         Ok(())
     }
 
@@ -2701,7 +3049,7 @@ impl LanguageClient {
         }
 
         if self.get(|state| state.is_nvim)? {
-            let namespace_id = self.get_or_create_namespace()?;
+            let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
             self.vim()?.set_virtual_texts(
                 bufnr,
                 namespace_id,
@@ -2862,6 +3210,80 @@ impl LanguageClient {
 
         info!("End {}", NOTIFICATION__FZFSinkCommand);
         Ok(())
+    }
+
+    pub fn languageClient_semanticScopes(&self, params: &Value) -> Fallible<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        let (scopes, mut scope_mapping) = self.get(|state| {
+            (
+                state
+                    .semantic_scopes
+                    .get(&languageId)
+                    .cloned()
+                    .unwrap_or_default(),
+                state
+                    .semantic_scope_to_hl_group_table
+                    .get(&languageId)
+                    .cloned()
+                    .unwrap_or_default(),
+            )
+        })?;
+
+        let mut semantic_scopes = Vec::new();
+
+        // If the user has not set up highlighting yet the table does not exist
+        if scopes.len() > scope_mapping.len() {
+            scope_mapping.resize(scopes.len(), None);
+        }
+
+        for (scope, opt_hl_group) in scopes.iter().zip(scope_mapping.iter()) {
+            if let Some(hl_group) = opt_hl_group {
+                semantic_scopes.push(json!({
+                    "scope": scope,
+                    "hl_group": hl_group,
+                }));
+            } else {
+                semantic_scopes.push(json!({
+                    "scope": scope,
+                    "hl_group": "None",
+                }));
+            }
+        }
+
+        Ok(json!(semantic_scopes))
+    }
+
+    pub fn languageClient_semanticHlSyms(&self, params: &Value) -> Fallible<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        let (opt_scopes, opt_hl_state) = self.get(|state| {
+            (
+                state.semantic_scopes.get(&languageId).cloned(),
+                state.semantic_highlights.get(&languageId).cloned(),
+            )
+        })?;
+
+        if let (Some(scopes), Some(hl_state)) = (opt_scopes, opt_hl_state) {
+            let mut symbols = Vec::new();
+
+            for sym in hl_state.symbols {
+                for token in sym.tokens.unwrap_or_default() {
+                    symbols.push(json!({
+                        "line": sym.line as u64,
+                        "character_start": token.character as u64,
+                        "character_end": token.character as u64 + token.length as u64,
+                        "scope": scopes.get(token.scope as usize).cloned().unwrap_or_default()
+                    }));
+                }
+            }
+
+            Ok(json!(symbols))
+        } else {
+            Ok(json!([]))
+        }
     }
 
     pub fn NCM_refresh(&self, params: &Value) -> Fallible<Value> {

@@ -3,6 +3,7 @@ use crate::vim::Vim;
 use std::ops::DerefMut;
 
 pub struct LanguageClient {
+    pub version: Arc<String>,
     pub state_mutex: Arc<Mutex<State>>,
     pub clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
 }
