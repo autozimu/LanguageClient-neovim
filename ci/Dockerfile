@@ -1,15 +1,13 @@
-FROM rust:1.40-slim
-
-RUN echo 'deb http://deb.debian.org/debian stretch-backports main contrib non-free' >> /etc/apt/sources.list
+FROM rust:1.41-slim
 
 RUN apt-get update \
-        && apt-get install --yes --target-release stretch-backports neovim \
-        && apt-get install --yes curl git python3-pip python3-pytest mypy flake8 \
-        && pip3 install neovim vim-vint
+        && apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 npm make \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
-        && apt-get install --yes npm \
-        && npm install -g javascript-typescript-langserver@2.5.5
+RUN python3 -m pip install neovim vim-vint
+
+RUN npm install -g javascript-typescript-langserver@2.5.5
 
 RUN rustup component add rustfmt rls rust-analysis rust-src \
         && rustc --version \
@@ -17,4 +15,4 @@ RUN rustup component add rustfmt rls rust-analysis rust-src \
 
 ENV CARGO_TARGET_DIR=/tmp
 
-CMD /bin/bash
+CMD ["/bin/bash"]
