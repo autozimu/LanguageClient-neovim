@@ -63,6 +63,7 @@ pub fn get_rootPath<'a>(
         "scala" => traverse_up(path, |dir| dir.join("build.sbt").exists()),
         "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
             .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
+        "go" => traverse_up(path, |dir| dir.join("go.mod").exists()),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
     }
     .or_else(|_| {
