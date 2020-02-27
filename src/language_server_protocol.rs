@@ -304,14 +304,22 @@ impl LanguageClient {
             match changes {
                 DocumentChanges::Edits(ref changes) => {
                     for e in changes {
-                        self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?;
+                        position = self.apply_TextEdits(
+                            &e.text_document.uri.filepath()?,
+                            &e.edits,
+                            position,
+                        )?;
                     }
                 }
                 DocumentChanges::Operations(ref ops) => {
                     for op in ops {
                         match op {
                             Edit(ref e) => {
-                                self.apply_TextEdits(&e.text_document.uri.filepath()?, &e.edits)?
+                                position = self.apply_TextEdits(
+                                    &e.text_document.uri.filepath()?,
+                                    &e.edits,
+                                    position,
+                                )?
                             }
                             Op(ref rop) => match rop {
                                 Create(file) => {
@@ -327,7 +335,7 @@ impl LanguageClient {
             }
         } else if let Some(ref changes) = edit.changes {
             for (uri, edits) in changes {
-                self.apply_TextEdits(&uri.filepath()?, edits)?;
+                position = self.apply_TextEdits(&uri.filepath()?, edits, position)?;
             }
         }
         self.edit(&None, &filename)?;
@@ -458,10 +466,15 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn apply_TextEdits<P: AsRef<Path>>(&self, path: P, edits: &[TextEdit]) -> Fallible<()> {
+    fn apply_TextEdits<P: AsRef<Path>>(
+        &self,
+        path: P,
+        edits: &[TextEdit],
+        position: Position,
+    ) -> Fallible<Position> {
         debug!("Begin apply TextEdits: {:?}", edits);
         if edits.is_empty() {
-            return Ok(());
+            return Ok(position);
         }
 
         let mut edits = edits.to_vec();
@@ -484,7 +497,7 @@ impl LanguageClient {
             lines.push("".to_owned());
         }
 
-        let mut lines = apply_TextEdits(&lines, &edits)?;
+        let (mut lines, position) = apply_TextEdits(&lines, &edits, &position)?;
 
         if lines.last().map(String::is_empty) == Some(true) && fixendofline {
             lines.pop();
@@ -495,7 +508,7 @@ impl LanguageClient {
         }
         self.vim()?.rpcclient.notify("setline", json!([1, lines]))?;
         debug!("End apply TextEdits");
-        Ok(())
+        Ok(position)
     }
 
     fn update_quickfixlist(&self) -> Fallible<()> {
@@ -3106,7 +3119,7 @@ impl LanguageClient {
             return Ok(());
         }
 
-        self.apply_TextEdits(filename, &edits)?;
+        let position = self.apply_TextEdits(filename, &edits, position)?;
         self.vim()?
             .cursor(position.line + 1, position.character + 1)
     }

@@ -130,7 +130,89 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     }
 }
 
-pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<String>> {
+fn position_to_offset(lines: &[String], position: &Position) -> usize {
+    if lines.is_empty() {
+        return 0;
+    }
+
+    let line = std::cmp::min(position.line as usize, lines.len() - 1);
+    let character = std::cmp::min(position.character as usize, lines[line].len());
+
+    let chars_above: usize = lines[..line].iter().map(|text| text.len() + 1).sum();
+    chars_above + character
+}
+
+#[test]
+fn test_position_to_offset() {
+    assert_eq!(position_to_offset(&[], &Position::new(0, 0)), 0);
+
+    let lines: Vec<String> = "\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(position_to_offset(&lines, &Position::new(0, 0)), 0);
+    assert_eq!(position_to_offset(&lines, &Position::new(0, 1)), 0);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 0)), 0);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 1)), 0);
+
+    let lines: Vec<String> = "a\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(position_to_offset(&lines, &Position::new(0, 0)), 0);
+    assert_eq!(position_to_offset(&lines, &Position::new(0, 1)), 1);
+    assert_eq!(position_to_offset(&lines, &Position::new(0, 2)), 1);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 0)), 0);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 1)), 1);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 2)), 1);
+
+    let lines: Vec<String> = "a\nbc\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 0)), 2);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 1)), 3);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 2)), 4);
+    assert_eq!(position_to_offset(&lines, &Position::new(1, 3)), 4);
+}
+
+fn offset_to_position(lines: &[String], offset: usize) -> Position {
+    if lines.is_empty() {
+        return Position::new(0, 0);
+    }
+
+    let mut offset = offset;
+    for (line, text) in lines.iter().enumerate() {
+        if offset <= text.len() {
+            return Position::new(line as u64, offset as u64);
+        }
+
+        offset -= text.len() + 1;
+    }
+
+    let last_line = lines.len() - 1;
+    let last_character = lines[last_line].len();
+    Position::new(last_line as u64, last_character as u64)
+}
+
+#[test]
+fn test_offset_to_position() {
+    assert_eq!(offset_to_position(&[], 0), Position::new(0, 0));
+
+    let lines: Vec<String> = "\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(offset_to_position(&lines, 0), Position::new(0, 0));
+    assert_eq!(offset_to_position(&lines, 1), Position::new(0, 0));
+
+    let lines: Vec<String> = "a\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(offset_to_position(&lines, 0), Position::new(0, 0));
+    assert_eq!(offset_to_position(&lines, 1), Position::new(0, 1));
+    assert_eq!(offset_to_position(&lines, 2), Position::new(0, 1));
+
+    let lines: Vec<String> = "a\nbc\n".lines().map(ToOwned::to_owned).collect();
+    assert_eq!(offset_to_position(&lines, 0), Position::new(0, 0));
+    assert_eq!(offset_to_position(&lines, 1), Position::new(0, 1));
+    assert_eq!(offset_to_position(&lines, 2), Position::new(1, 0));
+    assert_eq!(offset_to_position(&lines, 3), Position::new(1, 1));
+    assert_eq!(offset_to_position(&lines, 4), Position::new(1, 2));
+    assert_eq!(offset_to_position(&lines, 5), Position::new(1, 2));
+}
+
+pub fn apply_TextEdits(
+    lines: &[String],
+    edits: &[TextEdit],
+    position: &Position,
+) -> Fallible<(Vec<String>, Position)> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
     for edit in edits {
@@ -153,13 +235,32 @@ pub fn apply_TextEdits(lines: &[String], edits: &[TextEdit]) -> Fallible<Vec<Str
     }
 
     let mut text = lines.join("\n");
+    let mut offset = position_to_offset(&lines, &position);
     for (start, end, new_text) in edits_by_index {
         let start = std::cmp::min(start, text.len());
         let end = std::cmp::min(end, text.len());
         text = String::new() + &text[..start] + new_text + &text[end..];
+
+        // Update offset only if the edit's entire range is before it.
+        // Edits after the offset do not affect it.
+        // Edits covering the offset cause unpredictable effect.
+        if end <= offset {
+            offset += new_text.len();
+            offset -= new_text.matches("\r\n").count(); // line ending is counted as one offset
+            offset -= std::cmp::min(offset, end - start);
+        }
     }
 
-    Ok(text.lines().map(ToOwned::to_owned).collect())
+    offset = std::cmp::min(offset, text.len());
+
+    let new_lines: Vec<String> = text.lines().map(ToOwned::to_owned).collect();
+    let new_position = offset_to_position(&new_lines, offset);
+    debug!(
+        "Position change after applying text edits: {:?} -> {:?}",
+        position, new_position
+    );
+
+    Ok((new_lines, new_position))
 }
 
 #[test]
@@ -198,7 +299,12 @@ fn test_apply_TextEdit() {
         .to_owned(),
     };
 
-    assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
+    let position = Position::new(0, 0);
+
+    // Ignore returned position since the edit's range covers current position and the new position
+    // is undefined in this case
+    let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
+    assert_eq!(result, expect);
 }
 
 #[test]
@@ -221,7 +327,86 @@ fn test_apply_TextEdit_overlong_end() {
         new_text: r#"nb = 123"#.to_owned(),
     };
 
-    assert_eq!(apply_TextEdits(&lines, &[edit]).unwrap(), expect);
+    let position = Position::new(0, 1);
+
+    let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
+    assert_eq!(result, expect);
+}
+
+#[test]
+fn test_apply_TextEdit_position() {
+    let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let expected_lines: Vec<String> = "newline\nabcde = 123"
+        .lines()
+        .map(|l| l.to_owned())
+        .collect();
+
+    let edits = [
+        TextEdit {
+            range: Range {
+                start: Position {
+                    line: 0,
+                    character: 1,
+                },
+                end: Position {
+                    line: 0,
+                    character: 3,
+                },
+            },
+            new_text: "bcde".to_owned(),
+        },
+        TextEdit {
+            range: Range {
+                start: Position {
+                    line: 0,
+                    character: 0,
+                },
+                end: Position {
+                    line: 0,
+                    character: 0,
+                },
+            },
+            new_text: "newline\n".to_owned(),
+        },
+    ];
+
+    let position = Position::new(0, 4);
+    let expected_position = Position::new(1, 6);
+
+    assert_eq!(
+        apply_TextEdits(&lines, &edits, &position).unwrap(),
+        (expected_lines, expected_position)
+    );
+}
+
+#[test]
+fn test_apply_TextEdit_CRLF() {
+    let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let expected_lines: Vec<String> = "a\r\nbc = 123".lines().map(|l| l.to_owned()).collect();
+
+    let edit = TextEdit {
+        range: Range {
+            start: Position {
+                line: 0,
+                character: 0,
+            },
+            end: Position {
+                line: 0,
+                character: 1,
+            },
+        },
+        new_text: "a\r\n".to_owned(),
+    };
+
+    let position = Position::new(0, 2);
+    let expected_position = Position::new(1, 1);
+
+    assert_eq!(
+        apply_TextEdits(&lines, &[edit], &position).unwrap(),
+        (expected_lines, expected_position)
+    );
 }
 
 pub trait Combine {
