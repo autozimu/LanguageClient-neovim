@@ -177,6 +177,7 @@ pub struct State {
     pub wait_output_timeout: Duration,
     pub hoverPreview: HoverPreviewOption,
     pub completionPreferTextEdit: bool,
+    pub applyCompletionAdditionalTextEdits: bool,
     pub use_virtual_text: UseVirtualText,
     pub echo_project_root: bool,
 
@@ -258,6 +259,7 @@ impl State {
             wait_output_timeout: Duration::from_secs(10),
             hoverPreview: HoverPreviewOption::default(),
             completionPreferTextEdit: false,
+            applyCompletionAdditionalTextEdits: true,
             use_virtual_text: UseVirtualText::All,
             echo_project_root: true,
             loggingFile: None,

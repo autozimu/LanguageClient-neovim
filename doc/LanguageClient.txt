@@ -500,6 +500,14 @@ Example configuration for eclipse.jdt.ls:
      highlight! JavaStaticMemberFunction ctermfg=Green cterm=none guifg=Green gui=none
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
 
+
+2.31 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
+
+Indicates whether completionItem additional text edits should be applied.
+
+Default: 1
+Valid options: 1 | 0
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

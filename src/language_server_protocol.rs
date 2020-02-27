@@ -124,6 +124,7 @@ impl LanguageClient {
             echo_project_root,
             semanticHighlightMaps,
             semanticScopeSeparator,
+            applyCompletionAdditionalTextEdits,
         ): (
             Option<u64>,
             String,
@@ -133,6 +134,7 @@ impl LanguageClient {
             u8,
             HashMap<String, HashMap<String, String>>,
             String,
+            u8,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -143,6 +145,7 @@ impl LanguageClient {
                 "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
                 "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
                 "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
+                "get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1)",
             ]
             .as_ref(),
         )?;
@@ -201,6 +204,7 @@ impl LanguageClient {
         };
 
         let completionPreferTextEdit = completionPreferTextEdit == 1;
+        let applyCompletionAdditionalTextEdits = applyCompletionAdditionalTextEdits == 1;
 
         let is_nvim = is_nvim == 1;
 
@@ -247,6 +251,7 @@ impl LanguageClient {
             state.wait_output_timeout = wait_output_timeout;
             state.hoverPreview = hoverPreview;
             state.completionPreferTextEdit = completionPreferTextEdit;
+            state.applyCompletionAdditionalTextEdits = applyCompletionAdditionalTextEdits;
             state.use_virtual_text = use_virtual_text;
             state.echo_project_root = echo_project_root == 1;
             state.loggingFile = loggingFile;
@@ -3111,9 +3116,12 @@ impl LanguageClient {
                 edits.push(edit);
             };
         }
-        if let Some(aedits) = lspitem.additional_text_edits {
-            edits.extend(aedits);
-        };
+
+        if self.get(|state| state.applyCompletionAdditionalTextEdits)? {
+            if let Some(aedits) = lspitem.additional_text_edits {
+                edits.extend(aedits);
+            };
+        }
 
         if edits.is_empty() {
             return Ok(());
