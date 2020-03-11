@@ -8,6 +8,24 @@ None.
 
 # 3. Install this plugin
 
+## Linux
+
+Packages are available for the following distributions:
+
+### Arch Linux
+
+There are two packages available on the [AUR][archlinux/aur]
+
+- [`aur/languageclient-neovim`][archlinux/install/aur]
+- [`aur/languageclient-neovim-bin`][archlinux/install/aur-bin]
+
+[archlinux/aur]: https://wiki.archlinux.org/index.php/Arch_User_Repository
+[archlinux/install/aur]: https://aur.archlinux.org/packages/languageclient-neovim
+[archlinux/install/aur-bin]: https://aur.archlinux.org/packages/languageclient-neovim-bin
+
+
+## With a plugin manager
+
 > For Windows users, replace `bash install.sh` with `powershell -executionpolicy bypass -File install.ps1` in following
 > snippets.
 
@@ -16,8 +34,6 @@ None.
 > 'autozimu/LanguageClient-neovim', {'branch': 'next', 'do': 'make release'}`.
 
 > Android is not supported using the `install.sh` script.
-
-Choose steps matching your plugin manager.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
 Add following to vimrc
