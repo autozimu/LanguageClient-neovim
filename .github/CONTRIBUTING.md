@@ -10,10 +10,10 @@ let g:LanguageClient_devel = 1 " Use rust debug build
 let g:LanguageClient_loggingLevel = 'DEBUG' " Use highest logging level
 ```
 
-1. Make necessary changes.
-1. Build. `make` to build, format and run [clippy], or `make build` to run build only.
-1. Verify changes.
-1. Run tests. (See below section)
+- Make necessary changes.
+- Build. `make` to build, format and run [clippy], or `make build` to run build only.
+- Verify changes.
+- Run tests. (See below section)
 
 [clippy]: https://github.com/rust-lang-nursery/rust-clippy
 
