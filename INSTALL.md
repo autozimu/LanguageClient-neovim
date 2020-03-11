@@ -1,4 +1,5 @@
 # Requirements
+
 - neovim or
 - vim >= 8.0
 
@@ -36,7 +37,9 @@ There are two packages available on the [AUR][archlinux/aur]
 > Android is not supported using the `install.sh` script.
 
 ## [vim-plug](https://github.com/junegunn/vim-plug) user
+
 Add following to vimrc
+
 ```vim
 Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
@@ -47,7 +50,9 @@ Plug 'autozimu/LanguageClient-neovim', {
 Restart neovim and run `:PlugInstall` to install.
 
 ## [dein.vim](https://github.com/Shougo/dein.vim) user
+
 Add following to vimrc
+
 ```vim
 call dein#add('autozimu/LanguageClient-neovim', {
     \ 'rev': 'next',
@@ -58,7 +63,9 @@ call dein#add('autozimu/LanguageClient-neovim', {
 Restart neovim and run `:call dein#install()` to install.
 
 ## Manual
+
 Clone this repo into some place, e.g., `~/.vim-plugins`
+
 ```sh
 mkdir -p ~/.vim-plugins
 cd ~/.vim-plugins
@@ -68,18 +75,22 @@ bash install.sh
 ```
 
 Add this plugin to vim/neovim `runtimepath`,
+
 ```vim
 set runtimepath+=~/.vim-plugins/LanguageClient-neovim
 ```
 
 # Install language servers
+
 Install language servers if corresponding language servers are not available
 yet on your system. Please see <http://langserver.org> and/or
 <https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>
 for list of language servers.
 
 # Configure this plugin
+
 Example configuration
+
 ```vim
 " Required for operations modifying multiple buffers like rename.
 set hidden
