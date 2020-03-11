@@ -1,12 +1,12 @@
-# 1. Requirements
+# Requirements
 - neovim or
 - vim >= 8.0
 
-# 2. Install dependencies
+# Install dependencies
 
 None.
 
-# 3. Install this plugin
+# Install this plugin
 
 ## Linux
 
@@ -72,13 +72,13 @@ Add this plugin to vim/neovim `runtimepath`,
 set runtimepath+=~/.vim-plugins/LanguageClient-neovim
 ```
 
-# 4. Install language servers
+# Install language servers
 Install language servers if corresponding language servers are not available
 yet on your system. Please see <http://langserver.org> and/or
 <https://github.com/Microsoft/language-server-protocol/wiki/Protocol-Implementations>
 for list of language servers.
 
-# 5. Configure this plugin
+# Configure this plugin
 Example configuration
 ```vim
 " Required for operations modifying multiple buffers like rename.
@@ -97,7 +97,7 @@ nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
 nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 ```
 
-# 6. Troubleshooting
+# Troubleshooting
 
 1. Backup your vimrc and use [min-vimrc.vim](min-vimrc.vim) as vimrc.
 1. Try on [sample projects](tests/data).

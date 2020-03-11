@@ -74,7 +74,7 @@ language services will be available right away. Happy hacking!
 
 # Troubleshooting
 
-[Troubleshooting](INSTALL.md#6-troubleshooting)
+[Troubleshooting](INSTALL.md#troubleshooting)
 
 # Language Servers
 
