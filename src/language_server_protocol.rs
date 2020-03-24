@@ -965,6 +965,18 @@ impl LanguageClient {
                     }
                 }
             }
+            "rust-analyzer.showReferences" => {
+                let locations = cmd
+                    .arguments
+                    .clone()
+                    .unwrap_or(vec![])
+                    .get(2)
+                    .cloned()
+                    .unwrap_or(Value::Array(vec![]));
+                let locations: Vec<Location> = serde_json::from_value(locations)?;
+
+                self.display_locations(&locations, "References")?;
+            }
             "rust-analyzer.selectAndApplySourceChange" => {
                 if let Some(ref edits) = cmd.arguments {
                     for edit in edits {
@@ -1980,22 +1992,38 @@ impl LanguageClient {
             return Ok(Value::Null);
         }
 
-        if code_lens.len() > 1 {
-            warn!("Multiple actions associated with this codeLens");
-            return Ok(Value::Null);
-        }
+        self.update(|state| {
+            let actions: Fallible<Vec<_>> = code_lens
+                .iter()
+                .map(|cl| match &cl.command {
+                    None => bail!("no command, skipping"),
+                    Some(cmd) => Ok(CodeAction {
+                        kind: Some(cmd.title.clone()),
+                        title: cmd.command.clone(),
+                        command: cl.clone().command,
+                        diagnostics: None,
+                        edit: None,
+                        is_preferred: None,
+                    }),
+                })
+                .filter(|c| c.is_ok())
+                .collect();
+            state.stashed_codeAction_actions = actions?;
+            Ok(())
+        })?;
 
-        if let Some(code_lens_action) = code_lens.get(0) {
-            if let Some(command) = &code_lens_action.command {
-                if !self.try_handle_command_by_client(&command)? {
-                    let params = json!({
-                    "command": command.command,
-                    "arguments": command.arguments,
-                    });
-                    self.workspace_executeCommand(&params)?;
-                }
-            }
-        }
+        let source: Fallible<Vec<_>> = code_lens
+            .iter()
+            .map(|cl| match &cl.command {
+                None => bail!("no command, skipping"),
+                Some(cmd) => Ok(format!("{}: {}", cmd.title, cmd.command)),
+            })
+            .filter(|c| c.is_ok())
+            .collect();
+
+        self.vim()?
+            .rpcclient
+            .notify("s:FZF", json!([source?, NOTIFICATION__FZFSinkCommand]))?;
 
         Ok(Value::Null)
     }
@@ -2016,6 +2044,7 @@ impl LanguageClient {
             let initialize_result: InitializeResult =
                 serde_json::from_value(initialize_result.clone())?;
             let capabilities = initialize_result.capabilities;
+
             if let Some(code_lens_provider) = capabilities.code_lens_provider {
                 info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
                 let client = self.get_client(&Some(language_id))?;
@@ -3057,11 +3086,19 @@ impl LanguageClient {
 
             for cl in code_lenses {
                 if let Some(command) = cl.command {
-                    virtual_texts.push(VirtualText {
-                        line: cl.range.start.line,
-                        text: command.title,
-                        hl_group: "Comment".into(),
-                    })
+                    let line = cl.range.start.line;
+                    let text = command.title;
+
+                    match virtual_texts.iter().position(|v| v.line == line) {
+                        Some(idx) => virtual_texts[idx]
+                            .text
+                            .push_str(format!(" | {}", text).as_str()),
+                        None => virtual_texts.push(VirtualText {
+                            line,
+                            text,
+                            hl_group: "Comment".into(),
+                        }),
+                    }
                 }
             }
         }
