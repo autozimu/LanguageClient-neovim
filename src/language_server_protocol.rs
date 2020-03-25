@@ -13,7 +13,7 @@ use std::sync::mpsc;
 use vim::try_get;
 
 impl LanguageClient {
-    pub fn get_client(&self, lang_id: &LanguageId) -> Fallible<RpcClient> {
+    pub fn get_client(&self, lang_id: &LanguageId) -> Fallible<Arc<RpcClient>> {
         self.get(|state| state.clients.get(lang_id).cloned())?
             .ok_or_else(|| {
                 LCError::ServerNotRunning {
@@ -3712,7 +3712,9 @@ impl LanguageClient {
             self.get(|state| state.tx.clone())?,
         )?;
         self.update(|state| {
-            state.clients.insert(Some(languageId.clone()), client);
+            state
+                .clients
+                .insert(Some(languageId.clone()), Arc::new(client));
             Ok(())
         })?;
 
