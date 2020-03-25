@@ -1,13 +1,13 @@
 use super::*;
 use crate::types::{Call, RawMessage};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-#[derive(Clone, Serialize)]
+#[derive(Serialize)]
 pub struct RpcClient {
     languageId: LanguageId,
-    // TODO: make atomic.
     #[serde(skip_serializing)]
-    id: Arc<Mutex<Id>>,
+    id: AtomicU64,
     #[serde(skip_serializing)]
     writer_tx: Sender<RawMessage>,
     #[serde(skip_serializing)]
@@ -49,7 +49,7 @@ impl RpcClient {
 
         Ok(Self {
             languageId,
-            id: Arc::new(Mutex::new(0)),
+            id: AtomicU64::default(),
             process_id,
             reader_tx,
             writer_tx,
@@ -62,14 +62,7 @@ impl RpcClient {
         params: impl Serialize,
     ) -> Fallible<R> {
         let method = method.as_ref();
-        let id = {
-            let mut id = self
-                .id
-                .lock()
-                .map_err(|err| format_err!("Failed to lock msg id: {}", err))?;
-            *id += 1;
-            *id
-        };
+        let id = self.id.fetch_add(1, Ordering::SeqCst);
         let msg = rpc::MethodCall {
             jsonrpc: Some(rpc::Version::V2),
             id: rpc::Id::Num(id),

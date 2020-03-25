@@ -13,13 +13,13 @@ pub fn try_get<R: DeserializeOwned>(key: &str, params: &Value) -> Fallible<Optio
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone)]
 pub struct Vim {
-    pub rpcclient: RpcClient,
+    pub rpcclient: Arc<RpcClient>,
 }
 
 impl Vim {
-    pub fn new(rpcclient: RpcClient) -> Self {
+    pub fn new(rpcclient: Arc<RpcClient>) -> Self {
         Self { rpcclient }
     }
 

@@ -113,7 +113,7 @@ pub struct State {
     pub tx: crossbeam::channel::Sender<Call>,
 
     #[serde(skip_serializing)]
-    pub clients: HashMap<LanguageId, RpcClient>,
+    pub clients: HashMap<LanguageId, Arc<RpcClient>>,
 
     #[serde(skip_serializing)]
     pub vim: Vim,
@@ -194,13 +194,13 @@ impl State {
     pub fn new(tx: crossbeam::channel::Sender<Call>) -> Fallible<Self> {
         let logger = logger::init()?;
 
-        let client = RpcClient::new(
+        let client = Arc::new(RpcClient::new(
             None,
             BufReader::new(std::io::stdin()),
             BufWriter::new(std::io::stdout()),
             None,
             tx.clone(),
-        )?;
+        )?);
 
         Ok(Self {
             tx,
