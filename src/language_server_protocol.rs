@@ -136,7 +136,7 @@ impl LanguageClient {
             HashMap<String, HashMap<String, String>>,
             String,
             u8,
-            Option<Vec<String>>,
+            Option<Vec<MarkupKind>>,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -225,18 +225,6 @@ impl LanguageClient {
 
         let semanticHlUpdateLanguageIds: Vec<String> =
             semanticHighlightMaps.keys().cloned().collect();
-
-        let preferred_markup_kind: Option<Vec<MarkupKind>> = if preferred_markup_kind.is_some() {
-            serde_json::from_value(Value::Array(
-                preferred_markup_kind
-                    .unwrap()
-                    .into_iter()
-                    .map(|x| Value::String(x))
-                    .collect(),
-            ))?
-        } else {
-            None
-        };
 
         self.update(|state| {
             state.autoStart = autoStart;
@@ -985,10 +973,10 @@ impl LanguageClient {
                 let locations = cmd
                     .arguments
                     .clone()
-                    .unwrap_or(vec![])
+                    .unwrap_or_else(|| vec![])
                     .get(2)
                     .cloned()
-                    .unwrap_or(Value::Array(vec![]));
+                    .unwrap_or_else(|| Value::Array(vec![]));
                 let locations: Vec<Location> = serde_json::from_value(locations)?;
 
                 self.display_locations(&locations, "References")?;
@@ -2272,7 +2260,7 @@ impl LanguageClient {
 
         let mut filename = params.uri.filepath()?.to_string_lossy().into_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
-        if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
+        if filename.chars().next() == Some('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
         // Unify name to avoid mismatch due to case insensitivity.
@@ -2336,7 +2324,7 @@ impl LanguageClient {
             .to_string_lossy()
             .into_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
-        if filename.chars().nth(0) == Some('/') && filename.chars().nth(2) == Some(':') {
+        if filename.chars().next() == Some('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
         // Unify name to avoid mismatch due to case insensitivity.
