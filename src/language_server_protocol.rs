@@ -2067,38 +2067,29 @@ impl LanguageClient {
 
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
                 let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
+                let mut code_lens: Vec<CodeLens> = code_lens.unwrap_or_default();
 
-                if code_lens_provider.resolve_provider.is_some() {
-                    let mut resolved_code_lens = vec![];
-                    if let Some(code_lens) = code_lens {
-                        for item in code_lens {
-                            let mut item = item;
-                            if let Some(_d) = &item.data {
-                                if let Some(cl) =
-                                    client.call(lsp::request::CodeLensResolve::METHOD, &item)?
-                                {
-                                    item = cl;
-                                }
+                if code_lens_provider.resolve_provider.unwrap_or_default() {
+                    code_lens = code_lens
+                        .into_iter()
+                        .map(|cl| {
+                            if cl.data.is_none() {
+                                return cl;
                             }
-                            resolved_code_lens.push(item);
-                        }
-                    }
 
-                    self.update(|state| {
-                        state
-                            .code_lens
-                            .insert(filename.to_owned(), resolved_code_lens);
-                        Ok(Value::Null)
-                    })?;
-                } else if let Some(code_lens) = code_lens {
-                    self.update(|state| {
-                        state.code_lens.insert(filename.to_owned(), code_lens);
-                        Ok(Value::Null)
-                    })?;
+                            client
+                                .call(lsp::request::CodeLensResolve::METHOD, &cl)
+                                .unwrap_or(cl)
+                        })
+                        .collect();
                 }
 
+                self.update(|state| {
+                    state.code_lens.insert(filename.to_owned(), code_lens);
+                    Ok(Value::Null)
+                })?;
+
                 info!("End {}", lsp::request::CodeLensRequest::METHOD);
-                return Ok(results);
             } else {
                 info!(
                     "CodeLens not supported. Skipping {}",
@@ -2106,6 +2097,10 @@ impl LanguageClient {
                 );
             }
         }
+
+        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+        let viewport = self.vim()?.get_viewport(params)?;
+        self.draw_virtual_texts(&filename, viewport, bufnr)?;
 
         Ok(Value::Null)
     }
@@ -2935,7 +2930,6 @@ impl LanguageClient {
             })?;
         }
 
-        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let viewport = self.vim()?.get_viewport(params)?;
 
         // use the most severe diagnostic of each line as the sign
@@ -3060,6 +3054,19 @@ impl LanguageClient {
                 .notify("s:AddHighlights", json!([source, highlights]))?;
         }
 
+        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+        self.draw_virtual_texts(&filename, viewport, bufnr)?;
+
+        info!("End {}", NOTIFICATION__HandleCursorMoved);
+        Ok(())
+    }
+
+    fn draw_virtual_texts(
+        &self,
+        filename: &str,
+        viewport: viewport::Viewport,
+        bufnr: i64,
+    ) -> Fallible<()> {
         let mut virtual_texts = vec![];
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
 
@@ -3067,49 +3074,15 @@ impl LanguageClient {
         if UseVirtualText::All == use_virtual_text
             || UseVirtualText::Diagnostics == use_virtual_text
         {
-            let diagnostics = self.get(|state| state.diagnostics.clone())?;
-            let diagnosticsDisplay = self.get(|state| state.diagnosticsDisplay.clone())?;
-            let diag_list = diagnostics.get(&filename);
-            if let Some(diag_list) = diag_list {
-                for diag in diag_list {
-                    if viewport.overlaps(diag.range) {
-                        virtual_texts.push(VirtualText {
-                            line: diag.range.start.line,
-                            text: diag.message.replace("\n", "  ").clone(),
-                            hl_group: diagnosticsDisplay
-                                .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
-                                .ok_or_else(|| err_msg("Failed to get display"))?
-                                .virtualTexthl
-                                .clone(),
-                        });
-                    }
-                }
-            }
+            let vt_diagnostics = self
+                .virtual_texts_from_diagnostics(filename, viewport)?
+                .into_iter();
+            virtual_texts.extend(vt_diagnostics);
         }
 
         // code lens
         if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
-            let filename = self.vim()?.get_filename(params)?;
-            let code_lenses =
-                self.get(|state| state.code_lens.get(&filename).cloned().unwrap_or_default())?;
-
-            for cl in code_lenses {
-                if let Some(command) = cl.command {
-                    let line = cl.range.start.line;
-                    let text = command.title;
-
-                    match virtual_texts.iter().position(|v| v.line == line) {
-                        Some(idx) => virtual_texts[idx]
-                            .text
-                            .push_str(format!(" | {}", text).as_str()),
-                        None => virtual_texts.push(VirtualText {
-                            line,
-                            text,
-                            hl_group: "Comment".into(),
-                        }),
-                    }
-                }
-            }
+            virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
         }
 
         if self.get(|state| state.is_nvim)? {
@@ -3123,8 +3096,64 @@ impl LanguageClient {
             )?;
         }
 
-        info!("End {}", NOTIFICATION__HandleCursorMoved);
         Ok(())
+    }
+
+    fn virtual_texts_from_diagnostics(
+        &self,
+        filename: &str,
+        viewport: viewport::Viewport,
+    ) -> Fallible<Vec<VirtualText>> {
+        let mut virtual_texts = vec![];
+        let diagnostics = self.get(|state| state.diagnostics.clone())?;
+        let diagnosticsDisplay = self.get(|state| state.diagnosticsDisplay.clone())?;
+        let diag_list = diagnostics.get(filename);
+        if let Some(diag_list) = diag_list {
+            for diag in diag_list {
+                if viewport.overlaps(diag.range) {
+                    virtual_texts.push(VirtualText {
+                        line: diag.range.start.line,
+                        text: diag.message.replace("\n", "  ").clone(),
+                        hl_group: diagnosticsDisplay
+                            .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
+                            .ok_or_else(|| err_msg("Failed to get display"))?
+                            .virtualTexthl
+                            .clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(virtual_texts)
+    }
+
+    fn virtual_texts_from_code_lenses(&self, filename: &str) -> Fallible<Vec<VirtualText>> {
+        let mut virtual_texts = vec![];
+        let code_lenses =
+            self.get(|state| state.code_lens.get(filename).cloned().unwrap_or_default())?;
+
+        for cl in code_lenses {
+            if let Some(command) = cl.command {
+                let line = cl.range.start.line;
+                let text = command.title;
+
+                match virtual_texts
+                    .iter()
+                    .position(|v: &VirtualText| v.line == line)
+                {
+                    Some(idx) => virtual_texts[idx]
+                        .text
+                        .push_str(format!(" | {}", text).as_str()),
+                    None => virtual_texts.push(VirtualText {
+                        line,
+                        text,
+                        hl_group: "Comment".into(),
+                    }),
+                }
+            }
+        }
+
+        Ok(virtual_texts)
     }
 
     pub fn languageClient_handleCompleteDone(&self, params: &Value) -> Fallible<()> {
