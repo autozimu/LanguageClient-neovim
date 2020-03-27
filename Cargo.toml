@@ -36,3 +36,5 @@ glob = "0"
 notify = "4"
 shellexpand = "1"
 derivative = "2"
+tokio = { version = "0.2.13", features = [ "rt-threaded", "macros", "blocking" ] }
+futures = { version = "0.3.4" }

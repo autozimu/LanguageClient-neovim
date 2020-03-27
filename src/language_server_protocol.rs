@@ -7,6 +7,7 @@ use crate::lsp::request::Request;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use failure::err_msg;
+use futures::executor::block_on;
 use itertools::Itertools;
 use notify::Watcher;
 use std::sync::mpsc;
@@ -23,14 +24,15 @@ impl LanguageClient {
             })
     }
 
-    pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
+    pub async fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
         for call in rx.iter() {
             let language_client = LanguageClient {
                 version: self.version.clone(),
                 state_mutex: self.state_mutex.clone(),
                 clients_mutex: self.clients_mutex.clone(), // not sure if useful to clone this
             };
-            thread::spawn(move || {
+
+            tokio::spawn(async move {
                 if let Err(err) = language_client.handle_call(call) {
                     error!("Error handling request:\n{:?}", err);
                 }
@@ -2036,71 +2038,84 @@ impl LanguageClient {
     }
 
     pub fn textDocument_codeLens(&self, params: &Value) -> Fallible<Value> {
+        info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
         if UseVirtualText::No == use_virtual_text || UseVirtualText::Diagnostics == use_virtual_text
         {
             return Ok(Value::Null);
         }
 
+        use serde::Deserialize;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_languageId(&filename, params)?;
-        let capabilities = self.get(|state| state.capabilities.clone())?;
-        if let Some(initialize_result) = capabilities.get(&language_id) {
-            // XXX: the capabilities state field stores the initialize result, not the capabilities
-            // themselves, so we need to deserialize to InitializeResult.
-            let initialize_result: InitializeResult =
-                serde_json::from_value(initialize_result.clone())?;
-            let capabilities = initialize_result.capabilities;
+        let client = self.get_client(&language_id.clone().into())?;
+        let input = lsp::CodeLensParams {
+            text_document: TextDocumentIdentifier {
+                uri: filename.to_url()?,
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        };
 
-            if let Some(code_lens_provider) = capabilities.code_lens_provider {
-                info!("Begin {}", lsp::request::CodeLensRequest::METHOD);
-                let client = self.get_client(&Some(language_id))?;
-                let input = lsp::CodeLensParams {
-                    text_document: TextDocumentIdentifier {
-                        uri: filename.to_url()?,
-                    },
-                    work_done_progress_params: WorkDoneProgressParams::default(),
-                    partial_result_params: PartialResultParams::default(),
-                };
+        let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
+        let code_lens = <Option<Vec<CodeLens>>>::deserialize(results)?;
+        let mut code_lens: Vec<CodeLens> = code_lens.unwrap_or_default();
 
-                let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
-                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results)?;
-                let mut code_lens: Vec<CodeLens> = code_lens.unwrap_or_default();
-
-                if code_lens_provider.resolve_provider.unwrap_or_default() {
-                    code_lens = code_lens
-                        .into_iter()
-                        .map(|cl| {
-                            if cl.data.is_none() {
-                                return cl;
-                            }
-
-                            client
-                                .call(lsp::request::CodeLensResolve::METHOD, &cl)
-                                .unwrap_or(cl)
-                        })
-                        .collect();
-                }
-
-                self.update(|state| {
-                    state.code_lens.insert(filename.to_owned(), code_lens);
-                    Ok(Value::Null)
-                })?;
-
-                info!("End {}", lsp::request::CodeLensRequest::METHOD);
-            } else {
-                info!(
-                    "CodeLens not supported. Skipping {}",
-                    lsp::request::CodeLensRequest::METHOD
-                );
-            }
+        let raw_capabilities = self.get(|state| state.capabilities.clone())?;
+        let initialize_result = raw_capabilities.get(&language_id).unwrap_or(&Value::Null);
+        // XXX: the capabilities state field stores the initialize result, not the capabilities
+        // themselves, so we need to deserialize to InitializeResult.
+        let initialize_result = <Option<InitializeResult>>::deserialize(initialize_result)?;
+        let capabilities = initialize_result.unwrap_or_default().capabilities;
+        let code_lens_provider = capabilities.code_lens_provider.unwrap_or(CodeLensOptions {
+            resolve_provider: None,
+        });
+        if code_lens_provider.resolve_provider.unwrap_or_default() {
+            code_lens = block_on(self.resolve_code_lenses(client, code_lens))?;
         }
+
+        self.update(|state| {
+            state.code_lens.insert(filename.to_owned(), code_lens);
+            Ok(Value::Null)
+        })?;
 
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let viewport = self.vim()?.get_viewport(params)?;
         self.draw_virtual_texts(&filename, viewport, bufnr)?;
 
+        info!("End {}", lsp::request::CodeLensRequest::METHOD);
         Ok(Value::Null)
+    }
+
+    async fn resolve_code_lenses(
+        &self,
+        client: Arc<RpcClient>,
+        code_lens: Vec<CodeLens>,
+    ) -> Fallible<Vec<CodeLens>> {
+        let tasks: Vec<_> = code_lens
+            .into_iter()
+            .map(|cl| {
+                let client = client.clone();
+                tokio::task::spawn_blocking(move || {
+                    if cl.data.is_none() {
+                        return cl;
+                    }
+
+                    let out: CodeLens = client
+                        .call(lsp::request::CodeLensResolve::METHOD, &cl)
+                        .unwrap_or(cl);
+                    out
+                })
+            })
+            .collect();
+
+        let res = futures::future::join_all(tasks)
+            .await
+            .into_iter()
+            .filter(|c| c.is_ok())
+            .map(|c| c.unwrap())
+            .collect();
+        Ok(res)
     }
 
     pub fn textDocument_didOpen(&self, params: &Value) -> Fallible<()> {
@@ -3104,20 +3119,18 @@ impl LanguageClient {
         let mut virtual_texts = vec![];
         let diagnostics = self.get(|state| state.diagnostics.clone())?;
         let diagnosticsDisplay = self.get(|state| state.diagnosticsDisplay.clone())?;
-        let diag_list = diagnostics.get(filename);
-        if let Some(diag_list) = diag_list {
-            for diag in diag_list {
-                if viewport.overlaps(diag.range) {
-                    virtual_texts.push(VirtualText {
-                        line: diag.range.start.line,
-                        text: diag.message.replace("\n", "  ").clone(),
-                        hl_group: diagnosticsDisplay
-                            .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
-                            .ok_or_else(|| err_msg("Failed to get display"))?
-                            .virtualTexthl
-                            .clone(),
-                    });
-                }
+        let diag_list: Vec<Diagnostic> = diagnostics.get(filename).cloned().unwrap_or_default();
+        for diag in diag_list {
+            if viewport.overlaps(diag.range) {
+                virtual_texts.push(VirtualText {
+                    line: diag.range.start.line,
+                    text: diag.message.replace("\n", "  ").clone(),
+                    hl_group: diagnosticsDisplay
+                        .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
+                        .ok_or_else(|| err_msg("Failed to get display"))?
+                        .virtualTexthl
+                        .clone(),
+                });
             }
         }
 

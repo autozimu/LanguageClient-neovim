@@ -56,7 +56,8 @@ mod rpcclient;
 #[derive(Debug, StructOpt)]
 struct Arguments {}
 
-fn main() -> Fallible<()> {
+#[tokio::main]
+async fn main() -> Fallible<()> {
     let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"));
     let args = Arguments::clap().version(version.as_str());
     let _ = args.get_matches();
@@ -68,5 +69,5 @@ fn main() -> Fallible<()> {
         clients_mutex: Arc::new(Mutex::new(HashMap::new())),
     };
 
-    language_client.loop_call(&rx)
+    language_client.loop_call(&rx).await
 }
