@@ -1074,6 +1074,7 @@ impl LanguageClient {
         self.vim()?.command(vec![
             format!("let {}=0", VIM__ServerStatus),
             format!("let {}=''", VIM__ServerStatusMessage),
+            format!("let {}=0", VIM__IsServerRunning),
         ])?;
         self.vim()?
             .rpcclient
@@ -2808,8 +2809,8 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn languageClient_handleFileType(&self, params: &Value) -> Fallible<()> {
-        info!("Begin {}", NOTIFICATION__HandleFileType);
+    pub fn languageClient_handleBufEnter(&self, params: &Value) -> Fallible<()> {
+        info!("Begin {}", NOTIFICATION__HandleBufEnter);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
         }
@@ -2820,7 +2821,24 @@ impl LanguageClient {
         if self.get(|state| state.clients.contains_key(&Some(languageId.clone())))? {
             self.vim()?
                 .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
+        } else {
+            self.vim()?
+                .command(vec![format!("let {}=0", VIM__IsServerRunning)])?;
+        }
+        info!("End {}", NOTIFICATION__HandleBufEnter);
+        Ok(())
+    }
 
+    pub fn languageClient_handleFileType(&self, params: &Value) -> Fallible<()> {
+        info!("Begin {}", NOTIFICATION__HandleFileType);
+        if self.vim()?.get_filename(params)?.is_empty() {
+            return Ok(());
+        }
+
+        let filename = self.vim()?.get_filename(params)?.canonicalize();
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        if self.get(|state| state.clients.contains_key(&Some(languageId.clone())))? {
             self.textDocument_didOpen(params)?;
 
             if let Some(diagnostics) =
@@ -2837,12 +2855,7 @@ impl LanguageClient {
                 let ret = self.languageClient_startServer(params);
                 // This is triggered from autocmd, silent all errors.
                 if let Err(err) = ret {
-                    self.vim()?
-                        .command(vec![format!("let {}=0", VIM__IsServerRunning)])?;
                     warn!("Failed to start language server automatically. {}", err);
-                } else {
-                    self.vim()?
-                        .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
                 }
             }
         }
@@ -3744,6 +3757,9 @@ impl LanguageClient {
             }))?,
             Err(err) => warn!("Failed to get workspace settings: {}", err),
         }
+
+        self.vim()?
+            .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
 
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;

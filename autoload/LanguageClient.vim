@@ -1049,6 +1049,16 @@ function! LanguageClient#handleBufNewFile() abort
     endtry
 endfunction
 
+function! LanguageClient#handleBufEnter() abort
+    try
+        call LanguageClient#Notify('languageClient/handleBufEnter', {
+                    \ 'filename': LSP#filename(),
+                    \ })
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! LanguageClient#handleFileType() abort
     try
         if s:Debounce(2, 'LanguageClient#handleFileType')

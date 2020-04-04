@@ -37,6 +37,7 @@ pub const REQUEST__SemanticScopes: &str = "languageClient/semanticScopes";
 pub const REQUEST__ShowSemanticHighlightSymbols: &str =
     "languageClient/showSemanticHighlightSymbols";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
+pub const NOTIFICATION__HandleBufEnter: &str = "languageClient/handleBufEnter";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";

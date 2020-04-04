@@ -129,6 +129,7 @@ augroup languageClient
     autocmd!
     autocmd FileType * call LanguageClient#handleFileType()
     autocmd BufNewFile * call LanguageClient#handleBufNewFile()
+    autocmd BufEnter * call LanguageClient#handleBufEnter()
     autocmd BufWritePost * call LanguageClient#handleBufWritePost()
     autocmd BufDelete * call LanguageClient#handleBufDelete()
     autocmd TextChanged * call LanguageClient#handleTextChanged()
