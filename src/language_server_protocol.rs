@@ -2818,9 +2818,8 @@ impl LanguageClient {
         let languageId = self.vim()?.get_languageId(&filename, params)?;
 
         if self.get(|state| state.clients.contains_key(&Some(languageId.clone())))? {
-            self.vim()?.command(vec![
-                format!("let {}=1", VIM__IsServerRunning),
-            ])?;
+            self.vim()?
+                .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
 
             self.textDocument_didOpen(params)?;
 
@@ -2838,14 +2837,12 @@ impl LanguageClient {
                 let ret = self.languageClient_startServer(params);
                 // This is triggered from autocmd, silent all errors.
                 if let Err(err) = ret {
-                    self.vim()?.command(vec![
-                        format!("let {}=0", VIM__IsServerRunning),
-                    ])?;
+                    self.vim()?
+                        .command(vec![format!("let {}=0", VIM__IsServerRunning)])?;
                     warn!("Failed to start language server automatically. {}", err);
-                }else {
-                    self.vim()?.command(vec![
-                        format!("let {}=1", VIM__IsServerRunning),
-                    ])?;
+                } else {
+                    self.vim()?
+                        .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
                 }
             }
         }
