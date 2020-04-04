@@ -1,4 +1,5 @@
 use super::*;
+use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use crate::vim::Vim;
@@ -181,18 +182,15 @@ pub struct State {
     pub use_virtual_text: UseVirtualText,
     pub echo_project_root: bool,
 
-    pub loggingFile: Option<String>,
-    pub loggingLevel: log::LevelFilter,
     pub serverStderr: Option<String>,
-    #[serde(skip_serializing)]
-    pub logger: log4rs::Handle,
+    pub logger: Logger,
     pub preferred_markup_kind: Option<Vec<MarkupKind>>,
 }
 
 impl State {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(tx: crossbeam::channel::Sender<Call>) -> Fallible<Self> {
-        let logger = logger::init()?;
+        let logger = Logger::new()?;
 
         let client = Arc::new(RpcClient::new(
             None,
@@ -263,8 +261,6 @@ impl State {
             applyCompletionAdditionalTextEdits: true,
             use_virtual_text: UseVirtualText::All,
             echo_project_root: true,
-            loggingFile: None,
-            loggingLevel: log::LevelFilter::Warn,
             serverStderr: None,
             preferred_markup_kind: None,
 

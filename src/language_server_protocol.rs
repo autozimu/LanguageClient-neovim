@@ -44,7 +44,7 @@ impl LanguageClient {
     fn sync_settings(&self) -> Fallible<()> {
         info!("Begin sync settings");
         let (loggingFile, loggingLevel, serverStderr): (
-            Option<String>,
+            Option<PathBuf>,
             log::LevelFilter,
             Option<String>,
         ) = self.vim()?.eval(
@@ -55,7 +55,7 @@ impl LanguageClient {
             ]
             .as_ref(),
         )?;
-        self.update(|state| logger::update_settings(&state.logger, &loggingFile, loggingLevel))?;
+        self.update(|state| state.logger.update_settings(loggingLevel, loggingFile))?;
 
         #[allow(clippy::type_complexity)]
         let (
@@ -257,8 +257,6 @@ impl LanguageClient {
             state.applyCompletionAdditionalTextEdits = applyCompletionAdditionalTextEdits;
             state.use_virtual_text = use_virtual_text;
             state.echo_project_root = echo_project_root == 1;
-            state.loggingFile = loggingFile;
-            state.loggingLevel = loggingLevel;
             state.serverStderr = serverStderr;
             state.is_nvim = is_nvim;
             state.preferred_markup_kind = preferred_markup_kind;
@@ -2714,8 +2712,7 @@ impl LanguageClient {
         let loggingLevel =
             try_get("loggingLevel", params)?.ok_or_else(|| err_msg("loggingLevel not found!"))?;
         self.update(|state| {
-            logger::update_settings(&state.logger, &state.loggingFile, loggingLevel)?;
-            state.loggingLevel = loggingLevel;
+            state.logger.set_level(loggingLevel)?;
             Ok(())
         })?;
         info!("End {}", REQUEST__SetLoggingLevel);
@@ -3909,11 +3906,8 @@ impl LanguageClient {
                 "Language server stderr: {}\n",
                 state.serverStderr.clone().unwrap_or_default()
             );
-            msg += &format!("Log level: {}\n", state.loggingLevel);
-            msg += &format!(
-                "Log file: {}\n",
-                state.loggingFile.clone().unwrap_or_default()
-            );
+            msg += &format!("Log level: {}\n", state.logger.level);
+            msg += &format!("Log file: {:?}\n", state.logger.path);
         })?;
         self.vim()?.echo(&msg)?;
         info!("End {}", REQUEST__DebugInfo);
