@@ -2066,7 +2066,7 @@ impl LanguageClient {
                 };
 
                 let results: Value = client.call(lsp::request::CodeLensRequest::METHOD, &input)?;
-                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results.clone())?;
+                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results)?;
                 let mut code_lens: Vec<CodeLens> = code_lens.unwrap_or_default();
 
                 if code_lens_provider.resolve_provider.unwrap_or_default() {
@@ -2255,7 +2255,7 @@ impl LanguageClient {
 
         let mut filename = params.uri.filepath()?.to_string_lossy().into_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
-        if filename.chars().next() == Some('/') && filename.chars().nth(2) == Some(':') {
+        if filename.starts_with('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
         // Unify name to avoid mismatch due to case insensitivity.
@@ -2319,7 +2319,7 @@ impl LanguageClient {
             .to_string_lossy()
             .into_owned();
         // Workaround bug: remove first '/' in case of '/C:/blabla'.
-        if filename.chars().next() == Some('/') && filename.chars().nth(2) == Some(':') {
+        if filename.starts_with('/') && filename.chars().nth(2) == Some(':') {
             filename.remove(0);
         }
         // Unify name to avoid mismatch due to case insensitivity.
