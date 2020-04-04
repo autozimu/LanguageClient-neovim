@@ -98,6 +98,10 @@ function! LanguageClient_serverStatusMessage(...)
     return call('LanguageClient#serverStatusMessage', a:000)
 endfunction
 
+function! LanguageClient_isServerRunning(...)
+    return call('LanguageClient#isServerRunning', a:000)
+endfunction
+
 function! LanguageClient_statusLine(...)
     return call('LanguageClient#statusLine', a:000)
 endfunction

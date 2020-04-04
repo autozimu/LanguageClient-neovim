@@ -1289,6 +1289,13 @@ function! LanguageClient#serverStatusMessage() abort
     return g:LanguageClient_serverStatusMessage
 endfunction
 
+" Set to 1 when the language server is running for current buffer
+let g:LanguageClient_isServerRunning = 0
+
+function! LanguageClient#isServerRunning() abort
+    return g:LanguageClient_isServerRunning
+endfunction
+
 " Example function usable for status line.
 function! LanguageClient#statusLine() abort
     if g:LanguageClient_serverStatusMessage ==# ''
