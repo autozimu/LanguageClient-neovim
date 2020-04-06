@@ -62,7 +62,7 @@ pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 // Vim variable names
 pub const VIM__ServerStatus: &str = "g:LanguageClient_serverStatus";
 pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
-pub const VIM__IsServerRunning: &str = "g:LanguageClient_isServerRunning";
+pub const VIM__IsServerRunning: &str = "LanguageClient_isServerRunning";
 
 /// Thread safe read.
 pub trait SyncRead: BufRead + Sync + Send + Debug {}

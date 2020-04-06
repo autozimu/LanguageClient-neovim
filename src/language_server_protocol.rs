@@ -1074,7 +1074,6 @@ impl LanguageClient {
         self.vim()?.command(vec![
             format!("let {}=0", VIM__ServerStatus),
             format!("let {}=''", VIM__ServerStatusMessage),
-            format!("let {}=0", VIM__IsServerRunning),
         ])?;
         self.vim()?
             .rpcclient
@@ -2674,6 +2673,11 @@ impl LanguageClient {
         if let Err(err) = result {
             error!("Error: {:?}", err);
         }
+
+        self.vim()?
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM__IsServerRunning, 0]))?;
+
         if let Err(err) = self.cleanup(&languageId) {
             error!("Error: {:?}", err);
         }
@@ -2820,10 +2824,12 @@ impl LanguageClient {
 
         if self.get(|state| state.clients.contains_key(&Some(languageId.clone())))? {
             self.vim()?
-                .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
+                .rpcclient
+                .notify("setbufvar", json!([filename, VIM__IsServerRunning, 1]))?;
         } else {
             self.vim()?
-                .command(vec![format!("let {}=0", VIM__IsServerRunning)])?;
+                .rpcclient
+                .notify("setbufvar", json!([filename, VIM__IsServerRunning, 0]))?;
         }
         info!("End {}", NOTIFICATION__HandleBufEnter);
         Ok(())
@@ -3759,7 +3765,8 @@ impl LanguageClient {
         }
 
         self.vim()?
-            .command(vec![format!("let {}=1", VIM__IsServerRunning)])?;
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM__IsServerRunning, 1]))?;
 
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;
