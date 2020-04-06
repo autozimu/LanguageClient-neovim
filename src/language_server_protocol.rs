@@ -9,6 +9,7 @@ use crate::sign::Sign;
 use failure::err_msg;
 use itertools::Itertools;
 use notify::Watcher;
+use std::collections::BTreeMap;
 use std::sync::mpsc;
 use vim::try_get;
 
@@ -1055,7 +1056,17 @@ impl LanguageClient {
             }
             Ok(())
         })?;
+
         for f in filenames {
+            if let Ok(bufnr) = self.vim()?.eval::<_, Bufnr>(format!("bufnr('{}')", f)) {
+                // Some Language Server diagnoses non-opened buffer, so we must check if buffer exists.
+                if bufnr > 0 {
+                    self.vim()?.rpcclient.notify(
+                        "setbufvar",
+                        json!([f, VIM__StatusLineDiagnosticsCounts, {}]),
+                    )?;
+                }
+            }
             self.process_diagnostics(&f, &[])?;
         }
         self.languageClient_handleCursorMoved(&Value::Null)?;
@@ -2276,6 +2287,59 @@ impl LanguageClient {
             Ok(())
         })?;
         self.update_quickfixlist()?;
+
+        let mut severityCount: BTreeMap<String, u64> = [
+            (
+                DiagnosticSeverity::Error
+                    .to_quickfix_entry_type()
+                    .to_string(),
+                0,
+            ),
+            (
+                DiagnosticSeverity::Warning
+                    .to_quickfix_entry_type()
+                    .to_string(),
+                0,
+            ),
+            (
+                DiagnosticSeverity::Information
+                    .to_quickfix_entry_type()
+                    .to_string(),
+                0,
+            ),
+            (
+                DiagnosticSeverity::Hint
+                    .to_quickfix_entry_type()
+                    .to_string(),
+                0,
+            ),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        for diagnostic in diagnostics.iter() {
+            let severity = diagnostic
+                .severity
+                .unwrap_or(DiagnosticSeverity::Hint)
+                .to_quickfix_entry_type()
+                .to_string();
+            let count = severityCount.entry(severity).or_insert(0);
+            *count += 1;
+        }
+
+        if let Ok(bufnr) = self
+            .vim()?
+            .eval::<_, Bufnr>(format!("bufnr('{}')", filename))
+        {
+            // Some Language Server diagnoses non-opened buffer, so we must check if buffer exists.
+            if bufnr > 0 {
+                self.vim()?.rpcclient.notify(
+                    "setbufvar",
+                    json!([filename, VIM__StatusLineDiagnosticsCounts, severityCount]),
+                )?;
+            }
+        }
 
         let current_filename: String = self.vim()?.get_filename(&Value::Null)?;
         if filename != current_filename.canonicalize() {

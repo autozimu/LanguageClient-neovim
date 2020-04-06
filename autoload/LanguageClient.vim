@@ -1051,6 +1051,10 @@ endfunction
 
 function! LanguageClient#handleBufEnter() abort
     let b:LanguageClient_isServerRunning = 0
+    if !exists('b:LanguageClient_statusLineDiagnosticsCounts')
+      let b:LanguageClient_statusLineDiagnosticsCounts = {}
+    endif
+
     try
         call LanguageClient#Notify('languageClient/handleBufEnter', {
                     \ 'filename': LSP#filename(),
@@ -1311,6 +1315,10 @@ function! LanguageClient#statusLine() abort
     endif
 
     return '[' . g:LanguageClient_serverStatusMessage . ']'
+endfunction
+
+function! LanguageClient#statusLineDiagnosticsCounts() abort
+    return b:LanguageClient_statusLineDiagnosticsCounts
 endfunction
 
 function! LanguageClient#cquery_base(...) abort
