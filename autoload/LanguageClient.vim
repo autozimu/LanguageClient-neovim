@@ -1050,7 +1050,10 @@ function! LanguageClient#handleBufNewFile() abort
 endfunction
 
 function! LanguageClient#handleBufEnter() abort
-    let b:LanguageClient_isServerRunning = 0
+    if !exists('b:LanguageClient_isServerRunning')
+      let b:LanguageClient_isServerRunning = 0
+    endif
+
     if !exists('b:LanguageClient_statusLineDiagnosticsCounts')
       let b:LanguageClient_statusLineDiagnosticsCounts = {}
     endif
