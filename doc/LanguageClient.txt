@@ -802,6 +802,22 @@ Signature: LanguageClient#statusLine()
 
 Example status line making use of |LanguageClient_serverStatusMessage|.
 
+*LanguageClient#statusLineDiagnosticsCounts()*
+*LanguageClient_statusLineDiagnosticsCounts()*
+Signature: LanguageClient#statusLineDiagnosticsCounts()
+
+Get diagnostics of current buffer in dictionary.
+
+Example >
+    function! YourStatusLineMessage() abort
+      let l:diagnosticsDict = LanguageClient#statusLineDiagnosticsCounts()
+      let l:errors = get(l:diagnosticsDict,'E',0)
+      let l:warnings = get(l:diagnosticsDict,'W',0)
+      let l:informations = get(l:diagnosticsDict,'I',0)
+      let l:hints = get(l:diagnosticsDict,'H',0)
+      return l:errors + l:warnings + l:informations + l:hints == 0 ? "✔ " : "E:" . l:errors . " " . "W :" . l:warnings . "I:" . l:informations . " " . "H:" . l:hints
+    endfunction
+
 *LanguageClient#cquery_base*
 *LanguageClient_cquery_base*
 Signature: LanguageClient#cquery_base(...)

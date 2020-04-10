@@ -106,6 +106,10 @@ function! LanguageClient_statusLine(...)
     return call('LanguageClient#statusLine', a:000)
 endfunction
 
+function! LanguageClient_statusLineDiagnosticsCounts(...)
+    return call('LanguageClient#statusLineDiagnosticsCounts', a:000)
+endfunction
+
 function! LanguageClient_clearDocumentHighlight(...)
     return call('LanguageClient#clearDocumentHighlight', a:000)
 endfunction
