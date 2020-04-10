@@ -38,6 +38,7 @@ pub const REQUEST__SemanticScopes: &str = "languageClient/semanticScopes";
 pub const REQUEST__ShowSemanticHighlightSymbols: &str =
     "languageClient/showSemanticHighlightSymbols";
 pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
+pub const NOTIFICATION__HandleBufEnter: &str = "languageClient/handleBufEnter";
 pub const NOTIFICATION__HandleFileType: &str = "languageClient/handleFileType";
 pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
 pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
@@ -62,6 +63,7 @@ pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
 // Vim variable names
 pub const VIM__ServerStatus: &str = "g:LanguageClient_serverStatus";
 pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
+pub const VIM__IsServerRunning: &str = "LanguageClient_isServerRunning";
 
 /// Thread safe read.
 pub trait SyncRead: BufRead + Sync + Send + Debug {}

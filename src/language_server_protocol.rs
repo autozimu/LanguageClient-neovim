@@ -2666,6 +2666,11 @@ impl LanguageClient {
         if let Err(err) = result {
             error!("Error: {:?}", err);
         }
+
+        self.vim()?
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM__IsServerRunning, 0]))?;
+
         if let Err(err) = self.cleanup(&languageId) {
             error!("Error: {:?}", err);
         }
@@ -2797,6 +2802,28 @@ impl LanguageClient {
         }
 
         info!("End {}", NOTIFICATION__HandleBufNewFile);
+        Ok(())
+    }
+
+    pub fn languageClient_handleBufEnter(&self, params: &Value) -> Fallible<()> {
+        info!("Begin {}", NOTIFICATION__HandleBufEnter);
+        if self.vim()?.get_filename(params)?.is_empty() {
+            return Ok(());
+        }
+
+        let filename = self.vim()?.get_filename(params)?.canonicalize();
+        let languageId = self.vim()?.get_languageId(&filename, params)?;
+
+        if self.get(|state| state.clients.contains_key(&Some(languageId.clone())))? {
+            self.vim()?
+                .rpcclient
+                .notify("setbufvar", json!([filename, VIM__IsServerRunning, 1]))?;
+        } else {
+            self.vim()?
+                .rpcclient
+                .notify("setbufvar", json!([filename, VIM__IsServerRunning, 0]))?;
+        }
+        info!("End {}", NOTIFICATION__HandleBufEnter);
         Ok(())
     }
 
@@ -3762,6 +3789,10 @@ impl LanguageClient {
             }))?,
             Err(err) => warn!("Failed to get workspace settings: {}", err),
         }
+
+        self.vim()?
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM__IsServerRunning, 1]))?;
 
         self.textDocument_didOpen(&params)?;
         self.textDocument_didChange(&params)?;

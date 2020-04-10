@@ -1049,6 +1049,17 @@ function! LanguageClient#handleBufNewFile() abort
     endtry
 endfunction
 
+function! LanguageClient#handleBufEnter() abort
+    let b:LanguageClient_isServerRunning = 0
+    try
+        call LanguageClient#Notify('languageClient/handleBufEnter', {
+                    \ 'filename': LSP#filename(),
+                    \ })
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! LanguageClient#handleFileType() abort
     try
         if s:Debounce(2, 'LanguageClient#handleFileType')
@@ -1287,6 +1298,10 @@ endfunction
 
 function! LanguageClient#serverStatusMessage() abort
     return g:LanguageClient_serverStatusMessage
+endfunction
+
+function! LanguageClient#isServerRunning() abort
+    return b:LanguageClient_isServerRunning
 endfunction
 
 " Example function usable for status line.

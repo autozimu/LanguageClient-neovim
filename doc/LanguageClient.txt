@@ -789,6 +789,13 @@ Signature: LanguageClient#serverStatusMessage()
 
 Get a detail message of server status.
 
+*LanguageClient#isServerRunning()*
+*LanguageClient_isServerRunning()*
+Signature: LanguageClient#isServerRunning()
+
+Get wheter if language server is running for current buffer. 0 for server not working for current buffer file
+type. 1 for working.
+
 *LanguageClient#statusLine()*
 *LanguageClient_statusLine()*
 Signature: LanguageClient#statusLine()

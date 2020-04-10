@@ -167,6 +167,7 @@ impl LanguageClient {
             // Extensions.
             NOTIFICATION__HandleFileType => self.languageClient_handleFileType(&params)?,
             NOTIFICATION__HandleBufNewFile => self.languageClient_handleBufNewFile(&params)?,
+            NOTIFICATION__HandleBufEnter => self.languageClient_handleBufEnter(&params)?,
             NOTIFICATION__HandleTextChanged => self.languageClient_handleTextChanged(&params)?,
             NOTIFICATION__HandleBufWritePost => self.languageClient_handleBufWritePost(&params)?,
             NOTIFICATION__HandleBufDelete => self.languageClient_handleBufDelete(&params)?,
