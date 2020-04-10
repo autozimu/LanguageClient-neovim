@@ -9,7 +9,6 @@ use crate::sign::Sign;
 use failure::err_msg;
 use itertools::Itertools;
 use notify::Watcher;
-use std::collections::BTreeMap;
 use std::sync::mpsc;
 use vim::try_get;
 
@@ -2288,7 +2287,7 @@ impl LanguageClient {
         })?;
         self.update_quickfixlist()?;
 
-        let mut severityCount: BTreeMap<String, u64> = [
+        let mut severityCount: HashMap<String, u64> = [
             (
                 DiagnosticSeverity::Error
                     .to_quickfix_entry_type()
