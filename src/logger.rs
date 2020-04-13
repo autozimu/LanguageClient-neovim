@@ -74,7 +74,7 @@ fn create_config(path: &Option<PathBuf>, level: LevelFilter) -> Fallible<Config>
                 .write(true)
                 .truncate(true)
                 .open(&path)
-                .with_context(|err| format!("Failed to open file ({}): {}", path, err))?;
+                .with_context(|err| format!("Failed to open file ({}): {}", path.display(), err))?;
             #[allow(clippy::write_literal)]
             writeln!(
                 f,
