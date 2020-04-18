@@ -71,11 +71,7 @@ language services will be available right away. Happy hacking!
 
 # Install
 
-[INSTALL](INSTALL.md)
-
-# Troubleshooting
-
-[Troubleshooting](INSTALL.md#troubleshooting)
+[Full installation steps](INSTALL.md)
 
 # Language Servers
 
@@ -86,12 +82,8 @@ to install them, please see <http://langserver.org> and/or
 
 # Documentation
 
-[`:help LanguageClient`](doc/LanguageClient.txt) for full list of configurations, commands and functions.
-
-# [Changelog](CHANGELOG.md)
-
-# [Contributing](.github/CONTRIBUTING.md)
-
-# License
-
-The MIT License.
+- [`:help LanguageClient`](doc/LanguageClient.txt)
+- [Changelog](CHANGELOG.md)
+- [Troubleshooting](INSTALL.md#troubleshooting)
+- [Contributing](.github/CONTRIBUTING.md)
+- [The MIT License](LICENSE.txt)
