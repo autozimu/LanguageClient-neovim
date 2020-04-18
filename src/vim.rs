@@ -47,7 +47,8 @@ impl Vim {
         let key = "filename";
         let expr = "LSP#filename()";
 
-        try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)
+        let filename: String = try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)?;
+        Ok(filename.canonicalize())
     }
 
     pub fn get_languageId(&self, filename: &str, params: &Value) -> Fallible<String> {
