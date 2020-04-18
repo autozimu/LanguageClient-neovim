@@ -64,7 +64,6 @@ fn create_config(path: &Option<PathBuf>, level: LevelFilter) -> Fallible<Config>
 
     let mut root_builder = Root::builder();
     if let Some(path) = path {
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
         let path = shellexpand::tilde(&path.to_string_lossy()).to_string();
 
         // Ensure log file writable.
