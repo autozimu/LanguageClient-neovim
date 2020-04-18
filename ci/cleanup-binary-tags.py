@@ -9,7 +9,7 @@ def tag_to_version(tag):
     return tag.split('-')[1].lstrip('v')
 
 
-subprocess.check_call('git pull --tags', shell=True)
+subprocess.check_call('git fetch --tags', shell=True)
 tags = subprocess.check_output(
     'git tag --list | grep binary', shell=True).decode('UTF-8').splitlines()
 versions = sorted(list(set([tag_to_version(tag) for tag in tags])),
