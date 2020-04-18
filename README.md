@@ -4,9 +4,9 @@
 
 [![CircleCI](https://circleci.com/gh/autozimu/LanguageClient-neovim.svg?style=svg)](https://circleci.com/gh/autozimu/LanguageClient-neovim)
 
-[Language Server Protocol] (LSP) support for [vim] and [neovim].
+[Language Server Protocol](LSP) support for [vim] and [neovim].
 
-[Language Server Protocol]: https://github.com/Microsoft/language-server-protocol
+[language server protocol]: https://github.com/Microsoft/language-server-protocol
 [neovim]: https://neovim.io/
 [vim]: http://www.vim.org/
 
@@ -86,19 +86,11 @@ to install them, please see <http://langserver.org> and/or
 
 # Documentation
 
-[`:help LanguageClient`][LanguageClient.txt] for full list of configurations, commands and functions.
+[`:help LanguageClient`](doc/LanguageClient.txt) for full list of configurations, commands and functions.
 
-[LanguageClient.txt]: doc/LanguageClient.txt
+# [Changelog](CHANGELOG.md)
 
-# Changelog
-
-See [Updates]. Subscribe the issue if you want to receive notifications.
-
-[Updates]: https://github.com/autozimu/LanguageClient-neovim/issues/35
-
-# Contributing
-
-[CONTRIBUTING](.github/CONTRIBUTING.md)
+# [Contributing](.github/CONTRIBUTING.md)
 
 # License
 
