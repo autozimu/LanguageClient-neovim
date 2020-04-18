@@ -33,3 +33,8 @@ make test && make integration-test-docker
 ```sh
 make test && make integration-test
 ```
+
+# Submit PR
+
+Please submit pull request to `dev` branch. This is to avoid mismatch between
+vimscript and rust binary run by end user.

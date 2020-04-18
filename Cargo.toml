@@ -10,7 +10,8 @@ edition = "2018"
 no-dev-version = true
 pre-release-replacements = [
     { file = "install.sh", search = "\nversion=.*", replace = "\nversion={{version}}" },
-    { file = "install.ps1", search = "version = '.*'", replace = "version = '{{version}}'" }
+    { file = "install.ps1", search = "version = '.*'", replace = "version = '{{version}}'" },
+    { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
 ]
 pre-release-hook = ["cargo", "build"]
 tag-name = "{{version}}"

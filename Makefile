@@ -28,7 +28,7 @@ release:
 	chmod a+x bin/languageclient
 
 bump-version:
-	[[ `git rev-parse --abbrev-ref HEAD` == "next" ]] || (echo "Not on branch next"; exit 1)
+	[[ `git rev-parse --abbrev-ref HEAD` == "dev" ]] || (echo "Not on branch dev"; exit 1)
 	cargo release patch
 
 test:
