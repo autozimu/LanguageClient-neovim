@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "languageclient"
-version = "0.1.156"
+version = "0.1.157"
 dependencies = [
  "crossbeam 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "derivative 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
