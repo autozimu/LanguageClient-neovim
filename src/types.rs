@@ -137,7 +137,6 @@ pub struct State {
     pub code_lens: HashMap<String, Vec<CodeLens>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
-    pub sign_next_id: u64,
     /// Active signs.
     pub signs: HashMap<String, BTreeMap<u64, Sign>>,
     pub namespace_ids: HashMap<String, i64>,
@@ -170,7 +169,7 @@ pub struct State {
     pub diagnosticsEnable: bool,
     pub diagnosticsList: DiagnosticsList,
     pub diagnosticsDisplay: HashMap<u64, DiagnosticsDisplay>,
-    pub diagnosticsSignsMax: Option<u64>,
+    pub diagnosticsSignsMax: Option<usize>,
     pub diagnostics_max_severity: DiagnosticSeverity,
     pub documentHighlightDisplay: HashMap<u64, DocumentHighlightDisplay>,
     pub windowLogMessageLevel: MessageType,
@@ -223,7 +222,6 @@ impl State {
             code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
-            sign_next_id: 75_000,
             signs: HashMap::new(),
             namespace_ids: HashMap::new(),
             highlight_source: None,

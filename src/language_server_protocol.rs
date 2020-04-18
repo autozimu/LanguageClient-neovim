@@ -5,7 +5,6 @@ use crate::lsp::notification::Notification;
 use crate::lsp::request::GotoDefinitionResponse;
 use crate::lsp::request::Request;
 use crate::rpcclient::RpcClient;
-use crate::sign::Sign;
 use failure::err_msg;
 use itertools::Itertools;
 use notify::Watcher;
@@ -127,7 +126,7 @@ impl LanguageClient {
             applyCompletionAdditionalTextEdits,
             preferred_markup_kind,
         ): (
-            Option<u64>,
+            Option<usize>,
             String,
             Value,
             u8,
@@ -3021,29 +3020,24 @@ impl LanguageClient {
 
         // use the most severe diagnostic of each line as the sign
         let signs_next: Vec<_> = self.update(|state| {
-            let limit = if let Some(n) = state.diagnosticsSignsMax {
-                n as usize
-            } else {
-                usize::max_value()
-            };
-            Ok(state
+            let mut diagnostics = state
                 .diagnostics
                 .entry(filename.clone())
                 .or_default()
                 .iter()
                 .filter(|diag| viewport.overlaps(diag.range))
-                .map(|diag| {
+                .sorted_by_key(|diag| {
                     (
                         diag.range.start.line,
                         diag.severity.unwrap_or(DiagnosticSeverity::Hint),
                     )
                 })
-                .sorted_by_key(|(line, _)| *line)
-                .group_by(|(line, _)| *line)
+                .collect_vec();
+            diagnostics.dedup_by_key(|diag| diag.range.start.line);
+            Ok(diagnostics
                 .into_iter()
-                .filter_map(|(_, group)| group.min_by_key(|(_, severity)| *severity))
-                .take(limit)
-                .map(|(line, severity)| Sign::new(line, format!("LanguageClient{:?}", severity)))
+                .take(state.diagnosticsSignsMax.unwrap_or(std::usize::MAX))
+                .map(Into::into)
                 .collect())
         })?;
         self.update(|state| {
@@ -3066,12 +3060,6 @@ impl LanguageClient {
                         signs_to_delete.push(s.clone());
                     }
                     _ => {}
-                }
-            }
-            for sign in &mut signs_to_add {
-                if sign.id == 0 {
-                    state.sign_next_id += 1;
-                    sign.id = state.sign_next_id;
                 }
             }
 

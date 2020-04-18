@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use lsp_types::{Diagnostic, DiagnosticSeverity};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sign {
     pub id: u64,
     /// line number. 0-based.
@@ -6,19 +8,13 @@ pub struct Sign {
     pub name: String,
 }
 
-impl Sign {
-    pub fn new(line: u64, name: String) -> Self {
-        Self {
-            // Placeholder id. Will be updated when actually get displayed.
-            id: 0,
-            line,
-            name,
-        }
-    }
-}
+impl From<&Diagnostic> for Sign {
+    fn from(diagnostic: &Diagnostic) -> Self {
+        let line = diagnostic.range.start.line;
+        let severity = diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint);
+        let name = format!("LanguageClient{:?}", severity);
+        let id = 75_000 + line * DiagnosticSeverity::Information as u64 + severity as u64;
 
-impl core::cmp::PartialEq for Sign {
-    fn eq(&self, other: &Self) -> bool {
-        self.line == other.line && self.name == other.name
+        Sign { id, line, name }
     }
 }
