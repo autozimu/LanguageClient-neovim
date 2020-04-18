@@ -638,10 +638,7 @@ impl LanguageClient {
             let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
 
             for dn in diagnostics {
-                let severity = dn
-                    .severity
-                    .unwrap_or(DiagnosticSeverity::Information)
-                    .to_int()?;
+                let severity = dn.severity.unwrap_or(DiagnosticSeverity::Hint).to_int()?;
                 match_groups
                     .entry(severity)
                     .or_insert_with(Vec::new)
