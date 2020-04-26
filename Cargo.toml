@@ -26,6 +26,7 @@ maplit = "1"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+json-patch = "0.2"
 crossbeam = "0.7.3"
 jsonrpc-core = "12"
 lsp-types = { version = "0.70.0", features = ["proposed"] }
