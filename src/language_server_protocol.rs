@@ -79,7 +79,7 @@ impl LanguageClient {
             HashMap<String, Vec<String>>,
             Option<String>,
             Option<String>,
-            String,
+            Vec<String>,
             u64,
             Option<RootMarkers>,
             Option<f64>,
@@ -97,7 +97,7 @@ impl LanguageClient {
                 "s:GetVar('LanguageClient_serverCommands', {})",
                 "get(g:, 'LanguageClient_selectionUI', v:null)",
                 "get(g:, 'LanguageClient_trace', v:null)",
-                "expand(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json'))",
+                "map(s:ToList(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')), 'expand(v:val)')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
                 "get(g:, 'LanguageClient_rootMarkers', v:null)",
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
@@ -275,13 +275,39 @@ impl LanguageClient {
             return Ok(Value::Null);
         }
 
-        let path = Path::new(root).join(&self.get(|state| state.settingsPath.clone())?);
-        let buffer = read_to_string(&path).with_context(|err| {
-            format!("Failed to read file ({}): {}", path.to_string_lossy(), err)
-        })?;
-        let value = serde_json::from_str(&buffer)?;
-        let value = expand_json_path(value);
-        Ok(value)
+        let mut res = Value::Null;
+        let mut last_err = None;
+        let mut at_least_one_success = false;
+        for orig_path in self.get(|state| state.settingsPath.clone())? {
+            let path = Path::new(root).join(orig_path);
+            let buffer = read_to_string(&path).with_context(|err| {
+                format!("Failed to read file ({}): {}", path.to_string_lossy(), err)
+            });
+            let buffer = match buffer {
+                Err(e) => {
+                    last_err = Some(e.into());
+                    continue;
+                }
+                Ok(x) => x,
+            };
+            let value = serde_json::from_str(&buffer);
+            let value = match value {
+                Err(e) => {
+                    last_err = Some(e.into());
+                    continue;
+                }
+                Ok(x) => x,
+            };
+            let value = expand_json_path(value);
+            json_patch::merge(&mut res, &value);
+            at_least_one_success = true;
+        }
+
+        match last_err {
+            // no file was read and an error happened
+            Some(e) if !at_least_one_success => Err(e),
+            _ => Ok(res),
+        }
     }
 
     fn define_signs(&self) -> Fallible<()> {

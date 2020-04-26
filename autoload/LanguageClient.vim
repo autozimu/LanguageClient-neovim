@@ -282,6 +282,16 @@ function! s:GetVar(...) abort
     endif
 endfunction
 
+" if the argument is a list, return it unchanged, otherwise return the list
+" containing the argument.
+function! s:ToList(x) abort
+    if type(a:x) == v:t_list
+        return a:x
+    else
+        return [ a:x ]
+    endif
+endfunction
+
 function! s:ShouldUseFloatWindow() abort
     let floatingHoverEnabled = s:GetVar('LanguageClient_useFloatingHover', v:true)
     return s:FLOAT_WINDOW_AVAILABLE && floatingHoverEnabled
