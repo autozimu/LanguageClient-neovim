@@ -1551,7 +1551,7 @@ impl LanguageClient {
         info!("Begin {}", lsp::request::CodeActionRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let languageId = self.vim()?.get_languageId(&filename, params)?;
-        let position = self.vim()?.get_position(params)?;
+        let range: Range = serde_json::from_value(params["range"].clone())?;
 
         // Unify filename.
         let filename = filename.canonicalize();
@@ -1562,7 +1562,7 @@ impl LanguageClient {
                 .get(&filename)
                 .unwrap_or(&vec![])
                 .iter()
-                .filter(|dn| position >= dn.range.start && position < dn.range.end)
+                .filter(|dn| range.start >= dn.range.start && range.start < dn.range.end)
                 .cloned()
                 .collect()
         })?;
@@ -1573,10 +1573,7 @@ impl LanguageClient {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
-                range: Range {
-                    start: position,
-                    end: position,
-                },
+                range,
                 context: CodeActionContext {
                     diagnostics,
                     only: None,
