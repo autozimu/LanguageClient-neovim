@@ -3548,23 +3548,21 @@ impl LanguageClient {
         info!("Begin {}", REQUEST__ExplainErrorAtPoint);
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
-        let diag = self.get(|state| {
-            state
-                .diagnostics
-                .get(&filename)
-                .ok_or_else(|| format_err!("No diagnostics found: filename: {}", filename,))?
-                .iter()
-                .find(|dn| position >= dn.range.start && position < dn.range.end)
-                .cloned()
-                .ok_or_else(|| {
-                    format_err!(
-                        "No diagnostics found: filename: {}, line: {}, character: {}",
-                        filename,
-                        position.line,
-                        position.character
-                    )
-                })
-        })??;
+        let diag = self
+            .get(|state| state.diagnostics.get(&filename).cloned())?
+            .unwrap_or_default()
+            .iter()
+            .find(|dn| position >= dn.range.start && position < dn.range.end)
+            .cloned();
+
+        if diag.is_none() {
+            debug!(
+                "No diagnostics found: filename: {}, line: {}, character: {}",
+                filename, position.line, position.character
+            );
+            return Ok(Value::Null);
+        }
+        let diag = diag.expect("should not happen, we checked above");
 
         let languageId = self.vim()?.get_languageId(&filename, params)?;
         let root = self.get(|state| state.roots.get(&languageId).cloned().unwrap_or_default())?;
