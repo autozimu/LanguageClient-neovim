@@ -680,6 +680,12 @@ prompt, selecting one of the entry will then goto the reference location.
 
 For Denite users, a source with name 'references' is provided.
 
+*LanguageClient#textDocument_visualCodeAction()*
+*LanguageClient_textDocument_visualCodeAction()*
+Signature: LanguageClient#textDocument_visualCodeAction(...)
+
+Show code actions at current visual selection.
+
 *LanguageClient#textDocument_codeAction()*
 *LanguageClient_textDocument_codeAction()*
 Signature: LanguageClient#textDocument_codeAction(...)
