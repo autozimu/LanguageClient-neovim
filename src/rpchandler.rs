@@ -161,6 +161,7 @@ impl LanguageClient {
             lsp::notification::SemanticHighlighting::METHOD => {
                 self.textDocument_semanticHighlight(&params)?
             }
+            lsp::notification::Progress::METHOD => self.progress(&params)?,
             lsp::notification::LogMessage::METHOD => self.window_logMessage(&params)?,
             lsp::notification::ShowMessage::METHOD => self.window_showMessage(&params)?,
             lsp::notification::Exit::METHOD => self.exit(&params)?,
