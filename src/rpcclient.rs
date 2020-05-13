@@ -82,24 +82,7 @@ impl RpcClient {
         // TODO: duration from config.
         match rx.recv_timeout(Duration::from_secs(60))? {
             rpc::Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
-            rpc::Output::Failure(err) => {
-                // NOTE: Errors with code -32801 correspond to the protocol's ContentModified error,
-                // which we don't want to show to the user and should ignore, as the result of the
-                // request that triggered this error has been invalidated by changes to the state
-                // of the server.
-                if err.error.code.code() == -32801 {
-                    let val = serde_json::from_value(Value::Null);
-                    match val {
-                        Ok(val) => {
-                            return Ok(val);
-                        }
-                        // do not return deserialization errors, as to preserve the original error.
-                        Err(e) => error!("Failed to deserialize null into value: {} ", e),
-                    }
-                }
-
-                bail!("Error: {:?}", err)
-            }
+            rpc::Output::Failure(err) => bail!("Error: {:?}", err),
         }
     }
 
