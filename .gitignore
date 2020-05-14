@@ -1,7 +1,8 @@
-doc/tags
-__pycache__
-.pytest_cache
 .idea
-target
+.pytest_cache
+__pycache__
+bin
+doc/tags
 rplugin/python3/tests
+target
 tests/data/.vim/plugged
