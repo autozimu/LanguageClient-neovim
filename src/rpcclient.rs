@@ -3,6 +3,8 @@ use crate::types::{Call, RawMessage};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+const CONTENT_MODIFIED_ERROR_CODE: i64 = -32801;
+
 #[derive(Serialize)]
 pub struct RpcClient {
     languageId: LanguageId,
@@ -75,6 +77,13 @@ impl RpcClient {
         // TODO: duration from config.
         match rx.recv_timeout(Duration::from_secs(60))? {
             rpc::Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
+            // NOTE: Errors with code -32801 correspond to the protocol's ContentModified error,
+            // which we don't want to show to the user and should ignore, as the result of the
+            // request that triggered this error has been invalidated by changes to the state
+            // of the server, so we must handle this error specifically.
+            rpc::Output::Failure(err) if err.error.code.code() == CONTENT_MODIFIED_ERROR_CODE => {
+                Err(failure::Error::from(LSError::ContentModified))
+            }
             rpc::Output::Failure(err) => bail!("Error: {:?}", err),
         }
     }

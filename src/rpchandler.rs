@@ -3,17 +3,10 @@ use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
 use crate::lsp::request::Request;
 
-// NOTE: Errors with code -32801 correspond to the protocol's ContentModified error,
-// which we don't want to show to the user and should ignore, as the result of the
-// request that triggered this error has been invalidated by changes to the state
-// of the server.
-const CONTENT_MODIFIED_ERROR_CODE: i64 = -32801;
-
 fn is_content_modified_error(err: &failure::Error) -> bool {
-    let err = err.find_root_cause().downcast_ref::<jsonrpc_core::Error>();
-    match err {
-        Some(err) => err.code.code() == CONTENT_MODIFIED_ERROR_CODE,
-        None => false,
+    match err.as_fail().downcast_ref::<LSError>() {
+        Some(err) if err == &LSError::ContentModified => true,
+        _ => false,
     }
 }
 
