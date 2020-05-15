@@ -8,6 +8,12 @@ use std::sync::mpsc;
 
 pub type Fallible<T> = failure::Fallible<T>;
 
+#[derive(Debug, Fail, PartialEq)]
+pub enum LSError {
+    #[fail(display = "Content Modified")]
+    ContentModified,
+}
+
 #[derive(Debug, Fail)]
 pub enum LCError {
     #[fail(
