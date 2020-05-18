@@ -884,7 +884,7 @@ function! s:do_codeAction(mode, ...) abort
     return LanguageClient#Call('textDocument/codeAction', l:params, l:Callback)
 endfunction
 
-function! LanguageClient#textDocument_visualCodeAction(...) abort
+function! LanguageClient#textDocument_visualCodeAction(...) range abort
   call s:do_codeAction('v', a:000)
 endfunction
 
