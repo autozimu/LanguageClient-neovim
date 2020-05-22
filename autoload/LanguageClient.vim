@@ -420,6 +420,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         \   'col': col,
         \   'width': width,
         \   'height': height,
+        \   'style': 'minimal',
         \ })
 
         execute 'noswapfile edit!' a:bufname
