@@ -1191,6 +1191,25 @@ impl LanguageClient {
                             }),
                             ..CompletionCapability::default()
                         }),
+                        code_action: Some(CodeActionCapability {
+                            code_action_literal_support: Some(CodeActionLiteralSupport {
+                                code_action_kind: CodeActionKindLiteralSupport {
+                                    value_set: [
+                                        code_action_kind::QUICKFIX,
+                                        code_action_kind::REFACTOR,
+                                        code_action_kind::REFACTOR_EXTRACT,
+                                        code_action_kind::REFACTOR_INLINE,
+                                        code_action_kind::REFACTOR_REWRITE,
+                                        code_action_kind::SOURCE,
+                                        code_action_kind::SOURCE_ORGANIZE_IMPORTS,
+                                    ]
+                                    .iter()
+                                    .map(|x| x.to_string())
+                                    .collect(),
+                                },
+                            }),
+                            ..CodeActionCapability::default()
+                        }),
                         signature_help: Some(SignatureHelpCapability {
                             signature_information: Some(SignatureInformationSettings {
                                 documentation_format: preferred_markup_kind.clone(),
