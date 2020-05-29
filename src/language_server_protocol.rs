@@ -1651,13 +1651,7 @@ impl LanguageClient {
 
         let source: Vec<_> = actions
             .iter()
-            .map(|action| {
-                format!(
-                    "{}: {}",
-                    action.kind.as_ref().map_or("action", String::as_ref),
-                    action.title
-                )
-            })
+            .map(|action| format!("{}: {}", code_action_kind_as_str(&action), action.title))
             .collect();
 
         self.update(|state| {
@@ -3419,10 +3413,7 @@ impl LanguageClient {
 
             actions
                 .iter()
-                .find(|action| {
-                    action.kind.as_ref().map_or(kind, String::as_ref) == kind
-                        && action.title == title
-                })
+                .find(|action| code_action_kind_as_str(&action) == kind && action.title == title)
                 .cloned()
                 .ok_or_else(|| {
                     format_err!("No stashed action found! stashed actions: {:?}", actions)
