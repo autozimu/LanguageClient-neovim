@@ -35,7 +35,7 @@ function! LanguageClient_textDocument_references(...)
 endfunction
 
 function! LanguageClient_textDocument_codeAction(...)
-    return call('LanguageClient#textDocument_codeAction', 'n', a:000)
+    return call('LanguageClient#textDocument_codeAction', a:000)
 endfunction
 
 function! LanguageClient_textDocument_codeLens(...)
