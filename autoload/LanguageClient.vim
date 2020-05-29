@@ -420,7 +420,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         \   'col': col,
         \   'width': width,
         \   'height': height,
-        \   'style': 'minimal',
+        \   'style': s:GetVar('LanguageClient_floatingWindowStyle', 'minimal'),
         \ })
 
         execute 'noswapfile edit!' a:bufname

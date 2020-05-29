@@ -503,7 +503,7 @@ Example configuration for eclipse.jdt.ls:
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
 
 
-2.33 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient__applyCompletionAdditionalTextEdits*
+2.33 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient_applyCompletionAdditionalTextEdits*
 
 Indicates whether completionItem additional text edits should be applied.
 
@@ -541,6 +541,13 @@ This setting may have no effect of the server decides not to honour it.
 
 Default: v:null
 Valid options: Array<String>
+
+2.34 g:LanguageClient_floatingWindowStyle  *g:LanguageClient_floatingWindowStyle*
+
+Style of opened Neovim floating window.
+
+Default: 'minimal'
+Valid options: 'minimal'
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
