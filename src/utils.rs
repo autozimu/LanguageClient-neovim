@@ -678,6 +678,14 @@ pub fn convert_to_vim_str(s: &str) -> String {
     vs
 }
 
+/// Converts the kind of a `CodeAction` to a `&str`.
+pub fn code_action_kind_as_str(action: &CodeAction) -> &str {
+    match action.kind.as_ref().map(String::as_ref) {
+        None | Some("") => "action",
+        Some(kind) => kind,
+    }
+}
+
 #[test]
 fn test_convert_to_vim_str() {
     assert_eq!(convert_to_vim_str("abcdefg"), "'abcdefg'");
