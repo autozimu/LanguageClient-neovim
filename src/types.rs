@@ -596,7 +596,15 @@ impl VimCompleteItem {
                 || lspitem
                     .text_edit
                     .as_ref()
-                    .map(|text_edit| text_edit.new_text.is_empty())
+                    .map(|text_edit| match text_edit {
+                        CompletionTextEdit::Edit(edit) => edit.new_text.is_empty(),
+                        CompletionTextEdit::InsertAndReplace(_) => {
+                            // it should be ok to panic here, as we explicitly set the
+                            // insert_replace_support to false when advertising the client's
+                            // completionItem capabilities.
+                            unreachable!("insert replace is not supported")
+                        }
+                    })
                     .unwrap_or(true)
             {
                 return lspitem.label.clone();
@@ -606,17 +614,35 @@ impl VimCompleteItem {
                 (Some(ref text_edit), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
-                    if text_edit.range.start.character != complete_position {
-                        text_edit
-                            .new_text
-                            .get((complete_position as usize)..)
-                            .and_then(|line| line.split_whitespace().next())
-                            .map_or_else(String::new, ToOwned::to_owned)
-                    } else {
-                        text_edit.new_text.clone()
+                    match text_edit {
+                        CompletionTextEdit::Edit(text_edit) => {
+                            if text_edit.range.start.character != complete_position {
+                                text_edit
+                                    .new_text
+                                    .get((complete_position as usize)..)
+                                    .and_then(|line| line.split_whitespace().next())
+                                    .map_or_else(String::new, ToOwned::to_owned)
+                            } else {
+                                text_edit.new_text.clone()
+                            }
+                        }
+                        CompletionTextEdit::InsertAndReplace(_) => {
+                            // it should be ok to panic here, as we explicitly set the
+                            // insert_replace_support to false when advertising the client's
+                            // completionItem capabilities.
+                            unreachable!("insert_replace is not supported")
+                        }
                     }
                 }
-                (Some(ref text_edit), _) => text_edit.new_text.clone(),
+                (Some(ref text_edit), _) => match text_edit {
+                    CompletionTextEdit::Edit(text_edit) => text_edit.new_text.clone(),
+                    CompletionTextEdit::InsertAndReplace(_) => {
+                        // it should be ok to panic here, as we explicitly set the
+                        // insert_replace_support to false when advertising the client's
+                        // completionItem capabilities.
+                        unreachable!("insert_replace is not supported")
+                    }
+                },
                 (_, _) => lspitem.label.clone(),
             }
         });

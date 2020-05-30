@@ -2,8 +2,8 @@ use super::*;
 
 use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
-use crate::lsp::request::GotoDefinitionResponse;
 use crate::lsp::request::Request;
+use crate::lsp::GotoDefinitionResponse;
 use crate::rpcclient::RpcClient;
 use failure::err_msg;
 use itertools::Itertools;
@@ -1183,10 +1183,18 @@ impl LanguageClient {
                 initialization_options,
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
+                        color_provider: Some(GenericCapability {
+                            dynamic_registration: Some(false),
+                        }),
                         completion: Some(CompletionCapability {
                             completion_item: Some(CompletionItemCapability {
                                 snippet_support: Some(has_snippet_support),
                                 documentation_format: preferred_markup_kind.clone(),
+                                // note that if this value was to be changed to true, then
+                                // additional changes around edits should be made, as it currently
+                                // just panics if it encounters a completion item of type
+                                // InsertAndReplace.
+                                insert_replace_support: Some(false),
                                 ..CompletionItemCapability::default()
                             }),
                             ..CompletionCapability::default()
@@ -1471,6 +1479,8 @@ impl LanguageClient {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
             },
         )?;
 
@@ -3321,13 +3331,25 @@ impl LanguageClient {
                 // already inserted.
                 //
                 // Check that we're not doing anything stupid before going ahead with this.
-                let mut edit = edit;
-                edit.range.end.character =
-                    edit.range.start.character + completed_item.word.len() as u64;
-                if edit.range.end != position || edit.range.start.line != edit.range.end.line {
-                    return Ok(());
+                match edit {
+                    CompletionTextEdit::Edit(edit) => {
+                        let mut edit = edit;
+                        edit.range.end.character =
+                            edit.range.start.character + completed_item.word.len() as u64;
+                        if edit.range.end != position
+                            || edit.range.start.line != edit.range.end.line
+                        {
+                            return Ok(());
+                        }
+                        edits.push(edit);
+                    }
+                    CompletionTextEdit::InsertAndReplace(_) => {
+                        // it should be ok to panic here, as we explicitly set the
+                        // insert_replace_support to false when advertising the client's
+                        // completionItem capabilities.
+                        unreachable!("insert_replace is not supported");
+                    }
                 }
-                edits.push(edit);
             };
         }
 
