@@ -426,7 +426,7 @@ endfunction
 "   - Floating window on Neovim (0.4.0 or later)
 "   - popup window on vim (8.2 or later)
 "   - Preview window on Neovim (0.3.0 or earlier) or Vim
-function! s:OpenHoverPreview(bufname, lines, filetype) abort
+function! s:OpenHoverPreview(bufname, lines, filetype, x, y) abort
     " Use local variable since parameter is not modifiable
     let lines = a:lines
     let bufnr = bufnr('%')
@@ -492,8 +492,15 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
             let col = 1
         endif
 
+        let relative = 'cursor'
+        if a:x != v:null && a:y != v:null
+          let col = a:x
+          let row = a:y
+          let relative = 'win'
+        endif
+
         let s:float_win_id = nvim_open_win(bufnr, v:true, {
-        \   'relative': 'cursor',
+        \   'relative': relative,
         \   'anchor': vert . hor,
         \   'row': row,
         \   'col': col,
@@ -507,7 +514,11 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight', 'Normal:CursorLine')
         execute printf('setlocal winhl=%s', float_win_highlight)
     elseif display_approach ==# 'popup_win'
-        let pop_win_id = popup_atcursor(a:lines, {})
+        if a:x != v:null && a:y != v:null
+          let pop_win_id = popup_create(a:lines, { 'line': a:y + 1, 'col': a:x + 1})
+        else
+          let pop_win_id = popup_atcursor(a:lines, {})
+        endif
         call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)
     elseif display_approach ==# 'preview'
         execute 'silent! noswapfile pedit!' a:bufname
@@ -1053,7 +1064,6 @@ function! LanguageClient#completionItem_resolve(completion_item, ...) abort
                 \ 'completionItem': a:completion_item,
                 \ 'handle': s:IsFalse(l:Callback)
                 \ }
-    call extend(l:params, get(a:000, 0, {}))
     return LanguageClient#Call('completionItem/resolve', l:params, l:Callback)
 endfunction
 
@@ -1281,6 +1291,10 @@ function! LanguageClient#handleCursorMoved() abort
 endfunction
 
 function! LanguageClient#handleCompleteDone() abort
+    if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
+      call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
+    endif
+
     let user_data = get(v:completed_item, 'user_data', '')
     if user_data ==# ''
         return
@@ -1631,7 +1645,7 @@ function! s:print_cursor_semantic_symbol(response) abort
     endfor
 
     if len(l:lines) > 0
-        call s:OpenHoverPreview('SemanticScopes', l:lines, 'text')
+        call s:OpenHoverPreview('SemanticScopes', l:lines, 'text', v:null, v:null)
     else
         call s:Echowarn('No Symbol Under Cursor or No Semantic Highlighting')
     endif
@@ -1641,6 +1655,80 @@ function! LanguageClient#debugInfo(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
     return LanguageClient#Call('languageClient/debugInfo', l:params, l:Callback)
+endfunction
+
+function! s:ClosePopups() abort
+  if s:ShouldUseFloatWindow()
+    call s:CloseFloatingHover()
+  elseif s:POPUP_WINDOW_AVAILABLE && s:GetVar('LanguageClient_usePopupHover', v:true)
+    call popup_clear()
+  else
+    :pclose
+  endif
+endfunction
+
+function! LanguageClient#showCompletionItemDocumentation(...) abort
+  if !has_key(v:completed_item, 'user_data')
+    call s:ClosePopups()
+    return
+  endif
+
+  if v:completed_item['user_data'] ==# ''
+    call s:ClosePopups()
+    return
+  endif
+
+  let l:user_data = json_decode(v:completed_item['user_data'])
+  let l:completed_item = {}
+
+  if has_key(l:user_data, 'ncm2_lspitem')
+    let l:completed_item = l:user_data['ncm2_lspitem']
+  endif
+
+  if has_key(l:user_data, 'lspitem')
+    let l:completed_item = l:user_data['lspitem']
+  endif
+
+  if l:completed_item ==# {}
+    call s:ClosePopups()
+    return
+  endif
+
+  if has_key(l:completed_item, 'documentation')
+    call s:ShowCompletionItemDocumentation(l:completed_item['documentation'])
+    return
+  endif
+
+  call LanguageClient#completionItem_resolve(l:completed_item, {}, 's:HandleCompleteChangedResponse')
+endfunction
+
+function! s:HandleCompleteChangedResponse(...) abort
+  let l:response = get(a:000, 0, {})
+  let l:result = get(l:response, 'result', {})
+  if l:result is v:null || len(keys(l:result)) ==# 0
+    call s:ClosePopups()
+    return
+  endif
+
+  if (!has_key(l:result, 'documentation'))
+    call s:ClosePopups()
+	  return
+  endif
+
+  if l:result['documentation'] ==# ''
+    call s:ClosePopups()
+    return
+  endif
+
+  call s:ShowCompletionItemDocumentation(l:result['documentation'])
+endfunction
+
+function! s:ShowCompletionItemDocumentation(doc) abort
+  let l:lines = split(a:doc, "\n")
+  let l:pos = pum_getpos()
+
+  let l:x_pos = l:pos['width'] + l:pos['col'] + 1
+  call s:OpenHoverPreview('CompletionDocumentation', l:lines, 'text', l:x_pos, l:pos['row'])
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()

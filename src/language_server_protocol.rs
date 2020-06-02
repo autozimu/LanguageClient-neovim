@@ -1054,9 +1054,10 @@ impl LanguageClient {
         let filetype = &to_display.vim_filetype();
         let lines = to_display.to_display();
 
-        self.vim()?
-            .rpcclient
-            .notify("s:OpenHoverPreview", json!([bufname, lines, filetype]))?;
+        self.vim()?.rpcclient.notify(
+            "s:OpenHoverPreview",
+            json!([bufname, lines, filetype, Value::Null, Value::Null]),
+        )?;
 
         Ok(())
     }
