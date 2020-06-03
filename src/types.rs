@@ -591,19 +591,28 @@ impl VimCompleteItem {
         );
         let abbr = lspitem.label.clone();
 
+        if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
+            error!("insert replace is not supported");
+        }
+
         let word = lspitem.insert_text.clone().unwrap_or_else(|| {
+            if lspitem.text_edit.iter().any(|te| match te {
+                CompletionTextEdit::Edit(_) => false,
+                CompletionTextEdit::InsertAndReplace(_) => true,
+            }) {
+                error!("insert replace is not supported");
+            }
+
             if lspitem.insert_text_format == Some(InsertTextFormat::Snippet)
                 || lspitem
                     .text_edit
                     .as_ref()
                     .map(|text_edit| match text_edit {
                         CompletionTextEdit::Edit(edit) => edit.new_text.is_empty(),
-                        CompletionTextEdit::InsertAndReplace(_) => {
-                            // it should be ok to panic here, as we explicitly set the
-                            // insert_replace_support to false when advertising the client's
-                            // completionItem capabilities.
-                            unreachable!("insert replace is not supported")
-                        }
+                        // InsertAndReplace is not supported, so if we encounter a completion item
+                        // with a text edit of this variant, then we just default to using the label
+                        // as the format instead of the new text.
+                        CompletionTextEdit::InsertAndReplace(_) => true,
                     })
                     .unwrap_or(true)
             {
@@ -611,38 +620,22 @@ impl VimCompleteItem {
             }
 
             match (lspitem.text_edit.clone(), complete_position) {
-                (Some(ref text_edit), Some(complete_position)) => {
+                // see comment above about InsertAndReplace
+                (Some(CompletionTextEdit::InsertAndReplace(_)), _) => lspitem.label.clone(),
+                (Some(CompletionTextEdit::Edit(ref text_edit)), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
-                    match text_edit {
-                        CompletionTextEdit::Edit(text_edit) => {
-                            if text_edit.range.start.character != complete_position {
-                                text_edit
-                                    .new_text
-                                    .get((complete_position as usize)..)
-                                    .and_then(|line| line.split_whitespace().next())
-                                    .map_or_else(String::new, ToOwned::to_owned)
-                            } else {
-                                text_edit.new_text.clone()
-                            }
-                        }
-                        CompletionTextEdit::InsertAndReplace(_) => {
-                            // it should be ok to panic here, as we explicitly set the
-                            // insert_replace_support to false when advertising the client's
-                            // completionItem capabilities.
-                            unreachable!("insert_replace is not supported")
-                        }
+                    if text_edit.range.start.character != complete_position {
+                        text_edit
+                            .new_text
+                            .get((complete_position as usize)..)
+                            .and_then(|line| line.split_whitespace().next())
+                            .map_or_else(String::new, ToOwned::to_owned)
+                    } else {
+                        text_edit.new_text.clone()
                     }
                 }
-                (Some(ref text_edit), _) => match text_edit {
-                    CompletionTextEdit::Edit(text_edit) => text_edit.new_text.clone(),
-                    CompletionTextEdit::InsertAndReplace(_) => {
-                        // it should be ok to panic here, as we explicitly set the
-                        // insert_replace_support to false when advertising the client's
-                        // completionItem capabilities.
-                        unreachable!("insert_replace is not supported")
-                    }
-                },
+                (Some(CompletionTextEdit::Edit(ref text_edit)), _) => text_edit.new_text.clone(),
                 (_, _) => lspitem.label.clone(),
             }
         });

@@ -3323,7 +3323,11 @@ impl LanguageClient {
 
         let mut edits = vec![];
         if self.get(|state| state.completionPreferTextEdit)? {
-            if let Some(edit) = lspitem.text_edit {
+            if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
+                error!("insert and replace is not supported");
+            }
+
+            if let Some(CompletionTextEdit::Edit(edit)) = lspitem.text_edit {
                 // The text edit should be at the completion point, and deleting the partial text
                 // that the user had typed when the language server provided the completion.
                 //
@@ -3331,26 +3335,14 @@ impl LanguageClient {
                 // already inserted.
                 //
                 // Check that we're not doing anything stupid before going ahead with this.
-                match edit {
-                    CompletionTextEdit::Edit(edit) => {
-                        let mut edit = edit;
-                        edit.range.end.character =
-                            edit.range.start.character + completed_item.word.len() as u64;
-                        if edit.range.end != position
-                            || edit.range.start.line != edit.range.end.line
-                        {
-                            return Ok(());
-                        }
-                        edits.push(edit);
-                    }
-                    CompletionTextEdit::InsertAndReplace(_) => {
-                        // it should be ok to panic here, as we explicitly set the
-                        // insert_replace_support to false when advertising the client's
-                        // completionItem capabilities.
-                        unreachable!("insert_replace is not supported");
-                    }
+                let mut edit = edit;
+                edit.range.end.character =
+                    edit.range.start.character + completed_item.word.len() as u64;
+                if edit.range.end != position || edit.range.start.line != edit.range.end.line {
+                    return Ok(());
                 }
-            };
+                edits.push(edit);
+            }
         }
 
         if self.get(|state| state.applyCompletionAdditionalTextEdits)? {
