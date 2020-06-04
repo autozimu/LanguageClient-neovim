@@ -99,6 +99,7 @@ impl LanguageClient {
             REQUEST__OmniComplete => self.languageClient_omniComplete(&params),
             REQUEST__ClassFileContents => self.java_classFileContents(&params),
             REQUEST__DebugInfo => self.debug_info(&params),
+            REQUEST__ListCodeLenses => self.languageClient_listCodeLenses(&params),
             REQUEST__CodeLensAction => self.languageClient_handleCodeLensAction(&params),
             REQUEST__SemanticScopes => self.languageClient_semanticScopes(&params),
             REQUEST__ShowSemanticHighlightSymbols => self.languageClient_semanticHlSyms(&params),

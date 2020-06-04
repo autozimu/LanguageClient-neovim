@@ -1364,6 +1364,15 @@ function! LanguageClient#java_classFileContents(...) abort
     return LanguageClient#Call('java/classFileContents', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#listCodeLenses(...) abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('LanguageClient/listCodeLenses', l:params, l:Callback)
+endfunction
+
 function! LanguageClient#handleCodeLensAction(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {

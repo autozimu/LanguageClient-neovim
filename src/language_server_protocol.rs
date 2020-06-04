@@ -2012,20 +2012,30 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn languageClient_handleCodeLensAction(&self, params: &Value) -> Fallible<Value> {
+    fn languageClient_filterActionableCodeLenses(&self, params: &Value) -> Fallible<Vec<CodeLens>> {
         let filename = self.vim()?.get_filename(params)?;
         let line = self.vim()?.get_position(params)?.line;
 
-        let code_lens: Vec<CodeLens> = self.get(|state| {
+        self.get(|state| {
             state
                 .code_lens
                 .get(&filename)
                 .cloned()
-                .unwrap_or_else(Vec::new)
+                .unwrap_or_default()
                 .into_iter()
                 .filter(|action| action.range.start.line == line)
                 .collect()
-        })?;
+        })
+    }
+
+    pub fn languageClient_listCodeLenses(&self, params: &Value) -> Fallible<Value> {
+        let code_lens = self.languageClient_filterActionableCodeLenses(params)?;
+        Ok(serde_json::to_value(code_lens)?)
+    }
+
+    pub fn languageClient_handleCodeLensAction(&self, params: &Value) -> Fallible<Value> {
+        let code_lens = self.languageClient_filterActionableCodeLenses(params)?;
+
         if code_lens.is_empty() {
             warn!("No actions associated with this codeLens");
             return Ok(Value::Null);
