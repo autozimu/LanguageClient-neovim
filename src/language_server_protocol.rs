@@ -2,8 +2,8 @@ use super::*;
 
 use crate::language_client::LanguageClient;
 use crate::lsp::notification::Notification;
-use crate::lsp::request::GotoDefinitionResponse;
 use crate::lsp::request::Request;
+use crate::lsp::GotoDefinitionResponse;
 use crate::rpcclient::RpcClient;
 use failure::err_msg;
 use itertools::Itertools;
@@ -1183,10 +1183,18 @@ impl LanguageClient {
                 initialization_options,
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
+                        color_provider: Some(GenericCapability {
+                            dynamic_registration: Some(false),
+                        }),
                         completion: Some(CompletionCapability {
                             completion_item: Some(CompletionItemCapability {
                                 snippet_support: Some(has_snippet_support),
                                 documentation_format: preferred_markup_kind.clone(),
+                                // note that if this value was to be changed to true, then
+                                // additional changes around edits should be made, as it currently
+                                // just panics if it encounters a completion item of type
+                                // InsertAndReplace.
+                                insert_replace_support: Some(false),
                                 ..CompletionItemCapability::default()
                             }),
                             ..CompletionCapability::default()
@@ -1471,6 +1479,8 @@ impl LanguageClient {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_url()?,
                 },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
             },
         )?;
 
@@ -3313,7 +3323,11 @@ impl LanguageClient {
 
         let mut edits = vec![];
         if self.get(|state| state.completionPreferTextEdit)? {
-            if let Some(edit) = lspitem.text_edit {
+            if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
+                error!("insert and replace is not supported");
+            }
+
+            if let Some(CompletionTextEdit::Edit(edit)) = lspitem.text_edit {
                 // The text edit should be at the completion point, and deleting the partial text
                 // that the user had typed when the language server provided the completion.
                 //
@@ -3328,7 +3342,7 @@ impl LanguageClient {
                     return Ok(());
                 }
                 edits.push(edit);
-            };
+            }
         }
 
         if self.get(|state| state.applyCompletionAdditionalTextEdits)? {

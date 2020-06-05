@@ -591,19 +591,38 @@ impl VimCompleteItem {
         );
         let abbr = lspitem.label.clone();
 
+        if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
+            error!("insert replace is not supported");
+        }
+
         let word = lspitem.insert_text.clone().unwrap_or_else(|| {
+            if lspitem.text_edit.iter().any(|te| match te {
+                CompletionTextEdit::Edit(_) => false,
+                CompletionTextEdit::InsertAndReplace(_) => true,
+            }) {
+                error!("insert replace is not supported");
+            }
+
             if lspitem.insert_text_format == Some(InsertTextFormat::Snippet)
                 || lspitem
                     .text_edit
                     .as_ref()
-                    .map(|text_edit| text_edit.new_text.is_empty())
+                    .map(|text_edit| match text_edit {
+                        CompletionTextEdit::Edit(edit) => edit.new_text.is_empty(),
+                        // InsertAndReplace is not supported, so if we encounter a completion item
+                        // with a text edit of this variant, then we just default to using the label
+                        // as the format instead of the new text.
+                        CompletionTextEdit::InsertAndReplace(_) => true,
+                    })
                     .unwrap_or(true)
             {
                 return lspitem.label.clone();
             }
 
             match (lspitem.text_edit.clone(), complete_position) {
-                (Some(ref text_edit), Some(complete_position)) => {
+                // see comment above about InsertAndReplace
+                (Some(CompletionTextEdit::InsertAndReplace(_)), _) => lspitem.label.clone(),
+                (Some(CompletionTextEdit::Edit(ref text_edit)), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
                     if text_edit.range.start.character != complete_position {
@@ -616,7 +635,7 @@ impl VimCompleteItem {
                         text_edit.new_text.clone()
                     }
                 }
-                (Some(ref text_edit), _) => text_edit.new_text.clone(),
+                (Some(CompletionTextEdit::Edit(ref text_edit)), _) => text_edit.new_text.clone(),
                 (_, _) => lspitem.label.clone(),
             }
         });
