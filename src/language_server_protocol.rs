@@ -12,6 +12,7 @@ use crate::{
     viewport,
 };
 use anyhow::{anyhow, Context, Error, Result};
+use glob::glob;
 use itertools::Itertools;
 use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
@@ -2724,13 +2725,27 @@ impl LanguageClient {
                     self.update(|state| {
                         if let Some(ref mut watcher) = state.watchers.get_mut(language_id) {
                             for w in &opt.watchers {
-                                let recursive_mode = if w.glob_pattern.ends_with("**") {
-                                    notify::RecursiveMode::Recursive
-                                } else {
-                                    notify::RecursiveMode::NonRecursive
-                                };
-                                watcher
-                                    .watch(w.glob_pattern.trim_end_matches("**"), recursive_mode)?;
+                                info!("Watching glob pattern: {}", &w.glob_pattern);
+                                for entry in glob(&w.glob_pattern)? {
+                                    match entry {
+                                        Ok(path) => {
+                                            let mode = if path.is_dir() {
+                                                notify::RecursiveMode::Recursive
+                                            } else {
+                                                notify::RecursiveMode::NonRecursive
+                                            };
+                                            debug!(
+                                                "Watching path {} with mode {:?}",
+                                                path.display(),
+                                                mode
+                                            );
+                                            watcher.watch(path, mode)?;
+                                        }
+                                        Err(e) => {
+                                            warn!("Error globbing for {}: {}", w.glob_pattern, e)
+                                        }
+                                    }
+                                }
                             }
                         }
                         Ok(())
