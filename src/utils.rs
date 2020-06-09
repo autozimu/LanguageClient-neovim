@@ -61,8 +61,11 @@ pub fn get_rootPath<'a>(
                 || dir.join("build.gradle").exists()
         }),
         "scala" => traverse_up(path, |dir| dir.join("build.sbt").exists()),
-        "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists())
-            .or_else(|_| traverse_up(path, |dir| dir.join(".cabal").exists())),
+        "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists()).or_else(|_| {
+            traverse_up(path, |dir| {
+                dir_contains_file(dir, |f| has_extension(f, "cabal"))
+            })
+        }),
         "go" => traverse_up(path, |dir| dir.join("go.mod").exists()),
         _ => Err(format_err!("Unknown languageId: {}", languageId)),
     }
@@ -81,6 +84,32 @@ pub fn get_rootPath<'a>(
         );
         parent
     })
+}
+
+/// If iterating the directory fails (e.g. because it is not a directory), returns false; if a
+/// file cannot be inspected, that file is considered nonexistent.
+fn dir_contains_file<F>(path: &Path, predicate: F) -> bool
+where
+    F: Fn(&Path) -> bool,
+{
+    if let Ok(diriter) = path.read_dir() {
+        for entry in diriter {
+            if let Ok(entry) = entry {
+                if predicate(&entry.path()) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+fn has_extension(path: &Path, ext: &str) -> bool {
+    match path.extension().and_then(|e| e.to_str()) {
+        Some(path_ext) if path_ext == ext => true,
+        _ => false,
+    }
 }
 
 fn traverse_up<F>(path: &Path, predicate: F) -> Fallible<&Path>
