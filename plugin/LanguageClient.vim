@@ -189,8 +189,12 @@ function! s:ConfigureAutocmds()
     autocmd CursorMoved <buffer> call LanguageClient#handleCursorMoved()
     autocmd VimLeavePre <buffer> call LanguageClient#handleVimLeavePre()
     autocmd CompleteDone <buffer> call LanguageClient#handleCompleteDone()
-    if exists('##CompleteChanged')
-      autocmd CompleteChanged <buffer> call LanguageClient#showCompletionItemDocumentation()
+    if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
+        autocmd CompleteDone <buffer>
+                    \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
+    endif
+    if exists('##CompleteChanged') && get(g:, 'LanguageClient_showCompletionDocs', 1)
+      autocmd CompleteChanged <buffer> call LanguageClient#handleCompleteChanged(deepcopy(v:event))
     endif
 
     nnoremap <Plug>(lcn-menu)               :call LanguageClient_contextMenu()<CR>

@@ -11,6 +11,9 @@ let s:TYPE = {
 let s:FLOAT_WINDOW_AVAILABLE = exists('*nvim_open_win')
 let s:POPUP_WINDOW_AVAILABLE = exists('*popup_atcursor')
 
+" timers to control throttling
+let s:timers = {}
+
 function! s:AddPrefix(message) abort
     return '[LC] ' . a:message
 endfunction
@@ -426,7 +429,9 @@ endfunction
 "   - Floating window on Neovim (0.4.0 or later)
 "   - popup window on vim (8.2 or later)
 "   - Preview window on Neovim (0.3.0 or earlier) or Vim
-function! s:OpenHoverPreview(bufname, lines, filetype, x, y) abort
+"
+" Receives two optional arguments which are the X and Y position 
+function! s:OpenHoverPreview(bufname, lines, filetype, ...) abort
     " Use local variable since parameter is not modifiable
     let lines = a:lines
     let bufnr = bufnr('%')
@@ -493,9 +498,9 @@ function! s:OpenHoverPreview(bufname, lines, filetype, x, y) abort
         endif
 
         let relative = 'cursor'
-        if a:x != v:null && a:y != v:null
-          let col = a:x
-          let row = a:y
+        let col = get(a:000, 0, col)
+        let row = get(a:000, 1, row)
+        if get(a:000, 0, v:null) isnot v:null && get(a:000, 1, v:null) isnot v:null
           let relative = 'win'
         endif
 
@@ -514,10 +519,11 @@ function! s:OpenHoverPreview(bufname, lines, filetype, x, y) abort
         let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight', 'Normal:CursorLine')
         execute printf('setlocal winhl=%s', float_win_highlight)
     elseif display_approach ==# 'popup_win'
-        if a:x != v:null && a:y != v:null
-          let pop_win_id = popup_create(a:lines, { 'line': a:y + 1, 'col': a:x + 1})
+        let l:padding = [1, 1, 1, 1]
+        if get(a:000, 0, v:null) isnot v:null && get(a:000, 1, v:null) isnot v:null
+          let pop_win_id = popup_create(a:lines, { 'line': get(a:000, 1) + 1, 'col': get(a:000, 0) + 1, 'padding': l:padding })
         else
-          let pop_win_id = popup_atcursor(a:lines, {})
+          let pop_win_id = popup_atcursor(a:lines, { 'padding': l:padding })
         endif
         call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)
     elseif display_approach ==# 'preview'
@@ -536,7 +542,7 @@ function! s:OpenHoverPreview(bufname, lines, filetype, x, y) abort
 
         call setline(1, lines)
         " trigger refresh on plasticboy/vim-markdown
-        normal! i
+        doautocmd InsertLeave
         setlocal nomodified nomodifiable
 
         wincmd p
@@ -1064,6 +1070,7 @@ function! LanguageClient#completionItem_resolve(completion_item, ...) abort
                 \ 'completionItem': a:completion_item,
                 \ 'handle': s:IsFalse(l:Callback)
                 \ }
+    call extend(l:params, get(a:000, 0, {})) " extend with pumpos params
     return LanguageClient#Call('completionItem/resolve', l:params, l:Callback)
 endfunction
 
@@ -1291,12 +1298,12 @@ function! LanguageClient#handleCursorMoved() abort
 endfunction
 
 function! LanguageClient#handleCompleteDone() abort
-    if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
-      call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
-    endif
+    " close any hovers that may have been opened for example for completion
+    " item documentation.
+    call s:ClosePopups()
 
     let user_data = get(v:completed_item, 'user_data', '')
-    if user_data ==# ''
+    if len(user_data) ==# 0
         return
     endif
 
@@ -1645,7 +1652,7 @@ function! s:print_cursor_semantic_symbol(response) abort
     endfor
 
     if len(l:lines) > 0
-        call s:OpenHoverPreview('SemanticScopes', l:lines, 'text', v:null, v:null)
+        call s:OpenHoverPreview('SemanticScopes', l:lines, 'text')
     else
         call s:Echowarn('No Symbol Under Cursor or No Semantic Highlighting')
     endif
@@ -1657,78 +1664,90 @@ function! LanguageClient#debugInfo(...) abort
     return LanguageClient#Call('languageClient/debugInfo', l:params, l:Callback)
 endfunction
 
-function! s:ClosePopups() abort
+function! s:ClosePopups(...) abort
   if s:ShouldUseFloatWindow()
     call s:CloseFloatingHover()
-  elseif s:POPUP_WINDOW_AVAILABLE && s:GetVar('LanguageClient_usePopupHover', v:true)
+  elseif exists('*popup_clear') && s:GetVar('LanguageClient_usePopupHover', v:true)
     call popup_clear()
   else
     :pclose
   endif
 endfunction
 
-function! LanguageClient#showCompletionItemDocumentation(...) abort
-  if !has_key(v:completed_item, 'user_data')
-    call s:ClosePopups()
-    return
+" receives the v:event from the CompleteChanged autocmd
+function! LanguageClient#handleCompleteChanged(event) abort
+  " this timer is just to stop textlock from locking our changes
+  call timer_start(0, funcref('s:ClosePopups'))
+
+  if has_key(s:timers, 'LanguageClient#handleCompleteChanged')
+    call timer_stop(s:timers['LanguageClient#handleCompleteChanged'])
   endif
 
-  if v:completed_item['user_data'] ==# ''
-    call s:ClosePopups()
-    return
-  endif
+  function! Debounced(event) abort
+    let l:user_data = get(v:completed_item, 'user_data', '')
+    if len(l:user_data) ==# 0
+      return
+    endif
 
-  let l:user_data = json_decode(v:completed_item['user_data'])
-  let l:completed_item = {}
+    if type(l:user_data) ==# v:t_string
+      let l:user_data = json_decode(l:user_data)
+    endif
 
-  if has_key(l:user_data, 'ncm2_lspitem')
-    let l:completed_item = l:user_data['ncm2_lspitem']
-  endif
+    let l:completed_item = {}
 
-  if has_key(l:user_data, 'lspitem')
-    let l:completed_item = l:user_data['lspitem']
-  endif
+    " LCN completion items
+    if has_key(l:user_data, 'lspitem')
+      let l:completed_item = l:user_data['lspitem']
+    endif
 
-  if l:completed_item ==# {}
-    call s:ClosePopups()
-    return
-  endif
+    " NCM2 completion items
+    if has_key(l:user_data, 'ncm2_lspitem')
+      let l:completed_item = l:user_data['ncm2_lspitem']
+    endif
 
-  if has_key(l:completed_item, 'documentation')
-    call s:ShowCompletionItemDocumentation(l:completed_item['documentation'])
-    return
-  endif
+    if l:completed_item ==# {}
+      return
+    endif
 
-  call LanguageClient#completionItem_resolve(l:completed_item, {}, 's:HandleCompleteChangedResponse')
+    if has_key(l:completed_item, 'documentation')
+      call s:ShowCompletionItemDocumentation(l:completed_item['documentation'], a:event)
+    else
+      call LanguageClient#completionItem_resolve(l:completed_item, { 'pumpos': a:event })
+    endif
+  endfunction
+
+  let s:timers['LanguageClient#handleCompleteChanged'] = timer_start(100, { -> Debounced(a:event) })
 endfunction
 
-function! s:HandleCompleteChangedResponse(...) abort
-  let l:response = get(a:000, 0, {})
-  let l:result = get(l:response, 'result', {})
-  if l:result is v:null || len(keys(l:result)) ==# 0
-    call s:ClosePopups()
+function! s:ShowCompletionItemDocumentation(doc, completion_event) abort
+  let l:kind = 'text'
+
+  " some servers send a dictionary with kind and value whereas others just
+  " send the value
+  if type(a:doc) is s:TYPE.dict
+    let l:lines = split(a:doc['value'], "\n")
+    if has_key(a:doc, 'kind')
+      let l:kind = a:doc['kind']
+    endif
+  else
+    let l:lines = split(a:doc, "\n")
+  endif
+
+  if len(l:lines) ==# 0
     return
   endif
 
-  if (!has_key(l:result, 'documentation'))
-    call s:ClosePopups()
-	  return
+  for l:line in l:lines
+    let l:line = ' ' . l:line . ' '
+  endfor
+
+  let l:pos = a:completion_event
+  if exists('*pum_getpos')
+    " favor pum_getpos output if available
+    let l:pos = pum_getpos()
   endif
-
-  if l:result['documentation'] ==# ''
-    call s:ClosePopups()
-    return
-  endif
-
-  call s:ShowCompletionItemDocumentation(l:result['documentation'])
-endfunction
-
-function! s:ShowCompletionItemDocumentation(doc) abort
-  let l:lines = split(a:doc, "\n")
-  let l:pos = pum_getpos()
-
   let l:x_pos = l:pos['width'] + l:pos['col'] + 1
-  call s:OpenHoverPreview('CompletionDocumentation', l:lines, 'text', l:x_pos, l:pos['row'])
+  call s:OpenHoverPreview('CompletionItemDocumentation', l:lines, l:kind, l:x_pos, l:pos['row'])
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()

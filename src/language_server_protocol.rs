@@ -29,7 +29,7 @@ use lsp_types::{
     DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentChangeOperation, DocumentChanges,
     DocumentFormattingParams, DocumentHighlight, DocumentHighlightKind,
-    DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse,
+    DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse, Documentation,
     ExecuteCommandParams, FormattingOptions, GenericCapability, GotoCapability,
     GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
     InitializedParams, Location, LogMessageParams, MarkupKind, MessageType, NumberOrString,
@@ -1054,10 +1054,9 @@ impl LanguageClient {
         let filetype = &to_display.vim_filetype();
         let lines = to_display.to_display();
 
-        self.vim()?.rpcclient.notify(
-            "s:OpenHoverPreview",
-            json!([bufname, lines, filetype, Value::Null, Value::Null]),
-        )?;
+        self.vim()?
+            .rpcclient
+            .notify("s:OpenHoverPreview", json!([bufname, lines, filetype]))?;
 
         Ok(())
     }
@@ -1764,11 +1763,25 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn completion_item_resolve(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
+        let has_capability = self.get(|state| match state.capabilities.get(&language_id) {
+            None => false,
+            Some(result) => result
+                .capabilities
+                .completion_provider
+                .as_ref()
+                .map(|cp| cp.resolve_provider.unwrap_or_default())
+                .unwrap_or_default(),
+        })?;
+        if !has_capability {
+            return Ok(Value::Null);
+        }
+
         let completion_item: CompletionItem = try_get("completionItem", params)?
             .ok_or_else(|| anyhow!("completionItem not found in request!"))?;
+        let pumpos: Value =
+            try_get("pumpos", params)?.ok_or_else(|| anyhow!("pumpos not found in request!"))?;
 
         let result = self.get_client(&Some(language_id))?.call(
             lsp_types::request::ResolveCompletionItem::METHOD,
@@ -1779,10 +1792,16 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        // TODO: proper integration.
-        let msg = format!("completionItem/resolve result not handled: {:?}", result);
-        warn!("{}", msg);
-        self.vim()?.echowarn(&msg)?;
+        let item = CompletionItem::deserialize(result)?;
+        match item.documentation {
+            None => return Ok(Value::Null),
+            Some(Documentation::String(s)) if s.is_empty() => return Ok(Value::Null),
+            Some(Documentation::MarkupContent(m)) if m.value.is_empty() => return Ok(Value::Null),
+            _ => self.vim()?.rpcclient.notify(
+                "s:ShowCompletionItemDocumentation",
+                json!([item.documentation, pumpos]),
+            )?,
+        }
 
         Ok(Value::Null)
     }
