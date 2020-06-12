@@ -1,9 +1,12 @@
-use super::*;
 use derivative::Derivative;
+use failure::{Fallible, ResultExt};
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
+use serde::Serialize;
+use std::io::Write;
+use std::path::PathBuf;
 
 #[derive(Derivative)]
 #[derivative(Debug)]

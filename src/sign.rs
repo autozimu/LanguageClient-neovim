@@ -1,4 +1,5 @@
 use lsp_types::{Diagnostic, DiagnosticSeverity};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sign {

@@ -1,7 +1,9 @@
-use super::*;
-use crate::language_client::LanguageClient;
-use crate::lsp::notification::Notification;
-use crate::lsp::request::Request;
+use crate::{language_client::LanguageClient, types::*};
+use failure::{err_msg, Fallible};
+use log::*;
+use lsp_types::notification::{self, Notification};
+use lsp_types::request::{self, Request};
+use serde_json::Value;
 
 fn is_content_modified_error(err: &failure::Error) -> bool {
     match err.as_fail().downcast_ref::<LSError>() {
@@ -61,8 +63,8 @@ impl LanguageClient {
 
     pub fn handle_method_call(
         &self,
-        languageId: Option<&str>,
-        method_call: &rpc::MethodCall,
+        language_id: Option<&str>,
+        method_call: &jsonrpc_core::MethodCall,
     ) -> Fallible<Value> {
         let params = serde_json::to_value(method_call.params.clone())?;
 
@@ -73,53 +75,51 @@ impl LanguageClient {
         }
 
         match method_call.method.as_str() {
-            lsp::request::RegisterCapability::METHOD => {
-                self.client_registerCapability(languageId.unwrap_or_default(), &params)
+            request::RegisterCapability::METHOD => {
+                self.client_register_capability(language_id.unwrap_or_default(), &params)
             }
-            lsp::request::UnregisterCapability::METHOD => {
-                self.client_unregisterCapability(languageId.unwrap_or_default(), &params)
+            request::UnregisterCapability::METHOD => {
+                self.client_unregister_capability(language_id.unwrap_or_default(), &params)
             }
-            lsp::request::HoverRequest::METHOD => self.textDocument_hover(&params),
-            REQUEST__FindLocations => self.find_locations(&params),
-            lsp::request::Rename::METHOD => self.textDocument_rename(&params),
-            lsp::request::DocumentSymbolRequest::METHOD => {
-                self.textDocument_documentSymbol(&params)
-            }
-            lsp::request::ShowMessageRequest::METHOD => self.window_showMessageRequest(&params),
-            lsp::request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
-            lsp::request::CodeActionRequest::METHOD => self.textDocument_codeAction(&params),
-            lsp::request::Completion::METHOD => self.textDocument_completion(&params),
-            lsp::request::SignatureHelpRequest::METHOD => self.textDocument_signatureHelp(&params),
-            lsp::request::References::METHOD => self.textDocument_references(&params),
-            lsp::request::Formatting::METHOD => self.textDocument_formatting(&params),
-            lsp::request::RangeFormatting::METHOD => self.textDocument_rangeFormatting(&params),
-            lsp::request::CodeLensRequest::METHOD => self.textDocument_codeLens(&params),
-            lsp::request::ResolveCompletionItem::METHOD => self.completionItem_resolve(&params),
-            lsp::request::ExecuteCommand::METHOD => self.workspace_executeCommand(&params),
-            lsp::request::ApplyWorkspaceEdit::METHOD => self.workspace_applyEdit(&params),
-            lsp::request::DocumentHighlightRequest::METHOD => {
-                self.textDocument_documentHighlight(&params)
+            request::HoverRequest::METHOD => self.text_document_hover(&params),
+            request::Rename::METHOD => self.text_document_rename(&params),
+            request::DocumentSymbolRequest::METHOD => self.text_document_document_symbol(&params),
+            request::ShowMessageRequest::METHOD => self.window_show_message_request(&params),
+            request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
+            request::CodeActionRequest::METHOD => self.text_document_code_action(&params),
+            request::Completion::METHOD => self.text_document_completion(&params),
+            request::SignatureHelpRequest::METHOD => self.text_document_signature_help(&params),
+            request::References::METHOD => self.text_document_references(&params),
+            request::Formatting::METHOD => self.text_document_formatting(&params),
+            request::RangeFormatting::METHOD => self.text_document_range_formatting(&params),
+            request::CodeLensRequest::METHOD => self.text_document_code_lens(&params),
+            request::ResolveCompletionItem::METHOD => self.completion_item_resolve(&params),
+            request::ExecuteCommand::METHOD => self.workspace_execute_command(&params),
+            request::ApplyWorkspaceEdit::METHOD => self.workspace_apply_edit(&params),
+            request::DocumentHighlightRequest::METHOD => {
+                self.text_document_document_highlight(&params)
             }
             // Extensions.
-            REQUEST__GetState => self.languageClient_getState(&params),
-            REQUEST__IsAlive => self.languageClient_isAlive(&params),
-            REQUEST__StartServer => self.languageClient_startServer(&params),
-            REQUEST__RegisterServerCommands => self.languageClient_registerServerCommands(&params),
-            REQUEST__SetLoggingLevel => self.languageClient_setLoggingLevel(&params),
-            REQUEST__SetDiagnosticsList => self.languageClient_setDiagnosticsList(&params),
-            REQUEST__RegisterHandlers => self.languageClient_registerHandlers(&params),
-            REQUEST__NCMRefresh => self.NCM_refresh(&params),
-            REQUEST__NCM2OnComplete => self.NCM2_on_complete(&params),
-            REQUEST__ExplainErrorAtPoint => self.languageClient_explainErrorAtPoint(&params),
-            REQUEST__OmniComplete => self.languageClient_omniComplete(&params),
-            REQUEST__ClassFileContents => self.java_classFileContents(&params),
-            REQUEST__DebugInfo => self.debug_info(&params),
-            REQUEST__CodeLensAction => self.languageClient_handleCodeLensAction(&params),
-            REQUEST__SemanticScopes => self.languageClient_semanticScopes(&params),
-            REQUEST__ShowSemanticHighlightSymbols => self.languageClient_semanticHlSyms(&params),
+            REQUEST_FIND_LOCATIONS => self.find_locations(&params),
+            REQUEST_GET_STATE => self.get_state(&params),
+            REQUEST_IS_ALIVE => self.is_alive(&params),
+            REQUEST_START_SERVER => self.start_server(&params),
+            REQUEST_REGISTER_SERVER_COMMANDS => self.register_server_commands(&params),
+            REQUEST_SET_LOGGING_LEVEL => self.set_logging_level(&params),
+            REQUEST_SET_DIAGNOSTICS_LIST => self.set_diagnostics_list(&params),
+            REQUEST_REGISTER_HANDLERS => self.register_handlers(&params),
+            REQUEST_NCM_REFRESH => self.ncm_refresh(&params),
+            REQUEST_NCM2_ON_COMPLETE => self.ncm2_on_complete(&params),
+            REQUEST_EXPLAIN_ERROR_AT_POINT => self.explain_error_at_point(&params),
+            REQUEST_OMNI_COMPLETE => self.omnicomplete(&params),
+            REQUEST_CLASS_FILE_CONTENTS => self.java_class_file_contents(&params),
+            REQUEST_DEBUG_INFO => self.debug_info(&params),
+            REQUEST_CODE_LENS_ACTION => self.handle_code_lens_action(&params),
+            REQUEST_SEMANTIC_SCOPES => self.semantic_scopes(&params),
+            REQUEST_SHOW_SEMANTIC_HL_SYMBOLS => self.semantic_highlight_symbols(&params),
 
             _ => {
-                let languageId_target = if languageId.is_some() {
+                let language_id_target = if language_id.is_some() {
                     // Message from language server. No handler found.
                     let msg = format!("Message not handled: {:?}", method_call);
                     if method_call.method.starts_with('$') {
@@ -131,15 +131,15 @@ impl LanguageClient {
                 } else {
                     // Message from vim. Proxy to language server.
                     let filename = self.vim()?.get_filename(&params)?;
-                    let languageId_target = self.vim()?.get_languageId(&filename, &params)?;
+                    let language_id_target = self.vim()?.get_language_id(&filename, &params)?;
                     info!(
                         "Proxy message directly to language server: {:?}",
                         method_call
                     );
-                    Some(languageId_target)
+                    Some(language_id_target)
                 };
 
-                self.get_client(&languageId_target)?
+                self.get_client(&language_id_target)?
                     .call(&method_call.method, &params)
             }
         }
@@ -147,8 +147,8 @@ impl LanguageClient {
 
     pub fn handle_notification(
         &self,
-        languageId: Option<&str>,
-        notification: &rpc::Notification,
+        language_id: Option<&str>,
+        notification: &jsonrpc_core::Notification,
     ) -> Fallible<()> {
         let params = serde_json::to_value(notification.params.clone())?;
 
@@ -159,51 +159,46 @@ impl LanguageClient {
         }
 
         match notification.method.as_str() {
-            lsp::notification::DidChangeConfiguration::METHOD => {
-                self.workspace_didChangeConfiguration(&params)?
+            notification::DidChangeConfiguration::METHOD => {
+                self.workspace_did_change_configuration(&params)?
             }
-            lsp::notification::DidOpenTextDocument::METHOD => self.textDocument_didOpen(&params)?,
-            lsp::notification::DidChangeTextDocument::METHOD => {
-                self.textDocument_didChange(&params)?
+            notification::DidOpenTextDocument::METHOD => self.text_document_did_open(&params)?,
+            notification::DidChangeTextDocument::METHOD => {
+                self.text_document_did_change(&params)?
             }
-            lsp::notification::DidSaveTextDocument::METHOD => self.textDocument_didSave(&params)?,
-            lsp::notification::DidCloseTextDocument::METHOD => {
-                self.textDocument_didClose(&params)?
+            notification::DidSaveTextDocument::METHOD => self.text_document_did_save(&params)?,
+            notification::DidCloseTextDocument::METHOD => self.text_document_did_close(&params)?,
+            notification::PublishDiagnostics::METHOD => {
+                self.text_document_publish_diagnostics(&params)?
             }
-            lsp::notification::PublishDiagnostics::METHOD => {
-                self.textDocument_publishDiagnostics(&params)?
+            notification::SemanticHighlighting::METHOD => {
+                self.text_document_semantic_highlight(&params)?
             }
-            lsp::notification::SemanticHighlighting::METHOD => {
-                self.textDocument_semanticHighlight(&params)?
-            }
-            lsp::notification::Progress::METHOD => self.progress(&params)?,
-            lsp::notification::LogMessage::METHOD => self.window_logMessage(&params)?,
-            lsp::notification::ShowMessage::METHOD => self.window_showMessage(&params)?,
-            lsp::notification::Exit::METHOD => self.exit(&params)?,
+            notification::Progress::METHOD => self.progress(&params)?,
+            notification::LogMessage::METHOD => self.window_log_message(&params)?,
+            notification::ShowMessage::METHOD => self.window_show_message(&params)?,
+            notification::Exit::METHOD => self.exit(&params)?,
             // Extensions.
-            NOTIFICATION__HandleFileType => self.languageClient_handleFileType(&params)?,
-            NOTIFICATION__HandleBufNewFile => self.languageClient_handleBufNewFile(&params)?,
-            NOTIFICATION__HandleBufEnter => self.languageClient_handleBufEnter(&params)?,
-            NOTIFICATION__HandleTextChanged => self.languageClient_handleTextChanged(&params)?,
-            NOTIFICATION__HandleBufWritePost => self.languageClient_handleBufWritePost(&params)?,
-            NOTIFICATION__HandleBufDelete => self.languageClient_handleBufDelete(&params)?,
-            NOTIFICATION__HandleCursorMoved => self.languageClient_handleCursorMoved(&params)?,
-            NOTIFICATION__HandleCompleteDone => self.languageClient_handleCompleteDone(&params)?,
-            NOTIFICATION__FZFSinkLocation => self.languageClient_FZFSinkLocation(&params)?,
-            NOTIFICATION__FZFSinkCommand => self.languageClient_FZFSinkCommand(&params)?,
-            NOTIFICATION__ClearDocumentHighlight => {
-                self.languageClient_clearDocumentHighlight(&params)?
-            }
-            // Extensions by language servers.
-            NOTIFICATION__LanguageStatus => self.language_status(&params)?,
-            NOTIFICATION__RustBeginBuild => self.rust_handleBeginBuild(&params)?,
-            NOTIFICATION__RustDiagnosticsBegin => self.rust_handleDiagnosticsBegin(&params)?,
-            NOTIFICATION__RustDiagnosticsEnd => self.rust_handleDiagnosticsEnd(&params)?,
-            NOTIFICATION__WindowProgress => self.window_progress(&params)?,
-            NOTIFICATION__ServerExited => self.languageClient_serverExited(&params)?,
+            NOTIFICATION_HANDLE_FILE_TYPE => self.handle_file_type(&params)?,
+            NOTIFICATION_HANDLE_BUF_NEW_FILE => self.handle_buf_new_file(&params)?,
+            NOTIFICATION_HANDLE_BUF_ENTER => self.handle_buf_enter(&params)?,
+            NOTIFICATION_HANDLE_TEXT_CHANGED => self.handle_text_changed(&params)?,
+            NOTIFICATION_HANDLE_BUF_WRITE_POST => self.handle_buf_write_post(&params)?,
+            NOTIFICATION_HANDLE_BUF_DELETE => self.handle_buf_delete(&params)?,
+            NOTIFICATION_HANDLE_CURSOR_MOVED => self.handle_cursor_moved(&params)?,
+            NOTIFICATION_HANDLE_COMPLETE_DONE => self.handle_complete_done(&params)?,
+            NOTIFICATION_FZF_SINK_LOCATION => self.fzf_sink_location(&params)?,
+            NOTIFICATION_FZF_SINK_COMMAND => self.fzf_sink_command(&params)?,
+            NOTIFICATION_CLEAR_DOCUMENT_HL => self.clear_document_highlight(&params)?,
+            NOTIFICATION_LANGUAGE_STATUS => self.language_status(&params)?,
+            NOTIFICATION_WINDOW_PROGRESS => self.window_progress(&params)?,
+            NOTIFICATION_SERVER_EXITED => self.handle_server_exited(&params)?,
+            NOTIFICATION_RUST_BEGIN_BUILD => self.rust_handle_begin_build(&params)?,
+            NOTIFICATION_RUST_DIAGNOSTICS_BEGIN => self.rust_handle_diagnostics_begin(&params)?,
+            NOTIFICATION_RUST_DIAGNOSTICS_END => self.rust_handle_diagnostics_end(&params)?,
 
             _ => {
-                let languageId_target = if languageId.is_some() {
+                let language_id_target = if language_id.is_some() {
                     // Message from language server. No handler found.
                     let msg = format!("Message not handled: {:?}", notification);
                     if notification.method.starts_with('$') {
@@ -215,15 +210,15 @@ impl LanguageClient {
                 } else {
                     // Message from vim. Proxy to language server.
                     let filename = self.vim()?.get_filename(&params)?;
-                    let languageId_target = self.vim()?.get_languageId(&filename, &params)?;
+                    let language_id_target = self.vim()?.get_language_id(&filename, &params)?;
                     info!(
                         "Proxy message directly to language server: {:?}",
                         notification
                     );
-                    Some(languageId_target)
+                    Some(language_id_target)
                 };
 
-                self.get_client(&languageId_target)?
+                self.get_client(&language_id_target)?
                     .notify(&notification.method, &params)?;
             }
         };

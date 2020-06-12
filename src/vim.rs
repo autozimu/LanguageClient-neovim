@@ -1,7 +1,17 @@
-use super::*;
 use crate::rpcclient::RpcClient;
-use crate::sign::Sign;
-use crate::viewport::Viewport;
+use crate::{
+    sign::Sign,
+    types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
+    utils::Canonicalize,
+    viewport::Viewport,
+};
+use failure::Fallible;
+use jsonrpc_core::Value;
+use log::*;
+use lsp_types::Position;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::json;
+use std::{path::Path, sync::Arc};
 
 /// Try get value of an variable from RPC params.
 pub fn try_get<R: DeserializeOwned>(key: &str, params: &Value) -> Fallible<Option<R>> {
@@ -51,7 +61,7 @@ impl Vim {
         Ok(filename.canonicalize())
     }
 
-    pub fn get_languageId(&self, filename: &str, params: &Value) -> Fallible<String> {
+    pub fn get_language_id(&self, filename: &str, params: &Value) -> Fallible<String> {
         let key = "languageId";
         let expr = "&filetype";
 
