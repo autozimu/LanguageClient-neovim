@@ -1,56 +1,66 @@
-use super::*;
-use crate::types::{Call, RawMessage};
+use crate::types::{Call, Id, LSError, LanguageId, RawMessage, ToInt, ToParams, ToRpcError};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
-use std::sync::atomic::{AtomicU64, Ordering};
+use failure::{bail, format_err, Fallible};
+use log::*;
+use serde::{de::DeserializeOwned, Serialize};
+use std::io::Write;
+use std::str::FromStr;
+use std::{
+    collections::HashMap,
+    io::BufRead,
+    sync::atomic::{AtomicU64, Ordering},
+    thread,
+    time::Duration,
+};
 
 const CONTENT_MODIFIED_ERROR_CODE: i64 = -32801;
 
 #[derive(Serialize)]
 pub struct RpcClient {
-    languageId: LanguageId,
+    language_id: LanguageId,
     #[serde(skip_serializing)]
     id: AtomicU64,
     #[serde(skip_serializing)]
     writer_tx: Sender<RawMessage>,
     #[serde(skip_serializing)]
-    reader_tx: Sender<(Id, Sender<rpc::Output>)>,
+    reader_tx: Sender<(Id, Sender<jsonrpc_core::Output>)>,
     pub process_id: Option<u32>,
 }
 
 impl RpcClient {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
-        languageId: LanguageId,
+        language_id: LanguageId,
         reader: impl BufRead + Send + 'static,
         writer: impl Write + Send + 'static,
         process_id: Option<u32>,
         sink: Sender<Call>,
     ) -> Fallible<Self> {
-        let (reader_tx, reader_rx): (Sender<(Id, Sender<rpc::Output>)>, _) = unbounded();
+        let (reader_tx, reader_rx): (Sender<(Id, Sender<jsonrpc_core::Output>)>, _) = unbounded();
 
-        let languageId_clone = languageId.clone();
-        let reader_thread_name = format!("reader-{:?}", languageId);
+        let language_id_clone = language_id.clone();
+        let reader_thread_name = format!("reader-{:?}", language_id);
         thread::Builder::new()
             .name(reader_thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_read(reader, reader_rx, &sink, &languageId_clone) {
+                if let Err(err) = loop_read(reader, reader_rx, &sink, &language_id_clone) {
                     error!("Thread {} exited with error: {:?}", reader_thread_name, err);
                 }
             })?;
 
         let (writer_tx, writer_rx) = unbounded();
-        let writer_thread_name = format!("writer-{:?}", languageId);
-        let languageId_clone = languageId.clone();
+        let writer_thread_name = format!("writer-{:?}", language_id);
+        let language_id_clone = language_id.clone();
         thread::Builder::new()
             .name(writer_thread_name.clone())
             .spawn(move || {
-                if let Err(err) = loop_write(writer, &writer_rx, &languageId_clone) {
+                if let Err(err) = loop_write(writer, &writer_rx, &language_id_clone) {
                     error!("Thread {} exited with error: {:?}", writer_thread_name, err);
                 }
             })?;
 
         Ok(Self {
-            languageId,
+            language_id,
             id: AtomicU64::default(),
             process_id,
             reader_tx,
@@ -65,9 +75,9 @@ impl RpcClient {
     ) -> Fallible<R> {
         let method = method.as_ref();
         let id = self.id.fetch_add(1, Ordering::SeqCst);
-        let msg = rpc::MethodCall {
-            jsonrpc: Some(rpc::Version::V2),
-            id: rpc::Id::Num(id),
+        let msg = jsonrpc_core::MethodCall {
+            jsonrpc: Some(jsonrpc_core::Version::V2),
+            id: jsonrpc_core::Id::Num(id),
             method: method.to_owned(),
             params: params.to_params()?,
         };
@@ -76,23 +86,25 @@ impl RpcClient {
         self.writer_tx.send(RawMessage::MethodCall(msg))?;
         // TODO: duration from config.
         match rx.recv_timeout(Duration::from_secs(60))? {
-            rpc::Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
+            jsonrpc_core::Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
             // NOTE: Errors with code -32801 correspond to the protocol's ContentModified error,
             // which we don't want to show to the user and should ignore, as the result of the
             // request that triggered this error has been invalidated by changes to the state
             // of the server, so we must handle this error specifically.
-            rpc::Output::Failure(err) if err.error.code.code() == CONTENT_MODIFIED_ERROR_CODE => {
+            jsonrpc_core::Output::Failure(err)
+                if err.error.code.code() == CONTENT_MODIFIED_ERROR_CODE =>
+            {
                 Err(failure::Error::from(LSError::ContentModified))
             }
-            rpc::Output::Failure(err) => bail!("Error: {:?}", err),
+            jsonrpc_core::Output::Failure(err) => bail!("Error: {:?}", err),
         }
     }
 
     pub fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Fallible<()> {
         let method = method.as_ref();
 
-        let msg = rpc::Notification {
-            jsonrpc: Some(rpc::Version::V2),
+        let msg = jsonrpc_core::Notification {
+            jsonrpc: Some(jsonrpc_core::Version::V2),
             method: method.to_owned(),
             params: params.to_params()?,
         };
@@ -102,14 +114,14 @@ impl RpcClient {
 
     pub fn output(&self, id: Id, result: Fallible<impl Serialize>) -> Fallible<()> {
         let output = match result {
-            Ok(ok) => rpc::Output::Success(rpc::Success {
-                jsonrpc: Some(rpc::Version::V2),
-                id: rpc::Id::Num(id),
+            Ok(ok) => jsonrpc_core::Output::Success(jsonrpc_core::Success {
+                jsonrpc: Some(jsonrpc_core::Version::V2),
+                id: jsonrpc_core::Id::Num(id),
                 result: serde_json::to_value(ok)?,
             }),
-            Err(err) => rpc::Output::Failure(rpc::Failure {
-                jsonrpc: Some(rpc::Version::V2),
-                id: rpc::Id::Num(id),
+            Err(err) => jsonrpc_core::Output::Failure(jsonrpc_core::Failure {
+                jsonrpc: Some(jsonrpc_core::Version::V2),
+                id: jsonrpc_core::Id::Num(id),
                 error: err.to_rpc_error(),
             }),
         };
@@ -121,9 +133,9 @@ impl RpcClient {
 
 fn loop_read(
     reader: impl BufRead,
-    reader_rx: Receiver<(Id, Sender<rpc::Output>)>,
+    reader_rx: Receiver<(Id, Sender<jsonrpc_core::Output>)>,
     sink: &Sender<Call>,
-    languageId: &LanguageId,
+    language_id: &LanguageId,
 ) -> Fallible<()> {
     let mut pending_outputs = HashMap::new();
 
@@ -135,7 +147,7 @@ fn loop_read(
     loop {
         let mut message = String::new();
         let mut line = String::new();
-        if languageId.is_some() {
+        if language_id.is_some() {
             reader.read_line(&mut line)?;
             let line = line.trim();
             if line.is_empty() {
@@ -168,7 +180,7 @@ fn loop_read(
         if message.is_empty() {
             continue;
         }
-        info!("<= {:?} {}", languageId, message);
+        info!("<= {:?} {}", language_id, message);
         // FIXME: Remove extra `meta` property from javascript-typescript-langserver.
         let s = message.replace(r#","meta":{}"#, "");
         let message = serde_json::from_str(&s);
@@ -183,10 +195,10 @@ fn loop_read(
         let message = message.unwrap();
         match message {
             RawMessage::MethodCall(method_call) => {
-                sink.send(Call::MethodCall(languageId.clone(), method_call))?;
+                sink.send(Call::MethodCall(language_id.clone(), method_call))?;
             }
             RawMessage::Notification(notification) => {
-                sink.send(Call::Notification(languageId.clone(), notification))?;
+                sink.send(Call::Notification(language_id.clone(), notification))?;
             }
             RawMessage::Output(output) => {
                 while let Ok((id, tx)) = reader_rx.try_recv() {
@@ -201,21 +213,21 @@ fn loop_read(
         };
     }
 
-    info!("reader-{:?} terminated", languageId);
+    info!("reader-{:?} terminated", language_id);
     Ok(())
 }
 
 fn loop_write(
     writer: impl Write,
     rx: &Receiver<RawMessage>,
-    languageId: &LanguageId,
+    language_id: &LanguageId,
 ) -> Fallible<()> {
     let mut writer = writer;
 
     for msg in rx.iter() {
         let s = serde_json::to_string(&msg)?;
-        info!("=> {:?} {}", languageId, s);
-        if languageId.is_none() {
+        info!("=> {:?} {}", language_id, s);
+        if language_id.is_none() {
             // Use different convention for two reasons,
             // 1. If using '\r\ncontent', nvim will receive output as `\r` + `content`, while vim
             // receives `content`.

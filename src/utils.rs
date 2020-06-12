@@ -1,4 +1,14 @@
-use super::*;
+use crate::types::{RootMarkers, ToUsize};
+use failure::{err_msg, format_err, Fallible};
+use log::*;
+use lsp_types::{CodeAction, Position, TextEdit, Url};
+use serde_json::json;
+use serde_json::Value;
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+    str::FromStr,
+};
 
 pub fn escape_single_quote<S: AsRef<str>>(s: S) -> String {
     s.as_ref().replace("'", "''")
@@ -9,19 +19,19 @@ fn test_escape_single_quote() {
     assert_eq!(escape_single_quote("my' precious"), "my'' precious");
 }
 
-pub fn get_rootPath<'a>(
+pub fn get_root_path<'a>(
     path: &'a Path,
-    languageId: &str,
-    rootMarkers: &Option<RootMarkers>,
+    language_id: &str,
+    root_markers: &Option<RootMarkers>,
 ) -> Fallible<&'a Path> {
-    if let Some(ref rootMarkers) = *rootMarkers {
-        let empty = vec![];
-        let rootMarkers = match *rootMarkers {
+    if let Some(ref root_markers) = *root_markers {
+        let empty = &vec![];
+        let root_markers = match *root_markers {
             RootMarkers::Array(ref arr) => arr,
-            RootMarkers::Map(ref map) => map.get(languageId).unwrap_or(&empty),
+            RootMarkers::Map(ref map) => map.get(language_id).unwrap_or(empty),
         };
 
-        for marker in rootMarkers {
+        for marker in root_markers {
             let ret = traverse_up(path, |dir| {
                 let p = dir.join(marker);
                 let p = p.to_str();
@@ -41,7 +51,7 @@ pub fn get_rootPath<'a>(
         }
     }
 
-    match languageId {
+    match language_id {
         "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
         "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
         "javascript" | "typescript" | "javascript.jsx" | "typescript.tsx" => {
@@ -67,7 +77,7 @@ pub fn get_rootPath<'a>(
             })
         }),
         "go" => traverse_up(path, |dir| dir.join("go.mod").exists()),
-        _ => Err(format_err!("Unknown languageId: {}", languageId)),
+        _ => Err(format_err!("Unknown languageId: {}", language_id)),
     }
     .or_else(|_| {
         traverse_up(path, |dir| {
@@ -238,7 +248,7 @@ fn test_offset_to_position() {
     assert_eq!(offset_to_position(&lines, 5), Position::new(1, 2));
 }
 
-pub fn apply_TextEdits(
+pub fn apply_text_edits(
     lines: &[String],
     edits: &[TextEdit],
     position: &Position,
@@ -294,7 +304,9 @@ pub fn apply_TextEdits(
 }
 
 #[test]
-fn test_apply_TextEdit() {
+fn test_apply_text_edit() {
+    use lsp_types::*;
+
     let lines: Vec<String> = r#"fn main() {
 0;
 }
@@ -333,12 +345,14 @@ fn test_apply_TextEdit() {
 
     // Ignore returned position since the edit's range covers current position and the new position
     // is undefined in this case
-    let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
+    let (result, _) = apply_text_edits(&lines, &[edit], &position).unwrap();
     assert_eq!(result, expect);
 }
 
 #[test]
-fn test_apply_TextEdit_overlong_end() {
+fn test_apply_text_edit_overlong_end() {
+    use lsp_types::*;
+
     let lines: Vec<String> = r#"abc = 123"#.lines().map(|l| l.to_owned()).collect();
 
     let expect: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
@@ -359,12 +373,14 @@ fn test_apply_TextEdit_overlong_end() {
 
     let position = Position::new(0, 1);
 
-    let (result, _) = apply_TextEdits(&lines, &[edit], &position).unwrap();
+    let (result, _) = apply_text_edits(&lines, &[edit], &position).unwrap();
     assert_eq!(result, expect);
 }
 
 #[test]
-fn test_apply_TextEdit_position() {
+fn test_apply_text_edit_position() {
+    use lsp_types::*;
+
     let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
 
     let expected_lines: Vec<String> = "newline\nabcde = 123"
@@ -405,13 +421,15 @@ fn test_apply_TextEdit_position() {
     let expected_position = Position::new(1, 6);
 
     assert_eq!(
-        apply_TextEdits(&lines, &edits, &position).unwrap(),
+        apply_text_edits(&lines, &edits, &position).unwrap(),
         (expected_lines, expected_position)
     );
 }
 
 #[test]
-fn test_apply_TextEdit_CRLF() {
+fn test_apply_text_edit_crlf() {
+    use lsp_types::*;
+
     let lines: Vec<String> = "abc = 123".lines().map(|l| l.to_owned()).collect();
 
     let expected_lines: Vec<String> = "a\r\nbc = 123".lines().map(|l| l.to_owned()).collect();
@@ -434,7 +452,7 @@ fn test_apply_TextEdit_CRLF() {
     let expected_position = Position::new(1, 1);
 
     assert_eq!(
-        apply_TextEdits(&lines, &[edit], &position).unwrap(),
+        apply_text_edits(&lines, &[edit], &position).unwrap(),
         (expected_lines, expected_position)
     );
 }
@@ -592,6 +610,8 @@ pub fn diff_value<'a>(v1: &'a Value, v2: &'a Value, path: &str) -> HashMap<Strin
 
 #[test]
 fn test_diff_value() {
+    use maplit::hashmap;
+
     assert_eq!(diff_value(&json!({}), &json!({}), "state",), hashmap!());
     assert_eq!(
         diff_value(
@@ -629,8 +649,8 @@ where
     }
 }
 
-pub fn get_default_initializationOptions(languageId: &str) -> Value {
-    match languageId {
+pub fn get_default_initialization_options(language_id: &str) -> Value {
+    match language_id {
         "java" => json!({
             "extendedClientCapabilities": {
                 "classFileContentsSupport": true
@@ -642,12 +662,12 @@ pub fn get_default_initializationOptions(languageId: &str) -> Value {
 
 /// Given a parameter label and its containing signature, return the part before the label, the
 /// label itself, and the part after the label.
-pub fn decode_parameterLabel(
-    parameter_label: &lsp::ParameterLabel,
+pub fn decode_parameter_label(
+    parameter_label: &lsp_types::ParameterLabel,
     signature: &str,
 ) -> Fallible<(String, String, String)> {
     match *parameter_label {
-        lsp::ParameterLabel::Simple(ref label) => {
+        lsp_types::ParameterLabel::Simple(ref label) => {
             let chunks: Vec<&str> = signature.split(label).collect();
             if chunks.len() != 2 {
                 return Err(err_msg("Parameter is not part of signature"));
@@ -657,7 +677,7 @@ pub fn decode_parameterLabel(
             let end = chunks[1].to_string();
             Ok((begin, label, end))
         }
-        lsp::ParameterLabel::LabelOffsets([start, finish]) => {
+        lsp_types::ParameterLabel::LabelOffsets([start, finish]) => {
             // Offsets are based on a UTF-16 string representation, inclusive start,
             // exclusive finish.
             let start = start.to_usize()?;

@@ -1,4 +1,5 @@
-use lsp_types::*;
+use lsp_types::Range;
+use serde::{Deserialize, Serialize};
 
 /// Visible lines of editor.
 ///
@@ -33,6 +34,8 @@ fn test_new() {
 
 #[test]
 fn test_overlaps() {
+    use lsp_types::*;
+
     let viewport = Viewport::new(2, 7);
     assert_eq!(
         viewport.overlaps(Range::new(Position::new(0, 0), Position::new(1, 10))),

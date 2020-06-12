@@ -1,6 +1,18 @@
-use super::*;
-use crate::vim::Vim;
-use std::ops::DerefMut;
+use crate::{
+    types::{LanguageId, State},
+    utils::diff_value,
+    vim::Vim,
+};
+use failure::format_err;
+use failure::Fallible;
+use log::*;
+use serde_json::Value;
+
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    sync::{Arc, Mutex, MutexGuard},
+};
 
 pub struct LanguageClient {
     pub version: Arc<String>,
@@ -22,19 +34,19 @@ impl LanguageClient {
     // Here, we return a mutex instead of the mutex guard because we need to satisfy the borrow
     // checker. Otherwise, there is no way to guarantee that the mutex in the hash map wouldn't be
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
-    pub fn get_client_update_mutex(&self, languageId: LanguageId) -> Fallible<Arc<Mutex<()>>> {
+    pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Fallible<Arc<Mutex<()>>> {
         let map_guard = self.clients_mutex.lock();
         let mut map = map_guard.or_else(|err| {
             Err(format_err!(
                 "Failed to lock client creation for languageId {:?}: {:?}",
-                languageId,
+                language_id,
                 err,
             ))
         })?;
-        if !map.contains_key(&languageId) {
-            map.insert(languageId.clone(), Arc::new(Mutex::new(())));
+        if !map.contains_key(&language_id) {
+            map.insert(language_id.clone(), Arc::new(Mutex::new(())));
         }
-        let mutex: Arc<Mutex<()>> = map.get(&languageId).unwrap().clone();
+        let mutex: Arc<Mutex<()>> = map.get(&language_id).unwrap().clone();
         Ok(mutex)
     }
 
