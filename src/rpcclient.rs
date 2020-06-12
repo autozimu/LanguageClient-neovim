@@ -1,6 +1,6 @@
 use crate::types::{Call, Id, LSError, LanguageId, RawMessage, ToInt, ToParams, ToRpcError};
+use anyhow::{anyhow, Result};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
-use failure::{bail, format_err, Fallible};
 use log::*;
 use serde::{de::DeserializeOwned, Serialize};
 use std::io::Write;
@@ -35,7 +35,7 @@ impl RpcClient {
         writer: impl Write + Send + 'static,
         process_id: Option<u32>,
         sink: Sender<Call>,
-    ) -> Fallible<Self> {
+    ) -> Result<Self> {
         let (reader_tx, reader_rx): (Sender<(Id, Sender<jsonrpc_core::Output>)>, _) = unbounded();
 
         let language_id_clone = language_id.clone();
@@ -72,7 +72,7 @@ impl RpcClient {
         &self,
         method: impl AsRef<str>,
         params: impl Serialize,
-    ) -> Fallible<R> {
+    ) -> Result<R> {
         let method = method.as_ref();
         let id = self.id.fetch_add(1, Ordering::SeqCst);
         let msg = jsonrpc_core::MethodCall {
@@ -94,13 +94,13 @@ impl RpcClient {
             jsonrpc_core::Output::Failure(err)
                 if err.error.code.code() == CONTENT_MODIFIED_ERROR_CODE =>
             {
-                Err(failure::Error::from(LSError::ContentModified))
+                Err(anyhow::Error::from(LSError::ContentModified))
             }
-            jsonrpc_core::Output::Failure(err) => bail!("Error: {:?}", err),
+            jsonrpc_core::Output::Failure(err) => Err(anyhow!("Error: {:?}", err)),
         }
     }
 
-    pub fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Fallible<()> {
+    pub fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Result<()> {
         let method = method.as_ref();
 
         let msg = jsonrpc_core::Notification {
@@ -112,7 +112,7 @@ impl RpcClient {
         Ok(())
     }
 
-    pub fn output(&self, id: Id, result: Fallible<impl Serialize>) -> Fallible<()> {
+    pub fn output(&self, id: Id, result: Result<impl Serialize>) -> Result<()> {
         let output = match result {
             Ok(ok) => jsonrpc_core::Output::Success(jsonrpc_core::Success {
                 jsonrpc: Some(jsonrpc_core::Version::V2),
@@ -136,7 +136,7 @@ fn loop_read(
     reader_rx: Receiver<(Id, Sender<jsonrpc_core::Output>)>,
     sink: &Sender<Call>,
     language_id: &LanguageId,
-) -> Fallible<()> {
+) -> Result<()> {
     let mut pending_outputs = HashMap::new();
 
     // Count how many consequent empty lines.
@@ -153,7 +153,7 @@ fn loop_read(
             if line.is_empty() {
                 count_empty_lines += 1;
                 if count_empty_lines > 5 {
-                    bail!("Unable to read from language server");
+                    return Err(anyhow!("Unable to read from language server"));
                 }
 
                 let mut buf = vec![0; content_length];
@@ -168,7 +168,7 @@ fn loop_read(
                 let tokens: Vec<&str> = line.splitn(2, ':').collect();
                 let len = tokens
                     .get(1)
-                    .ok_or_else(|| format_err!("Failed to get length! tokens: {:?}", tokens))?
+                    .ok_or_else(|| anyhow!("Failed to get length! tokens: {:?}", tokens))?
                     .trim();
                 content_length = usize::from_str(len)?;
             }
@@ -207,7 +207,7 @@ fn loop_read(
 
                 if let Some(tx) = pending_outputs.remove(&output.id().to_int()?) {
                     tx.send(output)
-                        .map_err(|output| format_err!("Failed to send output: {:?}", output))?;
+                        .map_err(|output| anyhow!("Failed to send output: {:?}", output))?;
                 }
             }
         };
@@ -221,7 +221,7 @@ fn loop_write(
     writer: impl Write,
     rx: &Receiver<RawMessage>,
     language_id: &LanguageId,
-) -> Fallible<()> {
+) -> Result<()> {
     let mut writer = writer;
 
     for msg in rx.iter() {

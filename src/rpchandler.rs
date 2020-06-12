@@ -1,19 +1,19 @@
 use crate::{language_client::LanguageClient, types::*};
-use failure::{err_msg, Fallible};
+use anyhow::{anyhow, Result};
 use log::*;
 use lsp_types::notification::{self, Notification};
 use lsp_types::request::{self, Request};
 use serde_json::Value;
 
-fn is_content_modified_error(err: &failure::Error) -> bool {
-    match err.as_fail().downcast_ref::<LSError>() {
+fn is_content_modified_error(err: &anyhow::Error) -> bool {
+    match err.downcast_ref::<LSError>() {
         Some(err) if err == &LSError::ContentModified => true,
         _ => false,
     }
 }
 
 impl LanguageClient {
-    pub fn handle_call(&self, msg: Call) -> Fallible<()> {
+    pub fn handle_call(&self, msg: Call) -> Result<()> {
         match msg {
             Call::MethodCall(lang_id, method_call) => {
                 let result = self.handle_method_call(lang_id.as_deref(), &method_call);
@@ -22,7 +22,7 @@ impl LanguageClient {
                         return Ok(());
                     }
 
-                    if err.find_root_cause().downcast_ref::<LCError>().is_none() {
+                    if err.downcast_ref::<LCError>().is_none() {
                         error!(
                             "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                             err,
@@ -65,7 +65,7 @@ impl LanguageClient {
         &self,
         language_id: Option<&str>,
         method_call: &jsonrpc_core::MethodCall,
-    ) -> Fallible<Value> {
+    ) -> Result<Value> {
         let params = serde_json::to_value(method_call.params.clone())?;
 
         let user_handler =
@@ -126,7 +126,7 @@ impl LanguageClient {
                         warn!("{}", msg);
                         return Ok(Value::default());
                     } else {
-                        return Err(err_msg(msg));
+                        return Err(anyhow!(msg));
                     }
                 } else {
                     // Message from vim. Proxy to language server.
@@ -149,7 +149,7 @@ impl LanguageClient {
         &self,
         language_id: Option<&str>,
         notification: &jsonrpc_core::Notification,
-    ) -> Fallible<()> {
+    ) -> Result<()> {
         let params = serde_json::to_value(notification.params.clone())?;
 
         let user_handler =
@@ -205,7 +205,7 @@ impl LanguageClient {
                         warn!("{}", msg);
                         return Ok(());
                     } else {
-                        return Err(err_msg(msg));
+                        return Err(anyhow!(msg));
                     }
                 } else {
                     // Message from vim. Proxy to language server.

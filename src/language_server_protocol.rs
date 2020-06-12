@@ -10,7 +10,7 @@ use crate::{
     },
     viewport,
 };
-use failure::{bail, err_msg, format_err, Error, Fallible, ResultExt};
+use anyhow::{anyhow, Context, Error, Result};
 use itertools::Itertools;
 use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
@@ -59,7 +59,7 @@ use std::{
 };
 
 impl LanguageClient {
-    pub fn get_client(&self, language_id: &LanguageId) -> Fallible<Arc<RpcClient>> {
+    pub fn get_client(&self, language_id: &LanguageId) -> Result<Arc<RpcClient>> {
         self.get(|state| state.clients.get(language_id).cloned())?
             .ok_or_else(|| {
                 LCError::ServerNotRunning {
@@ -69,7 +69,7 @@ impl LanguageClient {
             })
     }
 
-    pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Fallible<()> {
+    pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Result<()> {
         for call in rx.iter() {
             let language_client = LanguageClient {
                 version: self.version.clone(),
@@ -87,7 +87,7 @@ impl LanguageClient {
     }
 
     /////// Utils ///////
-    fn sync_settings(&self) -> Fallible<()> {
+    fn sync_settings(&self) -> Result<()> {
         info!("Begin sync settings");
         let (logging_file, logging_level, server_stderr): (
             Option<PathBuf>,
@@ -212,7 +212,7 @@ impl LanguageClient {
                 "OFF" => Some(TraceOption::Off),
                 "MESSAGES" => Some(TraceOption::Messages),
                 "VERBOSE" => Some(TraceOption::Verbose),
-                _ => bail!("Invalid option for LanguageClient_trace: {}", t),
+                _ => return Err(anyhow!("Invalid option for LanguageClient_trace: {}", t)),
             },
             None => Some(TraceOption::default()),
         };
@@ -242,10 +242,12 @@ impl LanguageClient {
             "WARNING" => MessageType::Warning,
             "INFO" => MessageType::Info,
             "LOG" => MessageType::Log,
-            _ => bail!(
-                "Invalid option for LanguageClient_windowLogMessageLevel: {}",
-                window_log_message_level
-            ),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid option for LanguageClient_windowLogMessageLevel: {}",
+                    window_log_message_level
+                ))
+            }
         };
 
         let hover_preview = if let Some(s) = hover_preview {
@@ -265,10 +267,12 @@ impl LanguageClient {
             "WARNING" => DiagnosticSeverity::Warning,
             "INFORMATION" => DiagnosticSeverity::Information,
             "HINT" => DiagnosticSeverity::Hint,
-            _ => bail!(
-                "Invalid option for LanguageClient_diagnosticsMaxSeverity: {}",
-                diagnostics_max_severity
-            ),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid option for LanguageClient_diagnosticsMaxSeverity: {}",
+                    diagnostics_max_severity
+                ))
+            }
         };
 
         let semantic_highlight_language_ids: Vec<String> =
@@ -320,7 +324,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn get_workspace_settings(&self, root: &str) -> Fallible<Value> {
+    fn get_workspace_settings(&self, root: &str) -> Result<Value> {
         if !self.get(|state| state.load_settings)? {
             return Ok(Value::Null);
         }
@@ -330,9 +334,8 @@ impl LanguageClient {
         let mut at_least_one_success = false;
         for orig_path in self.get(|state| state.settings_path.clone())? {
             let path = Path::new(root).join(orig_path);
-            let buffer = read_to_string(&path).with_context(|err| {
-                format!("Failed to read file ({}): {}", path.to_string_lossy(), err)
-            });
+            let buffer = read_to_string(&path)
+                .with_context(|| format!("Failed to read file ({})", path.to_string_lossy()));
             let buffer = match buffer {
                 Err(e) => {
                     last_err = Some(e.into());
@@ -360,7 +363,7 @@ impl LanguageClient {
         }
     }
 
-    fn define_signs(&self) -> Fallible<()> {
+    fn define_signs(&self) -> Result<()> {
         info!("Defining signs");
 
         let mut cmds = vec![];
@@ -378,7 +381,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Fallible<()> {
+    fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Result<()> {
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
         let mut filename = self.vim()?.get_filename(&Value::Null)?;
         let mut position = self.vim()?.get_position(&Value::Null)?;
@@ -410,10 +413,10 @@ impl LanguageClient {
                                     position = Position::default();
                                 }
                                 ResourceOp::Rename(_file) => {
-                                    bail!("file renaming not yet supported.")
+                                    return Err(anyhow!("file renaming not yet supported."));
                                 }
                                 ResourceOp::Delete(_file) => {
-                                    bail!("file deletion not yet supported.")
+                                    return Err(anyhow!("file deletion not yet supported."));
                                 }
                             },
                         }
@@ -432,7 +435,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_document_highlight(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_document_highlight(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!(
             "Begin {}",
@@ -475,13 +478,13 @@ impl LanguageClient {
                                     .to_int()
                                     .unwrap(),
                             )
-                            .ok_or_else(|| err_msg("Failed to get display"))?
+                            .ok_or_else(|| anyhow!("Failed to get display"))?
                             .texthl
                             .clone(),
                         text: String::new(),
                     })
                 })
-                .collect::<Fallible<Vec<_>>>()?;
+                .collect::<Result<Vec<_>>>()?;
 
             let buffer = self.vim()?.get_bufnr(&filename, params)?;
 
@@ -539,7 +542,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn clear_document_highlight(&self, _params: &Value) -> Fallible<()> {
+    pub fn clear_document_highlight(&self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_CLEAR_DOCUMENT_HL);
 
         // The following code needs to be inside the critical section as a whole to update
@@ -564,7 +567,7 @@ impl LanguageClient {
         path: P,
         edits: &[TextEdit],
         position: Position,
-    ) -> Fallible<Position> {
+    ) -> Result<Position> {
         debug!("Begin apply TextEdits: {:?}", edits);
         if edits.is_empty() {
             return Ok(position);
@@ -604,7 +607,7 @@ impl LanguageClient {
         Ok(position)
     }
 
-    fn update_quickfixlist(&self) -> Fallible<()> {
+    fn update_quickfixlist(&self) -> Result<()> {
         let diagnostics = self.get(|state| state.diagnostics.clone())?;
         let qflist: Vec<_> = diagnostics
             .iter()
@@ -638,7 +641,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn process_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Fallible<()> {
+    fn process_diagnostics(&self, filename: &str, diagnostics: &[Diagnostic]) -> Result<()> {
         if !self.get(|state| state.text_documents.contains_key(filename))? {
             return Ok(());
         }
@@ -689,7 +692,7 @@ impl LanguageClient {
             let severity = dn.severity.unwrap_or(DiagnosticSeverity::Hint);
             let group = diagnostics_display
                 .get(&severity.to_int()?)
-                .ok_or_else(|| err_msg("Failed to get display"))?
+                .ok_or_else(|| anyhow!("Failed to get display"))?
                 .texthl
                 .clone();
             // TODO: handle multi-line range.
@@ -737,7 +740,7 @@ impl LanguageClient {
             for (severity, dns) in match_groups {
                 let hl_group = diagnostics_display
                     .get(&severity)
-                    .ok_or_else(|| err_msg("Failed to get display"))?
+                    .ok_or_else(|| anyhow!("Failed to get display"))?
                     .texthl
                     .clone();
                 let ranges: Vec<Vec<_>> = dns
@@ -791,29 +794,28 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn display_locations(&self, locations: &[Location], title: &str) -> Fallible<()> {
-        let location_to_quickfix_entry =
-            |state: &Self, loc: &Location| -> Fallible<QuickfixEntry> {
-                let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
-                let start = loc.range.start;
-                let text = state.get_line(&filename, start.line).unwrap_or_default();
+    fn display_locations(&self, locations: &[Location], title: &str) -> Result<()> {
+        let location_to_quickfix_entry = |state: &Self, loc: &Location| -> Result<QuickfixEntry> {
+            let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
+            let start = loc.range.start;
+            let text = state.get_line(&filename, start.line).unwrap_or_default();
 
-                Ok(QuickfixEntry {
-                    filename,
-                    lnum: start.line + 1,
-                    col: Some(start.character + 1),
-                    text: Some(text),
-                    nr: None,
-                    typ: None,
-                })
-            };
+            Ok(QuickfixEntry {
+                filename,
+                lnum: start.line + 1,
+                col: Some(start.character + 1),
+                text: Some(text),
+                nr: None,
+                typ: None,
+            })
+        };
 
         let selection_ui = self.get(|state| state.selection_ui)?;
         let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
         match selection_ui {
             SelectionUI::FZF => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
-                let source: Fallible<Vec<_>> = locations
+                let source: Result<Vec<_>> = locations
                     .iter()
                     .map(|loc| {
                         let filename = loc.uri.filepath()?;
@@ -837,7 +839,7 @@ impl LanguageClient {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Fallible<Vec<_>> = locations
+                let list: Result<Vec<_>> = locations
                     .iter()
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
@@ -849,7 +851,7 @@ impl LanguageClient {
                 self.vim()?.echo("Quickfix list updated.")?;
             }
             SelectionUI::LocationList => {
-                let list: Fallible<Vec<_>> = locations
+                let list: Result<Vec<_>> = locations
                     .iter()
                     .map(|loc| location_to_quickfix_entry(self, loc))
                     .collect();
@@ -864,7 +866,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn register_cm_source(&self, language_id: &str, result: &Value) -> Fallible<()> {
+    fn register_cm_source(&self, language_id: &str, result: &Value) -> Result<()> {
         info!("Begin register NCM source");
         let exists_cm_register: u64 = self.vim()?.eval("exists('g:cm_matcher')")?;
         if exists_cm_register == 0 {
@@ -905,7 +907,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn register_ncm2_source(&self, language_id: &str, result: &Value) -> Fallible<()> {
+    fn register_ncm2_source(&self, language_id: &str, result: &Value) -> Result<()> {
         info!("Begin register NCM2 source");
         let exists_ncm2: u64 = self.vim()?.eval("exists('g:ncm2_loaded')")?;
         if exists_ncm2 == 0 {
@@ -946,7 +948,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn parse_semantic_scopes(&self, language_id: &str, result: &Value) -> Fallible<()> {
+    fn parse_semantic_scopes(&self, language_id: &str, result: &Value) -> Result<()> {
         info!("Begin parse Semantic Scopes");
         let result: InitializeResult = serde_json::from_value(result.clone())?;
 
@@ -966,7 +968,7 @@ impl LanguageClient {
     /// Build the Semantic Highlight Lookup Table of
     ///
     /// ScopeIndex -> Option<HighlightGroup>
-    fn update_semantic_highlight_tables(&self, language_id: &str) -> Fallible<()> {
+    fn update_semantic_highlight_tables(&self, language_id: &str) -> Result<()> {
         info!("Begin updateSemanticHighlightTables");
         let (opt_scopes, opt_hl_map, scope_separator) = self.get(|state| {
             (
@@ -1021,7 +1023,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Fallible<String> {
+    fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Result<String> {
         let value = self.vim()?.rpcclient.call(
             "getbufline",
             json!([path.as_ref().to_string_lossy(), line + 1]),
@@ -1034,13 +1036,13 @@ impl LanguageClient {
             text = reader
                 .lines()
                 .nth(line.to_usize()?)
-                .ok_or_else(|| format_err!("Failed to get line! line: {}", line))??;
+                .ok_or_else(|| anyhow!("Failed to get line! line: {}", line))??;
         }
 
         Ok(text.trim().into())
     }
 
-    fn try_handle_command_by_client(&self, cmd: &Command) -> Fallible<bool> {
+    fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
         match cmd.command.as_str() {
             "java.apply.workspaceEdit" => {
                 if let Some(ref edits) = cmd.arguments {
@@ -1096,13 +1098,13 @@ impl LanguageClient {
             "rust-analyzer.runSingle" | "rust-analyzer.run" => {
                 let has_term: i32 = self.vim()?.eval("exists(':terminal')")?;
                 if has_term == 0 {
-                    bail!("Terminal support is required for this action");
+                    return Err(anyhow!("Terminal support is required for this action"));
                 }
 
                 if let Some(ref args) = cmd.arguments {
                     if let Some(args) = args.first().cloned() {
                         let bin: String =
-                            try_get("bin", &args)?.ok_or_else(|| err_msg("no bin found"))?;
+                            try_get("bin", &args)?.ok_or_else(|| anyhow!("no bin found"))?;
                         let arguments: Vec<String> = try_get("args", &args)?.unwrap_or_default();
                         let cmd = format!("term {} {}", bin, arguments.join(" "));
                         let cmd = cmd.replace('"', "");
@@ -1117,15 +1119,16 @@ impl LanguageClient {
         Ok(true)
     }
 
-    fn cleanup(&self, language_id: &str) -> Fallible<()> {
+    fn cleanup(&self, language_id: &str) -> Result<()> {
         info!("Begin cleanup");
 
-        let root =
-            self.get(|state| {
-                state.roots.get(language_id).cloned().ok_or_else(|| {
-                    format_err!("No project root found! languageId: {}", language_id)
-                })
-            })??;
+        let root = self.get(|state| {
+            state
+                .roots
+                .get(language_id)
+                .cloned()
+                .ok_or_else(|| anyhow!("No project root found! languageId: {}", language_id))
+        })??;
 
         let mut filenames = vec![];
         self.update(|state| {
@@ -1173,7 +1176,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn preview<D>(&self, to_display: &D) -> Fallible<()>
+    fn preview<D>(&self, to_display: &D) -> Result<()>
     where
         D: ToDisplay + ?Sized,
     {
@@ -1188,7 +1191,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Fallible<()> {
+    fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref().to_string_lossy();
         if path.starts_with("jdt://") {
             self.java_class_file_contents(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
@@ -1200,7 +1203,7 @@ impl LanguageClient {
 
     /////// LSP ///////
 
-    fn initialize(&self, params: &Value) -> Fallible<Value> {
+    fn initialize(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::Initialize::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -1362,7 +1365,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    fn initialized(&self, params: &Value) -> Fallible<()> {
+    fn initialized(&self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp_types::notification::Initialized::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -1375,7 +1378,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_hover(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_hover(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::HoverRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1416,10 +1419,10 @@ impl LanguageClient {
     }
 
     /// Generic find locations, e.g, definitions, references.
-    pub fn find_locations(&self, params: &Value) -> Fallible<Value> {
+    pub fn find_locations(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         let method: String =
-            try_get("method", params)?.ok_or_else(|| err_msg("method not found in request!"))?;
+            try_get("method", params)?.ok_or_else(|| anyhow!("method not found in request!"))?;
         info!("Begin {}", method);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -1458,7 +1461,7 @@ impl LanguageClient {
         match locations.len() {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
-                let loc = locations.get(0).ok_or_else(|| err_msg("Not found!"))?;
+                let loc = locations.get(0).ok_or_else(|| anyhow!("Not found!"))?;
                 let path = loc.uri.filepath()?.to_string_lossy().into_owned();
                 self.edit(&goto_cmd, path)?;
                 self.vim()?
@@ -1481,7 +1484,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_rename(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_rename(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::Rename::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1529,7 +1532,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_document_symbol(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_document_symbol(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!(
             "Begin {}",
@@ -1668,7 +1671,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_code_action(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_code_action(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::CodeActionRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1747,7 +1750,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_completion(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_completion(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::Completion::METHOD);
 
         let filename = self.vim()?.get_filename(params)?;
@@ -1772,7 +1775,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_signature_help(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_signature_help(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::SignatureHelpRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1808,7 +1811,7 @@ impl LanguageClient {
         let active_signature = help
             .signatures
             .get(active_signature_index)
-            .ok_or_else(|| err_msg("Failed to get active signature"))?;
+            .ok_or_else(|| anyhow!("Failed to get active signature"))?;
 
         // active_signature may be negative value.
         // So if it is negative value, we convert it into zero.
@@ -1837,7 +1840,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn text_document_references(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_references(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::References::METHOD);
 
         let include_declaration: bool = try_get("includeDeclaration", params)?.unwrap_or(true);
@@ -1855,7 +1858,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_formatting(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_formatting(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::Formatting::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1894,7 +1897,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn text_document_range_formatting(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_range_formatting(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::RangeFormatting::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -1947,7 +1950,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn completion_item_resolve(&self, params: &Value) -> Fallible<Value> {
+    pub fn completion_item_resolve(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!(
             "Begin {}",
@@ -1956,7 +1959,7 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let completion_item: CompletionItem = try_get("completionItem", params)?
-            .ok_or_else(|| err_msg("completionItem not found in request!"))?;
+            .ok_or_else(|| anyhow!("completionItem not found in request!"))?;
 
         let result = self.get_client(&Some(language_id))?.call(
             lsp_types::request::ResolveCompletionItem::METHOD,
@@ -1976,7 +1979,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn workspace_symbol(&self, params: &Value) -> Fallible<Value> {
+    pub fn workspace_symbol(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::WorkspaceSymbol::METHOD);
         let filename = self.vim()?.get_filename(params)?;
@@ -2004,7 +2007,7 @@ impl LanguageClient {
         match selection_ui {
             SelectionUI::FZF => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
-                let source: Fallible<Vec<_>> = symbols
+                let source: Result<Vec<_>> = symbols
                     .iter()
                     .map(|sym| {
                         let filename = sym.location.uri.filepath()?;
@@ -2028,7 +2031,7 @@ impl LanguageClient {
                 )?;
             }
             SelectionUI::Quickfix => {
-                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.vim()?.setqflist(&list, " ", title)?;
                 if selection_ui_auto_open {
@@ -2038,7 +2041,7 @@ impl LanguageClient {
                     .echo("Workspace symbols populated to quickfix list.")?;
             }
             SelectionUI::LocationList => {
-                let list: Fallible<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
+                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
                 let list = list?;
                 self.vim()?.setloclist(&list, " ", title)?;
                 if selection_ui_auto_open {
@@ -2053,12 +2056,12 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn workspace_execute_command(&self, params: &Value) -> Fallible<Value> {
+    pub fn workspace_execute_command(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::ExecuteCommand::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let command: String =
-            try_get("command", params)?.ok_or_else(|| err_msg("command not found in request!"))?;
+            try_get("command", params)?.ok_or_else(|| anyhow!("command not found in request!"))?;
         let arguments: Vec<Value> = try_get("arguments", params)?.unwrap_or_default();
 
         let result = self.get_client(&Some(language_id))?.call(
@@ -2073,7 +2076,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    pub fn workspace_apply_edit(&self, params: &Value) -> Fallible<Value> {
+    pub fn workspace_apply_edit(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::ApplyWorkspaceEdit::METHOD);
 
         let params = ApplyWorkspaceEditParams::deserialize(params)?;
@@ -2086,7 +2089,7 @@ impl LanguageClient {
         })?)
     }
 
-    pub fn workspace_did_change_configuration(&self, params: &Value) -> Fallible<()> {
+    pub fn workspace_did_change_configuration(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidChangeConfiguration::METHOD
@@ -2106,7 +2109,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_code_lens_action(&self, params: &Value) -> Fallible<Value> {
+    pub fn handle_code_lens_action(&self, params: &Value) -> Result<Value> {
         let filename = self.vim()?.get_filename(params)?;
         let line = self.vim()?.get_position(params)?.line;
 
@@ -2126,10 +2129,10 @@ impl LanguageClient {
         }
 
         self.update(|state| {
-            let actions: Fallible<Vec<_>> = code_lens
+            let actions: Result<Vec<_>> = code_lens
                 .iter()
                 .map(|cl| match &cl.command {
-                    None => bail!("no command, skipping"),
+                    None => Err(anyhow!("no command, skipping")),
                     Some(cmd) => Ok(CodeAction {
                         kind: Some(cmd.title.clone()),
                         title: cmd.command.clone(),
@@ -2145,10 +2148,10 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        let source: Fallible<Vec<_>> = code_lens
+        let source: Result<Vec<_>> = code_lens
             .iter()
             .map(|cl| match &cl.command {
-                None => bail!("no command, skipping"),
+                None => Err(anyhow!("no command, skipping")),
                 Some(cmd) => Ok(format!("{}: {}", cmd.title, cmd.command)),
             })
             .filter(|c| c.is_ok())
@@ -2161,7 +2164,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn progress(&self, params: &Value) -> Fallible<()> {
+    pub fn progress(&self, params: &Value) -> Result<()> {
         let params = ProgressParams::deserialize(params)?;
         let message = match params.value {
             ProgressParamsValue::WorkDone(wd) => match wd {
@@ -2191,7 +2194,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_code_lens(&self, params: &Value) -> Fallible<Value> {
+    pub fn text_document_code_lens(&self, params: &Value) -> Result<Value> {
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
         if UseVirtualText::No == use_virtual_text || UseVirtualText::Diagnostics == use_virtual_text
         {
@@ -2258,7 +2261,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn text_document_did_open(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_did_open(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidOpenTextDocument::METHOD
@@ -2305,7 +2308,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_did_change(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_did_change(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidChangeTextDocument::METHOD
@@ -2331,9 +2334,10 @@ impl LanguageClient {
         }
 
         let version = self.update(|state| {
-            let document = state.text_documents.get_mut(&filename).ok_or_else(|| {
-                format_err!("Failed to get TextDocumentItem! filename: {}", filename)
-            })?;
+            let document = state
+                .text_documents
+                .get_mut(&filename)
+                .ok_or_else(|| anyhow!("Failed to get TextDocumentItem! filename: {}", filename))?;
 
             let version = document.version + 1;
             document.version = version;
@@ -2373,7 +2377,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_did_save(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_did_save(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidSaveTextDocument::METHOD
@@ -2402,7 +2406,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_did_close(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_did_close(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidCloseTextDocument::METHOD
@@ -2425,7 +2429,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_publish_diagnostics(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_publish_diagnostics(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::PublishDiagnostics::METHOD
@@ -2545,7 +2549,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn text_document_semantic_highlight(&self, params: &Value) -> Fallible<()> {
+    pub fn text_document_semantic_highlight(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::SemanticHighlighting::METHOD
@@ -2765,7 +2769,7 @@ impl LanguageClient {
 
     // logs a message to with the specified level to the log file if the threshold is below the
     // message's level.
-    pub fn window_log_message(&self, params: &Value) -> Fallible<()> {
+    pub fn window_log_message(&self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp_types::notification::LogMessage::METHOD);
         let params = LogMessageParams::deserialize(params)?;
         let threshold = self.get(|state| state.window_log_message_level)?;
@@ -2785,7 +2789,7 @@ impl LanguageClient {
     }
 
     // shows the given message in vim.
-    pub fn window_show_message(&self, params: &Value) -> Fallible<()> {
+    pub fn window_show_message(&self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp_types::notification::ShowMessage::METHOD);
         let params = ShowMessageParams::deserialize(params)?;
         let msg = format!("[{:?}] {}", params.typ, params.message);
@@ -2794,7 +2798,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn window_show_message_request(&self, params: &Value) -> Fallible<Value> {
+    pub fn window_show_message_request(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::ShowMessageRequest::METHOD);
         let mut v = Value::Null;
         let msg_params = ShowMessageRequestParams::deserialize(params)?;
@@ -2822,7 +2826,7 @@ impl LanguageClient {
         Ok(v)
     }
 
-    pub fn client_register_capability(&self, language_id: &str, params: &Value) -> Fallible<Value> {
+    pub fn client_register_capability(&self, language_id: &str, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::RegisterCapability::METHOD);
         let params = RegistrationParams::deserialize(params)?;
         for r in &params.registrations {
@@ -2870,11 +2874,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn client_unregister_capability(
-        &self,
-        language_id: &str,
-        params: &Value,
-    ) -> Fallible<Value> {
+    pub fn client_unregister_capability(&self, language_id: &str, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::UnregisterCapability::METHOD);
         let params = UnregistrationParams::deserialize(params)?;
         let mut regs_removed = vec![];
@@ -2913,7 +2913,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn exit(&self, params: &Value) -> Fallible<()> {
+    pub fn exit(&self, params: &Value) -> Result<()> {
         info!("Begin {}", lsp_types::notification::Exit::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -2938,14 +2938,14 @@ impl LanguageClient {
 
     /////// Extensions by this plugin ///////
 
-    pub fn get_state(&self, _params: &Value) -> Fallible<Value> {
+    pub fn get_state(&self, _params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_GET_STATE);
         let s = self.get(|state| serde_json::to_string(state))??;
         info!("End {}", REQUEST_GET_STATE);
         Ok(Value::String(s))
     }
 
-    pub fn is_alive(&self, params: &Value) -> Fallible<Value> {
+    pub fn is_alive(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_IS_ALIVE);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -2954,7 +2954,7 @@ impl LanguageClient {
         Ok(Value::Bool(is_alive))
     }
 
-    pub fn register_server_commands(&self, params: &Value) -> Fallible<Value> {
+    pub fn register_server_commands(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_REGISTER_SERVER_COMMANDS);
         let commands = HashMap::<String, Vec<String>>::deserialize(params)?;
         self.update(|state| {
@@ -2970,10 +2970,10 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn set_logging_level(&self, params: &Value) -> Fallible<Value> {
+    pub fn set_logging_level(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_SET_LOGGING_LEVEL);
         let logging_level =
-            try_get("loggingLevel", params)?.ok_or_else(|| err_msg("loggingLevel not found!"))?;
+            try_get("loggingLevel", params)?.ok_or_else(|| anyhow!("loggingLevel not found!"))?;
         self.update(|state| {
             state.logger.set_level(logging_level)?;
             Ok(())
@@ -2982,10 +2982,10 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn set_diagnostics_list(&self, params: &Value) -> Fallible<Value> {
+    pub fn set_diagnostics_list(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_SET_DIAGNOSTICS_LIST);
         let diagnostics_list = try_get("diagnosticsList", params)?
-            .ok_or_else(|| err_msg("diagnosticsList not found!"))?;
+            .ok_or_else(|| anyhow!("diagnosticsList not found!"))?;
         self.update(|state| {
             state.diagnostics_list = diagnostics_list;
             Ok(())
@@ -2994,11 +2994,11 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn register_handlers(&self, params: &Value) -> Fallible<Value> {
+    pub fn register_handlers(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_REGISTER_HANDLERS);
-        let handlers: Fallible<HashMap<String, String>> = params
+        let handlers: Result<HashMap<String, String>> = params
             .as_object()
-            .ok_or_else(|| err_msg("Invalid arguments!"))?
+            .ok_or_else(|| anyhow!("Invalid arguments!"))?
             .iter()
             .filter_map(|(k, v)| {
                 if *k == "bufnr" || *k == "languageId" {
@@ -3021,7 +3021,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn omnicomplete(&self, params: &Value) -> Fallible<Value> {
+    pub fn omnicomplete(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_OMNI_COMPLETE);
         let result = self.text_document_completion(params)?;
         let result: Option<CompletionResponse> = serde_json::from_value(result)?;
@@ -3033,7 +3033,7 @@ impl LanguageClient {
 
         let complete_position: Option<u64> = try_get("complete_position", params)?;
 
-        let matches: Fallible<Vec<VimCompleteItem>> = matches
+        let matches: Result<Vec<VimCompleteItem>> = matches
             .iter()
             .map(|item| VimCompleteItem::from_lsp(item, complete_position))
             .collect();
@@ -3042,7 +3042,7 @@ impl LanguageClient {
         Ok(serde_json::to_value(matches)?)
     }
 
-    pub fn handle_buf_new_file(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_buf_new_file(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_BUF_NEW_FILE);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
@@ -3063,7 +3063,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_buf_enter(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_buf_enter(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_BUF_ENTER);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
@@ -3085,7 +3085,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_file_type(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_file_type(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_FILE_TYPE);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
@@ -3120,7 +3120,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_text_changed(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_text_changed(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_TEXT_CHANGED);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -3148,14 +3148,14 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_buf_write_post(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_buf_write_post(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         self.text_document_did_save(params)?;
         info!("End {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         Ok(())
     }
 
-    pub fn handle_buf_delete(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_buf_delete(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -3175,7 +3175,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_cursor_moved(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_cursor_moved(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_CURSOR_MOVED);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -3331,7 +3331,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn draw_virtual_texts(&self, params: &Value) -> Fallible<()> {
+    fn draw_virtual_texts(&self, params: &Value) -> Result<()> {
         if !self.get(|state| state.is_nvim)? {
             return Ok(());
         }
@@ -3386,7 +3386,7 @@ impl LanguageClient {
         &self,
         filename: &str,
         viewport: viewport::Viewport,
-    ) -> Fallible<Vec<VirtualText>> {
+    ) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
         let diagnostics = self.get(|state| state.diagnostics.clone())?;
         let diagnostics_display = self.get(|state| state.diagnostics_display.clone())?;
@@ -3399,7 +3399,7 @@ impl LanguageClient {
                         text: diag.message.replace("\n", "  ").clone(),
                         hl_group: diagnostics_display
                             .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
-                            .ok_or_else(|| err_msg("Failed to get display"))?
+                            .ok_or_else(|| anyhow!("Failed to get display"))?
                             .virtual_texthl
                             .clone(),
                     });
@@ -3410,7 +3410,7 @@ impl LanguageClient {
         Ok(virtual_texts)
     }
 
-    fn virtual_texts_from_code_lenses(&self, filename: &str) -> Fallible<Vec<VirtualText>> {
+    fn virtual_texts_from_code_lenses(&self, filename: &str) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
         let code_lenses =
             self.get(|state| state.code_lens.get(filename).cloned().unwrap_or_default())?;
@@ -3439,11 +3439,11 @@ impl LanguageClient {
         Ok(virtual_texts)
     }
 
-    pub fn handle_complete_done(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_complete_done(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
         let completed_item: VimCompleteItem = try_get("completed_item", params)?
-            .ok_or_else(|| err_msg("completed_item not found!"))?;
+            .ok_or_else(|| anyhow!("completed_item not found!"))?;
 
         let user_data = match completed_item.user_data {
             Some(user_data) => user_data,
@@ -3494,26 +3494,26 @@ impl LanguageClient {
             .cursor(position.line + 1, position.character + 1)
     }
 
-    pub fn fzf_sink_location(&self, params: &Value) -> Fallible<()> {
+    pub fn fzf_sink_location(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_FZF_SINK_LOCATION);
         let params = match params {
             Value::Array(ref arr) => Value::Array(arr.clone()),
             _ => {
-                bail!("Expecting array params!");
+                return Err(anyhow!("Expecting array params!"));
             }
         };
 
         let lines: Vec<String> = serde_json::from_value(params.clone())?;
         if lines.is_empty() {
-            err_msg("No selection!");
+            anyhow!("No selection!");
         }
 
         let location = lines
             .get(0)
-            .ok_or_else(|| format_err!("Failed to get line! lines: {:?}", lines))?
+            .ok_or_else(|| anyhow!("Failed to get line! lines: {:?}", lines))?
             .split('\t')
             .next()
-            .ok_or_else(|| format_err!("Failed to parse: {:?}", lines))?;
+            .ok_or_else(|| anyhow!("Failed to parse: {:?}", lines))?;
         let tokens: Vec<_> = location.split_terminator(':').collect();
 
         let (filename, mut tokens_iter): (String, _) = if tokens.len() > 2 {
@@ -3527,12 +3527,12 @@ impl LanguageClient {
 
         let line = tokens_iter
             .next()
-            .ok_or_else(|| format_err!("Failed to get line! tokens: {:?}", tokens))?
+            .ok_or_else(|| anyhow!("Failed to get line! tokens: {:?}", tokens))?
             .to_int()?
             - 1;
         let character = tokens_iter
             .next()
-            .ok_or_else(|| format_err!("Failed to get character! tokens: {:?}", tokens))?
+            .ok_or_else(|| anyhow!("Failed to get character! tokens: {:?}", tokens))?
             .to_int()?
             - 1;
 
@@ -3543,19 +3543,19 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn fzf_sink_command(&self, params: &Value) -> Fallible<()> {
+    pub fn fzf_sink_command(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_FZF_SINK_COMMAND);
         let selection: String =
-            try_get("selection", params)?.ok_or_else(|| err_msg("selection not found!"))?;
+            try_get("selection", params)?.ok_or_else(|| anyhow!("selection not found!"))?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
         let kind = tokens
             .get(0)
             .cloned()
-            .ok_or_else(|| format_err!("Failed to get kind! tokens: {:?}", tokens))?;
+            .ok_or_else(|| anyhow!("Failed to get kind! tokens: {:?}", tokens))?;
         let title = tokens
             .get(1)
             .cloned()
-            .ok_or_else(|| format_err!("Failed to get title! tokens: {:?}", tokens))?;
+            .ok_or_else(|| anyhow!("Failed to get title! tokens: {:?}", tokens))?;
         let action = self.get(|state| {
             let actions = &state.stashed_code_action_actions;
 
@@ -3563,9 +3563,7 @@ impl LanguageClient {
                 .iter()
                 .find(|action| code_action_kind_as_str(&action) == kind && action.title == title)
                 .cloned()
-                .ok_or_else(|| {
-                    format_err!("No stashed action found! stashed actions: {:?}", actions)
-                })
+                .ok_or_else(|| anyhow!("No stashed action found! stashed actions: {:?}", actions))
         })??;
 
         // Apply edit before command.
@@ -3592,7 +3590,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn semantic_scopes(&self, params: &Value) -> Fallible<Value> {
+    pub fn semantic_scopes(&self, params: &Value) -> Result<Value> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -3635,7 +3633,7 @@ impl LanguageClient {
         Ok(json!(semantic_scopes))
     }
 
-    pub fn semantic_highlight_symbols(&self, params: &Value) -> Fallible<Value> {
+    pub fn semantic_highlight_symbols(&self, params: &Value) -> Result<Value> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -3666,7 +3664,7 @@ impl LanguageClient {
         }
     }
 
-    pub fn ncm_refresh(&self, params: &Value) -> Fallible<Value> {
+    pub fn ncm_refresh(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_NCM_REFRESH);
         let params: NCMRefreshParams =
             serde_json::from_value(jsonrpc_core::to_value(params.clone())?)?;
@@ -3692,7 +3690,7 @@ impl LanguageClient {
             CompletionResponse::Array(_) => false,
             CompletionResponse::List(ref list) => list.is_incomplete,
         };
-        let matches: Fallible<Vec<VimCompleteItem>> = match result {
+        let matches: Result<Vec<VimCompleteItem>> = match result {
             CompletionResponse::Array(arr) => arr,
             CompletionResponse::List(list) => list.items,
         }
@@ -3708,7 +3706,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn ncm2_on_complete(&self, params: &Value) -> Fallible<Value> {
+    pub fn ncm2_on_complete(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_NCM2_ON_COMPLETE);
 
         let orig_ctx: Value = serde_json::from_value(jsonrpc_core::to_value(params.clone())?)?;
@@ -3737,7 +3735,7 @@ impl LanguageClient {
                 CompletionResponse::List(ref list) => list.is_incomplete,
                 _ => false,
             };
-            let matches_result: Fallible<Vec<VimCompleteItem>> = match completion {
+            let matches_result: Result<Vec<VimCompleteItem>> = match completion {
                 CompletionResponse::Array(arr) => arr,
                 CompletionResponse::List(list) => list.items,
             }
@@ -3757,7 +3755,7 @@ impl LanguageClient {
         result
     }
 
-    pub fn explain_error_at_point(&self, params: &Value) -> Fallible<Value> {
+    pub fn explain_error_at_point(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_EXPLAIN_ERROR_AT_POINT);
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
@@ -3765,12 +3763,12 @@ impl LanguageClient {
             state
                 .diagnostics
                 .get(&filename)
-                .ok_or_else(|| format_err!("No diagnostics found: filename: {}", filename,))?
+                .ok_or_else(|| anyhow!("No diagnostics found: filename: {}", filename,))?
                 .iter()
                 .find(|dn| position >= dn.range.start && position < dn.range.end)
                 .cloned()
                 .ok_or_else(|| {
-                    format_err!(
+                    anyhow!(
                         "No diagnostics found: filename: {}, line: {}, character: {}",
                         filename,
                         position.line,
@@ -3816,7 +3814,7 @@ impl LanguageClient {
     }
 
     // Extensions by language servers.
-    pub fn language_status(&self, params: &Value) -> Fallible<()> {
+    pub fn language_status(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_LANGUAGE_STATUS);
         let params = LanguageStatusParams::deserialize(params)?;
         let msg = format!("{} {}", params.typee, params.message);
@@ -3825,7 +3823,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn rust_handle_begin_build(&self, _params: &Value) -> Fallible<()> {
+    pub fn rust_handle_begin_build(&self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_RUST_BEGIN_BUILD);
         self.vim()?.command(vec![
             format!("let {}=1", VIM_SERVER_STATUS),
@@ -3835,7 +3833,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn rust_handle_diagnostics_begin(&self, _params: &Value) -> Fallible<()> {
+    pub fn rust_handle_diagnostics_begin(&self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_RUST_DIAGNOSTICS_BEGIN);
         self.vim()?.command(vec![
             format!("let {}=1", VIM_SERVER_STATUS),
@@ -3848,7 +3846,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn rust_handle_diagnostics_end(&self, _params: &Value) -> Fallible<()> {
+    pub fn rust_handle_diagnostics_end(&self, _params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_RUST_DIAGNOSTICS_END);
         self.vim()?.command(vec![
             format!("let {}=0", VIM_SERVER_STATUS),
@@ -3858,7 +3856,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn window_progress(&self, params: &Value) -> Fallible<()> {
+    pub fn window_progress(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_WINDOW_PROGRESS);
         let params = WindowProgressParams::deserialize(params)?;
 
@@ -3894,7 +3892,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn start_server(&self, params: &Value) -> Fallible<Value> {
+    pub fn start_server(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_START_SERVER);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -3918,7 +3916,7 @@ impl LanguageClient {
         // TODO: May want to lock other methods that update the list of clients.
         let mutex_for_language_id = self.get_client_update_mutex(Some(language_id.clone()))?;
         let _raii_lock: MutexGuard<()> = mutex_for_language_id.lock().map_err(|err| {
-            format_err!(
+            anyhow!(
                 "Failed to lock client creation for languageId {:?}: {:?}",
                 language_id,
                 err
@@ -3967,7 +3965,7 @@ impl LanguageClient {
                 let addr = command
                     .get(0)
                     .map(|s| s.replace("tcp://", ""))
-                    .ok_or_else(|| err_msg("Server command can't be empty!"))?;
+                    .ok_or_else(|| anyhow!("Server command can't be empty!"))?;
                 let stream = TcpStream::connect(addr)?;
                 let reader = Box::new(BufReader::new(stream.try_clone()?));
                 let writer = Box::new(BufWriter::new(stream));
@@ -3989,13 +3987,13 @@ impl LanguageClient {
                         .create(true)
                         .append(true)
                         .open(path)
-                        .with_context(|err| format!("Failed to open file ({}): {}", path, err))?
+                        .with_context(|| format!("Failed to open file ({})", path))?
                         .into(),
                     None => Stdio::null(),
                 };
 
                 let process = std::process::Command::new(
-                    command.get(0).ok_or_else(|| err_msg("Empty command!"))?,
+                    command.get(0).ok_or_else(|| anyhow!("Empty command!"))?,
                 )
                 .args(&command[1..])
                 .current_dir(&root)
@@ -4003,20 +4001,18 @@ impl LanguageClient {
                 .stdout(Stdio::piped())
                 .stderr(stderr)
                 .spawn()
-                .with_context(|err| {
-                    format!("Failed to start language server ({:?}): {}", command, err)
-                })?;
+                .with_context(|| format!("Failed to start language server ({:?})", command))?;
 
                 let child_id = Some(process.id());
                 let reader = Box::new(BufReader::new(
                     process
                         .stdout
-                        .ok_or_else(|| err_msg("Failed to get subprocess stdout"))?,
+                        .ok_or_else(|| anyhow!("Failed to get subprocess stdout"))?,
                 ));
                 let writer = Box::new(BufWriter::new(
                     process
                         .stdin
-                        .ok_or_else(|| err_msg("Failed to get subprocess stdin"))?,
+                        .ok_or_else(|| anyhow!("Failed to get subprocess stdin"))?,
                 ));
                 (child_id, reader, writer)
             };
@@ -4067,7 +4063,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
-    pub fn handle_server_exited(&self, params: &Value) -> Fallible<()> {
+    pub fn handle_server_exited(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let message: String = try_get("message", params)?.unwrap_or_default();
@@ -4087,7 +4083,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn handle_fs_events(&self) -> Fallible<()> {
+    pub fn handle_fs_events(&self) -> Result<()> {
         let mut pending_changes = HashMap::new();
         self.update(|state| {
             for (language_id, watcher_rx) in &mut state.watcher_rxs {
@@ -4100,7 +4096,7 @@ impl LanguageClient {
                             break;
                         }
                         Err(mpsc::TryRecvError::Disconnected) => {
-                            bail!("File system notification channel disconnected!");
+                            return Err(anyhow!("File system notification channel disconnected!"));
                         }
                     };
                     events.push(event);
@@ -4132,7 +4128,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn workspace_did_change_watched_files(&self, params: &Value) -> Fallible<()> {
+    pub fn workspace_did_change_watched_files(&self, params: &Value) -> Result<()> {
         info!(
             "Begin {}",
             lsp_types::notification::DidChangeWatchedFiles::METHOD
@@ -4153,7 +4149,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn java_class_file_contents(&self, params: &Value) -> Fallible<Value> {
+    pub fn java_class_file_contents(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_CLASS_FILE_CONTENTS);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -4173,7 +4169,7 @@ impl LanguageClient {
             .unwrap_or_else(|| "edit".to_string());
 
         let uri: String =
-            try_get("uri", params)?.ok_or_else(|| err_msg("uri not found in request!"))?;
+            try_get("uri", params)?.ok_or_else(|| anyhow!("uri not found in request!"))?;
 
         self.vim()?
             .rpcclient
@@ -4187,7 +4183,7 @@ impl LanguageClient {
         Ok(Value::String(content))
     }
 
-    pub fn debug_info(&self, params: &Value) -> Fallible<Value> {
+    pub fn debug_info(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", REQUEST_DEBUG_INFO);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;

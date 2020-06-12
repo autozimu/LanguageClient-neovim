@@ -2,7 +2,7 @@ use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use crate::{utils::ToUrl, vim::Vim};
-use failure::{bail, err_msg, format_err, Error, Fail, Fallible};
+use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
 use lsp_types::{
@@ -25,21 +25,19 @@ use std::{
     sync::{mpsc, Arc},
     time::{Duration, Instant},
 };
+use thiserror::Error;
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Debug, Error, PartialEq)]
 pub enum LSError {
-    #[fail(display = "Content Modified")]
+    #[error("Content Modified")]
     ContentModified,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum LCError {
-    #[fail(
-        display = "No language server commands found for filetype: {}",
-        language_id
-    )]
+    #[error("No language server commands found for filetype: {}", language_id)]
     NoServerCommands { language_id: String },
-    #[fail(display = "Language server is not running for: {}", language_id)]
+    #[error("Language server is not running for: {}", language_id)]
     ServerNotRunning { language_id: String },
 }
 
@@ -210,7 +208,7 @@ pub struct State {
 
 impl State {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(tx: crossbeam::channel::Sender<Call>) -> Fallible<Self> {
+    pub fn new(tx: crossbeam::channel::Sender<Call>) -> Result<Self> {
         let logger = Logger::new()?;
 
         let client = Arc::new(RpcClient::new(
@@ -304,14 +302,17 @@ impl Default for SelectionUI {
 }
 
 impl FromStr for SelectionUI {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Fallible<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "FZF" => Ok(SelectionUI::FZF),
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
-            _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_selectionUI: {}",
+                s
+            )),
         }
     }
 }
@@ -344,14 +345,17 @@ impl Default for HoverPreviewOption {
 }
 
 impl FromStr for HoverPreviewOption {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Fallible<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "ALWAYS" => Ok(HoverPreviewOption::Always),
             "AUTO" => Ok(HoverPreviewOption::Auto),
             "NEVER" => Ok(HoverPreviewOption::Never),
-            _ => bail!("Invalid option for LanguageClient_hoverPreview: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_hoverPreview: {}",
+                s
+            )),
         }
     }
 }
@@ -370,14 +374,17 @@ impl Default for DiagnosticsList {
 }
 
 impl FromStr for DiagnosticsList {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Fallible<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "QUICKFIX" => Ok(DiagnosticsList::Quickfix),
             "LOCATION" => Ok(DiagnosticsList::Location),
             "DISABLED" => Ok(DiagnosticsList::Disabled),
-            _ => bail!("Invalid option for LanguageClient_diagnosticsList: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_diagnosticsList: {}",
+                s
+            )),
         }
     }
 }
@@ -598,7 +605,7 @@ pub struct VimCompleteItemUserData {
 }
 
 impl VimCompleteItem {
-    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Fallible<Self> {
+    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Result<Self> {
         debug!(
             "LSP CompletionItem to VimCompleteItem: {:?}, {:?}",
             lspitem, complete_position
@@ -695,7 +702,7 @@ pub trait ToRpcError {
     fn to_rpc_error(&self) -> jsonrpc_core::Error;
 }
 
-impl ToRpcError for Error {
+impl ToRpcError for anyhow::Error {
     fn to_rpc_error(&self) -> jsonrpc_core::Error {
         jsonrpc_core::Error {
             code: jsonrpc_core::ErrorCode::InternalError,
@@ -706,14 +713,14 @@ impl ToRpcError for Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Fallible<Params>;
+    fn to_params(self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Fallible<Params> {
+    fn to_params(self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
@@ -728,21 +735,21 @@ where
 }
 
 pub trait ToInt {
-    fn to_int(&self) -> Fallible<u64>;
+    fn to_int(&self) -> Result<u64>;
 }
 
 impl<'a> ToInt for &'a str {
-    fn to_int(&self) -> Fallible<u64> {
+    fn to_int(&self) -> Result<u64> {
         Ok(u64::from_str(self)?)
     }
 }
 
 impl ToInt for jsonrpc_core::Id {
-    fn to_int(&self) -> Fallible<u64> {
+    fn to_int(&self) -> Result<u64> {
         match *self {
             jsonrpc_core::Id::Num(id) => Ok(id),
             jsonrpc_core::Id::Str(ref s) => s.as_str().to_int(),
-            jsonrpc_core::Id::Null => Err(err_msg("Null id")),
+            jsonrpc_core::Id::Null => Err(anyhow!("Null id")),
         }
     }
 }
@@ -919,29 +926,29 @@ impl DiagnosticSeverityExt for DiagnosticSeverity {
 }
 
 impl ToInt for DiagnosticSeverity {
-    fn to_int(&self) -> Fallible<u64> {
+    fn to_int(&self) -> Result<u64> {
         Ok(*self as u64)
     }
 }
 
 impl ToInt for MessageType {
-    fn to_int(&self) -> Fallible<u64> {
+    fn to_int(&self) -> Result<u64> {
         Ok(*self as u64)
     }
 }
 
 impl ToInt for DocumentHighlightKind {
-    fn to_int(&self) -> Fallible<u64> {
+    fn to_int(&self) -> Result<u64> {
         Ok(*self as u64)
     }
 }
 
 pub trait ToUsize {
-    fn to_usize(&self) -> Fallible<usize>;
+    fn to_usize(&self) -> Result<usize>;
 }
 
 impl ToUsize for u64 {
-    fn to_usize(&self) -> Fallible<usize> {
+    fn to_usize(&self) -> Result<usize> {
         Ok(*self as usize)
     }
 }
@@ -1025,11 +1032,11 @@ pub struct WindowProgressParams {
 }
 
 pub trait Filepath {
-    fn filepath(&self) -> Fallible<PathBuf>;
+    fn filepath(&self) -> Result<PathBuf>;
 }
 
 impl Filepath for Url {
-    fn filepath(&self) -> Fallible<PathBuf> {
+    fn filepath(&self) -> Result<PathBuf> {
         self.to_file_path().or_else(|_| Ok(self.as_str().into()))
     }
 }
@@ -1049,11 +1056,11 @@ impl Default for TextDocumentItemMetadata {
 }
 
 pub trait ToLSP<T> {
-    fn to_lsp(self) -> Fallible<T>;
+    fn to_lsp(self) -> Result<T>;
 }
 
 impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
-    fn to_lsp(self) -> Fallible<Vec<FileEvent>> {
+    fn to_lsp(self) -> Result<Vec<FileEvent>> {
         match self {
             notify::DebouncedEvent::Create(p) => Ok(vec![FileEvent {
                 uri: p.to_url()?,
@@ -1082,7 +1089,7 @@ impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
                 },
             ]),
             notify::DebouncedEvent::Chmod(_) | notify::DebouncedEvent::Rescan => Ok(vec![]),
-            e @ notify::DebouncedEvent::Error(_, _) => Err(format_err!("{:?}", e)),
+            e @ notify::DebouncedEvent::Error(_, _) => Err(anyhow!("{:?}", e)),
         }
     }
 }
@@ -1091,11 +1098,11 @@ pub trait FromLSP<F>
 where
     Self: Sized,
 {
-    fn from_lsp(f: &F) -> Fallible<Self>;
+    fn from_lsp(f: &F) -> Result<Self>;
 }
 
 impl FromLSP<SymbolInformation> for QuickfixEntry {
-    fn from_lsp(sym: &SymbolInformation) -> Fallible<Self> {
+    fn from_lsp(sym: &SymbolInformation) -> Result<Self> {
         let start = sym.location.range.start;
 
         Ok(Self {
@@ -1110,13 +1117,13 @@ impl FromLSP<SymbolInformation> for QuickfixEntry {
 }
 
 impl FromLSP<Vec<lsp_types::SymbolInformation>> for Vec<QuickfixEntry> {
-    fn from_lsp(symbols: &Vec<lsp_types::SymbolInformation>) -> Fallible<Self> {
+    fn from_lsp(symbols: &Vec<lsp_types::SymbolInformation>) -> Result<Self> {
         symbols.iter().map(QuickfixEntry::from_lsp).collect()
     }
 }
 
 impl FromLSP<Vec<lsp_types::DocumentSymbol>> for Vec<QuickfixEntry> {
-    fn from_lsp(document_symbols: &Vec<lsp_types::DocumentSymbol>) -> Fallible<Self> {
+    fn from_lsp(document_symbols: &Vec<lsp_types::DocumentSymbol>) -> Result<Self> {
         let mut symbols = Vec::new();
 
         fn walk_document_symbol(
