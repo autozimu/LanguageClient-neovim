@@ -200,6 +200,7 @@ pub struct State {
     pub completion_prefer_text_edit: bool,
     pub apply_completion_additional_text_edits: bool,
     pub use_virtual_text: UseVirtualText,
+    pub hide_virtual_texts_on_insert: bool,
     pub echo_project_root: bool,
 
     pub server_stderr: Option<String>,
@@ -279,6 +280,7 @@ impl State {
             completion_prefer_text_edit: false,
             apply_completion_additional_text_edits: true,
             use_virtual_text: UseVirtualText::All,
+            hide_virtual_texts_on_insert: true,
             echo_project_root: true,
             server_stderr: None,
             preferred_markup_kind: None,

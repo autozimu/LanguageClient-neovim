@@ -1,5 +1,5 @@
 use crate::language_client::LanguageClient;
-use crate::vim::try_get;
+use crate::vim::{try_get, Mode};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -172,6 +172,7 @@ impl LanguageClient {
             semantic_scope_separator,
             apply_completion_text_edits,
             preferred_markup_kind,
+            hide_virtual_texts_on_insert,
         ): (
             Option<usize>,
             String,
@@ -183,6 +184,7 @@ impl LanguageClient {
             String,
             u8,
             Option<Vec<MarkupKind>>,
+            u8,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -195,6 +197,7 @@ impl LanguageClient {
                 "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
                 "get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1)",
                 "get(g:, 'LanguageClient_preferredMarkupKind', v:null)",
+                "s:GetVar('LanguageClient_hideVirtualTextsOnInsert', 0)",
             ]
             .as_ref(),
         )?;
@@ -301,6 +304,7 @@ impl LanguageClient {
             state.completion_prefer_text_edit = prefer_text_edit;
             state.apply_completion_additional_text_edits = apply_completion_edits;
             state.use_virtual_text = use_virtual_text;
+            state.hide_virtual_texts_on_insert = hide_virtual_texts_on_insert == 1;
             state.echo_project_root = echo_project_root == 1;
             state.server_stderr = server_stderr;
             state.is_nvim = is_nvim;
@@ -2249,9 +2253,7 @@ impl LanguageClient {
             }
         }
 
-        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
-        let viewport = self.vim()?.get_viewport(params)?;
-        self.draw_virtual_texts(&filename, viewport, bufnr)?;
+        self.draw_virtual_texts(&params)?;
 
         Ok(Value::Null)
     }
@@ -2390,6 +2392,8 @@ impl LanguageClient {
                 text_document: TextDocumentIdentifier { uri },
             },
         )?;
+
+        self.draw_virtual_texts(params)?;
 
         info!(
             "End {}",
@@ -3313,19 +3317,34 @@ impl LanguageClient {
                 .notify("s:AddHighlights", json!([source, highlights]))?;
         }
 
-        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
-        self.draw_virtual_texts(&filename, viewport, bufnr)?;
+        self.draw_virtual_texts(&params)?;
 
         info!("End {}", NOTIFICATION_HANDLE_CURSOR_MOVED);
         Ok(())
     }
 
-    fn draw_virtual_texts(
-        &self,
-        filename: &str,
-        viewport: viewport::Viewport,
-        bufnr: i64,
-    ) -> Fallible<()> {
+    fn draw_virtual_texts(&self, params: &Value) -> Fallible<()> {
+        if !self.get(|state| state.is_nvim)? {
+            return Ok(());
+        }
+
+        let filename = self.vim()?.get_filename(params)?;
+        let filename = filename.as_str();
+        let viewport = self.vim()?.get_viewport(params)?;
+        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+        let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
+        let is_insert_mode = self.vim()?.get_mode()? == Mode::Insert;
+        if self.get(|state| state.hide_virtual_texts_on_insert)? && is_insert_mode {
+            self.vim()?.set_virtual_texts(
+                bufnr,
+                namespace_id,
+                viewport.start,
+                viewport.end,
+                &[],
+            )?;
+            return Ok(());
+        }
+
         let mut virtual_texts = vec![];
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
 
@@ -3344,16 +3363,13 @@ impl LanguageClient {
             virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
         }
 
-        if self.get(|state| state.is_nvim)? {
-            let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
-            self.vim()?.set_virtual_texts(
-                bufnr,
-                namespace_id,
-                viewport.start,
-                viewport.end,
-                &virtual_texts,
-            )?;
-        }
+        self.vim()?.set_virtual_texts(
+            bufnr,
+            namespace_id,
+            viewport.start,
+            viewport.end,
+            &virtual_texts,
+        )?;
 
         Ok(())
     }
