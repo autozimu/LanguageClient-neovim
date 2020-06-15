@@ -10,6 +10,7 @@ use crate::{
         vim_cmd_args_to_value, Canonicalize, Combine, ToUrl,
     },
     viewport,
+    watcher::FSWatch,
 };
 use anyhow::{anyhow, Context, Error, Result};
 use itertools::Itertools;
@@ -42,7 +43,6 @@ use lsp_types::{
     WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
-use notify::Watcher;
 use serde::de::Deserialize;
 use serde_json::json;
 use std::{
@@ -2758,7 +2758,7 @@ impl LanguageClient {
                     if !self.get(|state| state.watchers.contains_key(language_id))? {
                         let (watcher_tx, watcher_rx) = mpsc::channel();
                         // TODO: configurable duration.
-                        let watcher = notify::watcher(watcher_tx, Duration::from_secs(2))?;
+                        let watcher = FSWatch::new(watcher_tx, Duration::from_secs(2))?;
                         self.update(|state| {
                             state.watchers.insert(language_id.to_owned(), watcher);
                             state.watcher_rxs.insert(language_id.to_owned(), watcher_rx);
@@ -2774,8 +2774,15 @@ impl LanguageClient {
                                 } else {
                                     notify::RecursiveMode::NonRecursive
                                 };
-                                watcher
-                                    .watch(w.glob_pattern.trim_end_matches("**"), recursive_mode)?;
+                                let path = PathBuf::from_str(&w.glob_pattern)?;
+                                if path.is_dir() {
+                                    watcher.watch_dir(
+                                        w.glob_pattern.trim_end_matches("**"),
+                                        recursive_mode,
+                                    )?;
+                                } else {
+                                    watcher.watch_file(path)?;
+                                }
                             }
                         }
                         Ok(())
