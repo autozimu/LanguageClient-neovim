@@ -5,6 +5,7 @@ use crate::{
     language_client::LanguageClient,
     utils::{code_action_kind_as_str, ToUrl},
     vim::Vim,
+    watcher::FSWatch,
 };
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
@@ -171,7 +172,7 @@ pub struct State {
     pub document_highlight_source: Option<HighlightSource>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
-    pub watchers: HashMap<String, notify::RecommendedWatcher>,
+    pub watchers: HashMap<String, FSWatch>,
     #[serde(skip_serializing)]
     pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 

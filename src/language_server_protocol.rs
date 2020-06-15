@@ -10,6 +10,7 @@ use crate::{
         vim_cmd_args_to_value, Canonicalize, Combine, ToUrl,
     },
     viewport,
+    watcher::FSWatch,
 };
 use anyhow::{anyhow, Context, Error, Result};
 use glob::glob;
@@ -43,7 +44,6 @@ use lsp_types::{
     WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
-use notify::Watcher;
 use serde::de::Deserialize;
 use serde_json::json;
 use std::{
@@ -2764,7 +2764,7 @@ impl LanguageClient {
                     if !self.get(|state| state.watchers.contains_key(language_id))? {
                         let (watcher_tx, watcher_rx) = mpsc::channel();
                         // TODO: configurable duration.
-                        let watcher = notify::watcher(watcher_tx, Duration::from_secs(2))?;
+                        let watcher = FSWatch::new(watcher_tx, Duration::from_secs(2))?;
                         self.update(|state| {
                             state.watchers.insert(language_id.to_owned(), watcher);
                             state.watcher_rxs.insert(language_id.to_owned(), watcher_rx);
@@ -2779,17 +2779,15 @@ impl LanguageClient {
                                 for entry in glob(&w.glob_pattern)? {
                                     match entry {
                                         Ok(path) => {
-                                            let mode = if path.is_dir() {
-                                                notify::RecursiveMode::Recursive
+                                            if path.is_dir() {
+                                                watcher.watch_dir(
+                                                    &path,
+                                                    notify::RecursiveMode::Recursive,
+                                                )?;
                                             } else {
-                                                notify::RecursiveMode::NonRecursive
+                                                watcher.watch_file(&path)?;
                                             };
-                                            debug!(
-                                                "Watching path {} with mode {:?}",
-                                                path.display(),
-                                                mode
-                                            );
-                                            watcher.watch(path, mode)?;
+                                            info!("Start watching path {:?}", path);
                                         }
                                         Err(e) => {
                                             warn!("Error globbing for {}: {}", w.glob_pattern, e)

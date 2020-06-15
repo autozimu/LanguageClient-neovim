@@ -10,6 +10,7 @@ mod utils;
 mod viewport;
 mod vim;
 mod vimext;
+mod watcher;
 
 use anyhow::Result;
 use std::collections::HashMap;
