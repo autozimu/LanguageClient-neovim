@@ -2759,20 +2759,28 @@ impl LanguageClient {
         Ok(())
     }
 
+    // logs a message to with the specified level to the log file if the threshold is below the
+    // message's level.
     pub fn window_log_message(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp_types::notification::LogMessage::METHOD);
         let params = LogMessageParams::deserialize(params)?;
-        let threshold = self.get(|state| state.window_log_message_level.to_int())??;
-        if params.typ.to_int()? > threshold {
+        let threshold = self.get(|state| state.window_log_message_level)?;
+        if params.typ.to_int()? > threshold.to_int()? {
             return Ok(());
         }
 
-        let msg = format!("[{:?}] {}", params.typ, params.message);
-        self.vim()?.echomsg(&msg)?;
+        match threshold {
+            MessageType::Error => error!("{}", params.message),
+            MessageType::Warning => warn!("{}", params.message),
+            MessageType::Info => info!("{}", params.message),
+            MessageType::Log => debug!("{}", params.message),
+        };
+
         info!("End {}", lsp_types::notification::LogMessage::METHOD);
         Ok(())
     }
 
+    // shows the given message in vim.
     pub fn window_show_message(&self, params: &Value) -> Fallible<()> {
         info!("Begin {}", lsp_types::notification::ShowMessage::METHOD);
         let params = ShowMessageParams::deserialize(params)?;
