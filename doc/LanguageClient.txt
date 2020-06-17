@@ -542,12 +542,19 @@ This setting may have no effect of the server decides not to honour it.
 Default: v:null
 Valid options: Array<String>
 
-2.34 g:LanguageClient_floatingWindowStyle  *g:LanguageClient_floatingWindowStyle*
+2.35 g:LanguageClient_floatingWindowStyle  *g:LanguageClient_floatingWindowStyle*
 
 Style of opened Neovim floating window.
 
 Default: 'minimal'
 Valid options: 'minimal'
+
+2.36 g:LanguageClient_hideVirtualTextsOnInsert *g:LanguageClient_hideVirtualTextsOnInsert*
+
+Hides all virtual texts for the current buffer while editing in insert mode.
+
+Default: 0
+Valid options: 1 | 0
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
