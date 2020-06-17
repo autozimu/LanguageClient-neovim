@@ -3,8 +3,7 @@ use crate::{
     utils::diff_value,
     vim::Vim,
 };
-use failure::format_err;
-use failure::Fallible;
+use anyhow::{anyhow, Result};
 use log::*;
 use serde_json::Value;
 
@@ -23,10 +22,10 @@ pub struct LanguageClient {
 impl LanguageClient {
     // NOTE: Don't expose this as public.
     // MutexGuard could easily halt the program when one guard is not released immediately after use.
-    fn lock(&self) -> Fallible<MutexGuard<State>> {
+    fn lock(&self) -> Result<MutexGuard<State>> {
         self.state_mutex
             .lock()
-            .map_err(|err| format_err!("Failed to lock state: {:?}", err))
+            .map_err(|err| anyhow!("Failed to lock state: {:?}", err))
     }
 
     // This fetches a mutex that is unique to the provided languageId.
@@ -34,10 +33,10 @@ impl LanguageClient {
     // Here, we return a mutex instead of the mutex guard because we need to satisfy the borrow
     // checker. Otherwise, there is no way to guarantee that the mutex in the hash map wouldn't be
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
-    pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Fallible<Arc<Mutex<()>>> {
+    pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Result<Arc<Mutex<()>>> {
         let map_guard = self.clients_mutex.lock();
         let mut map = map_guard.or_else(|err| {
-            Err(format_err!(
+            Err(anyhow!(
                 "Failed to lock client creation for languageId {:?}: {:?}",
                 language_id,
                 err,
@@ -50,11 +49,11 @@ impl LanguageClient {
         Ok(mutex)
     }
 
-    pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Fallible<T> {
+    pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
         Ok(f(self.lock()?.deref()))
     }
 
-    pub fn update<T>(&self, f: impl FnOnce(&mut State) -> Fallible<T>) -> Fallible<T> {
+    pub fn update<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
         let mut state = self.lock()?;
         let mut state = state.deref_mut();
 
@@ -80,7 +79,7 @@ impl LanguageClient {
         result
     }
 
-    pub fn vim(&self) -> Fallible<Vim> {
+    pub fn vim(&self) -> Result<Vim> {
         self.get(|state| state.vim.clone())
     }
 }

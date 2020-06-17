@@ -1,9 +1,9 @@
 use crate::language_client::LanguageClient;
 use crate::types::LCNamespace;
-use failure::Fallible;
+use anyhow::Result;
 
 impl LanguageClient {
-    pub fn get_or_create_namespace(&self, ns: &LCNamespace) -> Fallible<i64> {
+    pub fn get_or_create_namespace(&self, ns: &LCNamespace) -> Result<i64> {
         let ns_name = ns.name();
 
         if let Some(namespace_id) = self.get(|state| state.namespace_ids.get(&ns_name).cloned())? {

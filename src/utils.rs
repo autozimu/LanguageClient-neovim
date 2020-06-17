@@ -1,5 +1,5 @@
 use crate::types::{RootMarkers, ToUsize};
-use failure::{err_msg, format_err, Fallible};
+use anyhow::{anyhow, Result};
 use log::*;
 use lsp_types::{CodeAction, Position, TextEdit, Url};
 use serde_json::json;
@@ -23,7 +23,7 @@ pub fn get_root_path<'a>(
     path: &'a Path,
     language_id: &str,
     root_markers: &Option<RootMarkers>,
-) -> Fallible<&'a Path> {
+) -> Result<&'a Path> {
     if let Some(ref root_markers) = *root_markers {
         let empty = &vec![];
         let root_markers = match *root_markers {
@@ -77,7 +77,7 @@ pub fn get_root_path<'a>(
             })
         }),
         "go" => traverse_up(path, |dir| dir.join("go.mod").exists()),
-        _ => Err(format_err!("Unknown languageId: {}", language_id)),
+        _ => Err(anyhow!("Unknown languageId: {}", language_id)),
     }
     .or_else(|_| {
         traverse_up(path, |dir| {
@@ -87,7 +87,7 @@ pub fn get_root_path<'a>(
     .or_else(|_| {
         let parent = path
             .parent()
-            .ok_or_else(|| format_err!("Failed to get parent dir! path: {:?}", path));
+            .ok_or_else(|| anyhow!("Failed to get parent dir! path: {:?}", path));
         warn!(
             "Unknown project type. Fallback to use dir as project root: {:?}",
             parent
@@ -122,7 +122,7 @@ fn has_extension(path: &Path, ext: &str) -> bool {
     }
 }
 
-fn traverse_up<F>(path: &Path, predicate: F) -> Fallible<&Path>
+fn traverse_up<F>(path: &Path, predicate: F) -> Result<&Path>
 where
     F: Fn(&Path) -> bool,
 {
@@ -130,7 +130,7 @@ where
         return Ok(path);
     }
 
-    let next_path = path.parent().ok_or_else(|| err_msg("Hit root"))?;
+    let next_path = path.parent().ok_or_else(|| anyhow!("Hit root"))?;
 
     traverse_up(next_path, predicate)
 }
@@ -159,14 +159,14 @@ fn is_dotnet_root(dir: &Path) -> bool {
 }
 
 pub trait ToUrl {
-    fn to_url(&self) -> Fallible<Url>;
+    fn to_url(&self) -> Result<Url>;
 }
 
 impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
-    fn to_url(&self) -> Fallible<Url> {
+    fn to_url(&self) -> Result<Url> {
         Url::from_file_path(self)
             .or_else(|_| Url::from_str(&self.as_ref().to_string_lossy()))
-            .or_else(|_| Err(format_err!("Failed to convert ({:?}) to Url", self)))
+            .or_else(|_| Err(anyhow!("Failed to convert ({:?}) to Url", self)))
     }
 }
 
@@ -252,7 +252,7 @@ pub fn apply_text_edits(
     lines: &[String],
     edits: &[TextEdit],
     position: &Position,
-) -> Fallible<(Vec<String>, Position)> {
+) -> Result<(Vec<String>, Position)> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
     for edit in edits {
@@ -544,17 +544,17 @@ fn test_expand_json_path() {
     );
 }
 
-pub fn vim_cmd_args_to_value(args: &[String]) -> Fallible<Value> {
+pub fn vim_cmd_args_to_value(args: &[String]) -> Result<Value> {
     let mut map = serde_json::map::Map::new();
     for arg in args {
         let mut tokens: Vec<_> = arg.splitn(2, '=').collect();
         tokens.reverse();
-        let key = tokens.pop().ok_or_else(|| {
-            format_err!("Failed to parse command arguments! tokens: {:?}", tokens)
-        })?;
-        let value = tokens.pop().ok_or_else(|| {
-            format_err!("Failed to parse command arguments! tokens: {:?}", tokens)
-        })?;
+        let key = tokens
+            .pop()
+            .ok_or_else(|| anyhow!("Failed to parse command arguments! tokens: {:?}", tokens))?;
+        let value = tokens
+            .pop()
+            .ok_or_else(|| anyhow!("Failed to parse command arguments! tokens: {:?}", tokens))?;
         let value = Value::String(value.to_owned());
         map.insert(key.to_owned(), value);
     }
@@ -665,12 +665,12 @@ pub fn get_default_initialization_options(language_id: &str) -> Value {
 pub fn decode_parameter_label(
     parameter_label: &lsp_types::ParameterLabel,
     signature: &str,
-) -> Fallible<(String, String, String)> {
+) -> Result<(String, String, String)> {
     match *parameter_label {
         lsp_types::ParameterLabel::Simple(ref label) => {
             let chunks: Vec<&str> = signature.split(label).collect();
             if chunks.len() != 2 {
-                return Err(err_msg("Parameter is not part of signature"));
+                return Err(anyhow!("Parameter is not part of signature"));
             }
             let begin = chunks[0].to_string();
             let label = label.to_string();
@@ -685,15 +685,15 @@ pub fn decode_parameter_label(
             let utf16: Vec<u16> = signature.encode_utf16().collect();
             let begin = utf16
                 .get(..start)
-                .ok_or_else(|| err_msg("Offset out of range"))?;
+                .ok_or_else(|| anyhow!("Offset out of range"))?;
             let begin = String::from_utf16(begin)?;
             let label = utf16
                 .get(start..finish)
-                .ok_or_else(|| err_msg("Offset out of range"))?;
+                .ok_or_else(|| anyhow!("Offset out of range"))?;
             let label = String::from_utf16(label)?;
             let end = utf16
                 .get(finish..)
-                .ok_or_else(|| err_msg("Offset out of range"))?;
+                .ok_or_else(|| anyhow!("Offset out of range"))?;
             let end = String::from_utf16(end)?;
             Ok((begin, label, end))
         }

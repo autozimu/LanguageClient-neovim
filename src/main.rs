@@ -10,7 +10,7 @@ mod viewport;
 mod vim;
 mod vimext;
 
-use failure::Fallible;
+use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use structopt::StructOpt;
@@ -19,7 +19,7 @@ use types::State;
 #[derive(Debug, StructOpt)]
 struct Arguments {}
 
-fn main() -> Fallible<()> {
+fn main() -> Result<()> {
     let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"));
     let args = Arguments::clap().version(version.as_str());
     let _ = args.get_matches();
