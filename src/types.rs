@@ -295,7 +295,7 @@ impl State {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SelectionUI {
-    FZF,
+    Funcref,
     Quickfix,
     LocationList,
 }
@@ -311,7 +311,7 @@ impl FromStr for SelectionUI {
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
-            "FZF" => Ok(SelectionUI::FZF),
+            "FUNCREF" | "FZF" => Ok(SelectionUI::Funcref),
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
             _ => Err(anyhow!(

@@ -138,7 +138,7 @@ impl LanguageClient {
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "s:GetVar('LanguageClient_serverCommands', {})",
-                "get(g:, 'LanguageClient_selectionUI', v:null)",
+                "s:getSelectionUI()",
                 "get(g:, 'LanguageClient_trace', v:null)",
                 "map(s:ToList(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')), 'expand(v:val)')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
@@ -216,7 +216,7 @@ impl LanguageClient {
         let selection_ui = if let Some(s) = selection_ui {
             SelectionUI::from_str(&s)?
         } else if self.vim()?.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1 {
-            SelectionUI::FZF
+            SelectionUI::Funcref
         } else {
             SelectionUI::default()
         };
@@ -1809,10 +1809,11 @@ impl LanguageClient {
             .collect();
 
         match self.get(|state| state.selection_ui)? {
-            SelectionUI::FZF => {
-                self.vim()?
-                    .rpcclient
-                    .notify("s:FZF", json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]))?;
+            SelectionUI::Funcref => {
+                self.vim()?.rpcclient.notify(
+                    "s:selectionUI_funcref",
+                    json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]),
+                )?;
             }
             SelectionUI::Quickfix | SelectionUI::LocationList => {
                 let mut actions: Vec<String> = actions?
@@ -1843,7 +1844,7 @@ impl LanguageClient {
         let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
 
         match selection_ui {
-            SelectionUI::FZF => {
+            SelectionUI::Funcref => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
                 let source: Result<Vec<_>> = items
                     .iter()
@@ -1852,7 +1853,7 @@ impl LanguageClient {
                 let source = source?;
 
                 self.vim()?.rpcclient.notify(
-                    "s:FZF",
+                    "s:selectionUI_funcref",
                     json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
                 )?;
             }
