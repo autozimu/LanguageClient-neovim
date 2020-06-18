@@ -1,3 +1,4 @@
+use crate::extensions::{java, rust_analyzer};
 use crate::language_client::LanguageClient;
 use crate::vim::{try_get, Mode};
 use crate::{
@@ -338,7 +339,7 @@ impl LanguageClient {
                 .with_context(|| format!("Failed to read file ({})", path.to_string_lossy()));
             let buffer = match buffer {
                 Err(e) => {
-                    last_err = Some(e.into());
+                    last_err = Some(e);
                     continue;
                 }
                 Ok(x) => x,
@@ -381,7 +382,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Result<()> {
+    pub fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Result<()> {
         debug!("Begin apply WorkspaceEdit: {:?}", edit);
         let mut filename = self.vim()?.get_filename(&Value::Null)?;
         let mut position = self.vim()?.get_position(&Value::Null)?;
@@ -794,7 +795,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn display_locations(&self, locations: &[Location], title: &str) -> Result<()> {
+    pub fn display_locations(&self, locations: &[Location], title: &str) -> Result<()> {
         let location_to_quickfix_entry = |state: &Self, loc: &Location| -> Result<QuickfixEntry> {
             let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
             let start = loc.range.start;
@@ -1044,79 +1045,15 @@ impl LanguageClient {
 
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
         match cmd.command.as_str() {
-            "java.apply.workspaceEdit" => {
-                if let Some(ref edits) = cmd.arguments {
-                    for edit in edits {
-                        let edit: WorkspaceEdit = serde_json::from_value(edit.clone())?;
-                        self.apply_workspace_edit(&edit)?;
-                    }
-                }
-            }
-            "rust-analyzer.showReferences" => {
-                let locations = cmd
-                    .arguments
-                    .clone()
-                    .unwrap_or_default()
-                    .get(2)
-                    .cloned()
-                    .unwrap_or_else(|| Value::Array(vec![]));
-                let locations: Vec<Location> = serde_json::from_value(locations)?;
+            java::command::APPLY_WORKSPACE_EDIT => self.handle_java_command(cmd),
+            rust_analyzer::command::RUN
+            | rust_analyzer::command::RUN_SINGLE
+            | rust_analyzer::command::SHOW_REFERENCES
+            | rust_analyzer::command::SELECT_APPLY_SOURCE_CHANGE
+            | rust_analyzer::command::APPLY_SOURCE_CHANGE => self.handle_rust_analyzer_command(cmd),
 
-                self.display_locations(&locations, "References")?;
-            }
-            "rust-analyzer.selectAndApplySourceChange" => {
-                if let Some(ref edits) = cmd.arguments {
-                    for edit in edits {
-                        let workspace_edits: Vec<WorkspaceEditWithCursor> =
-                            serde_json::from_value(edit.clone())?;
-                        for edit in workspace_edits {
-                            self.apply_workspace_edit(&edit.workspace_edit)?;
-                            if let Some(cursor_position) = edit.cursor_position {
-                                self.vim()?.cursor(
-                                    cursor_position.position.line + 1,
-                                    cursor_position.position.character + 1,
-                                )?;
-                            }
-                        }
-                    }
-                }
-            }
-            "rust-analyzer.applySourceChange" => {
-                if let Some(ref edits) = cmd.arguments {
-                    for edit in edits {
-                        let edit: WorkspaceEditWithCursor = serde_json::from_value(edit.clone())?;
-                        self.apply_workspace_edit(&edit.workspace_edit)?;
-                        if let Some(cursor_position) = edit.cursor_position {
-                            self.vim()?.cursor(
-                                cursor_position.position.line + 1,
-                                cursor_position.position.character + 1,
-                            )?;
-                        }
-                    }
-                }
-            }
-            "rust-analyzer.runSingle" | "rust-analyzer.run" => {
-                let has_term: i32 = self.vim()?.eval("exists(':terminal')")?;
-                if has_term == 0 {
-                    return Err(anyhow!("Terminal support is required for this action"));
-                }
-
-                if let Some(ref args) = cmd.arguments {
-                    if let Some(args) = args.first().cloned() {
-                        let bin: String =
-                            try_get("bin", &args)?.ok_or_else(|| anyhow!("no bin found"))?;
-                        let arguments: Vec<String> = try_get("args", &args)?.unwrap_or_default();
-                        let cmd = format!("term {} {}", bin, arguments.join(" "));
-                        let cmd = cmd.replace('"', "");
-                        self.vim()?.command(cmd)?;
-                    }
-                }
-            }
-            // TODO: implement all other rust-analyzer actions
-            _ => return Ok(false),
+            _ => Ok(false),
         }
-
-        Ok(true)
     }
 
     fn cleanup(&self, language_id: &str) -> Result<()> {
