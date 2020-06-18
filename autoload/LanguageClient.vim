@@ -118,10 +118,10 @@ function! s:hasSnippetSupport() abort
 endfunction
 
 function! s:getSelectionUI() abort
-	if type(s:GetVar('LanguageClient_selectionUI')) is s:TYPE.funcref
+	if type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
 		return 'funcref'
 	else
-		return s:GetVar('LanguageClient_selectionUI')
+		return get(g:, 'LanguageClient_selectionUI', v:null)
 	endif
 endfunction
 
@@ -210,7 +210,8 @@ function! s:inputlist(...) abort
 endfunction
 
 function! s:selectionUI_funcref(source, sink) abort
-    if g:LanguageClient_selectionUI ==? 'FZF'
+    if get(g:, 'LanguageClient_selectionUI', 'FZF') ==? 'FZF'
+                \ && get(g:, 'loaded_fzf')
         call s:FZF(a:source, a:sink)
     else
         call call(g:LanguageClient_selectionUI, [a:source, function(a:sink)])
@@ -1427,7 +1428,12 @@ endfunction
 
 function! LanguageClient_contextMenu() abort
     let l:options = keys(LanguageClient_contextMenuItems())
-    if type(s:GetVar('LanguageClient_selectionUI')) is s:TYPE.funcref || s:GetVar('LanguageClient_selectionUI') ==? 'FZF'
+    if get(g:, 'LanguageClient_fzfContextMenu', 1)
+            \ && (type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
+                \ || (get(g:, 'LanguageClient_selectionUI', v:null) ==? 'FZF'
+                    \ && get(g:, 'loaded_fzf')
+                \ )
+            \ )
         return s:selectionUI_funcref(l:options, function('LanguageClient_handleContextMenuItem'))
     endif
 
