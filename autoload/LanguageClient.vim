@@ -210,11 +210,14 @@ function! s:inputlist(...) abort
 endfunction
 
 function! s:selectionUI_funcref(source, sink) abort
-    if get(g:, 'LanguageClient_selectionUI', 'FZF') ==? 'FZF'
+    if type(get(g:, 'LanguageClient_selectionUI')) is s:TYPE.funcref
+        call call(g:LanguageClient_selectionUI, [a:source, function(a:sink)])
+    elseif get(g:, 'LanguageClient_selectionUI', 'FZF') ==? 'FZF'
                 \ && get(g:, 'loaded_fzf')
         call s:FZF(a:source, a:sink)
     else
-        call call(g:LanguageClient_selectionUI, [a:source, function(a:sink)])
+        call s:Echoerr('Unsupported selection UI, use "FZF" or a funcref')
+        return
     endif
 endfunction
 
