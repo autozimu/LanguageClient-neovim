@@ -174,11 +174,19 @@ An example implementation is "s:FZF()" in autoload/LanguageClient.vim. For
 details, see the source and sink arguments of fzf#run():
 https://github.com/junegunn/fzf/blob/master/README-VIM.md#fzfrun
 
+Another example, this time using vim-clap: >
+
+	function! MySelectionUI(source, sink) abort
+		return clap#run({'id': 'LCN', 'source': a:source, 'sink': a:sink})
+	endfunction
+
+	let g:LanguageClient_selectionUI = function('MySelectionUI')
+
 2.7 g:LanguageClient_selectionUI_autoOpen                *LanguageClient_selectionUI_autoOpen*
 Selection UI auto open when selectionUI is not "fzf"
 
-Valid options: 1 | 0
 Default: 1
+Valid options: 1 | 0
 
 2.8 g:LanguageClient_trace                           *g:LanguageClient_trace*
 
