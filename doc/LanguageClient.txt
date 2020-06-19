@@ -312,9 +312,11 @@ Controls how hover output is displayed. Must be one of the following:
 Default: "Auto"
 Valid options: "Never", "Auto", "Always"
 
-2.22 g:LanguageClient_fzfContextMenu         *g:LanguageClient_fzfContextMenu*
+2.22 g:LanguageClient_selectionUIContextMenu *g:LanguageClient_selectionUIContextMenu* *g:LanguageClient_fzfContextMenu*
 
-Should FZF be used for `LanguageClient_contextMenu()`.
+Should the selection UI be used for `LanguageClient_contextMenu()`.
+
+(Alias for the deprecated `LanguageClient_fzfContextMenu`)
 
 Default: 1
 Valid options: 1 | 0

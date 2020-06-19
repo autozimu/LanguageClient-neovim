@@ -1428,7 +1428,9 @@ endfunction
 
 function! LanguageClient_contextMenu() abort
     let l:options = keys(LanguageClient_contextMenuItems())
-    if get(g:, 'LanguageClient_fzfContextMenu', 1)
+    let l:useSelectionUI = get(g:, 'LanguageClient_selectionUIContextMenu',
+				\ get(g:, 'LanguageClient_fzfContextMenu', 1))
+    if l:useSelectionUI
             \ && (type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
                 \ || (get(g:, 'LanguageClient_selectionUI', v:null) ==? 'FZF'
                     \ && get(g:, 'loaded_fzf')
