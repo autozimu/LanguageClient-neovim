@@ -43,7 +43,6 @@ use lsp_types::{
 };
 use maplit::hashmap;
 use notify::Watcher;
-use pathdiff::diff_paths;
 use serde::de::Deserialize;
 use serde_json::json;
 use std::{
@@ -791,78 +790,6 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn display_locations(&self, locations: &[Location], title: &str) -> Result<()> {
-        let location_to_quickfix_entry = |state: &Self, loc: &Location| -> Result<QuickfixEntry> {
-            let filename = loc.uri.filepath()?.to_string_lossy().into_owned();
-            let start = loc.range.start;
-            let text = state.get_line(&filename, start.line).unwrap_or_default();
-
-            Ok(QuickfixEntry {
-                filename,
-                lnum: start.line + 1,
-                col: Some(start.character + 1),
-                text: Some(text),
-                nr: None,
-                typ: None,
-            })
-        };
-
-        let selection_ui = self.get(|state| state.selection_ui)?;
-        let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
-        match selection_ui {
-            SelectionUI::FZF => {
-                let cwd: String = self.vim()?.eval("getcwd()")?;
-                let source: Result<Vec<_>> = locations
-                    .iter()
-                    .map(|loc| {
-                        let filename = loc.uri.filepath()?;
-                        let start = loc.range.start;
-                        let text = self.get_line(&filename, start.line).unwrap_or_default();
-                        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
-                        Ok(format!(
-                            "{}:{}:{}:\t{}",
-                            relpath.to_string_lossy(),
-                            start.line + 1,
-                            start.character + 1,
-                            text
-                        ))
-                    })
-                    .collect();
-                let source = source?;
-
-                self.vim()?.rpcclient.notify(
-                    "s:FZF",
-                    json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
-                )?;
-            }
-            SelectionUI::Quickfix => {
-                let list: Result<Vec<_>> = locations
-                    .iter()
-                    .map(|loc| location_to_quickfix_entry(self, loc))
-                    .collect();
-                let list = list?;
-                self.vim()?.setqflist(&list, " ", title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("botright copen")?;
-                }
-                self.vim()?.echo("Quickfix list updated.")?;
-            }
-            SelectionUI::LocationList => {
-                let list: Result<Vec<_>> = locations
-                    .iter()
-                    .map(|loc| location_to_quickfix_entry(self, loc))
-                    .collect();
-                let list = list?;
-                self.vim()?.setloclist(&list, " ", title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("lopen")?;
-                }
-                self.vim()?.echo("Location list updated.")?;
-            }
-        }
-        Ok(())
-    }
-
     fn register_cm_source(&self, language_id: &str, result: &Value) -> Result<()> {
         info!("Begin register NCM source");
         let exists_cm_register: u64 = self.vim()?.eval("exists('g:cm_matcher')")?;
@@ -1020,7 +947,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Result<String> {
+    pub fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Result<String> {
         let value = self.vim()?.rpcclient.call(
             "getbufline",
             json!([path.as_ref().to_string_lossy(), line + 1]),
@@ -1409,7 +1336,7 @@ impl LanguageClient {
             }
             _ => {
                 let title = format!("[LC]: search for {}", current_word);
-                self.display_locations(&locations, &title)?
+                self.present_list(&title, &locations)?
             }
         }
 
@@ -1490,13 +1417,12 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let syms: <lsp_types::request::DocumentSymbolRequest as lsp_types::request::Request>::Result =
-            serde_json::from_value(result.clone())?;
-
+        let syms = <lsp_types::request::DocumentSymbolRequest as lsp_types::request::Request>::Result::deserialize(&result)?;
         let title = format!("[LC]: symbols for {}", filename);
 
         let selection_ui = self.get(|state| state.selection_ui)?;
         let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
+
         match selection_ui {
             SelectionUI::FZF => {
                 let symbols = match syms {
@@ -1641,7 +1567,7 @@ impl LanguageClient {
             },
         )?;
 
-        let response: Option<CodeActionResponse> = serde_json::from_value(result.clone())?;
+        let response = <Option<CodeActionResponse>>::deserialize(&result)?;
         let response = response.unwrap_or_default();
 
         // Convert any Commands into CodeActions, so that the remainder of the handling can be
@@ -1661,13 +1587,8 @@ impl LanguageClient {
             })
             .collect();
 
-        let source: Vec<_> = actions
-            .iter()
-            .map(|action| format!("{}: {}", code_action_kind_as_str(&action), action.title))
-            .collect();
-
         self.update(|state| {
-            state.stashed_code_action_actions = actions;
+            state.stashed_code_action_actions = actions.clone();
             Ok(())
         })?;
 
@@ -1675,12 +1596,41 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        self.vim()?
-            .rpcclient
-            .notify("s:FZF", json!([source, NOTIFICATION_FZF_SINK_COMMAND]))?;
+        self.present_actions("Code Actions", &actions, |idx| -> Result<()> {
+            self.handle_code_action_selection(&actions, idx)
+        })?;
 
         info!("End {}", lsp_types::request::CodeActionRequest::METHOD);
         Ok(result)
+    }
+
+    fn handle_code_action_selection(&self, actions: &[CodeAction], idx: usize) -> Result<()> {
+        match actions.get(idx - 1) {
+            Some(action) => {
+                // Apply edit before command.
+                if let Some(edit) = &action.edit {
+                    self.apply_workspace_edit(edit)?;
+                }
+
+                if let Some(command) = &action.command {
+                    if !self.try_handle_command_by_client(&command)? {
+                        let params = json!({
+                        "command": command.command,
+                        "arguments": command.arguments,
+                        });
+                        self.workspace_execute_command(&params)?;
+                    }
+                }
+
+                self.update(|state| {
+                    state.stashed_code_action_actions = vec![];
+                    Ok(())
+                })?;
+            }
+            None => return Err(anyhow!("Code action not stashed, please try again")),
+        };
+
+        Ok(())
     }
 
     pub fn text_document_completion(&self, params: &Value) -> Result<Value> {
@@ -1912,6 +1862,99 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
+    // shows a list of actions for the user to choose one.
+    fn present_actions<T, F>(&self, title: &str, actions: &[T], callback: F) -> Result<()>
+    where
+        T: ListItem,
+        F: Fn(usize) -> Result<()>,
+    {
+        if actions.is_empty() {
+            return Err(anyhow!("No code actions found at point"));
+        }
+
+        let cwd: String = self.vim()?.eval("getcwd()")?;
+        let actions: Result<Vec<String>> = actions
+            .iter()
+            .map(|it| ListItem::string_item(it, self, &cwd))
+            .collect();
+
+        match self.get(|state| state.selection_ui)? {
+            SelectionUI::FZF => {
+                self.vim()?
+                    .rpcclient
+                    .notify("s:FZF", json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]))?;
+            }
+            SelectionUI::Quickfix | SelectionUI::LocationList => {
+                let mut actions: Vec<String> = actions?
+                    .iter_mut()
+                    .enumerate()
+                    .map(|(idx, it)| format!("{}) {}", idx + 1, it))
+                    .collect();
+                let mut options = vec![title.to_string()];
+                options.append(&mut actions);
+
+                let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
+                if let Some(index) = index {
+                    return callback(index);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    // shows a list of items, used for things like diagnostics or things that do not need a user
+    // selection.
+    pub fn present_list<T>(&self, title: &str, items: &[T]) -> Result<()>
+    where
+        T: ListItem,
+    {
+        let selection_ui = self.get(|state| state.selection_ui)?;
+        let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
+
+        match selection_ui {
+            SelectionUI::FZF => {
+                let cwd: String = self.vim()?.eval("getcwd()")?;
+                let source: Result<Vec<_>> = items
+                    .iter()
+                    .map(|it| ListItem::string_item(it, self, &cwd))
+                    .collect();
+                let source = source?;
+
+                self.vim()?.rpcclient.notify(
+                    "s:FZF",
+                    json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
+                )?;
+            }
+            SelectionUI::Quickfix => {
+                let list: Result<Vec<_>> = items
+                    .iter()
+                    .map(|it| ListItem::quickfix_item(it, self))
+                    .collect();
+                let list = list?;
+                self.vim()?.setqflist(&list, " ", title)?;
+                if selection_ui_auto_open {
+                    self.vim()?.command("botright copen")?;
+                }
+                self.vim()?.echo("Populated quickfix list.")?;
+            }
+            SelectionUI::LocationList => {
+                let list: Result<Vec<_>> = items
+                    .iter()
+                    .map(|it| ListItem::quickfix_item(it, self))
+                    .collect();
+                let list = list?;
+                self.vim()?.setloclist(&list, " ", title)?;
+                if selection_ui_auto_open {
+                    self.vim()?.command("lopen")?;
+                }
+                self.vim()?.echo("Populated location list.")?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn workspace_symbol(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         info!("Begin {}", lsp_types::request::WorkspaceSymbol::METHOD);
@@ -1932,58 +1975,10 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let symbols: Vec<SymbolInformation> = serde_json::from_value(result.clone())?;
+        let symbols = <Vec<SymbolInformation>>::deserialize(&result)?;
         let title = "[LC]: workspace symbols";
 
-        let selection_ui = self.get(|state| state.selection_ui)?;
-        let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
-        match selection_ui {
-            SelectionUI::FZF => {
-                let cwd: String = self.vim()?.eval("getcwd()")?;
-                let source: Result<Vec<_>> = symbols
-                    .iter()
-                    .map(|sym| {
-                        let filename = sym.location.uri.filepath()?;
-                        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
-                        let start = sym.location.range.start;
-                        Ok(format!(
-                            "{}:{}:{}:\t{}\t\t{:?}",
-                            relpath.to_string_lossy(),
-                            start.line + 1,
-                            start.character + 1,
-                            sym.name,
-                            sym.kind
-                        ))
-                    })
-                    .collect();
-                let source = source?;
-
-                self.vim()?.rpcclient.notify(
-                    "s:FZF",
-                    json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
-                )?;
-            }
-            SelectionUI::Quickfix => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
-                let list = list?;
-                self.vim()?.setqflist(&list, " ", title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("botright copen")?;
-                }
-                self.vim()?
-                    .echo("Workspace symbols populated to quickfix list.")?;
-            }
-            SelectionUI::LocationList => {
-                let list: Result<Vec<_>> = symbols.iter().map(QuickfixEntry::from_lsp).collect();
-                let list = list?;
-                self.vim()?.setloclist(&list, " ", title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("lopen")?;
-                }
-                self.vim()?
-                    .echo("Workspace symbols populated to location list.")?;
-            }
-        }
+        self.present_list(title, &symbols)?;
 
         info!("End {}", lsp_types::request::WorkspaceSymbol::METHOD);
         Ok(result)
@@ -2061,38 +2056,44 @@ impl LanguageClient {
             return Ok(Value::Null);
         }
 
-        self.update(|state| {
-            let actions: Result<Vec<_>> = code_lens
-                .iter()
-                .map(|cl| match &cl.command {
-                    None => Err(anyhow!("no command, skipping")),
-                    Some(cmd) => Ok(CodeAction {
-                        kind: Some(cmd.title.clone()),
-                        title: cmd.command.clone(),
-                        command: cl.clone().command,
-                        diagnostics: None,
-                        edit: None,
-                        is_preferred: None,
-                    }),
-                })
-                .filter(|c| c.is_ok())
-                .collect();
-            state.stashed_code_action_actions = actions?;
-            Ok(())
-        })?;
-
-        let source: Result<Vec<_>> = code_lens
+        let actions: Result<Vec<CodeAction>> = code_lens
             .iter()
             .map(|cl| match &cl.command {
                 None => Err(anyhow!("no command, skipping")),
-                Some(cmd) => Ok(format!("{}: {}", cmd.title, cmd.command)),
+                Some(cmd) => Ok(CodeAction {
+                    kind: Some(cmd.title.clone()),
+                    title: cmd.command.clone(),
+                    command: cl.clone().command,
+                    diagnostics: None,
+                    edit: None,
+                    is_preferred: None,
+                }),
             })
-            .filter(|c| c.is_ok())
+            .filter(Result::is_ok)
             .collect();
+        let actions = actions?;
 
-        self.vim()?
-            .rpcclient
-            .notify("s:FZF", json!([source?, NOTIFICATION_FZF_SINK_COMMAND]))?;
+        self.update(|state| {
+            state.stashed_code_action_actions = actions.clone();
+            Ok(())
+        })?;
+
+        let source: Result<Vec<Command>> = actions
+            .iter()
+            .map(|it| match &it.command {
+                None => Err(anyhow!("expected a command, found none")),
+                Some(cmd) => Ok(cmd.clone()),
+            })
+            .collect();
+        // every item in `actions` should have a command, as we filtered the ones that didn't have
+        // one before. If we happen to encounter one that does not have a command, we just error,
+        // as this is unexpected behaviour and could potentially lead to triggering the incorrect
+        // code action, as the index may be incorrect.
+        let source = source?;
+
+        self.present_actions("Code Lens Actions", &source, |idx| -> Result<()> {
+            self.handle_code_action_selection(&actions, idx)
+        })?;
 
         Ok(Value::Null)
     }
@@ -2731,6 +2732,7 @@ impl LanguageClient {
         Ok(())
     }
 
+    // TODO: change this to use the show_acions method
     pub fn window_show_message_request(&self, params: &Value) -> Result<Value> {
         info!("Begin {}", lsp_types::request::ShowMessageRequest::METHOD);
         let mut v = Value::Null;
@@ -3493,35 +3495,15 @@ impl LanguageClient {
             .get(1)
             .cloned()
             .ok_or_else(|| anyhow!("Failed to get title! tokens: {:?}", tokens))?;
-        let action = self.get(|state| {
-            let actions = &state.stashed_code_action_actions;
+        let actions = self.get(|state| state.stashed_code_action_actions.clone())?;
+        let idx = actions
+            .iter()
+            .position(|it| code_action_kind_as_str(&it) == kind && it.title == title);
 
-            actions
-                .iter()
-                .find(|action| code_action_kind_as_str(&action) == kind && action.title == title)
-                .cloned()
-                .ok_or_else(|| anyhow!("No stashed action found! stashed actions: {:?}", actions))
-        })??;
-
-        // Apply edit before command.
-        if let Some(edit) = &action.edit {
-            self.apply_workspace_edit(edit)?;
-        }
-
-        if let Some(command) = &action.command {
-            if !self.try_handle_command_by_client(&command)? {
-                let params = json!({
-                "command": command.command,
-                "arguments": command.arguments,
-                });
-                self.workspace_execute_command(&params)?;
-            }
-        }
-
-        self.update(|state| {
-            state.stashed_code_action_actions = vec![];
-            Ok(())
-        })?;
+        match idx {
+            Some(idx) => self.handle_code_action_selection(&actions, idx)?,
+            None => return Err(anyhow!("Action not stashed, please try again")),
+        };
 
         info!("End {}", NOTIFICATION_FZF_SINK_COMMAND);
         Ok(())

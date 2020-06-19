@@ -50,7 +50,7 @@ impl LanguageClient {
                     .unwrap_or_else(|| Value::Array(vec![]));
                 let locations: Vec<Location> = serde_json::from_value(locations)?;
 
-                self.display_locations(&locations, "References")?;
+                self.present_list("References", &locations)?;
             }
             command::SELECT_APPLY_SOURCE_CHANGE => {
                 if let Some(ref edits) = cmd.arguments {
