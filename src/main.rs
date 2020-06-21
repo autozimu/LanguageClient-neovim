@@ -1,3 +1,4 @@
+mod extensions;
 mod language_client;
 mod language_server_protocol;
 mod logger;
