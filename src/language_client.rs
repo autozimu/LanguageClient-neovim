@@ -13,8 +13,9 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+#[derive(Clone)]
 pub struct LanguageClient {
-    pub version: Arc<String>,
+    pub version: String,
     pub state_mutex: Arc<Mutex<State>>,
     pub clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
 }
