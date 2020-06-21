@@ -27,7 +27,7 @@ fn main() -> Result<()> {
 
     let (tx, rx) = crossbeam::channel::unbounded();
     let language_client = language_client::LanguageClient {
-        version: Arc::new(version),
+        version,
         state_mutex: Arc::new(Mutex::new(State::new(tx)?)),
         clients_mutex: Arc::new(Mutex::new(HashMap::new())),
     };

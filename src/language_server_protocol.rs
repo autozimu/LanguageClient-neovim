@@ -72,11 +72,7 @@ impl LanguageClient {
 
     pub fn loop_call(&self, rx: &crossbeam::channel::Receiver<Call>) -> Result<()> {
         for call in rx.iter() {
-            let language_client = LanguageClient {
-                version: self.version.clone(),
-                state_mutex: self.state_mutex.clone(),
-                clients_mutex: self.clients_mutex.clone(), // not sure if useful to clone this
-            };
+            let language_client = self.clone();
             thread::spawn(move || {
                 if let Err(err) = language_client.handle_call(call) {
                     error!("Error handling request:\n{:?}", err);
@@ -1173,7 +1169,7 @@ impl LanguageClient {
             InitializeParams {
                 client_info: Some(ClientInfo {
                     name: "LanguageClient-neovim".into(),
-                    version: Some((*self.version).clone()),
+                    version: Some(self.version.clone()),
                 }),
                 process_id: Some(u64::from(std::process::id())),
                 /* deprecated in lsp types, but can't initialize without it */
