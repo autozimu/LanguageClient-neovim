@@ -390,6 +390,7 @@ impl FromStr for DiagnosticsList {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiagnosticsDisplay {
     pub name: String,
     pub texthl: String,
