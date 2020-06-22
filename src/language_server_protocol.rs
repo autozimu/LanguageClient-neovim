@@ -3327,9 +3327,13 @@ impl LanguageClient {
         if let Some(diag_list) = diag_list {
             for diag in diag_list {
                 if viewport.overlaps(diag.range) {
+                    let mut explanation = diag.message.clone();
+                    if let Some(source) = &diag.source {
+                        explanation = format!("{}: {}\n", source, explanation);
+                    }
                     virtual_texts.push(VirtualText {
                         line: diag.range.start.line,
-                        text: diag.message.replace("\n", "  ").clone(),
+                        text: explanation.replace("\n", "  "),
                         hl_group: diagnostics_display
                             .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
                             .ok_or_else(|| anyhow!("Failed to get display"))?
@@ -3715,6 +3719,9 @@ impl LanguageClient {
         let root_uri = root.to_url()?;
 
         let mut explanation = diag.message;
+        if let Some(source) = diag.source {
+            explanation = format!("{}: {}\n", source, explanation);
+        }
         if let Some(related_information) = diag.related_information {
             explanation = format!("{}\n", explanation);
             for ri in related_information {
