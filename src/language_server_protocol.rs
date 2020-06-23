@@ -1420,111 +1420,41 @@ impl LanguageClient {
         let syms = <lsp_types::request::DocumentSymbolRequest as lsp_types::request::Request>::Result::deserialize(&result)?;
         let title = format!("[LC]: symbols for {}", filename);
 
-        let selection_ui = self.get(|state| state.selection_ui)?;
-        let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
+        match syms {
+            Some(lsp_types::DocumentSymbolResponse::Flat(flat)) => {
+                self.present_list(&title, &flat)?;
+            }
+            Some(lsp_types::DocumentSymbolResponse::Nested(nested)) => {
+                let mut symbols = Vec::new();
 
-        match selection_ui {
-            SelectionUI::FZF => {
-                let symbols = match syms {
-                    Some(lsp_types::DocumentSymbolResponse::Flat(flat)) => flat
-                        .iter()
-                        .map(|sym| {
-                            let start = sym.location.range.start;
-                            format!(
-                                "{}:{}:\t{}\t\t{:?}",
-                                start.line + 1,
-                                start.character + 1,
-                                sym.name,
-                                sym.kind
-                            )
-                        })
-                        .collect(),
-                    Some(lsp_types::DocumentSymbolResponse::Nested(nested)) => {
-                        let mut symbols = Vec::new();
+                fn walk_document_symbol(
+                    buffer: &mut Vec<lsp_types::DocumentSymbol>,
+                    parent: Option<&lsp_types::DocumentSymbol>,
+                    ds: &lsp_types::DocumentSymbol,
+                ) {
+                    let name = if let Some(parent) = parent {
+                        format!("{}::{}", parent.name, ds.name)
+                    } else {
+                        ds.name.clone()
+                    };
 
-                        fn walk_document_symbol(
-                            buffer: &mut Vec<String>,
-                            parent: Option<&str>,
-                            ds: &lsp_types::DocumentSymbol,
-                        ) {
-                            let start = ds.selection_range.start;
+                    buffer.push(lsp_types::DocumentSymbol { name, ..ds.clone() });
 
-                            let name = if let Some(parent) = parent {
-                                format!("{}::{}", parent, ds.name)
-                            } else {
-                                ds.name.clone()
-                            };
-
-                            let n = format!(
-                                "{}:{}:\t{}\t\t{:?}",
-                                start.line + 1,
-                                start.character + 1,
-                                name,
-                                ds.kind
-                            );
-
-                            buffer.push(n);
-
-                            if let Some(children) = &ds.children {
-                                for child in children {
-                                    walk_document_symbol(buffer, Some(&ds.name), child);
-                                }
-                            }
+                    if let Some(children) = &ds.children {
+                        for child in children {
+                            walk_document_symbol(buffer, Some(&ds), child);
                         }
-
-                        for ds in &nested {
-                            walk_document_symbol(&mut symbols, None, ds);
-                        }
-
-                        symbols
                     }
-                    _ => Vec::new(),
-                };
-
-                self.vim()?.rpcclient.notify(
-                    "s:FZF",
-                    json!([symbols, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
-                )?;
-            }
-            SelectionUI::Quickfix => {
-                let list = match syms {
-                    Some(lsp_types::DocumentSymbolResponse::Flat(flat)) => {
-                        flat.iter().map(QuickfixEntry::from_lsp).collect()
-                    }
-                    Some(lsp_types::DocumentSymbolResponse::Nested(nested)) => {
-                        <Vec<QuickfixEntry>>::from_lsp(&nested)
-                    }
-                    _ => Ok(Vec::new()),
-                };
-
-                let list = list?;
-                self.vim()?.setqflist(&list, " ", &title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("botright copen")?;
                 }
-                self.vim()?
-                    .echo("Document symbols populated to quickfix list.")?;
-            }
-            SelectionUI::LocationList => {
-                let list = match syms {
-                    Some(lsp_types::DocumentSymbolResponse::Flat(flat)) => {
-                        flat.iter().map(QuickfixEntry::from_lsp).collect()
-                    }
-                    Some(lsp_types::DocumentSymbolResponse::Nested(nested)) => {
-                        <Vec<QuickfixEntry>>::from_lsp(&nested)
-                    }
-                    _ => Ok(Vec::new()),
-                };
 
-                let list = list?;
-                self.vim()?.setloclist(&list, " ", &title)?;
-                if selection_ui_auto_open {
-                    self.vim()?.command("lopen")?;
+                for ds in &nested {
+                    walk_document_symbol(&mut symbols, None, ds);
                 }
-                self.vim()?
-                    .echo("Document symbols populated to location list.")?;
+
+                self.present_list(&title, &symbols)?;
             }
-        }
+            _ => (),
+        };
 
         info!("End {}", lsp_types::request::DocumentSymbolRequest::METHOD);
         Ok(result)

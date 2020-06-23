@@ -1180,9 +1180,45 @@ impl ListItem for Command {
     }
 }
 
+impl ListItem for lsp_types::DocumentSymbol {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let start = self.selection_range.start;
+        let result = QuickfixEntry {
+            filename: "".to_string(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        };
+        Ok(result)
+    }
+
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        let start = self.selection_range.start;
+        let result = format!(
+            "{}:{}:\t{}\t\t{:?}",
+            start.line + 1,
+            start.character + 1,
+            self.name.clone(),
+            self.kind
+        );
+        Ok(result)
+    }
+}
+
 impl ListItem for SymbolInformation {
     fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
-        QuickfixEntry::from_lsp(self)
+        let start = self.location.range.start;
+
+        Ok(QuickfixEntry {
+            filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        })
     }
 
     fn string_item(&self, _: &LanguageClient, cwd: &str) -> Result<String> {
@@ -1197,75 +1233,6 @@ impl ListItem for SymbolInformation {
             self.name,
             self.kind
         ))
-    }
-}
-
-pub trait FromLSP<F>
-where
-    Self: Sized,
-{
-    fn from_lsp(f: &F) -> Result<Self>;
-}
-
-impl FromLSP<SymbolInformation> for QuickfixEntry {
-    fn from_lsp(sym: &SymbolInformation) -> Result<Self> {
-        let start = sym.location.range.start;
-
-        Ok(Self {
-            filename: sym.location.uri.filepath()?.to_string_lossy().into_owned(),
-            lnum: start.line + 1,
-            col: Some(start.character + 1),
-            text: Some(sym.name.clone()),
-            nr: None,
-            typ: None,
-        })
-    }
-}
-
-impl FromLSP<Vec<lsp_types::SymbolInformation>> for Vec<QuickfixEntry> {
-    fn from_lsp(symbols: &Vec<lsp_types::SymbolInformation>) -> Result<Self> {
-        symbols.iter().map(QuickfixEntry::from_lsp).collect()
-    }
-}
-
-impl FromLSP<Vec<lsp_types::DocumentSymbol>> for Vec<QuickfixEntry> {
-    fn from_lsp(document_symbols: &Vec<lsp_types::DocumentSymbol>) -> Result<Self> {
-        let mut symbols = Vec::new();
-
-        fn walk_document_symbol(
-            buffer: &mut Vec<QuickfixEntry>,
-            parent: Option<&str>,
-            ds: &lsp_types::DocumentSymbol,
-        ) {
-            let start = ds.selection_range.start;
-
-            let name = if let Some(parent) = parent {
-                format!("{}::{}", parent, ds.name)
-            } else {
-                ds.name.clone()
-            };
-
-            buffer.push(QuickfixEntry {
-                filename: "".to_string(),
-                lnum: start.line + 1,
-                col: Some(start.character + 1),
-                text: Some(name),
-                nr: None,
-                typ: None,
-            });
-
-            if let Some(children) = &ds.children {
-                for child in children {
-                    walk_document_symbol(buffer, Some(&ds.name), child);
-                }
-            }
-        }
-
-        for ds in document_symbols {
-            walk_document_symbol(&mut symbols, None, ds);
-        }
-
-        Ok(symbols)
     }
 }
 
