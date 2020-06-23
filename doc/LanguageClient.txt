@@ -8,10 +8,11 @@ CONTENTS                                               *LanguageClientContents*
 2. Configuration ............... |LanguageClientConfiguration|
 3. Commands .................... |LanguageClientCommands|
 4. Functions ................... |LanguageClientFunctions|
-5. Events ...................... |LanguageClientEvents|
-6. License ..................... |LanguageClientLicense|
-7. Bugs ........................ |LanguageClientBugs|
-8. Contributing ................ |LanguageClientContributing|
+5. Mappings .................... |LanguageClientMappings|
+6. Events ...................... |LanguageClientEvents|
+7. License ..................... |LanguageClientLicense|
+8. Bugs ........................ |LanguageClientBugs|
+9. Contributing ................ |LanguageClientContributing|
 
 ==============================================================================
 1. Usage                                                 *LanguageClientUsage*
@@ -905,16 +906,71 @@ Signature: LanguageClient#debugInfo(...)
 Print out debug info.
 
 ==============================================================================
-5. Events                                               *LanguageClientEvents*
+5. Mappings                                           *LanguageClientMappings*
+
+LanguageClient provides various Plug mappings which can be used to set up
+custom mappings. For example, to create a mapping to call the rename function
+you would create a custom mapping like this:
+
+  nmap <silent><F2> <Plug>(lcn-rename)
+
+The full list of Plug mappings is:
+
+*(lcn-menu)*
+Calls LanguageClient_contextMenu.
+
+*(lcn-hover)*
+Calls LanguageClient_textDocument_hover.
+
+*(lcn-rename)*
+Calls LanguageClient_textDocument_rename.
+
+*(lcn-definition)*
+Calls LanguageClient_textDocument_definition.
+
+*(lcn-type-definition)*
+Calls LanguageClient_textDocument_typeDefinition.
+
+*(lcn-references)*
+Calls LanguageClient_textDocument_references.
+
+*(lcn-implementation)*
+Calls LanguageClient_textDocument_implementation.
+
+*(lcn-code-action)*
+Calls LanguageClient_textDocument_codeAction if called in normal model or
+LanguageClient_textDocument_visualCodeAction if called in visual mode.
+
+*(lcn-code-lens-action)*
+Calls LanguageClient_handleCodeLensAction.
+
+*(lcn-symbols)*
+Calls LanguageClient_textDocument_documentSymbol.
+
+*(lcn-highlight)*
+Calls LanguageClient_textDocument_documentHighlight.
+
+*(lcn-explain-error)*
+Calls LanguageClient_textDocument_explainErrorAtPoint.
+
+*(lcn-format)*
+Calls LanguageClient_textDocument_formatting.
+
+*(lcn-format-sync)*
+Calls LanguageClient_textDocument_formatting_sync.
+
+
+==============================================================================
+6. Events                                               *LanguageClientEvents*
 
 LanguageClient provides two events for use with |User| |autocmd|s.
 
-5.1 LanguageClientStarted
+6.1 LanguageClientStarted
 *LanguageClientStarted*
 
 This event is triggered after LanguageClient has successfully started.
 
-5.2 LanguageClientStopped
+6.2 LanguageClientStopped
 *LanguageClientStopped*
 
 This event is triggered after LanguageClient has stopped.
@@ -926,23 +982,23 @@ Example: >
     autocmd User LanguageClientStopped setlocal signcolumn=auto
   augroup END
 
-5.3 LanguageClientDiagnosticsChanged
+6.3 LanguageClientDiagnosticsChanged
 *LanguageClientDiagnosticsChanged*
 
 This event is triggered when diagnostics changed.
 
-5.4 LanguageClientTextDocumentDidOpenPost
+6.4 LanguageClientTextDocumentDidOpenPost
 *LanguageClientTextDocumentDidOpenPost*
 
 Triggered after textDocument/didOpen notification is sent to language server.
 
 ==============================================================================
-6. License                                             *LanguageClientLicense*
+7. License                                             *LanguageClientLicense*
 
 The MIT License.
 
 ==============================================================================
-7. Bugs                                                   *LanguageClientBugs*
+8. Bugs                                                   *LanguageClientBugs*
 
 Please report all bugs at https://github.com/autozimu/LanguageClient-neovim/issues
 
@@ -963,7 +1019,7 @@ which can work like a proxy and logs all stdin and stdout of the language
 server into a log file.
 
 ==============================================================================
-8. Contributing                                   *LanguageClientContributing*
+9. Contributing                                   *LanguageClientContributing*
 
 https://github.com/autozimu/LanguageClient-neovim
 
