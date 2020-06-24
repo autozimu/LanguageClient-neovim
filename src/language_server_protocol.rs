@@ -3426,9 +3426,9 @@ impl LanguageClient {
             .cloned()
             .ok_or_else(|| anyhow!("Failed to get kind! tokens: {:?}", tokens))?;
         let actions = self.get(|state| state.stashed_code_action_actions.clone())?;
-        let idx = actions.iter().position(|it| {
-            return code_action_kind_as_str(&it) == kind && it.title == title;
-        });
+        let idx = actions
+            .iter()
+            .position(|it| code_action_kind_as_str(&it) == kind && it.title == title);
 
         match idx {
             Some(idx) => self.handle_code_action_selection(&actions, idx)?,
