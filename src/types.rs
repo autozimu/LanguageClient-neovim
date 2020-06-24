@@ -1,25 +1,30 @@
 use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
-use crate::{utils::ToUrl, vim::Vim};
+use crate::{
+    language_client::LanguageClient,
+    utils::{code_action_kind_as_str, ToUrl},
+    vim::Vim,
+};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
 use lsp_types::{
-    CodeAction, CodeLens, CompletionItem, CompletionTextEdit, Diagnostic, DiagnosticSeverity,
-    DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents, InsertTextFormat,
-    MarkedString, MarkupContent, MarkupKind, MessageType, NumberOrString, Registration,
-    SemanticHighlightingInformation, SymbolInformation, TextDocumentItem,
-    TextDocumentPositionParams, TraceOption, Url, WorkspaceEdit,
+    CodeAction, CodeLens, Command, CompletionItem, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
+    InsertTextFormat, Location, MarkedString, MarkupContent, MarkupKind, MessageType,
+    NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
+    TextDocumentItem, TextDocumentPositionParams, TraceOption, Url, WorkspaceEdit,
 };
 use maplit::hashmap;
+use pathdiff::diff_paths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::{BTreeMap, HashMap},
     io::{BufRead, BufReader, BufWriter, Write},
     net::TcpStream,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{ChildStdin, ChildStdout},
     str::FromStr,
     sync::{mpsc, Arc},
@@ -1095,72 +1100,139 @@ impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
     }
 }
 
-pub trait FromLSP<F>
-where
-    Self: Sized,
-{
-    fn from_lsp(f: &F) -> Result<Self>;
+pub trait ListItem {
+    fn quickfix_item(&self, lc: &LanguageClient) -> Result<QuickfixEntry>;
+    fn string_item(&self, lc: &LanguageClient, cwd: &str) -> Result<String>;
 }
 
-impl FromLSP<SymbolInformation> for QuickfixEntry {
-    fn from_lsp(sym: &SymbolInformation) -> Result<Self> {
-        let start = sym.location.range.start;
+impl ListItem for Location {
+    fn quickfix_item(&self, lc: &LanguageClient) -> Result<QuickfixEntry> {
+        let filename = self.uri.filepath()?.to_string_lossy().into_owned();
+        let start = self.range.start;
+        let text = lc.get_line(&filename, start.line).unwrap_or_default();
 
-        Ok(Self {
-            filename: sym.location.uri.filepath()?.to_string_lossy().into_owned(),
+        Ok(QuickfixEntry {
+            filename,
             lnum: start.line + 1,
             col: Some(start.character + 1),
-            text: Some(sym.name.clone()),
+            text: Some(text),
             nr: None,
             typ: None,
         })
     }
-}
 
-impl FromLSP<Vec<lsp_types::SymbolInformation>> for Vec<QuickfixEntry> {
-    fn from_lsp(symbols: &Vec<lsp_types::SymbolInformation>) -> Result<Self> {
-        symbols.iter().map(QuickfixEntry::from_lsp).collect()
+    fn string_item(&self, lc: &LanguageClient, cwd: &str) -> Result<String> {
+        let filename = self.uri.filepath()?;
+        let start = self.range.start;
+        let text = lc.get_line(&filename, start.line).unwrap_or_default();
+        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
+        Ok(format!(
+            "{}:{}:{}:\t{}",
+            relpath.to_string_lossy(),
+            start.line + 1,
+            start.character + 1,
+            text,
+        ))
     }
 }
 
-impl FromLSP<Vec<lsp_types::DocumentSymbol>> for Vec<QuickfixEntry> {
-    fn from_lsp(document_symbols: &Vec<lsp_types::DocumentSymbol>) -> Result<Self> {
-        let mut symbols = Vec::new();
+impl ListItem for CodeAction {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let text = Some(format!(
+            "{}: {}",
+            code_action_kind_as_str(&self),
+            self.title
+        ));
 
-        fn walk_document_symbol(
-            buffer: &mut Vec<QuickfixEntry>,
-            parent: Option<&str>,
-            ds: &lsp_types::DocumentSymbol,
-        ) {
-            let start = ds.selection_range.start;
+        Ok(QuickfixEntry {
+            filename: "".into(),
+            lnum: 0,
+            col: None,
+            text,
+            nr: None,
+            typ: None,
+        })
+    }
 
-            let name = if let Some(parent) = parent {
-                format!("{}::{}", parent, ds.name)
-            } else {
-                ds.name.clone()
-            };
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        Ok(format!(
+            "{}: {}",
+            code_action_kind_as_str(&self),
+            self.title
+        ))
+    }
+}
 
-            buffer.push(QuickfixEntry {
-                filename: "".to_string(),
-                lnum: start.line + 1,
-                col: Some(start.character + 1),
-                text: Some(name),
-                nr: None,
-                typ: None,
-            });
+impl ListItem for Command {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        Ok(QuickfixEntry {
+            filename: "".into(),
+            lnum: 0,
+            col: None,
+            text: Some(format!("{}: {}", self.command, self.title)),
+            nr: None,
+            typ: None,
+        })
+    }
 
-            if let Some(children) = &ds.children {
-                for child in children {
-                    walk_document_symbol(buffer, Some(&ds.name), child);
-                }
-            }
-        }
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        Ok(format!("{}: {}", self.command, self.title))
+    }
+}
 
-        for ds in document_symbols {
-            walk_document_symbol(&mut symbols, None, ds);
-        }
+impl ListItem for lsp_types::DocumentSymbol {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let start = self.selection_range.start;
+        let result = QuickfixEntry {
+            filename: "".to_string(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        };
+        Ok(result)
+    }
 
-        Ok(symbols)
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        let start = self.selection_range.start;
+        let result = format!(
+            "{}:{}:\t{}\t\t{:?}",
+            start.line + 1,
+            start.character + 1,
+            self.name.clone(),
+            self.kind
+        );
+        Ok(result)
+    }
+}
+
+impl ListItem for SymbolInformation {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let start = self.location.range.start;
+
+        Ok(QuickfixEntry {
+            filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        })
+    }
+
+    fn string_item(&self, _: &LanguageClient, cwd: &str) -> Result<String> {
+        let filename = self.location.uri.filepath()?;
+        let relpath = diff_paths(&filename, Path::new(cwd)).unwrap_or(filename);
+        let start = self.location.range.start;
+        Ok(format!(
+            "{}:{}:{}:\t{}\t\t{:?}",
+            relpath.to_string_lossy(),
+            start.line + 1,
+            start.character + 1,
+            self.name,
+            self.kind
+        ))
     }
 }
 
