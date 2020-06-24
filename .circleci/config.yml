@@ -5,6 +5,20 @@ general:
       - /binary-.*/
 
 jobs:
+  lint:
+    docker:
+      - image: circleci/rust:latest
+    steps:
+      - checkout
+      - run: |
+          rustup component add clippy
+          cargo clippy --all -- --deny warnings
+  format:
+    docker:
+      - image: circleci/rust:latest
+    steps:
+      - checkout
+      - run: cargo fmt -- --check
   build:
     docker:
       - image: autozimu/languageclientneovim
@@ -20,13 +34,12 @@ jobs:
           cargo build --target=x86_64-apple-darwin --release
           github-release upload --user autozimu --repo LanguageClient-neovim --tag test --name languageclient-x86_64-apple-darwin --file $CARGO_TARGET_DIR/x86_64-apple-darwin/release/languageclient
 
-# workflows:
-#   version: 2
-#   build-and-deploy:
-#     jobs:
-#       - build
-#       - deploy:
-#           requires:
-#             - build
+workflows:
+  version: 2
+  dev:
+    jobs:
+      - format
+      - lint
+      - build
 
 # vim: tabstop=2
