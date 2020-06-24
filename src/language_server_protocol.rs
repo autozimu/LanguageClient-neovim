@@ -1535,7 +1535,7 @@ impl LanguageClient {
     }
 
     fn handle_code_action_selection(&self, actions: &[CodeAction], idx: usize) -> Result<()> {
-        match actions.get(idx - 1) {
+        match actions.get(idx) {
             Some(action) => {
                 // Apply edit before command.
                 if let Some(edit) = &action.edit {
@@ -1825,7 +1825,7 @@ impl LanguageClient {
 
                 let index: Option<usize> = self.vim()?.rpcclient.call("s:inputlist", options)?;
                 if let Some(index) = index {
-                    return callback(index);
+                    return callback(index - 1);
                 }
             }
         }
@@ -3417,18 +3417,18 @@ impl LanguageClient {
         let selection: String =
             try_get("selection", params)?.ok_or_else(|| anyhow!("selection not found!"))?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
-        let kind = tokens
+        let title = tokens
             .get(0)
             .cloned()
-            .ok_or_else(|| anyhow!("Failed to get kind! tokens: {:?}", tokens))?;
-        let title = tokens
+            .ok_or_else(|| anyhow!("Failed to get title! tokens: {:?}", tokens))?;
+        let kind = tokens
             .get(1)
             .cloned()
-            .ok_or_else(|| anyhow!("Failed to get title! tokens: {:?}", tokens))?;
+            .ok_or_else(|| anyhow!("Failed to get kind! tokens: {:?}", tokens))?;
         let actions = self.get(|state| state.stashed_code_action_actions.clone())?;
-        let idx = actions
-            .iter()
-            .position(|it| code_action_kind_as_str(&it) == kind && it.title == title);
+        let idx = actions.iter().position(|it| {
+            return code_action_kind_as_str(&it) == kind && it.title == title;
+        });
 
         match idx {
             Some(idx) => self.handle_code_action_selection(&actions, idx)?,
