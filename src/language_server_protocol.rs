@@ -1991,8 +1991,8 @@ impl LanguageClient {
             .map(|cl| match &cl.command {
                 None => Err(anyhow!("no command, skipping")),
                 Some(cmd) => Ok(CodeAction {
-                    kind: Some(cmd.title.clone()),
-                    title: cmd.command.clone(),
+                    kind: Some(cmd.command.clone()),
+                    title: cmd.title.clone(),
                     command: cl.clone().command,
                     diagnostics: None,
                     edit: None,
@@ -3417,11 +3417,11 @@ impl LanguageClient {
         let selection: String =
             try_get("selection", params)?.ok_or_else(|| anyhow!("selection not found!"))?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
-        let title = tokens
+        let kind = tokens
             .get(0)
             .cloned()
             .ok_or_else(|| anyhow!("Failed to get title! tokens: {:?}", tokens))?;
-        let kind = tokens
+        let title = tokens
             .get(1)
             .cloned()
             .ok_or_else(|| anyhow!("Failed to get kind! tokens: {:?}", tokens))?;
