@@ -5,27 +5,44 @@ use lsp_types::{Command, Location};
 use serde::Deserialize;
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize)]
+// Runnable wraps the two possible shapes of a runnable action from rust-analyzer. Old-ish versions
+// of it will use BinRunnable, whereas the newer ones use CargoRunnable.
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
+enum Runnable {
+    Bin(BinRunnable),
+    Generic(GenericRunnable),
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct CargoRunnable {
+struct BinRunnable {
+    pub label: String,
+    pub bin: String,
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+struct GenericRunnable {
+    pub label: String,
+    pub kind: GenericRunnableKind,
+    pub location: Option<lsp_types::LocationLink>,
+    pub args: GenericRunnableArgs,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+struct GenericRunnableArgs {
     pub workspace_root: Option<PathBuf>,
     pub cargo_args: Vec<String>,
     pub executable_args: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct Runnable {
-    pub label: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub location: Option<lsp_types::LocationLink>,
-    pub kind: RunnableKind,
-    pub args: CargoRunnable,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
-enum RunnableKind {
+enum GenericRunnableKind {
     Cargo,
 }
 
@@ -91,13 +108,16 @@ impl LanguageClient {
                 if let Some(ref args) = cmd.arguments {
                     if let Some(args) = args.first() {
                         let runnable = Runnable::deserialize(args)?;
-                        let (bin, arguments) = match runnable.kind {
-                            RunnableKind::Cargo => ("cargo", runnable.args.cargo_args),
+                        let cmd = match runnable {
+                            Runnable::Bin(runnable) => {
+                                format!("term {} {}", runnable.bin, runnable.args.join(" "))
+                            }
+                            Runnable::Generic(runnable) => {
+                                format!("term cargo {}", runnable.args.cargo_args.join(" "))
+                            }
                         };
 
-                        let cmd = format!("term {} {}", bin, arguments.join(" "));
-                        let cmd = cmd.replace('"', "");
-                        self.vim()?.command(cmd)?;
+                        self.vim()?.command(cmd.replace('"', ""))?;
                     }
                 }
             }
@@ -105,5 +125,78 @@ impl LanguageClient {
         }
 
         Ok(true)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Runnable;
+    use super::*;
+    use lsp_types::Command;
+    use serde::Deserialize;
+
+    #[test]
+    fn test_deserialize_bin_runnable() {
+        let cmd = r#"{
+            "title":"Run",
+            "command":"rust-analyzer.runSingle",
+            "arguments": [
+                {
+                    "args":["run","--package","somepkg","--bin","somebin"],
+                    "bin":"cargo",
+                    "cwd":"/home/dev/somebin",
+                    "extraArgs":[],
+                    "label":"run binary"
+                }
+            ]
+        }"#;
+
+        let cmd: Command = serde_json::from_str(cmd).unwrap();
+        let actual = Runnable::deserialize(cmd.arguments.unwrap().first().unwrap())
+            .expect("failed deserializing bin runnable");
+        let expected = Runnable::Bin(BinRunnable {
+            label: "run binary".into(),
+            bin: "cargo".into(),
+            args: vec!["run", "--package", "somepkg", "--bin", "somebin"]
+                .into_iter()
+                .map(|it| it.into())
+                .collect(),
+        });
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_deserialize_generic_runnable() {
+        let cmd = r#"{
+            "title":"▶︎ Run",
+            "command":"rust-analyzer.runSingle",
+            "arguments":[{
+                "args":{
+                    "cargoArgs":["run","--package","somepkg","--bin","somebin"],
+                    "executableArgs":[],
+                    "workspaceRoot":"/home/dev/test"
+                },
+                "kind":"cargo",
+                "label":"run binary"
+            }]
+        }"#;
+
+        let cmd: Command = serde_json::from_str(cmd).unwrap();
+        let actual = Runnable::deserialize(cmd.arguments.unwrap().first().unwrap())
+            .expect("failed deserializing cargo runnable");
+        let expected = Runnable::Generic(GenericRunnable {
+            label: "run binary".into(),
+            kind: GenericRunnableKind::Cargo,
+            location: None,
+            args: GenericRunnableArgs {
+                workspace_root: Some("/home/dev/test".into()),
+                cargo_args: vec!["run", "--package", "somepkg", "--bin", "somebin"]
+                    .into_iter()
+                    .map(|it| it.into())
+                    .collect(),
+                executable_args: vec![],
+            },
+        });
+        assert_eq!(actual, expected);
     }
 }
