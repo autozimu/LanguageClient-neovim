@@ -1252,6 +1252,7 @@ pub struct VirtualText {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkspaceEditWithCursor {
     pub workspace_edit: WorkspaceEdit,
     pub cursor_position: Option<TextDocumentPositionParams>,
