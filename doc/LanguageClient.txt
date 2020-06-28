@@ -163,13 +163,30 @@ Default: 1.
 Selection UI used when there are multiple entries.
 
 Default: If fzf is loaded, use "fzf", otherwise use "location-list".
-Valid options: "fzf" | "quickfix" | "location-list"
+Valid options: "fzf" | "quickfix" | "location-list" | |Funcref|
+
+If you use a |Funcref|, the referenced function should have two arguments
+(source, sink). The "source" argument can be either a command string or a
+list. The sink argument can be a command string or a |Funcref| that takes the
+selected line as its first argument.
+
+An example implementation is "s:FZF()" in autoload/LanguageClient.vim. For
+details, see the source and sink arguments of fzf#run():
+https://github.com/junegunn/fzf/blob/master/README-VIM.md#fzfrun
+
+Another example, this time using vim-clap: >
+
+	function! MySelectionUI(source, sink) abort
+		return clap#run({'id': 'LCN', 'source': a:source, 'sink': a:sink})
+	endfunction
+
+	let g:LanguageClient_selectionUI = function('MySelectionUI')
 
 2.7 g:LanguageClient_selectionUI_autoOpen                *LanguageClient_selectionUI_autoOpen*
 Selection UI auto open when selectionUI is not "fzf"
 
-Valid options: 1 | 0
 Default: 1
+Valid options: 1 | 0
 
 2.8 g:LanguageClient_trace                           *g:LanguageClient_trace*
 
@@ -303,9 +320,11 @@ Controls how hover output is displayed. Must be one of the following:
 Default: "Auto"
 Valid options: "Never", "Auto", "Always"
 
-2.22 g:LanguageClient_fzfContextMenu         *g:LanguageClient_fzfContextMenu*
+2.22 g:LanguageClient_selectionUIContextMenu *g:LanguageClient_selectionUIContextMenu* *g:LanguageClient_fzfContextMenu*
 
-Should FZF be used for `LanguageClient_contextMenu()`.
+Should the selection UI be used for `LanguageClient_contextMenu()`.
+
+(Alias for the deprecated `LanguageClient_fzfContextMenu`)
 
 Default: 1
 Valid options: 1 | 0
