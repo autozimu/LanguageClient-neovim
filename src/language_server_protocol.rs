@@ -1,4 +1,4 @@
-use crate::extensions::{java, rust_analyzer};
+use crate::extensions::java;
 use crate::language_client::LanguageClient;
 use crate::vim::{try_get, Mode};
 use crate::{
@@ -177,6 +177,7 @@ impl LanguageClient {
             apply_completion_text_edits,
             preferred_markup_kind,
             hide_virtual_texts_on_insert,
+            enable_extensions,
         ): (
             Option<usize>,
             String,
@@ -190,6 +191,7 @@ impl LanguageClient {
             u8,
             Option<Vec<MarkupKind>>,
             u8,
+            Option<HashMap<String, bool>>,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -204,6 +206,7 @@ impl LanguageClient {
                 "get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1)",
                 "get(g:, 'LanguageClient_preferredMarkupKind', v:null)",
                 "s:GetVar('LanguageClient_hideVirtualTextsOnInsert', 0)",
+                "get(g:, 'LanguageClient_enableExtensions', v:null)",
             ]
             .as_ref(),
         )?;
@@ -320,6 +323,7 @@ impl LanguageClient {
             state.server_stderr = server_stderr;
             state.is_nvim = is_nvim;
             state.preferred_markup_kind = preferred_markup_kind;
+            state.enable_extensions = enable_extensions;
             Ok(())
         })?;
 
@@ -1017,15 +1021,32 @@ impl LanguageClient {
     }
 
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
-        match cmd.command.as_str() {
-            java::command::APPLY_WORKSPACE_EDIT => self.handle_java_command(cmd),
-            rust_analyzer::command::RUN
-            | rust_analyzer::command::RUN_SINGLE
-            | rust_analyzer::command::SHOW_REFERENCES
-            | rust_analyzer::command::SELECT_APPLY_SOURCE_CHANGE
-            | rust_analyzer::command::APPLY_SOURCE_CHANGE => self.handle_rust_analyzer_command(cmd),
+        let filetype: String = self.vim()?.eval("&filetype")?;
+        let enabled_extensions = self.get(|state| state.enable_extensions.clone())?;
+        if !enabled_extensions
+            .unwrap_or_default()
+            .get(&filetype)
+            .cloned()
+            .unwrap_or(true)
+        {
+            return Ok(false);
+        }
 
-            _ => Ok(false),
+        let capabilities = self.get(|state| state.capabilities.get(&filetype).cloned())?;
+        let server_name = capabilities
+            .unwrap_or_default()
+            .server_info
+            .unwrap_or_default()
+            .name;
+
+        match server_name.as_str() {
+            "gopls" => self.handle_gopls_command(cmd),
+            "rust-analyzer" => self.handle_rust_analyzer_command(cmd),
+            _ => match cmd.command.as_str() {
+                // not sure which name java's language server advertises
+                java::command::APPLY_WORKSPACE_EDIT => self.handle_java_command(cmd),
+                _ => Ok(false),
+            },
         }
     }
 
@@ -1247,10 +1268,11 @@ impl LanguageClient {
             },
         )?;
 
+        let initialize_result = InitializeResult::deserialize(&result)?;
         self.update(|state| {
             state
                 .capabilities
-                .insert(language_id.clone(), result.clone());
+                .insert(language_id.clone(), initialize_result);
             Ok(())
         })?;
 
@@ -2122,9 +2144,7 @@ impl LanguageClient {
         if let Some(initialize_result) = capabilities.get(&language_id) {
             // XXX: the capabilities state field stores the initialize result, not the capabilities
             // themselves, so we need to deserialize to InitializeResult.
-            let initialize_result: InitializeResult =
-                serde_json::from_value(initialize_result.clone())?;
-            let capabilities = initialize_result.capabilities;
+            let capabilities = initialize_result.capabilities.clone();
 
             if let Some(code_lens_provider) = capabilities.code_lens_provider {
                 info!("Begin {}", lsp_types::request::CodeLensRequest::METHOD);

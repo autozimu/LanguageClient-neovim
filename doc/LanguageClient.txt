@@ -569,8 +569,9 @@ Example setting 3. Set the preferred markup kind to `markdown`
 
   ```
   let g:LanguageClient_preferredMarkupKind: ['markdown']
+  ```
 
-This setting may have no effect of the server decides not to honour it.
+This setting may have no effect if the server decides not to honour it.
 
 Default: v:null
 Valid options: Array<String>
@@ -602,6 +603,31 @@ Full path to languageclient binary.
 
 Default: 'bin/languageclient' relative to plugin root.
 Valid options: String
+
+2.39 g:LanguageClient_enableExtensions          *g:LanguageClient_enableExtensions*
+
+LanguageClient-neovim provides extensions for some language servers, such as gopls or rust-analyzer.
+These extensions can be turned on or off, and they are configurable per language (not per language
+server).
+
+An example of the extensions provided is running Rust or Go tests in a vim terminal. This takes
+advantage of the commands provided by rust-analyzer or gopls (respectively) and executes those
+commands in a vim terminal.
+
+Example config:
+  ```
+  let g:LanguageClient_enableExtensions = {
+    \ 'go': v:false,
+    \ 'rust': v:true,
+    \ }
+  ```
+In this example we explicitly disable extensions for the filetype `go`, and enable them for `rust`.
+Filetypes not included in this config will also have their extensions disabled, unless you
+explicitly enable them like we did for `rust`.
+
+The default value for this config, or the absence of this config, enables extensions for all filetypes.
+
+Default: v:null
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
