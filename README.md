@@ -58,16 +58,22 @@ let g:LanguageClient_serverCommands = {
     \ 'ruby': ['~/.rbenv/shims/solargraph', 'stdio'],
     \ }
 
-nnoremap <F5> :call LanguageClient_contextMenu()<CR>
+" note that if you are using Plug mapping you should not use `noremap` mappings.
+nmap <F5> <Plug>(lcn-menu)
 " Or map each action separately
-nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
-nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
-nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
+nmap <silent>K <Plug>(lcn-hover)
+nmap <silent> gd <Plug>(lcn-definition)
+nmap <silent> <F2> <Plug>(lcn-rename)
 ```
 
 Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
 this plugin. Install corresponding language servers. Restart neovim/vim and
 language services will be available right away. Happy hacking!
+
+# Mappings
+
+LanguageClient-neovim defines various Plug mappings, see `:help LanguageClientMappings` for a full
+list and an example configuration.
 
 # Install
 

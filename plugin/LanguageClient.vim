@@ -126,6 +126,14 @@ function! LanguageClient_closeFloatingHover(...)
     return call('LanguageClient#closeFloatingHover', a:000)
 endfunction
 
+function! LanguageClient_handleCodeLensAction(...)
+    return call('LanguageClient#handleCodeLensAction', a:000)
+endfunction
+
+function! LanguageClient_explainErrorAtPoint(...)
+    return call('LanguageClient#explainErrorAtPoint', a:000)
+endfunction
+
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient#exit()
 
@@ -150,4 +158,20 @@ augroup languageClient
         autocmd CompleteDone *
                     \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
     endif
+
+    nnoremap <Plug>(lcn-menu)               :call LanguageClient_contextMenu()<CR>
+    nnoremap <Plug>(lcn-hover)              :call LanguageClient_textDocument_hover()<CR>
+    nnoremap <Plug>(lcn-rename)             :call LanguageClient_textDocument_rename()<CR>
+    nnoremap <Plug>(lcn-definition)         :call LanguageClient_textDocument_definition()<CR>
+    nnoremap <Plug>(lcn-type-definition)    :call LanguageClient_textDocument_typeDefinition()<CR>
+    nnoremap <Plug>(lcn-references)         :call LanguageClient_textDocument_references()<CR>
+    nnoremap <Plug>(lcn-implementation)     :call LanguageClient_textDocument_implementation()<CR>
+    nnoremap <Plug>(lcn-code-action)        :call LanguageClient_textDocument_codeAction()<CR>
+    vnoremap <Plug>(lcn-code-action)        :call LanguageClient#textDocument_visualCodeAction()<CR>
+    nnoremap <Plug>(lcn-code-lens-action)   :call LanguageClient_handleCodeLensAction()<CR>
+    nnoremap <Plug>(lcn-symbols)            :call LanguageClient_textDocument_documentSymbol()<CR>
+    nnoremap <Plug>(lcn-highlight)          :call LanguageClient_textDocument_documentHighlight()<CR>
+    nnoremap <Plug>(lcn-explain-error)      :call LanguageClient_explainErrorAtPoint()<CR>
+    nnoremap <Plug>(lcn-format)             :call LanguageClient_textDocument_formatting()<CR>
+    nnoremap <Plug>(lcn-format-sync)        :call LanguageClient_textDocument_formatting_sync()<CR>
 augroup END
