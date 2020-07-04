@@ -5,14 +5,19 @@ let
 in
 pkgs.mkShell {
   buildInputs = (with pkgs; [
+    curl
+    git
     mypy
+    neovim
+    # rustup    # error on Linux: /lib64/libc.so.6: version `GLIBC_2.14' not found
+    rust-analyzer
+    tmux
+    vim-vint
     (with python37Packages; [
       flake8
       pynvim
       pytest
     ])
-    rustup
-    vim-vint
   ])
   ++ stdenv.lib.optionals stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
     CoreServices

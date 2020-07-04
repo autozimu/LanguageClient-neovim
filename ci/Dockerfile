@@ -12,6 +12,8 @@ RUN npm install -g javascript-typescript-langserver@2.5.5
 RUN rustup component add rustfmt rls rust-analysis rust-src \
         && rustc --version \
         && rls --version
+RUN curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o /usr/local/bin/rust-analyzer \
+        && chmod +x /usr/local/bin/rust-analyzer
 
 ENV CARGO_TARGET_DIR=/tmp
 

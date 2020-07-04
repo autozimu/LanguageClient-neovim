@@ -15,12 +15,12 @@ rm -f /tmp/nvim-LanguageClient-IntegrationTest
 if [[ "$TMUX" ]]; then
     tmux split-window 'NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc'
 else
-    NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless &
+    NVIM_LISTEN_ADDRESS=/tmp/nvim-LanguageClient-IntegrationTest nvim -n -u tests/data/vimrc --headless 2>/dev/null &
 fi
 PID=$!
 sleep 1s
 
-py.test-3 --capture=no --exitfirst -v $@
+$(command -v pytest-3 || echo pytest) --capture=no --exitfirst -v $@
 ret=$?
 
 if [[ $ret != 0 ]]; then

@@ -5,7 +5,7 @@ from .base import Base
 
 sys.path.insert(0, path.dirname(path.dirname(__file__)))
 
-from common import (  # isort:skip  # noqa: I100
+from common import (  # isort:skip  # noqa: I100 E402
     convert_symbols_to_candidates,
     SYMBOL_CANDIDATE_HIGHLIGHT_SYNTAX,
     highlight_setup,

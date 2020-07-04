@@ -24,7 +24,7 @@ let g:LanguageClient_serverStderr = expand('~/.local/share/nvim/LanguageServer.l
 let g:LanguageClient_serverCommands = {
     \ 'javascript': ['javascript-typescript-stdio'],
     \ 'typescript': ['javascript-typescript-stdio'],
-    \ 'rust': ['rustup', 'run', 'stable', 'rls'],
+    \ 'rust': ['rust-analyzer'],
     \ }
 let g:LanguageClient_selectionUI = 'location-list'
 set formatexpr=LanguageClient#textDocument_rangeFormatting_sync()

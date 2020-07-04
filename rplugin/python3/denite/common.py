@@ -8,7 +8,7 @@ from denite.source.base import Base
 
 sys.path.insert(0, dirname(__file__))
 
-from lsp.protocol import SymbolKind  # isort:skip  # noqa: I100
+from lsp.protocol import SymbolKind  # isort:skip  # noqa: I100 E402
 
 
 MAX_FNAME_LEN = 30
