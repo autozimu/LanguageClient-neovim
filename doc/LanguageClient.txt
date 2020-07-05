@@ -414,7 +414,14 @@ Maximum severity to show diagnostic messages.
 Default: "Hint"
 Valid options: "Error" | "Warning" | "Information" | "Hint"
 
-2.31 g:LanguageClient_echoProjectRoot  *g:LanguageClient_echoProjectRoot*
+2.31 g:LanguageClient_diagnosticsIgnoreSources  *g:LanguageClient_diagnosticsIgnoreSources*
+
+Does not show the diagnostics message which has the source specified by this
+options.
+
+Default: "[]"
+
+2.32 g:LanguageClient_echoProjectRoot  *g:LanguageClient_echoProjectRoot*
 
 Whether to echo messages in vim of the form: "Project root: /home/user/myproject" when
 the root of a project is detected using g:LanguageClient_rootMarkers.
@@ -422,7 +429,7 @@ the root of a project is detected using g:LanguageClient_rootMarkers.
 Default: 1 to display the messages
 Valid options: 1 | 0
 
-2.32 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
+2.33 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
 
 String to list/map map. Defines the mapping of semantic highlighting "scopes" to
 highlight groups. This depends on the LSP server supporting the proposed
@@ -523,14 +530,14 @@ Example configuration for eclipse.jdt.ls:
      highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
 
 
-2.33 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient_applyCompletionAdditionalTextEdits*
+2.34 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient_applyCompletionAdditionalTextEdits*
 
 Indicates whether completionItem additional text edits should be applied.
 
 Default: 1
 Valid options: 1 | 0
 
-2.34 g:LanguageClient_preferredMarkupKind *g:LanguageClient_preferredMarkupKind*
+2.35 g:LanguageClient_preferredMarkupKind *g:LanguageClient_preferredMarkupKind*
 
 Sets the preferred markup kind. This value is sent to the server and is
 normally used to decide whether to send plaintext or markdown in things like
@@ -562,14 +569,14 @@ This setting may have no effect of the server decides not to honour it.
 Default: v:null
 Valid options: Array<String>
 
-2.35 g:LanguageClient_floatingWindowStyle  *g:LanguageClient_floatingWindowStyle*
+2.36 g:LanguageClient_floatingWindowStyle  *g:LanguageClient_floatingWindowStyle*
 
 Style of opened Neovim floating window.
 
 Default: 'minimal'
 Valid options: 'minimal'
 
-2.36 g:LanguageClient_hideVirtualTextsOnInsert *g:LanguageClient_hideVirtualTextsOnInsert*
+2.37 g:LanguageClient_hideVirtualTextsOnInsert *g:LanguageClient_hideVirtualTextsOnInsert*
 
 Hides all virtual texts for the current buffer while editing in insert mode.
 

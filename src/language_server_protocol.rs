@@ -160,6 +160,7 @@ impl LanguageClient {
         let (
             diagnostics_signs_max,
             diagnostics_max_severity,
+            diagnostics_ignore_sources,
             document_highlight_display,
             selection_ui_auto_open,
             use_virtual_text,
@@ -172,6 +173,7 @@ impl LanguageClient {
         ): (
             Option<usize>,
             String,
+            Vec<String>,
             Value,
             u8,
             UseVirtualText,
@@ -185,6 +187,7 @@ impl LanguageClient {
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
+                "get(g:, 'LanguageClient_diagnosticsIgnoreSources', [])",
                 "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
                 "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
                 "s:useVirtualText()",
@@ -290,6 +293,7 @@ impl LanguageClient {
             )?;
             state.diagnostics_signs_max = diagnostics_signs_max;
             state.diagnostics_max_severity = diagnostics_max_severity;
+            state.diagnostics_ignore_sources = diagnostics_ignore_sources;
             state.document_highlight_display = serde_json::from_value(
                 serde_json::to_value(&state.document_highlight_display)?
                     .combine(&document_highlight_display),
@@ -2313,10 +2317,16 @@ impl LanguageClient {
         let filename = filename.canonicalize();
 
         let diagnostics_max_severity = self.get(|state| state.diagnostics_max_severity)?;
+        let ignore_sources = self.get(|state| state.diagnostics_ignore_sources.clone())?;
         let mut diagnostics = params
             .diagnostics
             .iter()
             .filter(|&diagnostic| {
+                if let Some(source) = &diagnostic.source {
+                    if ignore_sources.contains(source) {
+                        return false;
+                    }
+                }
                 diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint) <= diagnostics_max_severity
             })
             .map(Clone::clone)
