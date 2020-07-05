@@ -9,7 +9,7 @@ pkgs.mkShell {
     git
     mypy
     neovim
-    # rustup    # error on Linux: /lib64/libc.so.6: version `GLIBC_2.14' not found
+    cargo
     rust-analyzer
     tmux
     vim-vint
@@ -21,6 +21,9 @@ pkgs.mkShell {
   ])
   ++ stdenv.lib.optionals stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
     CoreServices
+  ])
+  ++ stdenv.lib.optionals stdenv.isLinux (with pkgs; [
+    cargo-release  # build error on macOS: "iconv.h" not found.
   ]);
 
   NIX_LDFLAGS = stdenv.lib.optionalString stdenv.isDarwin "-framework CoreFoundation";
