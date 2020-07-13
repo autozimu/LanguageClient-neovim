@@ -50,6 +50,10 @@ function! LanguageClient_textDocument_formatting(...)
     return call('LanguageClient#textDocument_formatting', a:000)
 endfunction
 
+function! LanguageClient_textDocument_formatting_sync(...)
+    return call('LanguageClient#textDocument_formatting_sync', a:000)
+endfunction
+
 function! LanguageClient_textDocument_rangeFormatting(...)
     return call('LanguageClient#textDocument_rangeFormatting', a:000)
 endfunction
