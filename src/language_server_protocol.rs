@@ -3222,6 +3222,11 @@ impl LanguageClient {
         let mut virtual_texts = vec![];
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
 
+        // code lens
+        if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
+            virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
+        }
+
         // diagnostics
         if UseVirtualText::All == use_virtual_text
             || UseVirtualText::Diagnostics == use_virtual_text
@@ -3230,11 +3235,6 @@ impl LanguageClient {
                 .virtual_texts_from_diagnostics(filename, viewport)?
                 .into_iter();
             virtual_texts.extend(vt_diagnostics);
-        }
-
-        // code lens
-        if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
-            virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
         }
 
         self.vim()?.set_virtual_texts(
