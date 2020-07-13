@@ -81,6 +81,8 @@ pub const NOTIFICATION_RUST_DIAGNOSTICS_BEGIN: &str = "rustDocument/diagnosticsB
 pub const NOTIFICATION_RUST_DIAGNOSTICS_END: &str = "rustDocument/diagnosticsEnd";
 pub const NOTIFICATION_WINDOW_PROGRESS: &str = "window/progress";
 pub const NOTIFICATION_LANGUAGE_STATUS: &str = "language/status";
+pub const NOTIFICATION_DIAGNOSTICS_NEXT: &str = "languageClient/diagnosticsNext";
+pub const NOTIFICATION_DIAGNOSTICS_PREVIOUS: &str = "languageClient/diagnosticsPrevious";
 
 pub const VIM_SERVER_STATUS: &str = "g:LanguageClient_serverStatus";
 pub const VIM_SERVER_STATUS_MESSAGE: &str = "g:LanguageClient_serverStatusMessage";

@@ -1,4 +1,4 @@
-use crate::{language_client::LanguageClient, types::*};
+use crate::{language_client::LanguageClient, language_server_protocol::Direction, types::*};
 use anyhow::{anyhow, Result};
 use log::*;
 use lsp_types::notification::{self, Notification};
@@ -196,6 +196,10 @@ impl LanguageClient {
             NOTIFICATION_RUST_BEGIN_BUILD => self.rust_handle_begin_build(&params)?,
             NOTIFICATION_RUST_DIAGNOSTICS_BEGIN => self.rust_handle_diagnostics_begin(&params)?,
             NOTIFICATION_RUST_DIAGNOSTICS_END => self.rust_handle_diagnostics_end(&params)?,
+            NOTIFICATION_DIAGNOSTICS_NEXT => self.cycle_diagnostics(&params, Direction::Next)?,
+            NOTIFICATION_DIAGNOSTICS_PREVIOUS => {
+                self.cycle_diagnostics(&params, Direction::Previous)?
+            }
 
             _ => {
                 let language_id_target = if language_id.is_some() {
