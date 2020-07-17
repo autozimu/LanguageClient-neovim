@@ -161,7 +161,7 @@ impl<P: AsRef<Path> + std::fmt::Debug> ToUrl for P {
     fn to_url(&self) -> Result<Url> {
         Url::from_file_path(self)
             .or_else(|_| Url::from_str(&self.as_ref().to_string_lossy()))
-            .or_else(|_| Err(anyhow!("Failed to convert ({:?}) to Url", self)))
+            .map_err(|_| anyhow!("Failed to convert ({:?}) to Url", self))
     }
 }
 
