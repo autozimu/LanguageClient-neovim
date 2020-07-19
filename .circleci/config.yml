@@ -5,20 +5,6 @@ general:
       - /binary-.*/
 
 jobs:
-  lint:
-    docker:
-      - image: circleci/rust:latest
-    steps:
-      - checkout
-      - run: |
-          rustup component add clippy
-          cargo clippy --all -- --deny warnings
-  format:
-    docker:
-      - image: circleci/rust:latest
-    steps:
-      - checkout
-      - run: cargo fmt -- --check
   build:
     docker:
       - image: autozimu/languageclientneovim

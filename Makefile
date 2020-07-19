@@ -2,20 +2,20 @@ all: release
 
 dev: build fmt clippy vint
 
-ci: vint python-lint test integration-test
-	cargo fmt -- --check
+ci: vint python-lint check-fmt-and-clippy test integration-test
 
 check:
 	cargo check
+
+check-fmt-and-clippy: check
+	cargo fmt -- --check
+	cargo clippy --all -- --deny warnings
 
 build:
 	cargo build
 
 fmt:
 	cargo fmt
-
-clippy:
-	cargo clippy
 
 vint:
 	vint autoload plugin
