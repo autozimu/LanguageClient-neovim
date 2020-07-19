@@ -9,9 +9,10 @@ pkgs.mkShell {
     git
     mypy
     neovim
-    cargo
-    rust-analyzer
+    rustup
+    rust-analyzer # For integration tests.
     tmux
+    vim # For manual tests.
     vim-vint
     (with python37Packages; [
       flake8
