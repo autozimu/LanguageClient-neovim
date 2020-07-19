@@ -36,12 +36,12 @@ impl LanguageClient {
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
     pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Result<Arc<Mutex<()>>> {
         let map_guard = self.clients_mutex.lock();
-        let mut map = map_guard.or_else(|err| {
-            Err(anyhow!(
+        let mut map = map_guard.map_err(|err| {
+            anyhow!(
                 "Failed to lock client creation for languageId {:?}: {:?}",
                 language_id,
                 err,
-            ))
+            )
         })?;
         if !map.contains_key(&language_id) {
             map.insert(language_id.clone(), Arc::new(Mutex::new(())));
