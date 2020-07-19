@@ -14,20 +14,17 @@ mod vimext;
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use structopt::StructOpt;
 use types::State;
 
-#[derive(Debug, StructOpt)]
-struct Arguments {}
+#[macro_use]
+extern crate clap;
 
 fn main() -> Result<()> {
-    let version = format!("{} {}", env!("CARGO_PKG_VERSION"), env!("GIT_HASH"));
-    let args = Arguments::clap().version(version.as_str());
-    let _ = args.get_matches();
+    let _ = clap::app_from_crate!().get_matches();
 
     let (tx, rx) = crossbeam::channel::unbounded();
     let language_client = language_client::LanguageClient {
-        version,
+        version: env!("CARGO_PKG_VERSION").into(),
         state_mutex: Arc::new(Mutex::new(State::new(tx)?)),
         clients_mutex: Arc::new(Mutex::new(HashMap::new())),
     };

@@ -80,9 +80,8 @@ fn create_config(path: &Option<PathBuf>, level: LevelFilter) -> Result<Config> {
             #[allow(clippy::write_literal)]
             writeln!(
                 f,
-                "#######\nLanguageClient {} {}\n#######",
+                "#######\nLanguageClient {}\n#######",
                 env!("CARGO_PKG_VERSION"),
-                env!("GIT_HASH")
             )?;
         }
 

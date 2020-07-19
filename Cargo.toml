@@ -20,7 +20,7 @@ tag-name = "{{version}}"
 itertools = "0.8"
 log = "0.4"
 log4rs = "0"
-structopt = "0"
+clap = { version = "2", default-features = false }
 maplit = "1"
 serde = "1"
 serde_derive = "1"
