@@ -11,21 +11,11 @@ jobs:
     steps:
       - checkout
       - run: make ci
-  deploy:
-    docker:
-      - image: autozimu/rust-cross-for-macos
-    steps:
-      - checkout
-      - run: |
-          cargo build --target=x86_64-apple-darwin --release
-          github-release upload --user autozimu --repo LanguageClient-neovim --tag test --name languageclient-x86_64-apple-darwin --file $CARGO_TARGET_DIR/x86_64-apple-darwin/release/languageclient
 
 workflows:
   version: 2
   dev:
     jobs:
-      - format
-      - lint
       - build
 
 # vim: tabstop=2

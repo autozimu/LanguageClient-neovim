@@ -1,4 +1,4 @@
-FROM rust:1.41-slim
+FROM rust:1.45-slim
 
 RUN apt-get update \
         && apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 npm make \
@@ -7,11 +7,8 @@ RUN apt-get update \
 
 RUN python3 -m pip install neovim vim-vint
 
-RUN npm install -g javascript-typescript-langserver@2.5.5
-
-RUN rustup component add rustfmt rls rust-analysis rust-src \
-        && rustc --version \
-        && rls --version
+RUN rustup toolchain install 1.45.0 --component rustfmt clippy \
+        && rustup show
 RUN curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o /usr/local/bin/rust-analyzer \
         && chmod +x /usr/local/bin/rust-analyzer
 
