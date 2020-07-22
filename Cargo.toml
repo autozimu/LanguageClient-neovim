@@ -17,7 +17,7 @@ pre-release-hook = ["cargo", "build"]
 tag-name = "{{version}}"
 
 [dependencies]
-itertools = "0.8"
+itertools = "0.9"
 log = "0.4"
 log4rs = "0"
 clap = { version = "2", default-features = false }
