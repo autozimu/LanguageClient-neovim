@@ -912,6 +912,17 @@ Signature: LanguageClient#debugInfo(...)
 
 Print out debug info.
 
+*LanguageClient#diagnosticsNext*
+Signature: LanguageClient#diagnosticsNext()
+
+Moves the cursor to the next diagnostic in the buffer, relative to the current cursor position.
+
+*LanguageClient#diagnosticsPrevious*
+Signature: LanguageClient#diagnosticsPrevious()
+
+Moves the cursor to the previous diagnostic in the buffer, relative to the current cursor position.
+
+
 ==============================================================================
 5. Mappings                                           *LanguageClientMappings*
 
@@ -965,6 +976,12 @@ Calls LanguageClient_textDocument_formatting.
 
 *(lcn-format-sync)*
 Calls LanguageClient_textDocument_formatting_sync.
+
+*(lcn-diagnostics-next)*
+Calls LanguageClient_diagnosticsNext.
+
+*(lcn-diagnostics-prev)*
+Calls LanguageClient_diagnosticsPrevious.
 
 
 ==============================================================================

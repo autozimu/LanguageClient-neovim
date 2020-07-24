@@ -58,6 +58,12 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[derive(PartialEq)]
+pub enum Direction {
+    Next,
+    Previous,
+}
+
 impl LanguageClient {
     pub fn get_client(&self, language_id: &LanguageId) -> Result<Arc<RpcClient>> {
         self.get(|state| state.clients.get(language_id).cloned())?
@@ -605,6 +611,45 @@ impl LanguageClient {
         self.vim()?.rpcclient.notify("setline", json!([1, lines]))?;
         debug!("End apply TextEdits");
         Ok(position)
+    }
+
+    // moves the cursor to the next or previous diagnostic, depending on the value of direction.
+    pub fn cycle_diagnostics(&self, params: &Value, direction: Direction) -> Result<()> {
+        let filename = self.vim()?.get_filename(params)?;
+        let pos = self.vim()?.get_position(params)?;
+        let mut diagnostics = self.get(|state| state.diagnostics.clone())?;
+        if let Some(diagnostics) = diagnostics.get_mut(&filename) {
+            if direction == Direction::Next {
+                diagnostics.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
+            } else {
+                diagnostics.sort_by_key(|edit| {
+                    (
+                        -(edit.range.start.line as i64),
+                        -(edit.range.start.character as i64),
+                    )
+                });
+            }
+
+            let (line, col) = (pos.line, pos.character);
+            if let Some((_, diagnostic)) = diagnostics.iter_mut().find_position(|it| {
+                let start = it.range.start;
+                if direction == Direction::Next {
+                    start.line > line || (start.line == line && start.character > col)
+                } else {
+                    start.line < line || (start.line == line && start.character < col)
+                }
+            }) {
+                let line = diagnostic.range.start.line + 1;
+                let col = diagnostic.range.start.character + 1;
+                let _: String = self.vim()?.rpcclient.call("cursor", json!([line, col]))?;
+            } else {
+                self.vim()?.echomsg("No diagnostics found")?;
+            }
+        } else {
+            self.vim()?.echomsg("No diagnostics found")?;
+        }
+
+        Ok(())
     }
 
     fn update_quickfixlist(&self) -> Result<()> {

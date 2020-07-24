@@ -1050,6 +1050,22 @@ function! LanguageClient#setLoggingLevel(level) abort
     return LanguageClient#Call('languageClient/setLoggingLevel', l:params, v:null)
 endfunction
 
+function! LanguageClient#diagnosticsPrevious() abort
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'position': LSP#position(),
+                \ }
+    return LanguageClient#Notify('languageClient/diagnosticsPrevious', l:params)
+endfunction
+
+function! LanguageClient#diagnosticsNext() abort
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'position': LSP#position(),
+                \ }
+    return LanguageClient#Notify('languageClient/diagnosticsNext', l:params)
+endfunction
+
 function! LanguageClient#setDiagnosticsList(diagnosticsList) abort
     let l:params = {
                 \ 'diagnosticsList': a:diagnosticsList,
