@@ -17,7 +17,7 @@ pre-release-hook = ["cargo", "build"]
 tag-name = "{{version}}"
 
 [dependencies]
-itertools = "0.8"
+itertools = "0.9"
 log = "0.4"
 log4rs = "0"
 clap = { version = "2", default-features = false }
@@ -28,7 +28,7 @@ serde_json = "1"
 json-patch = "0.2"
 crossbeam = "0.7.3"
 jsonrpc-core = "12"
-lsp-types = { version = "0.74.2", features = ["proposed"] }
+lsp-types = { version = "0.78", features = ["proposed"] }
 url = "2"
 pathdiff = "0"
 diff = "0"

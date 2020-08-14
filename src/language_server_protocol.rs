@@ -18,28 +18,28 @@ use log::{debug, error, info, warn};
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
 use lsp_types::{
-    code_action_kind, ApplyWorkspaceEditParams, ApplyWorkspaceEditResponse, ClientCapabilities,
-    ClientInfo, CodeAction, CodeActionCapability, CodeActionContext, CodeActionKindLiteralSupport,
-    CodeActionLiteralSupport, CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens,
-    Command, CompletionCapability, CompletionItem, CompletionItemCapability, CompletionResponse,
-    CompletionTextEdit, Diagnostic, DiagnosticSeverity, DidChangeConfigurationParams,
-    DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
-    DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentChangeOperation, DocumentChanges,
-    DocumentFormattingParams, DocumentHighlight, DocumentHighlightKind,
-    DocumentRangeFormattingParams, DocumentSymbolParams, ExecuteCommandParams, FormattingOptions,
-    GenericCapability, GotoCapability, GotoDefinitionResponse, Hover, HoverCapability,
-    InitializeParams, InitializeResult, InitializedParams, Location, LogMessageParams, MarkupKind,
-    MessageType, NumberOrString, ParameterInformation, ParameterInformationSettings,
-    PartialResultParams, Position, ProgressParams, ProgressParamsValue,
-    PublishDiagnosticsCapability, PublishDiagnosticsParams, Range, ReferenceContext,
-    RegistrationParams, RenameParams, ResourceOp, SemanticHighlightingClientCapability,
-    SemanticHighlightingParams, ShowMessageParams, ShowMessageRequestParams, SignatureHelp,
-    SignatureHelpCapability, SignatureInformationSettings, SymbolInformation,
-    TextDocumentClientCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
-    TextDocumentItem, TextDocumentPositionParams, TextEdit, TraceOption, UnregistrationParams,
-    VersionedTextDocumentIdentifier, WorkDoneProgress, WorkDoneProgressParams,
-    WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
+    ApplyWorkspaceEditParams, ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo,
+    CodeAction, CodeActionCapability, CodeActionContext, CodeActionKind,
+    CodeActionKindLiteralSupport, CodeActionLiteralSupport, CodeActionOrCommand, CodeActionParams,
+    CodeActionResponse, CodeLens, Command, CompletionCapability, CompletionItem,
+    CompletionItemCapability, CompletionResponse, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, DidChangeConfigurationParams, DidChangeTextDocumentParams,
+    DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+    DocumentChangeOperation, DocumentChanges, DocumentFormattingParams, DocumentHighlight,
+    DocumentHighlightKind, DocumentRangeFormattingParams, DocumentSymbolParams,
+    ExecuteCommandParams, FormattingOptions, GenericCapability, GotoCapability,
+    GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
+    InitializedParams, Location, LogMessageParams, MarkupKind, MessageType, NumberOrString,
+    ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
+    ProgressParams, ProgressParamsValue, PublishDiagnosticsCapability, PublishDiagnosticsParams,
+    Range, ReferenceContext, RegistrationParams, RenameParams, ResourceOp,
+    SemanticHighlightingClientCapability, SemanticHighlightingParams, ShowMessageParams,
+    ShowMessageRequestParams, SignatureHelp, SignatureHelpCapability, SignatureInformationSettings,
+    SymbolInformation, TextDocumentClientCapabilities, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, TextEdit, TraceOption,
+    UnregistrationParams, VersionedTextDocumentIdentifier, WorkDoneProgress,
+    WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
 use notify::Watcher;
@@ -1174,16 +1174,16 @@ impl LanguageClient {
                             code_action_literal_support: Some(CodeActionLiteralSupport {
                                 code_action_kind: CodeActionKindLiteralSupport {
                                     value_set: [
-                                        code_action_kind::QUICKFIX,
-                                        code_action_kind::REFACTOR,
-                                        code_action_kind::REFACTOR_EXTRACT,
-                                        code_action_kind::REFACTOR_INLINE,
-                                        code_action_kind::REFACTOR_REWRITE,
-                                        code_action_kind::SOURCE,
-                                        code_action_kind::SOURCE_ORGANIZE_IMPORTS,
+                                        CodeActionKind::QUICKFIX,
+                                        CodeActionKind::REFACTOR,
+                                        CodeActionKind::REFACTOR_EXTRACT,
+                                        CodeActionKind::REFACTOR_INLINE,
+                                        CodeActionKind::REFACTOR_REWRITE,
+                                        CodeActionKind::SOURCE,
+                                        CodeActionKind::SOURCE_ORGANIZE_IMPORTS,
                                     ]
                                     .iter()
-                                    .map(|x| x.to_string())
+                                    .map(|kind| kind.as_str().to_owned())
                                     .collect(),
                                 },
                             }),
@@ -1556,7 +1556,7 @@ impl LanguageClient {
             .map(|action_or_command| match action_or_command {
                 CodeActionOrCommand::Command(command) => CodeAction {
                     title: command.title.clone(),
-                    kind: Some(command.command.clone()),
+                    kind: Some(command.command.clone().into()),
                     diagnostics: None,
                     edit: None,
                     command: Some(command),
@@ -2041,7 +2041,7 @@ impl LanguageClient {
             .map(|cl| match &cl.command {
                 None => Err(anyhow!("no command, skipping")),
                 Some(cmd) => Ok(CodeAction {
-                    kind: Some(cmd.command.clone()),
+                    kind: Some(cmd.command.clone().into()),
                     title: cmd.title.clone(),
                     command: cl.clone().command,
                     diagnostics: None,
