@@ -26,8 +26,8 @@ use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionKindLiteralSupport, CodeActionLiteralSupport,
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens, Command,
     CompletionCapability, CompletionItem, CompletionItemCapability, CompletionResponse,
-    CompletionTextEdit, Diagnostic, DiagnosticSeverity, DidChangeConfigurationParams,
-    DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
+    CompletionTextEdit, ConfigurationParams, Diagnostic, DiagnosticSeverity,
+    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
     DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentChangeOperation, DocumentChanges,
     DocumentFormattingParams, DocumentHighlight, DocumentHighlightKind,
@@ -963,6 +963,7 @@ impl LanguageClient {
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
                         apply_edit: Some(true),
+                        configuration: Some(true),
                         did_change_watched_files: Some(GenericCapability {
                             dynamic_registration: Some(true),
                         }),
@@ -1789,6 +1790,23 @@ impl LanguageClient {
             DidChangeConfigurationParams { settings },
         )?;
         Ok(())
+    }
+
+    pub fn workspace_configuration(&self, params: &Value) -> Result<Value> {
+        let config_params = ConfigurationParams::deserialize(params)?;
+
+        let settings = self.get_state(|state| state.initialization_options.clone())?;
+
+        let configuration_items = config_params
+            .items
+            .into_iter()
+            .filter_map(|item| {
+                let section = format!("/{}", item.section?.replace(".", "/"));
+                settings.pointer(&section).cloned()
+            })
+            .collect::<Value>();
+
+        Ok(configuration_items)
     }
 
     pub fn handle_code_lens_action(&self, params: &Value) -> Result<Value> {
