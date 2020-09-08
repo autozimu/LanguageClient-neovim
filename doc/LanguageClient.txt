@@ -36,14 +36,20 @@ like to map these functions to shortcuts, for example: >
     nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
     nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 
+You can also use slightly cleaner Plug mappings instead of the full function name: >
+
+    nmap <silent> K <Plug>(lcn-hover)
+    nmap <silent> gd <Plug>(lcn-definition)
+    nmap <silent> <F2> <Plug>(lcn-rename)
+
 You can apply these mappings only for buffers with supported filetypes with a
 simple function: >
 
     function LC_maps()
       if has_key(g:LanguageClient_serverCommands, &filetype)
-        nnoremap <buffer> <silent> K :call LanguageClient#textDocument_hover()<cr>
-        nnoremap <buffer> <silent> gd :call LanguageClient#textDocument_definition()<CR>
-        nnoremap <buffer> <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
+        nmap <buffer> <silent> K <Plug>(lcn-hover)
+        nmap <buffer> <silent> gd <Plug>(lcn-definition)
+        nmap <buffer> <silent> <F2> <Plug>(lcn-rename)
       endif
     endfunction
 
