@@ -9,13 +9,16 @@ check:
 
 check-fmt-and-clippy: check
 	cargo fmt -- --check
-	cargo clippy --all -- --deny warnings
+	cargo clippy -- --deny warnings
 
 build:
 	cargo build
 
 fmt:
 	cargo fmt
+
+clippy:
+	cargo clippy
 
 vint:
 	vint autoload plugin
