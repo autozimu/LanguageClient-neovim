@@ -854,7 +854,7 @@ impl ToDisplay for MarkupContent {
 
 impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
-        match self.contents {
+        let result = match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
             HoverContents::Array(ref arr) => arr
                 .iter()
@@ -873,7 +873,17 @@ impl ToDisplay for Hover {
                 })
                 .collect(),
             HoverContents::Markup(ref mc) => mc.to_display(),
-        }
+        };
+
+        // Force the markdown output to plain text.
+        result.iter().map(|line| {
+            use pulldown_cmark::{Parser, Event};
+            Parser::new(line).into_offset_iter().filter_map(|(event, _range)| match event {
+                Event::Text(s) => Some(s.into_string()),
+                Event::Code(s) => Some(format!("`{}`", s)),
+                _ => None,
+            }).collect()
+        }).collect()
     }
 
     fn vim_filetype(&self) -> Option<String> {
