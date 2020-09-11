@@ -52,14 +52,21 @@ pub fn get_root_path<'a>(
         "javascript" | "typescript" | "javascript.jsx" | "typescript.tsx" => {
             traverse_up(path, dir_has_one(&["package.json"]))
         }
-        "python" => traverse_up(path, dir_has_one(
-            &["setup.py", "Pipfile", "requirements.txt", "pyproject.toml"]
-        )),
+        "python" => traverse_up(
+            path,
+            dir_has_one(&["setup.py", "Pipfile", "requirements.txt", "pyproject.toml"]),
+        ),
         "c" | "cpp" => traverse_up(path, dir_has_one(&["compile_commands.json"])),
         "cs" => traverse_up(path, is_dotnet_root),
-        "java" => traverse_up(path, dir_has_one(
-            &["pom.xml", "settings.gradle", "settings.gradle.kts", "WORKSPACE"]
-        )),
+        "java" => traverse_up(
+            path,
+            dir_has_one(&[
+                "pom.xml",
+                "settings.gradle",
+                "settings.gradle.kts",
+                "WORKSPACE",
+            ]),
+        ),
         "scala" => traverse_up(path, dir_has_one(&["build.sbt"])),
         "haskell" => traverse_up(path, dir_has_one(&["stack.yaml"])).or_else(|_| {
             traverse_up(path, |dir| {
