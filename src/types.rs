@@ -876,14 +876,20 @@ impl ToDisplay for Hover {
         };
 
         // Force the markdown output to plain text.
-        result.iter().map(|line| {
-            use pulldown_cmark::{Parser, Event};
-            Parser::new(line).into_offset_iter().filter_map(|(event, _range)| match event {
-                Event::Text(s) => Some(s.into_string()),
-                Event::Code(s) => Some(format!("`{}`", s)),
-                _ => None,
-            }).collect()
-        }).collect()
+        result
+            .iter()
+            .map(|line| {
+                use pulldown_cmark::{Event, Parser};
+                Parser::new(line)
+                    .into_offset_iter()
+                    .filter_map(|(event, _range)| match event {
+                        Event::Text(s) => Some(s.into_string()),
+                        Event::Code(s) => Some(format!("`{}`", s)),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect()
     }
 
     fn vim_filetype(&self) -> Option<String> {
