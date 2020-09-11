@@ -47,31 +47,33 @@ pub fn get_root_path<'a>(
     }
 
     match language_id {
-        "rust" => traverse_up(path, |dir| dir.join("Cargo.toml").exists()),
-        "php" => traverse_up(path, |dir| dir.join("composer.json").exists()),
+        "rust" => traverse_up(path, dir_has_one(&["Cargo.toml"])),
+        "php" => traverse_up(path, dir_has_one(&["composer.json"])),
         "javascript" | "typescript" | "javascript.jsx" | "typescript.tsx" => {
-            traverse_up(path, |dir| dir.join("package.json").exists())
+            traverse_up(path, dir_has_one(&["package.json"]))
         }
-        "python" => traverse_up(path, |dir| {
-            dir.join("setup.py").exists()
-                || dir.join("Pipfile").exists()
-                || dir.join("requirements.txt").exists()
-                || dir.join("pyproject.toml").exists()
-        }),
-        "c" | "cpp" => traverse_up(path, |dir| dir.join("compile_commands.json").exists()),
+        "python" => traverse_up(
+            path,
+            dir_has_one(&["setup.py", "Pipfile", "requirements.txt", "pyproject.toml"]),
+        ),
+        "c" | "cpp" => traverse_up(path, dir_has_one(&["compile_commands.json"])),
         "cs" => traverse_up(path, is_dotnet_root),
-        "java" => traverse_up(path, |dir| {
-            dir.join(".project").exists()
-                || dir.join("pom.xml").exists()
-                || dir.join("build.gradle").exists()
-        }),
-        "scala" => traverse_up(path, |dir| dir.join("build.sbt").exists()),
-        "haskell" => traverse_up(path, |dir| dir.join("stack.yaml").exists()).or_else(|_| {
+        "java" => traverse_up(
+            path,
+            dir_has_one(&[
+                "pom.xml",
+                "settings.gradle",
+                "settings.gradle.kts",
+                "WORKSPACE",
+            ]),
+        ),
+        "scala" => traverse_up(path, dir_has_one(&["build.sbt"])),
+        "haskell" => traverse_up(path, dir_has_one(&["stack.yaml"])).or_else(|_| {
             traverse_up(path, |dir| {
                 dir_contains_file(dir, |f| has_extension(f, "cabal"))
             })
         }),
-        "go" => traverse_up(path, |dir| dir.join("go.mod").exists()),
+        "go" => traverse_up(path, dir_has_one(&["go.mod"])),
         _ => Err(anyhow!("Unknown languageId: {}", language_id)),
     }
     .or_else(|_| {
@@ -89,6 +91,10 @@ pub fn get_root_path<'a>(
         );
         parent
     })
+}
+
+fn dir_has_one<'a>(files: &'a [&str]) -> impl Fn(&'a Path) -> bool {
+    move |dir| files.iter().any(|file| dir.join(file).exists())
 }
 
 /// If iterating the directory fails (e.g. because it is not a directory), returns false; if a
@@ -117,9 +123,9 @@ fn has_extension(path: &Path, ext: &str) -> bool {
     }
 }
 
-fn traverse_up<F>(path: &Path, predicate: F) -> Result<&Path>
+fn traverse_up<'a, F>(path: &'a Path, predicate: F) -> Result<&'a Path>
 where
-    F: Fn(&Path) -> bool,
+    F: Fn(&'a Path) -> bool,
 {
     if predicate(path) {
         return Ok(path);
