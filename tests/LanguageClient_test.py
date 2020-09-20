@@ -56,7 +56,7 @@ def setup(nvim):
 
 def test_textDocument_definition(nvim):
     nvim.command("edit! {}".format(PATH_MAIN_RS))
-    time.sleep(3)
+    time.sleep(10)
     nvim.funcs.cursor(3, 22)
     nvim.funcs.LanguageClient_textDocument_definition()
     time.sleep(3)
