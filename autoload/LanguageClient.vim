@@ -641,6 +641,11 @@ endfunction
 
 let s:root = expand('<sfile>:p:h:h')
 function! LanguageClient#binaryPath() abort
+    let l:path = s:GetVar('LanguageClient_binaryPath')
+    if l:path isnot v:null
+        return l:path
+    endif
+
     let l:filename = 'languageclient'
     if has('win32')
         let l:filename .= '.exe'

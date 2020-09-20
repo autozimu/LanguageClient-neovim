@@ -596,6 +596,13 @@ Whether set buffer omnifunc to 'LanguageClient#complete'.
 Default: v:true
 Valid options: v:true | v:false
 
+2.39 g:LanguageClient_binaryPath                  *g:LanguageClient_binaryPath*
+
+Full path to languageclient binary.
+
+Default: 'bin/languageclient' relative to plugin root.
+Valid options: String
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
