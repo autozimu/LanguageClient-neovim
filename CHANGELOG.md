@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add support to skip setting buffer omnifunc (#1079).
 - Add support of setting languageclient binary path (#1020).
+- Support file watching scenario of writing via rename (#1054).
 
 ## [0.1.158]
 
