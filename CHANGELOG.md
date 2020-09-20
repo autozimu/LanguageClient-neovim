@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- Add support to skip setting buffer omnifunc (#1079).
+- Add support of setting languageclient binary path (#1020).
+
 ## [0.1.158]
 
 ### Added
