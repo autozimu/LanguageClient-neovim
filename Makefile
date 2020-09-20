@@ -2,12 +2,10 @@ all: release
 
 dev: build fmt clippy vint
 
-ci: vint python-lint check-fmt-and-clippy test integration-test
+ci: vim-lint python-lint check-fmt-and-clippy test integration-test
 
-check:
+check-fmt-and-clippy:
 	cargo check
-
-check-fmt-and-clippy: check
 	cargo fmt -- --check
 	cargo clippy -- --deny warnings
 
@@ -20,7 +18,7 @@ fmt:
 clippy:
 	cargo clippy
 
-vint:
+vim-lint:
 	vint autoload plugin
 
 release:
@@ -63,7 +61,7 @@ clean:
 	cargo clean
 	rm -rf bin/languageclient
 
-DATE := $(shell date +%F)
+DATE := $(shell date --utc +%F)
 
 build-docker-image: ci/Dockerfile
 	docker build \
