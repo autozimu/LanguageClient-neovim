@@ -2184,6 +2184,9 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let text = self.vim()?.get_text(&filename)?;
+        let set_omnifunc: bool = self
+            .vim()?
+            .eval("s:GetVar('LanguageClient_setOmnifunc', v:true)")?;
 
         let text_document = TextDocumentItem {
             uri: filename.to_url()?,
@@ -2203,8 +2206,10 @@ impl LanguageClient {
             DidOpenTextDocumentParams { text_document },
         )?;
 
-        self.vim()?
-            .command("setlocal omnifunc=LanguageClient#complete")?;
+        if set_omnifunc {
+            self.vim()?
+                .command("setlocal omnifunc=LanguageClient#complete")?;
+        }
         let root = self.get(|state| state.roots.get(&language_id).cloned().unwrap_or_default())?;
         self.vim()?.rpcclient.notify(
             "setbufvar",

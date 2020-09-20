@@ -589,6 +589,13 @@ Hides all virtual texts for the current buffer while editing in insert mode.
 Default: 0
 Valid options: 1 | 0
 
+2.38 g:LanguageClient_setOmnifunc                *g:LanguageClient_setOmnifunc*
+
+Whether set buffer omnifunc to 'LanguageClient#complete'.
+
+Default: v:true
+Valid options: v:true | v:false
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
