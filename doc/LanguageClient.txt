@@ -381,7 +381,7 @@ When the value is set to 1, |LanguageClient#textDocument_hover()| opens
 documentation in a floating window instead of preview.
 This variable is effective only when the floating window feature is
 supported. Check by running >
-    :echomsg exists('nvim_open_win')
+    :echomsg exists('*nvim_open_win')
 
 Default: 1 when a floating window is supported, otherwise 0
 Valid Options: 1 | 0
