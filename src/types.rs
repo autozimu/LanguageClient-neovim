@@ -13,8 +13,8 @@ use log::*;
 use lsp_types::{
     CodeAction, CodeLens, Command, CompletionItem, CompletionTextEdit, Diagnostic,
     DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
-    InsertTextFormat, Location, MarkedString, MarkupContent, MarkupKind, MessageType,
-    NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
+    InitializeResult, InsertTextFormat, Location, MarkedString, MarkupContent, MarkupKind,
+    MessageType, NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
     TextDocumentItem, TextDocumentPositionParams, TraceOption, Url, WorkspaceEdit,
 };
 use maplit::hashmap;
@@ -146,7 +146,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub vim: Vim,
 
-    pub capabilities: HashMap<String, Value>,
+    pub capabilities: HashMap<String, InitializeResult>,
     pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
@@ -209,6 +209,7 @@ pub struct State {
     pub use_virtual_text: UseVirtualText,
     pub hide_virtual_texts_on_insert: bool,
     pub echo_project_root: bool,
+    pub enable_extensions: Option<HashMap<String, bool>>,
 
     pub server_stderr: Option<String>,
     pub logger: Logger,
@@ -292,6 +293,7 @@ impl State {
             echo_project_root: true,
             server_stderr: None,
             preferred_markup_kind: None,
+            enable_extensions: None,
 
             logger,
         })
