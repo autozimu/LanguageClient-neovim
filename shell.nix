@@ -8,10 +8,9 @@ pkgs.mkShell {
     curl
     git
     mypy
-    neovim
+    neovim # For integration tests and manual tests.
     rustup
     rust-analyzer # For integration tests.
-    tmux
     vim # For manual tests.
     vim-vint
     (with python37Packages; [

@@ -39,3 +39,8 @@ shellexpand = "2.0.0"
 derivative = "2.1.1"
 anyhow = "1.0.31"
 thiserror = "1.0.19"
+
+[dev-dependencies]
+vil = { path = "/workplace/lijunfen/mal/impls/vimscript" }
+lexpr = "0.2"
+once_cell = "1.4"

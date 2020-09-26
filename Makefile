@@ -72,3 +72,6 @@ build-docker-image: ci/Dockerfile
 publish-docker-image:
 	docker push autozimu/languageclientneovim:latest
 	docker push autozimu/languageclientneovim:$(DATE)
+
+start-vim:
+	vim --cmd 'set runtimepath+=/workplace/lijunfen/mal/impls/vimscript'
