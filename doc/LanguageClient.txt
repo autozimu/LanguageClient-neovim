@@ -604,7 +604,7 @@ Full path to languageclient binary.
 Default: 'bin/languageclient' relative to plugin root.
 Valid options: String
 
-2.39 g:LanguageClient_enableExtensions          *g:LanguageClient_enableExtensions*
+2.40 g:LanguageClient_enableExtensions          *g:LanguageClient_enableExtensions*
 
 LanguageClient-neovim provides extensions for some language servers, such as gopls or rust-analyzer.
 These extensions can be turned on or off, and they are configurable per language (not per language
@@ -628,6 +628,12 @@ explicitly enable them like we did for `rust`.
 The default value for this config, or the absence of this config, enables extensions for all filetypes.
 
 Default: v:null
+
+2.41 g:LanguageClient_codeLensHighlightGroup          *g:LanguageClient_codeLensHighlightGroup*
+
+Highlight group to be used for code lens.
+
+Default: 'Comment'
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*

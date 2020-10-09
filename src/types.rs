@@ -159,6 +159,7 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
     pub code_lens: HashMap<String, Vec<CodeLens>>,
+    pub code_lens_hl_group: String,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     /// Active signs.
@@ -294,6 +295,7 @@ impl State {
             server_stderr: None,
             preferred_markup_kind: None,
             enable_extensions: None,
+            code_lens_hl_group: "Comment".into(),
 
             logger,
         })
