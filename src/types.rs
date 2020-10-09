@@ -211,6 +211,7 @@ pub struct State {
     pub hide_virtual_texts_on_insert: bool,
     pub echo_project_root: bool,
     pub enable_extensions: Option<HashMap<String, bool>>,
+    pub diagnostics_display_funcref: Option<String>,
 
     pub server_stderr: Option<String>,
     pub logger: Logger,
@@ -296,6 +297,7 @@ impl State {
             preferred_markup_kind: None,
             enable_extensions: None,
             code_lens_hl_group: "Comment".into(),
+            diagnostics_display_funcref: None,
 
             logger,
         })

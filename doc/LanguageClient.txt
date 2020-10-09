@@ -635,6 +635,51 @@ Highlight group to be used for code lens.
 
 Default: 'Comment'
 
+2.42 g:LanguageClient_diagnosticsDisplayFuncref          *g:LanguageClient_diagnosticsDisplayFuncref*
+
+If set, LanguageClient-neovim will call this function instead of setting the diagnostics signs. This
+is useful to delegate the display of diagnostics to other engines. The function is called with two
+arguments, the first one is the file name of which the diagnostics correspond to, and the seconds one
+is the list of diagnostics for said file. Those diagnostics are as specified in the LSP specification.
+
+For example, if you wanted to use `dense-analysis/ale` to display diagnostics instead of this plugin
+you could use something like this:
+
+```
+function! g:DisplayDiagnostics(filename, diagnostics) abort
+  let s:diagnostics = []
+
+  for d in a:diagnostics
+    let s:severity = 'I'
+    if d.severity == 1
+      let s:severity = 'E'
+    elseif d.severity == 2
+      let s:severity = 'W'
+    endif
+
+    call add(s:diagnostics, {
+      \ "filename": a:filename,
+      \ "text": d.message,
+      \ "lnum": d.range.start.line + 1,
+      \ "end_lnum": d.range.end.line + 1,
+      \ "col": d.range.end.character,
+      \ "end_col": d.range.end.character,
+      \ "type": s:severity,
+      \ })
+  endfor
+
+  call ale#other_source#ShowResults(bufnr('%'), 'LanguageClientNeovim', s:diagnostics)
+endfunction
+
+let g:LanguageClient_diagnosticsDisplayFuncref = 'g:DisplayDiagnostics'
+```
+
+Keep in mind that to complete the integration between `ale` and `LanguageClient-neovim` you need to
+add `LanguageClientNeovim` (or the name of the linter you used in the call to ShowResults) to the list
+of linters to be used in `ale`.
+
+Default: v:null
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 

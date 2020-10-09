@@ -165,6 +165,7 @@ impl LanguageClient {
 
         #[allow(clippy::type_complexity)]
         let (
+            diagnostics_display_funcref,
             diagnostics_signs_max,
             diagnostics_max_severity,
             diagnostics_ignore_sources,
@@ -180,6 +181,7 @@ impl LanguageClient {
             enable_extensions,
             code_lens_hl_group,
         ): (
+            Option<String>,
             Option<usize>,
             String,
             Vec<String>,
@@ -196,6 +198,7 @@ impl LanguageClient {
             String,
         ) = self.vim()?.eval(
             [
+                "get(g:, 'LanguageClient_diagnosticsDisplayFuncref', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
                 "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
                 "get(g:, 'LanguageClient_diagnosticsIgnoreSources', [])",
@@ -328,6 +331,8 @@ impl LanguageClient {
             state.preferred_markup_kind = preferred_markup_kind;
             state.enable_extensions = enable_extensions;
             state.code_lens_hl_group = code_lens_hl_group;
+            state.diagnostics_display_funcref = diagnostics_display_funcref;
+
             Ok(())
         })?;
 
@@ -2468,6 +2473,14 @@ impl LanguageClient {
                     json!([filename, VIM_STATUS_LINE_DIAGNOSTICS_COUNTS, severity_count]),
                 )?;
             }
+        }
+
+        // if a diagnostics display funcref has been configured then call that function and return
+        if let Some(funcref) = self.get(|state| state.diagnostics_display_funcref.clone())? {
+            self.vim()?
+                .rpcclient
+                .notify(funcref, json!([filename, diagnostics]))?;
+            return Ok(());
         }
 
         let current_filename: String = self.vim()?.get_filename(&Value::Null)?;
