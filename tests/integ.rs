@@ -82,3 +82,28 @@ fn test_text_document_hover() -> Result<()> {
         Duration::from_secs(5),
     )
 }
+
+#[test]
+fn test_text_document_rename() -> Result<()> {
+    vim().edit(&ROOT.join("src/main.rs"))?;
+    let expected: Vec<_> = vim()
+        .getbufline("", 1, 1000)?
+        .into_iter()
+        .map(|line| line.replace("greet", "hello"))
+        .collect();
+
+    vim().cursor(3, 22)?;
+    // TODO: Wait until server ready, otherwise rust-analyzer crashes.
+    std::thread::sleep(Duration::from_secs(3));
+    let _: i64 = vim().eval(sexp!(
+        (vimcall "LanguageClient#textDocument_rename" (#"hash-map" "newName" "hello"))
+    ))?;
+
+    assert_eq_timeout(
+        || vim().getbufline("", 1, 1000).unwrap(),
+        expected,
+        Duration::from_secs(5),
+    )?;
+    // Cleanup.
+    vim().execute("edit!")
+}

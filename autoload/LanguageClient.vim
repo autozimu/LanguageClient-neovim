@@ -708,12 +708,18 @@ endfunction
 function! LanguageClient#Write(message) abort
     let l:message = a:message . "\n"
     if has('nvim')
-        " jobsend respond 1 for success.
-        return !jobsend(s:job, l:message)
+        let l:bytes = jobsend(s:job, l:message)
+        if l:bytes ==# 0
+           echoerr 'Failed to write data to channel'
+           return 1
+        endif
+        return 0
     elseif has('channel')
-        return ch_sendraw(s:job, l:message)
+        call ch_sendraw(s:job, l:message)
+        return 0
     else
         echoerr 'Not supported: not nvim nor vim with +channel.'
+        return 1
     endif
 endfunction
 

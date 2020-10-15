@@ -74,4 +74,8 @@ publish-docker-image:
 	docker push autozimu/languageclientneovim:$(DATE)
 
 serve:
-	nvim -u tests/data/vimrc --cmd 'set runtimepath+=/workplace/lijunfen/mal/impls/vimscript'
+	nvim -N -n -u tests/data/vimrc --cmd 'set runtimepath+=/workplace/lijunfen/mal/impls/vimscript'
+# -N: Not fully Vi compatible: 'nocompatible'
+# -n: No swap file, use memory only
+# -u <vimrc>: Use <vimrc> instead of any .vimrc
+# --cmd <command>: Execute <command> before loading any vimrc file
