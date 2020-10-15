@@ -112,9 +112,11 @@ impl LanguageClient {
                             Runnable::Bin(runnable) => {
                                 format!("term {} {}", runnable.bin, runnable.args.join(" "))
                             }
-                            Runnable::Generic(runnable) => {
-                                format!("term cargo {}", runnable.args.cargo_args.join(" "))
-                            }
+                            Runnable::Generic(runnable) => format!(
+                                "term cargo {} -- {}",
+                                runnable.args.cargo_args.join(" "),
+                                runnable.args.executable_args.join(" "),
+                            ),
                         };
 
                         self.vim()?.command(cmd.replace('"', ""))?;
