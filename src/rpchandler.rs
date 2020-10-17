@@ -1,3 +1,4 @@
+use crate::extensions::clangd;
 use crate::{language_client::LanguageClient, language_server_protocol::Direction, types::*};
 use anyhow::{anyhow, Result};
 use log::*;
@@ -117,6 +118,10 @@ impl LanguageClient {
             REQUEST_CODE_LENS_ACTION => self.handle_code_lens_action(&params),
             REQUEST_SEMANTIC_SCOPES => self.semantic_scopes(&params),
             REQUEST_SHOW_SEMANTIC_HL_SYMBOLS => self.semantic_highlight_symbols(&params),
+
+            clangd::request::SWITCH_SOURCE_HEADER => {
+                self.text_document_switch_source_header(&params)
+            }
 
             _ => {
                 let language_id_target = if language_id.is_some() {

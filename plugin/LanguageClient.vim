@@ -146,6 +146,10 @@ function! LanguageClient_explainErrorAtPoint(...)
     return call('LanguageClient#explainErrorAtPoint', a:000)
 endfunction
 
+function! LanguageClient_textDocument_switchSourceHeader(...)
+    return call('LanguageClient#textDocument_switchSourceHeader', a:000)
+endfunction
+
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient#exit()
 

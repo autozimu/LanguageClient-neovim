@@ -808,6 +808,15 @@ function! LanguageClient#findLocations(...) abort
     return LanguageClient#Call('languageClient/findLocations', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#textDocument_switchSourceHeader(...) abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/switchSourceHeader', l:params, l:Callback)
+endfunction
+
 function! LanguageClient#textDocument_definition(...) abort
     let l:params = {
                 \ 'method': 'textDocument/definition',
