@@ -1,0 +1,14 @@
+[package]
+name = "vim-eval-derive"
+version = "0.1.0"
+authors = ["Martin Asquino <martin.asquino@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.44"
+quote = "1.0.7"
+proc-macro2 = "1.0.24"
+convert_case = "0.4.0"

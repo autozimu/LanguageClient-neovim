@@ -118,10 +118,15 @@ function! s:hasSnippetSupport() abort
 endfunction
 
 function! s:getSelectionUI() abort
-	if type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
+  let s:selection_ui = get(g:, 'LanguageClient_selectionUI', v:null)
+  if s:selection_ui ==# v:null && get(g:, 'loaded_fzf') ==# 1
 		return 'funcref'
-	else
-		return get(g:, 'LanguageClient_selectionUI', v:null)
+  endif
+
+	if type(s:selection_ui) is s:TYPE.funcref 
+		return 'funcref'
+  else
+		return s:selection_ui
 	endif
 endfunction
 
