@@ -117,6 +117,14 @@ function! s:hasSnippetSupport() abort
     return 0
 endfunction
 
+function! s:getStringOrFuncref(name, default) abort
+  if type(get(g:, a:name, a:default)) is s:TYPE.funcref
+    return string(get(g:, a:name, a:default))
+  else
+    return get(g:, a:name, a:default)
+  endif
+endfunction
+
 function! s:getSelectionUI() abort
 	if type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
 		return 'funcref'
@@ -1236,11 +1244,11 @@ function! LanguageClient#handleVimLeavePre() abort
     endtry
 endfunction
 
-function! s:LanguageClient_FZFSinkLocation(line) abort
+function! g:LanguageClient_FZFSinkLocation(line) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkLocation', [a:line])
 endfunction
 
-function! LanguageClient_FZFSinkCommand(selection) abort
+function! g:LanguageClient_FZFSinkCommand(selection) abort
     return LanguageClient#Notify('LanguageClient_FZFSinkCommand', {
                 \ 'selection': a:selection,
                 \ })
