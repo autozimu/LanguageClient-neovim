@@ -119,7 +119,7 @@ impl LanguageClient {
             REQUEST_SEMANTIC_SCOPES => self.semantic_scopes(&params),
             REQUEST_SHOW_SEMANTIC_HL_SYMBOLS => self.semantic_highlight_symbols(&params),
 
-            clangd::request::SWITCH_SOURCE_HEADER => {
+            clangd::request::SwitchSourceHeader::METHOD => {
                 self.text_document_switch_source_header(&params)
             }
 
