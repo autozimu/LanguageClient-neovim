@@ -974,6 +974,10 @@ Signature: LanguageClient#diagnosticsPrevious()
 
 Moves the cursor to the previous diagnostic in the buffer, relative to the current cursor position.
 
+*LanguageClient#textDocument_switchSourceHeader*
+Signature: LanguageClient#textDocument_switchSourceHeader(...)
+
+Calls clangd's `textDocument/switchSourceHeader` extension request.
 
 ==============================================================================
 5. Mappings                                           *LanguageClientMappings*
