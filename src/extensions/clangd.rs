@@ -1,10 +1,18 @@
 use crate::{language_client::LanguageClient, utils::ToUrl};
 use anyhow::Result;
 use jsonrpc_core::Value;
-use lsp_types::TextDocumentIdentifier;
+use lsp_types::{request::Request, TextDocumentIdentifier};
 
 pub mod request {
-    pub const SWITCH_SOURCE_HEADER: &str = "textDocument/switchSourceHeader";
+    use lsp_types::{request::Request, TextDocumentIdentifier};
+
+    pub enum SwitchSourceHeader {}
+
+    impl Request for SwitchSourceHeader {
+        type Params = TextDocumentIdentifier;
+        type Result = String;
+        const METHOD: &'static str = "textDocument/switchSourceHeader";
+    }
 }
 
 impl LanguageClient {
@@ -17,7 +25,7 @@ impl LanguageClient {
 
         let response: String = self
             .get_client(&Some(language_id))?
-            .call(request::SWITCH_SOURCE_HEADER, params)?;
+            .call(request::SwitchSourceHeader::METHOD, params)?;
 
         let path = std::path::Path::new(&response);
         self.vim()?.edit(&None, path)?;
