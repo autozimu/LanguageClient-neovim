@@ -113,6 +113,7 @@ impl LanguageClient {
             REQUEST_EXPLAIN_ERROR_AT_POINT => self.explain_error_at_point(&params),
             REQUEST_OMNI_COMPLETE => self.omnicomplete(&params),
             REQUEST_CLASS_FILE_CONTENTS => self.java_class_file_contents(&params),
+            REQUEST_SORBET_READ_FILE => self.sorbet_read_file(&params),
             REQUEST_DEBUG_INFO => self.debug_info(&params),
             REQUEST_CODE_LENS_ACTION => self.handle_code_lens_action(&params),
             REQUEST_SEMANTIC_SCOPES => self.semantic_scopes(&params),

@@ -1056,6 +1056,9 @@ impl LanguageClient {
         if path.starts_with("jdt://") {
             self.java_class_file_contents(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
             Ok(())
+        } else if path.starts_with("sorbet:") {
+            self.sorbet_read_file(&json!({ "gotoCmd": goto_cmd, "uri": path }))?;
+            Ok(())
         } else {
             self.vim()?.edit(&goto_cmd, path.into_owned())
         }
@@ -4033,6 +4036,54 @@ impl LanguageClient {
             .command("setlocal buftype=nofile filetype=java noswapfile")?;
 
         info!("End {}", REQUEST_CLASS_FILE_CONTENTS);
+        Ok(Value::String(content))
+    }
+
+    // Sorbet (sorbet.org) returns `sorbet:` URIs when it knows about a file but that file does not
+    // exist on the client's disk. That happens in two situations:
+    // - The file is a part of the standard library RBI type annotations, which comes baked into
+    //   the Sorbet binary as a string.
+    // - The client has passed Sorbet's --lsp-directories-missing-from-client flag, which declares
+    //   folders that only exist where the server is running (say, a remote development machine),
+    //   not where the editor is running (a laptop talking to that machine over SSH).
+    // In both cases, Sorbet supports a `sorbet/readFile` file operation that takes in `sorbet:...`
+    // URIs and returns the text content of the file (among other things).
+    //
+    // Implementation of sorbet/readFile in Sorbet:
+    // https://github.com/sorbet/sorbet/blob/master/main/lsp/requests/sorbet_read_file.cc
+    pub fn sorbet_read_file(&self, params: &Value) -> Result<Value> {
+        info!("Begin {}", REQUEST_SORBET_READ_FILE);
+        let language_id = "ruby".to_string();
+
+        let content: Value = self
+            .get_client(&Some(language_id))?
+            .call(REQUEST_SORBET_READ_FILE, params)?;
+
+        let content: String =
+            try_get("text", &content)?.ok_or_else(|| anyhow!("text not found in response!"))?;
+
+        let lines: Vec<String> = content
+            .lines()
+            .map(std::string::ToString::to_string)
+            .collect();
+
+        let goto_cmd = self
+            .vim()?
+            .get_goto_cmd(params)?
+            .unwrap_or_else(|| "edit".to_string());
+
+        let uri: String =
+            try_get("uri", params)?.ok_or_else(|| anyhow!("uri not found in request!"))?;
+
+        self.vim()?
+            .rpcclient
+            .notify("s:Edit", json!([goto_cmd, uri]))?;
+
+        self.vim()?.setline(1, &lines)?;
+        self.vim()?
+            .command("setlocal buftype=nofile filetype=ruby noswapfile")?;
+
+        info!("End {}", REQUEST_SORBET_READ_FILE);
         Ok(Value::String(content))
     }
 
