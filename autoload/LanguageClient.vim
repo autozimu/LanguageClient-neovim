@@ -392,14 +392,14 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         call s:CloseFloatingHover()
 
         let pos = getpos('.')
-
+        let l:hoverMarginSize = s:GetVar('LanguageClient_hoverMarginSize', 1)
         " Calculate width and height and give margin to lines
         let width = 0
         for index in range(len(lines))
             let line = lines[index]
             if line !=# ''
                 " Give a left margin
-                let line = ' ' . line
+                let line = repeat(' ', l:hoverMarginSize) . line
             endif
             let lw = strdisplaywidth(line)
             if lw > width
@@ -409,8 +409,9 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         endfor
 
         " Give margin
-        let width += 1
-        let lines = [''] + lines + ['']
+        let width += l:hoverMarginSize
+        let l:topBottom = repeat([''], l:hoverMarginSize)
+        let lines = l:topBottom + lines + l:topBottom
         let height = len(lines)
 
         " Calculate anchor
