@@ -17,8 +17,8 @@ use glob::glob;
 use itertools::Itertools;
 use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
-use lsp_types::notification::Notification;
 use lsp_types::request::Request;
+use lsp_types::{notification::Notification, PublishDiagnosticsClientCapabilities};
 use lsp_types::{
     ApplyWorkspaceEditParams, ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo,
     CodeAction, CodeActionCapability, CodeActionContext, CodeActionKind,
@@ -34,14 +34,14 @@ use lsp_types::{
     GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
     InitializedParams, Location, LogMessageParams, MarkupKind, MessageType, NumberOrString,
     ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
-    ProgressParams, ProgressParamsValue, PublishDiagnosticsCapability, PublishDiagnosticsParams,
-    Range, ReferenceContext, RegistrationParams, RenameParams, ResourceOp,
-    SemanticHighlightingClientCapability, SemanticHighlightingParams, ShowMessageParams,
-    ShowMessageRequestParams, SignatureHelp, SignatureHelpCapability, SignatureInformationSettings,
-    SymbolInformation, TextDocumentClientCapabilities, TextDocumentContentChangeEvent,
-    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, TextEdit, TraceOption,
-    UnregistrationParams, VersionedTextDocumentIdentifier, WorkDoneProgress,
-    WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
+    ProgressParams, ProgressParamsValue, PublishDiagnosticsParams, Range, ReferenceContext,
+    RegistrationParams, RenameParams, ResourceOp, SemanticHighlightingClientCapability,
+    SemanticHighlightingParams, ShowMessageParams, ShowMessageRequestParams, SignatureHelp,
+    SignatureHelpCapability, SignatureInformationSettings, SymbolInformation,
+    TextDocumentClientCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+    TextDocumentItem, TextDocumentPositionParams, TextEdit, TraceOption, UnregistrationParams,
+    VersionedTextDocumentIdentifier, WorkDoneProgress, WorkDoneProgressParams,
+    WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
 use serde::de::Deserialize;
@@ -1241,9 +1241,9 @@ impl LanguageClient {
                             link_support: Some(true),
                             ..GotoCapability::default()
                         }),
-                        publish_diagnostics: Some(PublishDiagnosticsCapability {
+                        publish_diagnostics: Some(PublishDiagnosticsClientCapabilities {
                             related_information: Some(true),
-                            ..PublishDiagnosticsCapability::default()
+                            ..PublishDiagnosticsClientCapabilities::default()
                         }),
                         code_lens: Some(GenericCapability {
                             dynamic_registration: Some(true),
@@ -2075,6 +2075,8 @@ impl LanguageClient {
                     diagnostics: None,
                     edit: None,
                     is_preferred: None,
+                    disabled: None,
+                    data: None,
                 }),
             })
             .filter(Result::is_ok)
