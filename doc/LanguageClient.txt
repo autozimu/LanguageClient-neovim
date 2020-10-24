@@ -635,6 +635,28 @@ Highlight group to be used for code lens.
 
 Default: 'Comment'
 
+2.42 g:LanguageClient_hoverMarginSize        *g:LanguageClient_hoverMarginSize*
+
+When using floating windows to open hover previews (for more information see
+|g:LanguageClient_useFloatingHover|), this setting controls whether and how
+big of a margin to draw around the contents of the hover.
+
+Having some margin looks nice, so the default is 1.
+
+Floating windows don't have a true way to set padding/margin on them, so the
+strategy used is to add one line above and below the language server's raw
+hover response, and one space character before the start of every non-empty
+line in the hover response.
+
+Having a space in front of the hover content can cause some syntax
+highlighters to mess up (because e.g., they have a regex expecting a syntax
+construct to be anchored to the start of a line). To turn off adding this
+margin, set this setting to 0. Example:
+>
+  let g:LanguageClient_hoverMarginSize = 0
+<
+Default: 1
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
