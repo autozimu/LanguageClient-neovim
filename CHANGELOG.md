@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.160]
+
+### Fixed
+- Fix issue with Sorbet sending an extra field on the messages it sends (#1115)
+
 ## [0.1.159]
 
 ### Added
