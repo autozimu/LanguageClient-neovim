@@ -4,12 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [0.1.159]
 
 ### Added
+- Add support for disabling/enabling server-specific extensions (#1072)
+- Add support for custom codelens highlight group (#1100)
+- Add support for clangd's textDocument/switchSourceHeader (#1109)
+- Add configuration for hover window margin size (#1111)
 - Add support to skip setting buffer omnifunc (#1079).
 - Add support of setting languageclient binary path (#1020).
 - Support file watching scenario of writing via rename (#1054).
+
+### Fixed
+- Bump lsp-types to 0.83 to fix issue with workspaceSymbolProvider definition (#1114)
+- Fix rust-analyzer test codelens action (#1104)
 
 ## [0.1.158]
 

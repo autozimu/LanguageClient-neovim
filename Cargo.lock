@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "languageclient"
-version = "0.1.158"
+version = "0.1.159"
 dependencies = [
  "anyhow",
  "clap",
