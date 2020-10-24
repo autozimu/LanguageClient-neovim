@@ -447,6 +447,7 @@ dependencies = [
  "itertools",
  "json-patch",
  "jsonrpc-core",
+ "lazy_static",
  "log",
  "log4rs",
  "lsp-types",

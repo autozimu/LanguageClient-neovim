@@ -2,6 +2,7 @@ use crate::types::{Call, Id, LSError, LanguageId, RawMessage, ToInt, ToParams, T
 use anyhow::{anyhow, Result};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use log::*;
+use regex::Regex;
 use serde::{de::DeserializeOwned, Serialize};
 use std::io::Write;
 use std::str::FromStr;
@@ -14,6 +15,13 @@ use std::{
 };
 
 const CONTENT_MODIFIED_ERROR_CODE: i64 = -32801;
+
+lazy_static! {
+    // this regex is used to remove some additional fields that we get from some servers, namely:
+    // meta, sent by javascript-typescript-langserver and requestMethod, sent by Sorbet.
+    static ref RE_REMOVE_EXTRA_FIELDS: Regex =
+        Regex::new(r#",\s?"(?:meta|requestMethod)":(?:"\w+(/\w+)?"|\{\})"#).unwrap();
+}
 
 #[derive(Serialize)]
 pub struct RpcClient {
@@ -181,8 +189,9 @@ fn loop_read(
             continue;
         }
         info!("<= {:?} {}", language_id, message);
-        // FIXME: Remove extra `meta` property from javascript-typescript-langserver.
-        let s = message.replace(r#","meta":{}"#, "");
+        // FIXME: Remove extra `meta` property from javascript-typescript-langserver and
+        // `requestMethod` sent by Sorbet.
+        let s = RE_REMOVE_EXTRA_FIELDS.replace(message, "");
         let message = serde_json::from_str(&s);
         if let Err(ref err) = message {
             error!(
@@ -239,4 +248,38 @@ fn loop_write(
         writer.flush()?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::RE_REMOVE_EXTRA_FIELDS;
+    use crate::types::RawMessage;
+
+    #[test]
+    // The library we're using for json-rpc doesn't accept extra fields in the structs used to
+    // deserialize the message. Sorbet (and possibly other servers) sends an extra field in it, so
+    // the client fails to deserialize that response.
+    // Our previous solution was to pin the dependency to jsonrpc-core to version 12, but is
+    // suboptimal, so we now try to remove the extra fields we know of from the response.
+    //
+    // See related issue: https://github.com/autozimu/LanguageClient-neovim/issues/892
+    fn it_should_remove_extra_fields() {
+        // it removes the requestMethod field from Sorbet
+        let message = r#"{"jsonrpc":"2.0","id":1,"requestMethod":"initialize","result":0}"#;
+        let message = RE_REMOVE_EXTRA_FIELDS.replace(message, "");
+        let result: Result<RawMessage, _> = serde_json::from_str(&message);
+        assert!(result.is_ok());
+
+        let message =
+            r#"{"jsonrpc":"2.0","id":1,"requestMethod":"textDocument/definition","result":0}"#;
+        let message = RE_REMOVE_EXTRA_FIELDS.replace(message, "");
+        let result: Result<RawMessage, _> = serde_json::from_str(&message);
+        assert!(result.is_ok());
+
+        // it removes the meta field from javascript-typescript-langserver
+        let message = r#"{"jsonrpc":"2.0","id":1,"meta":{},"result":0}"#;
+        let message = RE_REMOVE_EXTRA_FIELDS.replace(message, "");
+        let result: Result<RawMessage, _> = serde_json::from_str(&message);
+        assert!(result.is_ok());
+    }
 }

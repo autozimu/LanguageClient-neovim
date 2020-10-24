@@ -19,6 +19,8 @@ use types::State;
 
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
 
 fn main() -> Result<()> {
     let _ = clap::app_from_crate!().get_matches();
