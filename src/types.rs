@@ -1,4 +1,3 @@
-use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
 use crate::sign::Sign;
 use crate::{
@@ -7,6 +6,7 @@ use crate::{
     vim::Vim,
     watcher::FSWatch,
 };
+use crate::{logger::Logger, vim::Funcref};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
@@ -107,6 +107,13 @@ pub type LanguageId = Option<String>;
 /// Buffer id/handle.
 pub type Bufnr = i64;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Either<L, R> {
+    Left(L),
+    Right(R),
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
     MethodCall(LanguageId, jsonrpc_core::MethodCall),
@@ -188,11 +195,11 @@ pub struct State {
     pub semantic_highlight_maps: HashMap<String, HashMap<String, String>>,
     pub semantic_scope_separator: String,
     pub auto_start: bool,
-    pub selection_ui: SelectionUI,
+    pub selection_ui: Either<Funcref, SelectionUI>,
     pub selection_ui_auto_open: bool,
     pub trace: Option<TraceOption>,
     pub diagnostics_enable: bool,
-    pub diagnostics_list: DiagnosticsList,
+    pub diagnostics_list: Either<Funcref, DiagnosticsList>,
     pub diagnostics_display: HashMap<u64, DiagnosticsDisplay>,
     pub diagnostics_signs_max: Option<usize>,
     pub diagnostics_max_severity: DiagnosticSeverity,
@@ -270,11 +277,11 @@ impl State {
             semantic_highlight_maps: HashMap::new(),
             semantic_scope_separator: ":".into(),
             auto_start: true,
-            selection_ui: SelectionUI::LocationList,
+            selection_ui: Either::Right(SelectionUI::LocationList),
             selection_ui_auto_open: true,
             trace: None,
             diagnostics_enable: true,
-            diagnostics_list: DiagnosticsList::Quickfix,
+            diagnostics_list: Either::Right(DiagnosticsList::Quickfix),
             diagnostics_display: DiagnosticsDisplay::default(),
             diagnostics_signs_max: None,
             diagnostics_max_severity: DiagnosticSeverity::Hint,
@@ -304,7 +311,7 @@ impl State {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SelectionUI {
-    Funcref,
+    FZF,
     Quickfix,
     LocationList,
 }
@@ -320,7 +327,7 @@ impl FromStr for SelectionUI {
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
-            "FUNCREF" | "FZF" => Ok(SelectionUI::Funcref),
+            "FZF" => Ok(SelectionUI::FZF),
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
             _ => Err(anyhow!(
@@ -374,7 +381,7 @@ impl FromStr for HoverPreviewOption {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum DiagnosticsList {
     Quickfix,
     Location,

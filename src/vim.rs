@@ -23,6 +23,44 @@ pub fn try_get<R: DeserializeOwned>(key: &str, params: &Value) -> Result<Option<
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Funcref(String);
+
+impl AsRef<str> for Funcref {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl serde::ser::Serialize for Funcref {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(format!("function('{}')", self.0).as_str())
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Funcref {
+    fn deserialize<D>(deserializer: D) -> Result<Funcref, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s: String = serde::de::Deserialize::deserialize(deserializer)?;
+        let re = regex::Regex::new(r"function\('(\w+)'\)").unwrap();
+        if let Some(captures) = re.captures(&s) {
+            if captures.len() > 1 {
+                let funcref = captures[1].to_string();
+                return Ok(Funcref(funcref));
+            }
+        }
+
+        return Err(serde::de::Error::custom(
+            "Expected funcref to start with 'function'",
+        ));
+    }
+}
+
 #[derive(PartialEq)]
 pub enum Mode {
     Normal,
@@ -251,5 +289,24 @@ impl Vim {
             "s:set_signs",
             json!([filename, signs_to_add, signs_to_delete]),
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_funcref() {
+        let a = r#""function('funcname')""#;
+        let funcref: Funcref = serde_json::from_str(a).unwrap();
+        assert_eq!(funcref, Funcref("funcname".into()));
+    }
+
+    #[test]
+    fn test_serialize_funcref() {
+        let actual = serde_json::to_string(&Funcref("funcname".into())).unwrap();
+        let expect = r#""function('funcname')""#;
+        assert_eq!(expect, actual);
     }
 }

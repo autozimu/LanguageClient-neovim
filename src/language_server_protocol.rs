@@ -1,6 +1,6 @@
-use crate::extensions::java;
-use crate::language_client::LanguageClient;
 use crate::vim::{try_get, Mode};
+use crate::{extensions::java, vim::Funcref};
+use crate::{language_client::LanguageClient, viewport::Viewport};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -127,7 +127,7 @@ impl LanguageClient {
         ): (
             u64,
             HashMap<String, Vec<String>>,
-            Option<String>,
+            Option<Either<Funcref, String>>,
             Option<String>,
             Vec<String>,
             u64,
@@ -135,7 +135,7 @@ impl LanguageClient {
             Option<f64>,
             Option<f64>,
             u64,
-            Option<String>,
+            Option<Either<Funcref, String>>,
             Value,
             String,
             Option<String>,
@@ -145,7 +145,7 @@ impl LanguageClient {
             [
                 "!!get(g:, 'LanguageClient_autoStart', 1)",
                 "s:GetVar('LanguageClient_serverCommands', {})",
-                "s:getSelectionUI()",
+                "s:getStringOrFuncref('LanguageClient_selectionUI', v:null)",
                 "get(g:, 'LanguageClient_trace', v:null)",
                 "map(s:ToList(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')), 'expand(v:val)')",
                 "!!get(g:, 'LanguageClient_loadSettings', 1)",
@@ -153,7 +153,7 @@ impl LanguageClient {
                 "get(g:, 'LanguageClient_changeThrottle', v:null)",
                 "get(g:, 'LanguageClient_waitOutputTimeout', v:null)",
                 "!!get(g:, 'LanguageClient_diagnosticsEnable', 1)",
-                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
+                "s:getStringOrFuncref('LanguageClient_diagnosticsList', 'Quickfix')",
                 "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
                 "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
                 "get(g:, 'LanguageClient_hoverPreview', 'Auto')",
@@ -229,12 +229,12 @@ impl LanguageClient {
             None => Some(TraceOption::default()),
         };
 
-        let selection_ui = if let Some(s) = selection_ui {
-            SelectionUI::from_str(&s)?
-        } else if self.vim()?.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1 {
-            SelectionUI::Funcref
+        let selection_ui = if let Some(Either::Right(s)) = selection_ui {
+            Either::Right(SelectionUI::from_str(&s)?)
+        } else if let Some(Either::Left(s)) = selection_ui {
+            Either::Left(s)
         } else {
-            SelectionUI::default()
+            Either::Right(SelectionUI::default())
         };
 
         let change_throttle = change_throttle.map(|t| Duration::from_millis((t * 1000.0) as u64));
@@ -243,10 +243,12 @@ impl LanguageClient {
 
         let diagnostics_enable = diagnostics_enable == 1;
 
-        let diagnostics_list = if let Some(s) = diagnostics_list {
-            DiagnosticsList::from_str(&s)?
+        let diagnostics_list = if let Some(Either::Right(s)) = diagnostics_list {
+            Either::Right(DiagnosticsList::from_str(&s)?)
+        } else if let Some(Either::Left(s)) = diagnostics_list {
+            Either::Left(s)
         } else {
-            DiagnosticsList::Disabled
+            Either::Right(DiagnosticsList::Disabled)
         };
 
         let window_log_level = match window_log_message_level.to_ascii_uppercase().as_str() {
@@ -328,6 +330,7 @@ impl LanguageClient {
             state.preferred_markup_kind = preferred_markup_kind;
             state.enable_extensions = enable_extensions;
             state.code_lens_hl_group = code_lens_hl_group;
+
             Ok(())
         })?;
 
@@ -681,15 +684,18 @@ impl LanguageClient {
             .collect();
 
         let title = "[LC]: diagnostics";
-        let diagnostics_list = self.get(|state| state.diagnostics_list)?;
+        let diagnostics_list = self.get(|state| state.diagnostics_list.clone())?;
         match diagnostics_list {
-            DiagnosticsList::Quickfix => {
-                self.vim()?.setqflist(&qflist, "r", title)?;
-            }
-            DiagnosticsList::Location => {
-                self.vim()?.setloclist(&qflist, "r", title)?;
-            }
-            DiagnosticsList::Disabled => {}
+            Either::Left(_) => {}
+            Either::Right(dl) => match dl {
+                DiagnosticsList::Quickfix => {
+                    self.vim()?.setqflist(&qflist, "r", title)?;
+                }
+                DiagnosticsList::Location => {
+                    self.vim()?.setloclist(&qflist, "r", title)?;
+                }
+                DiagnosticsList::Disabled => {}
+            },
         }
 
         Ok(())
@@ -1885,14 +1891,21 @@ impl LanguageClient {
             .map(|it| ListItem::string_item(it, self, &cwd))
             .collect();
 
-        match self.get(|state| state.selection_ui)? {
-            SelectionUI::Funcref => {
+        match self.get(|state| state.selection_ui.clone())? {
+            Either::Left(f) => {
+                self.vim()?
+                    .rpcclient
+                    .notify(f, json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]))?;
+            }
+            // this exists purely for compatibility purposes, we should consider dropping this at
+            // some point and letting the user set up the FZF integration via a funcref
+            Either::Right(SelectionUI::FZF) => {
                 self.vim()?.rpcclient.notify(
                     "s:selectionUI_funcref",
                     json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]),
                 )?;
             }
-            SelectionUI::Quickfix | SelectionUI::LocationList => {
+            Either::Right(SelectionUI::Quickfix) | Either::Right(SelectionUI::LocationList) => {
                 let mut actions: Vec<String> = actions?
                     .iter_mut()
                     .enumerate()
@@ -1917,11 +1930,25 @@ impl LanguageClient {
     where
         T: ListItem,
     {
-        let selection_ui = self.get(|state| state.selection_ui)?;
+        let selection_ui = self.get(|state| state.selection_ui.clone())?;
         let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
 
         match selection_ui {
-            SelectionUI::Funcref => {
+            Either::Left(f) => {
+                let cwd: String = self.vim()?.eval("getcwd()")?;
+                let source: Result<Vec<_>> = items
+                    .iter()
+                    .map(|it| ListItem::string_item(it, self, &cwd))
+                    .collect();
+                let source = source?;
+
+                self.vim()?
+                    .rpcclient
+                    .notify(f, json!([source, NOTIFICATION_FZF_SINK_LOCATION]))?;
+            }
+            // this exists purely for compatibility purposes, we should consider dropping this at
+            // some point and letting the user set up the FZF integration via a funcref
+            Either::Right(SelectionUI::FZF) => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
                 let source: Result<Vec<_>> = items
                     .iter()
@@ -1931,10 +1958,10 @@ impl LanguageClient {
 
                 self.vim()?.rpcclient.notify(
                     "s:selectionUI_funcref",
-                    json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
+                    json!([source, NOTIFICATION_FZF_SINK_LOCATION]),
                 )?;
             }
-            SelectionUI::Quickfix => {
+            Either::Right(SelectionUI::Quickfix) => {
                 let list: Result<Vec<_>> = items
                     .iter()
                     .map(|it| ListItem::quickfix_item(it, self))
@@ -1946,7 +1973,7 @@ impl LanguageClient {
                 }
                 self.vim()?.echo("Populated quickfix list.")?;
             }
-            SelectionUI::LocationList => {
+            Either::Right(SelectionUI::LocationList) => {
                 let list: Result<Vec<_>> = items
                     .iter()
                     .map(|it| ListItem::quickfix_item(it, self))
@@ -2470,6 +2497,15 @@ impl LanguageClient {
                     json!([filename, VIM_STATUS_LINE_DIAGNOSTICS_COUNTS, severity_count]),
                 )?;
             }
+        }
+
+        // if a diagnostics display funcref has been configured then call that function and return
+        if let Either::Left(funcref) = self.get(|state| state.diagnostics_list.clone())? {
+            self.vim()?
+                .rpcclient
+                .notify(funcref, json!([filename, diagnostics]))?;
+            self.draw_virtual_texts(&Value::Null)?;
+            return Ok(());
         }
 
         let current_filename: String = self.vim()?.get_filename(&Value::Null)?;
@@ -3142,6 +3178,70 @@ impl LanguageClient {
         Ok(())
     }
 
+    fn update_signs(&self, filename: &str, viewport: &Viewport) -> Result<()> {
+        // use the most severe diagnostic of each line as the sign
+        let signs_next: Vec<_> = self.update(|state| {
+            let mut diagnostics = state
+                .diagnostics
+                .entry(filename.to_string())
+                .or_default()
+                .iter()
+                .filter(|diag| viewport.overlaps(diag.range))
+                .sorted_by_key(|diag| {
+                    (
+                        diag.range.start.line,
+                        diag.severity.unwrap_or(DiagnosticSeverity::Hint),
+                    )
+                })
+                .collect_vec();
+            diagnostics.dedup_by_key(|diag| diag.range.start.line);
+            Ok(diagnostics
+                .into_iter()
+                .take(state.diagnostics_signs_max.unwrap_or(std::usize::MAX))
+                .map(Into::into)
+                .collect())
+        })?;
+        self.update(|state| {
+            let signs_prev: Vec<_> = state
+                .signs
+                .entry(filename.to_string())
+                .or_default()
+                .iter()
+                .map(|(_, sign)| sign.clone())
+                .collect();
+            let mut signs_to_add = vec![];
+            let mut signs_to_delete = vec![];
+            let diffs = diff::slice(&signs_next, &signs_prev);
+            for diff in diffs {
+                match diff {
+                    diff::Result::Left(s) => {
+                        signs_to_add.push(s.clone());
+                    }
+                    diff::Result::Right(s) => {
+                        signs_to_delete.push(s.clone());
+                    }
+                    _ => {}
+                }
+            }
+
+            let signs = state.signs.entry(filename.to_string()).or_default();
+            // signs might be deleted AND added in the same line to change severity,
+            // so deletions must be before additions
+            for sign in &signs_to_delete {
+                signs.remove(&sign.line);
+            }
+            for sign in &signs_to_add {
+                signs.insert(sign.line, sign.clone());
+            }
+            state
+                .vim
+                .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
     pub fn handle_cursor_moved(&self, params: &Value) -> Result<()> {
         info!("Begin {}", NOTIFICATION_HANDLE_CURSOR_MOVED);
         let filename = self.vim()?.get_filename(params)?;
@@ -3180,66 +3280,10 @@ impl LanguageClient {
         }
 
         let viewport = self.vim()?.get_viewport(params)?;
-
-        // use the most severe diagnostic of each line as the sign
-        let signs_next: Vec<_> = self.update(|state| {
-            let mut diagnostics = state
-                .diagnostics
-                .entry(filename.clone())
-                .or_default()
-                .iter()
-                .filter(|diag| viewport.overlaps(diag.range))
-                .sorted_by_key(|diag| {
-                    (
-                        diag.range.start.line,
-                        diag.severity.unwrap_or(DiagnosticSeverity::Hint),
-                    )
-                })
-                .collect_vec();
-            diagnostics.dedup_by_key(|diag| diag.range.start.line);
-            Ok(diagnostics
-                .into_iter()
-                .take(state.diagnostics_signs_max.unwrap_or(std::usize::MAX))
-                .map(Into::into)
-                .collect())
-        })?;
-        self.update(|state| {
-            let signs_prev: Vec<_> = state
-                .signs
-                .entry(filename.clone())
-                .or_default()
-                .iter()
-                .map(|(_, sign)| sign.clone())
-                .collect();
-            let mut signs_to_add = vec![];
-            let mut signs_to_delete = vec![];
-            let diffs = diff::slice(&signs_next, &signs_prev);
-            for diff in diffs {
-                match diff {
-                    diff::Result::Left(s) => {
-                        signs_to_add.push(s.clone());
-                    }
-                    diff::Result::Right(s) => {
-                        signs_to_delete.push(s.clone());
-                    }
-                    _ => {}
-                }
-            }
-
-            let signs = state.signs.entry(filename.clone()).or_default();
-            // signs might be deleted AND added in the same line to change severity,
-            // so deletions must be before additions
-            for sign in &signs_to_delete {
-                signs.remove(&sign.line);
-            }
-            for sign in &signs_to_add {
-                signs.insert(sign.line, sign.clone());
-            }
-            state
-                .vim
-                .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
-            Ok(())
-        })?;
+        // skip updating signs if a funcref is being used for diagnostics display
+        if let Either::Right(_not_a_funcref) = self.get(|state| state.diagnostics_list.clone())? {
+            self.update_signs(&filename, &viewport)?;
+        }
 
         let highlights: Vec<_> = self.update(|state| {
             Ok(state
