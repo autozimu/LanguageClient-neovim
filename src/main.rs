@@ -31,7 +31,7 @@ extern crate lazy_static;
 fn main() -> Result<()> {
     let _ = clap::app_from_crate!().get_matches();
 
-    let version = env!("CARGO_PKG_VERSION").into();
+    let version: String = env!("CARGO_PKG_VERSION").into();
     let logger = Logger::new()?;
     let (tx, rx) = crossbeam::channel::unbounded();
     let rpcclient = Arc::new(RpcClient::new(

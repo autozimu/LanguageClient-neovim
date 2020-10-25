@@ -42,3 +42,6 @@ thiserror = "1.0.20"
 lazy_static = "1.4.0"
 tracing = { version = "0.1", features = ["log", "log-always"] }
 tracing-log = "0.1.1"
+
+[dev-dependencies]
+tempfile = "3.1.0"

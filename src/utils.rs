@@ -709,6 +709,24 @@ mod test {
                 }
             })
         );
+        assert_eq!(
+            expand_json_path(json!({
+                "rust-analyzer.inlayHints.enable": true,
+                "rust-analyzer.inlayHints.chainingHints": true,
+                "rust-analyzer.rustfmt.overrideCommand": ["rustfmt"],
+            })),
+            json!({
+                "rust-analyzer": {
+                    "rustfmt": {
+                        "overrideCommand": ["rustfmt"]
+                    },
+                    "inlayHints": {
+                        "enable": true,
+                        "chainingHints": true,
+                    }
+                }
+            })
+        );
     }
 
     #[test]

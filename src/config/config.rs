@@ -1,3 +1,4 @@
+use crate::config::ServerCommand;
 use crate::{
     types::{
         CodeLensDisplay, DiagnosticsDisplay, DiagnosticsList, DocumentHighlightDisplay,
@@ -14,7 +15,7 @@ use std::{path::PathBuf, str::FromStr, time::Duration};
 #[derive(Debug)]
 pub struct Config {
     pub auto_start: bool,
-    pub server_commands: HashMap<String, Vec<String>>,
+    pub server_commands: HashMap<String, ServerCommand>,
     pub selection_ui: SelectionUI,
     pub trace: TraceOption,
     pub settings_path: Vec<String>,
@@ -98,7 +99,7 @@ struct DeserializableConfig {
     logging_level: log::LevelFilter,
     server_stderr: Option<String>,
     auto_start: u8,
-    server_commands: HashMap<String, Vec<String>>,
+    server_commands: HashMap<String, ServerCommand>,
     selection_ui: Option<String>,
     trace: Option<String>,
     settings_path: Vec<String>,
