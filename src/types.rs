@@ -142,6 +142,7 @@ pub struct State {
 
     #[serde(skip_serializing)]
     pub clients: HashMap<LanguageId, Arc<RpcClient>>,
+    pub restarts: HashMap<LanguageId, u8>,
 
     #[serde(skip_serializing)]
     pub vim: Vim,
@@ -215,6 +216,8 @@ pub struct State {
     pub server_stderr: Option<String>,
     pub logger: Logger,
     pub preferred_markup_kind: Option<Vec<MarkupKind>>,
+    pub restart_on_crash: bool,
+    pub max_restart_retries: u8,
 }
 
 impl State {
@@ -228,6 +231,7 @@ impl State {
             BufWriter::new(std::io::stdout()),
             None,
             tx.clone(),
+            |_: &LanguageId| {},
         )?);
 
         Ok(Self {
@@ -236,6 +240,7 @@ impl State {
             clients: hashmap! {
                 None => client.clone(),
             },
+            restarts: HashMap::new(),
 
             vim: Vim::new(client),
 
@@ -296,6 +301,8 @@ impl State {
             preferred_markup_kind: None,
             enable_extensions: None,
             code_lens_hl_group: "Comment".into(),
+            restart_on_crash: true,
+            max_restart_retries: 5,
 
             logger,
         })

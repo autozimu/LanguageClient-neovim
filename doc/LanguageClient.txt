@@ -657,6 +657,20 @@ margin, set this setting to 0. Example:
 <
 Default: 1
 
+2.43 g:LanguageClient_restartOnCrash          *g:LanguageClient_restartOnCrash*
+
+If enabled, the client will attempt to restart the server on the event that it
+unexpectedly crashes.
+
+Default: 1
+
+2.44 g:LanguageClient_maxRestartRetries          *g:LanguageClient_maxRestartRetries*
+
+Max number of times to attempt to recover from a server crash. Each language
+handles its own count independently.
+
+Default: 5
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
@@ -1093,6 +1107,11 @@ This event is triggered when diagnostics changed.
 *LanguageClientTextDocumentDidOpenPost*
 
 Triggered after textDocument/didOpen notification is sent to language server.
+
+6.5 LanguageServerCrashed
+*LanguageServerCrashed*
+
+This event is triggered when a language server unexpectedly quits.
 
 ==============================================================================
 7. License                                             *LanguageClientLicense*
