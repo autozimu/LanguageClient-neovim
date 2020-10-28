@@ -214,6 +214,15 @@ impl LanguageClient {
             .as_ref(),
         )?;
 
+        #[allow(clippy::type_complexity)]
+        let (restart_on_crash, max_restart_retries): (u8, u8) = self.vim()?.eval(
+            [
+                "get(g:, 'LanguageClient_restartOnCrash', 1)",
+                "get(g:, 'LanguageClient_maxRestartRetries', 5)",
+            ]
+            .as_ref(),
+        )?;
+
         // vimscript use 1 for true, 0 for false.
         let auto_start = auto_start == 1;
         let selection_ui_auto_open = selection_ui_auto_open == 1;
@@ -328,6 +337,9 @@ impl LanguageClient {
             state.preferred_markup_kind = preferred_markup_kind;
             state.enable_extensions = enable_extensions;
             state.code_lens_hl_group = code_lens_hl_group;
+            state.max_restart_retries = max_restart_retries;
+            state.restart_on_crash = restart_on_crash == 1;
+
             Ok(())
         })?;
 
@@ -3832,12 +3844,20 @@ impl LanguageClient {
                 (child_id, reader, writer)
             };
 
+        let lcn = self.clone();
+        let on_server_crash = move |language_id: &LanguageId| -> () {
+            if let Err(err) = lcn.on_server_crash(language_id) {
+                error!("Restart attempt failed: {}", err);
+            }
+        };
+
         let client = RpcClient::new(
             Some(language_id.clone()),
             reader,
             writer,
             child_id,
             self.get(|state| state.tx.clone())?,
+            on_server_crash,
         )?;
         self.update(|state| {
             state
@@ -3874,6 +3894,55 @@ impl LanguageClient {
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
+    }
+
+    fn on_server_crash(&self, language_id: &LanguageId) -> Result<()> {
+        if language_id.is_none() {
+            return Ok(());
+        }
+
+        self.vim()?
+            .rpcclient
+            .notify("s:ExecuteAutocmd", "LanguageServerCrashed")?;
+        let filename = self.vim()?.get_filename(&Value::Null)?;
+        self.vim()?
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;
+
+        let restart_on_crash = self.get(|state| state.restart_on_crash)?;
+        if !restart_on_crash {
+            return Ok(());
+        }
+
+        let max_restart_retries = self.get(|state| state.max_restart_retries)?;
+        let mut restarts =
+            self.get(|state| state.restarts.get(language_id).cloned().unwrap_or_default())?;
+        restarts += 1;
+
+        self.update(|state| {
+            let mut restarts = restarts;
+            if restarts > max_restart_retries {
+                restarts = 0;
+            };
+
+            state.clients.remove(language_id);
+            state.restarts.insert(language_id.clone(), restarts);
+            Ok(())
+        })?;
+
+        if restarts > max_restart_retries {
+            self.vim()?.echoerr(format!(
+                "Server for {} restarted too many times, not retrying any more.",
+                language_id.clone().unwrap()
+            ))?;
+            return Ok(());
+        }
+
+        self.vim()?.echoerr("Server crashed, restarting client")?;
+        std::thread::sleep(Duration::from_millis(300 * (restarts as u64).pow(2)));
+        self.start_server(&json!({"languageId": language_id.clone().unwrap()}))?;
+
+        Ok(())
     }
 
     pub fn handle_server_exited(&self, params: &Value) -> Result<()> {

@@ -43,15 +43,24 @@ impl RpcClient {
         writer: impl Write + Send + 'static,
         process_id: Option<u32>,
         sink: Sender<Call>,
+        on_crash: impl Fn(&LanguageId) -> () + Clone + Send + 'static,
     ) -> Result<Self> {
         let (reader_tx, reader_rx): (Sender<(Id, Sender<jsonrpc_core::Output>)>, _) = unbounded();
 
         let language_id_clone = language_id.clone();
         let reader_thread_name = format!("reader-{:?}", language_id);
+        let on_crash_clone = on_crash.clone();
         thread::Builder::new()
             .name(reader_thread_name.clone())
             .spawn(move || {
                 if let Err(err) = loop_read(reader, reader_rx, &sink, &language_id_clone) {
+                    match err.downcast_ref::<std::io::Error>() {
+                        Some(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => {
+                            on_crash_clone(&language_id_clone)
+                        }
+                        _ => {}
+                    }
+
                     error!("Thread {} exited with error: {:?}", reader_thread_name, err);
                 }
             })?;
@@ -63,6 +72,13 @@ impl RpcClient {
             .name(writer_thread_name.clone())
             .spawn(move || {
                 if let Err(err) = loop_write(writer, &writer_rx, &language_id_clone) {
+                    match err.downcast_ref::<std::io::Error>() {
+                        Some(err) if err.kind() == std::io::ErrorKind::BrokenPipe => {
+                            on_crash(&language_id_clone)
+                        }
+                        _ => {}
+                    }
+
                     error!("Thread {} exited with error: {:?}", writer_thread_name, err);
                 }
             })?;
