@@ -17,29 +17,29 @@ use glob::glob;
 use itertools::Itertools;
 use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
-use lsp_types::request::Request;
-use lsp_types::{notification::Notification, PublishDiagnosticsClientCapabilities};
 use lsp_types::{
-    ApplyWorkspaceEditParams, ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo,
-    CodeAction, CodeActionCapability, CodeActionContext, CodeActionKind,
-    CodeActionKindLiteralSupport, CodeActionLiteralSupport, CodeActionOrCommand, CodeActionParams,
-    CodeActionResponse, CodeLens, Command, CompletionCapability, CompletionItem,
-    CompletionItemCapability, CompletionResponse, CompletionTextEdit, Diagnostic,
-    DiagnosticSeverity, DidChangeConfigurationParams, DidChangeTextDocumentParams,
-    DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions,
-    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-    DocumentChangeOperation, DocumentChanges, DocumentFormattingParams, DocumentHighlight,
-    DocumentHighlightKind, DocumentRangeFormattingParams, DocumentSymbolParams,
+    notification::Notification, request::Request, ApplyWorkspaceEditParams,
+    ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo, CodeAction, CodeActionCapability,
+    CodeActionContext, CodeActionKind, CodeActionKindLiteralSupport, CodeActionLiteralSupport,
+    CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens, Command,
+    CompletionCapability, CompletionItem, CompletionItemCapability, CompletionResponse,
+    CompletionTextEdit, Diagnostic, DiagnosticSeverity, DidChangeConfigurationParams,
+    DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
+    DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentChangeOperation, DocumentChanges,
+    DocumentFormattingParams, DocumentHighlight, DocumentHighlightKind,
+    DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse,
     ExecuteCommandParams, FormattingOptions, GenericCapability, GotoCapability,
     GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
     InitializedParams, Location, LogMessageParams, MarkupKind, MessageType, NumberOrString,
     ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
-    ProgressParams, ProgressParamsValue, PublishDiagnosticsParams, Range, ReferenceContext,
-    RegistrationParams, RenameParams, ResourceOp, SemanticHighlightingClientCapability,
-    SemanticHighlightingParams, ShowMessageParams, ShowMessageRequestParams, SignatureHelp,
-    SignatureHelpCapability, SignatureInformationSettings, SymbolInformation,
-    TextDocumentClientCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
-    TextDocumentItem, TextDocumentPositionParams, TextEdit, TraceOption, UnregistrationParams,
+    ProgressParams, ProgressParamsValue, PublishDiagnosticsClientCapabilities,
+    PublishDiagnosticsParams, Range, ReferenceContext, RegistrationParams, RenameParams,
+    ResourceOp, SemanticHighlightingClientCapability, SemanticHighlightingParams,
+    ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpCapability,
+    SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
+    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentPositionParams, TextEdit, TraceOption, UnregistrationParams,
     VersionedTextDocumentIdentifier, WorkDoneProgress, WorkDoneProgressParams,
     WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
@@ -90,8 +90,8 @@ impl LanguageClient {
     }
 
     /////// Utils ///////
+    #[tracing::instrument(level = "info", skip(self))]
     fn sync_settings(&self) -> Result<()> {
-        info!("Begin sync settings");
         let (logging_file, logging_level, server_stderr): (
             Option<PathBuf>,
             log::LevelFilter,
@@ -335,7 +335,6 @@ impl LanguageClient {
             self.update_semantic_highlight_tables(&language_id)?;
         }
 
-        info!("End sync settings");
         Ok(())
     }
 
@@ -396,8 +395,8 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Result<()> {
-        debug!("Begin apply WorkspaceEdit: {:?}", edit);
         let mut filename = self.vim()?.get_filename(&Value::Null)?;
         let mut position = self.vim()?.get_position(&Value::Null)?;
 
@@ -446,16 +445,12 @@ impl LanguageClient {
         self.edit(&None, &filename)?;
         self.vim()?
             .cursor(position.line + 1, position.character + 1)?;
-        debug!("End apply WorkspaceEdit");
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_document_highlight(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!(
-            "Begin {}",
-            lsp_types::request::DocumentHighlightRequest::METHOD
-        );
         let filename = self.vim()?.get_filename(&Value::Null)?;
         let language_id = self.vim()?.get_language_id(&filename, &Value::Null)?;
         let position = self.vim()?.get_position(&Value::Null)?;
@@ -474,8 +469,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let document_highlight: Option<Vec<DocumentHighlight>> =
-            serde_json::from_value(result.clone())?;
+        let document_highlight = <Option<Vec<DocumentHighlight>>>::deserialize(&result)?;
         if let Some(document_highlight) = document_highlight {
             let document_highlight_display =
                 self.get(|state| state.document_highlight_display.clone())?;
@@ -550,16 +544,11 @@ impl LanguageClient {
             })?;
         }
 
-        info!(
-            "End {}",
-            lsp_types::request::DocumentHighlightRequest::METHOD
-        );
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn clear_document_highlight(&self, _params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_CLEAR_DOCUMENT_HL);
-
         // The following code needs to be inside the critical section as a whole to update
         // everything correctly and not leave hanging highlights.
         self.update(|state| {
@@ -573,17 +562,16 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        info!("End {}", NOTIFICATION_CLEAR_DOCUMENT_HL);
         Ok(())
     }
 
-    fn apply_text_edits<P: AsRef<Path>>(
+    #[tracing::instrument(level = "info", skip(self))]
+    fn apply_text_edits<P: AsRef<Path> + std::fmt::Debug>(
         &self,
         path: P,
         edits: &[TextEdit],
         position: Position,
     ) -> Result<Position> {
-        debug!("Begin apply TextEdits: {:?}", edits);
         if edits.is_empty() {
             return Ok(position);
         }
@@ -618,7 +606,6 @@ impl LanguageClient {
                 .command(format!("{},{}d", lines.len() + 1, lines_len_prev))?;
         }
         self.vim()?.rpcclient.notify("setline", json!([1, lines]))?;
-        debug!("End apply TextEdits");
         Ok(position)
     }
 
@@ -848,14 +835,14 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn register_cm_source(&self, language_id: &str, result: &Value) -> Result<()> {
-        info!("Begin register NCM source");
         let exists_cm_register: u64 = self.vim()?.eval("exists('g:cm_matcher')")?;
         if exists_cm_register == 0 {
             return Ok(());
         }
 
-        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        let result = InitializeResult::deserialize(result)?;
         if result.capabilities.completion_provider.is_none() {
             return Ok(());
         }
@@ -885,18 +872,17 @@ impl LanguageClient {
                 "cm_refresh": REQUEST_NCM_REFRESH,
             }]),
         )?;
-        info!("End register NCM source");
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn register_ncm2_source(&self, language_id: &str, result: &Value) -> Result<()> {
-        info!("Begin register NCM2 source");
         let exists_ncm2: u64 = self.vim()?.eval("exists('g:ncm2_loaded')")?;
         if exists_ncm2 == 0 {
             return Ok(());
         }
 
-        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        let result = InitializeResult::deserialize(result)?;
         if result.capabilities.completion_provider.is_none() {
             return Ok(());
         }
@@ -926,13 +912,12 @@ impl LanguageClient {
                 "on_complete": REQUEST_NCM2_ON_COMPLETE,
             }]),
         )?;
-        info!("End register NCM2 source");
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn parse_semantic_scopes(&self, language_id: &str, result: &Value) -> Result<()> {
-        info!("Begin parse Semantic Scopes");
-        let result: InitializeResult = serde_json::from_value(result.clone())?;
+        let result = InitializeResult::deserialize(result)?;
 
         if let Some(capability) = result.capabilities.semantic_highlighting {
             self.update(|state| {
@@ -943,15 +928,14 @@ impl LanguageClient {
             })?;
         }
 
-        info!("End parse Semantic Scopes");
         Ok(())
     }
 
     /// Build the Semantic Highlight Lookup Table of
     ///
     /// ScopeIndex -> Option<HighlightGroup>
+    #[tracing::instrument(level = "info", skip(self))]
     fn update_semantic_highlight_tables(&self, language_id: &str) -> Result<()> {
-        info!("Begin updateSemanticHighlightTables");
         let (opt_scopes, opt_hl_map, scope_separator) = self.get(|state| {
             (
                 state.semantic_scopes.get(language_id).cloned(),
@@ -1001,16 +985,15 @@ impl LanguageClient {
                 Ok(())
             })?;
         }
-        info!("End updateSemanticHighlightTables");
         Ok(())
     }
 
     pub fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Result<String> {
-        let value = self.vim()?.rpcclient.call(
+        let value: Value = self.vim()?.rpcclient.call(
             "getbufline",
             json!([path.as_ref().to_string_lossy(), line + 1]),
         )?;
-        let mut texts: Vec<String> = serde_json::from_value(value)?;
+        let mut texts = <Vec<String>>::deserialize(value)?;
         let mut text = texts.pop().unwrap_or_default();
 
         if text.is_empty() {
@@ -1054,9 +1037,8 @@ impl LanguageClient {
         }
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn cleanup(&self, language_id: &str) -> Result<()> {
-        info!("Begin cleanup");
-
         let root = self.get(|state| {
             state
                 .roots
@@ -1107,7 +1089,6 @@ impl LanguageClient {
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageClientStopped")?;
 
-        info!("End cleanup");
         Ok(())
     }
 
@@ -1138,8 +1119,8 @@ impl LanguageClient {
 
     /////// LSP ///////
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn initialize(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::Initialize::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let has_snippet_support: i8 = try_get("hasSnippetSupport", params)?
@@ -1281,8 +1262,6 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        info!("End {}", lsp_types::request::Initialize::METHOD);
-
         if let Err(e) = self.register_cm_source(&language_id, &result) {
             let message = format!("LanguageClient: failed to register as NCM source: {}", e);
             error!("{}\n{:?}", message, e);
@@ -1302,8 +1281,8 @@ impl LanguageClient {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn initialized(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", lsp_types::notification::Initialized::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         self.update_semantic_highlight_tables(&language_id)?;
@@ -1311,13 +1290,12 @@ impl LanguageClient {
             lsp_types::notification::Initialized::METHOD,
             InitializedParams {},
         )?;
-        info!("End {}", lsp_types::notification::Initialized::METHOD);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_hover(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::HoverRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1351,16 +1329,15 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", lsp_types::request::HoverRequest::METHOD);
         Ok(result)
     }
 
     /// Generic find locations, e.g, definitions, references.
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn find_locations(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         let method: String =
             try_get("method", params)?.ok_or_else(|| anyhow!("method not found in request!"))?;
-        info!("Begin {}", method);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1417,13 +1394,12 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", method);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_rename(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::Rename::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1462,20 +1438,15 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let edit: WorkspaceEdit = serde_json::from_value(result.clone())?;
+        let edit = WorkspaceEdit::deserialize(&result)?;
         self.apply_workspace_edit(&edit)?;
 
-        info!("End {}", lsp_types::request::Rename::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_document_symbol(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!(
-            "Begin {}",
-            lsp_types::request::DocumentSymbolRequest::METHOD
-        );
-
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -1494,14 +1465,14 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let syms = <lsp_types::request::DocumentSymbolRequest as lsp_types::request::Request>::Result::deserialize(&result)?;
+        let syms = <Option<DocumentSymbolResponse>>::deserialize(&result)?;
         let title = format!("[LC]: symbols for {}", filename);
 
         match syms {
-            Some(lsp_types::DocumentSymbolResponse::Flat(flat)) => {
+            Some(DocumentSymbolResponse::Flat(flat)) => {
                 self.present_list(&title, &flat)?;
             }
-            Some(lsp_types::DocumentSymbolResponse::Nested(nested)) => {
+            Some(DocumentSymbolResponse::Nested(nested)) => {
                 let mut symbols = Vec::new();
 
                 fn walk_document_symbol(
@@ -1533,16 +1504,15 @@ impl LanguageClient {
             _ => (),
         };
 
-        info!("End {}", lsp_types::request::DocumentSymbolRequest::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_code_action(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::CodeActionRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        let range: Range = serde_json::from_value(params["range"].clone())?;
+        let range = Range::deserialize(&params["range"])?;
 
         // Unify filename.
         let filename = filename.canonicalize();
@@ -1607,7 +1577,6 @@ impl LanguageClient {
             self.handle_code_action_selection(&actions, idx)
         })?;
 
-        info!("End {}", lsp_types::request::CodeActionRequest::METHOD);
         Ok(result)
     }
 
@@ -1640,9 +1609,8 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_completion(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::Completion::METHOD);
-
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1661,13 +1629,12 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        info!("End {}", lsp_types::request::Completion::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_signature_help(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::SignatureHelpRequest::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1689,7 +1656,7 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let help: SignatureHelp = serde_json::from_value(result)?;
+        let help = SignatureHelp::deserialize(result)?;
         if help.signatures.is_empty() {
             return Ok(Value::Null);
         }
@@ -1726,13 +1693,11 @@ impl LanguageClient {
             self.vim()?.echo(&active_signature.label)?;
         }
 
-        info!("End {}", lsp_types::request::SignatureHelpRequest::METHOD);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_references(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::References::METHOD);
-
         let include_declaration: bool = try_get("includeDeclaration", params)?.unwrap_or(true);
         // TODO: cleanup.
         let params = json!({
@@ -1743,14 +1708,12 @@ impl LanguageClient {
         })
         .combine(params);
         let result = self.find_locations(&params)?;
-
-        info!("End {}", lsp_types::request::References::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_formatting(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::Formatting::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -1776,20 +1739,19 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits = <Option<Vec<TextEdit>>>::deserialize(&result)?;
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp_types::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
             document_changes: None,
         };
         self.apply_workspace_edit(&edit)?;
-        info!("End {}", lsp_types::request::Formatting::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_range_formatting(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::RangeFormatting::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let start_line = try_get("range_start_line", params)?
@@ -1829,23 +1791,19 @@ impl LanguageClient {
             return Ok(result);
         }
 
-        let text_edits: Option<Vec<TextEdit>> = serde_json::from_value(result.clone())?;
+        let text_edits = <Option<Vec<TextEdit>>>::deserialize(&result)?;
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp_types::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
             document_changes: None,
         };
         self.apply_workspace_edit(&edit)?;
-        info!("End {}", lsp_types::request::RangeFormatting::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn completion_item_resolve(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!(
-            "Begin {}",
-            lsp_types::request::ResolveCompletionItem::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let completion_item: CompletionItem = try_get("completionItem", params)?
@@ -1865,7 +1823,6 @@ impl LanguageClient {
         warn!("{}", msg);
         self.vim()?.echowarn(&msg)?;
 
-        info!("End {}", lsp_types::request::ResolveCompletionItem::METHOD);
         Ok(Value::Null)
     }
 
@@ -1963,9 +1920,9 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn workspace_symbol(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
-        info!("Begin {}", lsp_types::request::WorkspaceSymbol::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -1987,13 +1944,11 @@ impl LanguageClient {
         let title = "[LC]: workspace symbols";
 
         self.present_list(title, &symbols)?;
-
-        info!("End {}", lsp_types::request::WorkspaceSymbol::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn workspace_execute_command(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::ExecuteCommand::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let command: String =
@@ -2008,28 +1963,19 @@ impl LanguageClient {
                 work_done_progress_params: WorkDoneProgressParams::default(),
             },
         )?;
-        info!("End {}", lsp_types::request::ExecuteCommand::METHOD);
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn workspace_apply_edit(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::ApplyWorkspaceEdit::METHOD);
-
         let params = ApplyWorkspaceEditParams::deserialize(params)?;
         self.apply_workspace_edit(&params.edit)?;
-
-        info!("End {}", lsp_types::request::ApplyWorkspaceEdit::METHOD);
-
         Ok(serde_json::to_value(ApplyWorkspaceEditResponse {
             applied: true,
         })?)
     }
 
     pub fn workspace_did_change_configuration(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidChangeConfiguration::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let settings: Value = try_get("settings", params)?.unwrap_or_default();
@@ -2038,10 +1984,6 @@ impl LanguageClient {
             lsp_types::notification::DidChangeConfiguration::METHOD,
             DidChangeConfigurationParams { settings },
         )?;
-        info!(
-            "End {}",
-            lsp_types::notification::DidChangeConfiguration::METHOD
-        );
         Ok(())
     }
 
@@ -2108,6 +2050,7 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn progress(&self, params: &Value) -> Result<()> {
         let params = ProgressParams::deserialize(params)?;
         let message = match params.value {
@@ -2138,6 +2081,7 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_code_lens(&self, params: &Value) -> Result<Value> {
         let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
         if UseVirtualText::No == use_virtual_text || UseVirtualText::Diagnostics == use_virtual_text
@@ -2154,7 +2098,6 @@ impl LanguageClient {
             let capabilities = initialize_result.capabilities.clone();
 
             if let Some(code_lens_provider) = capabilities.code_lens_provider {
-                info!("Begin {}", lsp_types::request::CodeLensRequest::METHOD);
                 let client = self.get_client(&Some(language_id))?;
                 let input = lsp_types::CodeLensParams {
                     text_document: TextDocumentIdentifier {
@@ -2166,7 +2109,7 @@ impl LanguageClient {
 
                 let results: Value =
                     client.call(lsp_types::request::CodeLensRequest::METHOD, &input)?;
-                let code_lens: Option<Vec<CodeLens>> = serde_json::from_value(results)?;
+                let code_lens = <Option<Vec<CodeLens>>>::deserialize(results)?;
                 let mut code_lens: Vec<CodeLens> = code_lens.unwrap_or_default();
 
                 if code_lens_provider.resolve_provider.unwrap_or_default() {
@@ -2188,13 +2131,6 @@ impl LanguageClient {
                     state.code_lens.insert(filename.to_owned(), code_lens);
                     Ok(Value::Null)
                 })?;
-
-                info!("End {}", lsp_types::request::CodeLensRequest::METHOD);
-            } else {
-                info!(
-                    "CodeLens not supported. Skipping {}",
-                    lsp_types::request::CodeLensRequest::METHOD
-                );
             }
         }
 
@@ -2203,11 +2139,8 @@ impl LanguageClient {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_did_open(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidOpenTextDocument::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let text = self.vim()?.get_text(&filename)?;
@@ -2248,18 +2181,11 @@ impl LanguageClient {
 
         self.text_document_code_lens(params)?;
 
-        info!(
-            "End {}",
-            lsp_types::notification::DidOpenTextDocument::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_did_change(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidChangeTextDocument::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         if !self.get(|state| state.text_documents.contains_key(&filename))? {
@@ -2276,7 +2202,6 @@ impl LanguageClient {
                 .unwrap_or_default()
         })?;
         if text == text_state {
-            info!("Texts equal. Skipping didChange.");
             return Ok(());
         }
 
@@ -2317,18 +2242,11 @@ impl LanguageClient {
 
         self.text_document_code_lens(params)?;
 
-        info!(
-            "End {}",
-            lsp_types::notification::DidChangeTextDocument::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_did_save(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidSaveTextDocument::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         if !self.get(|state| state.server_commands.contains_key(&language_id))? {
@@ -2347,18 +2265,11 @@ impl LanguageClient {
 
         self.draw_virtual_texts(params)?;
 
-        info!(
-            "End {}",
-            lsp_types::notification::DidSaveTextDocument::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_did_close(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidCloseTextDocument::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -2370,18 +2281,11 @@ impl LanguageClient {
                 },
             },
         )?;
-        info!(
-            "End {}",
-            lsp_types::notification::DidCloseTextDocument::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_publish_diagnostics(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::PublishDiagnostics::METHOD
-        );
         let params = PublishDiagnosticsParams::deserialize(params)?;
         if !self.get(|state| state.diagnostics_enable)? {
             return Ok(());
@@ -2496,18 +2400,11 @@ impl LanguageClient {
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
 
-        info!(
-            "End {}",
-            lsp_types::notification::PublishDiagnostics::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_semantic_highlight(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::SemanticHighlighting::METHOD
-        );
         let mut params = SemanticHighlightingParams::deserialize(params)?;
 
         // TODO: Do we need to handle the versioning of the file?
@@ -2714,17 +2611,13 @@ impl LanguageClient {
             })?;
         }
 
-        info!(
-            "End {}",
-            lsp_types::notification::SemanticHighlighting::METHOD
-        );
         Ok(())
     }
 
     // logs a message to with the specified level to the log file if the threshold is below the
     // message's level.
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn window_log_message(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", lsp_types::notification::LogMessage::METHOD);
         let params = LogMessageParams::deserialize(params)?;
         let threshold = self.get(|state| state.window_log_message_level)?;
         if params.typ.to_int()? > threshold.to_int()? {
@@ -2738,23 +2631,21 @@ impl LanguageClient {
             MessageType::Log => debug!("{}", params.message),
         };
 
-        info!("End {}", lsp_types::notification::LogMessage::METHOD);
         Ok(())
     }
 
     // shows the given message in vim.
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn window_show_message(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", lsp_types::notification::ShowMessage::METHOD);
         let params = ShowMessageParams::deserialize(params)?;
         let msg = format!("[{:?}] {}", params.typ, params.message);
         self.vim()?.echomsg(&msg)?;
-        info!("End {}", lsp_types::notification::ShowMessage::METHOD);
         Ok(())
     }
 
     // TODO: change this to use the show_acions method
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn window_show_message_request(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::ShowMessageRequest::METHOD);
         let mut v = Value::Null;
         let msg_params = ShowMessageRequestParams::deserialize(params)?;
         let msg = format!("[{:?}] {}", msg_params.typ, msg_params.message);
@@ -2777,18 +2668,18 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", lsp_types::request::ShowMessageRequest::METHOD);
         Ok(v)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn client_register_capability(&self, language_id: &str, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::RegisterCapability::METHOD);
         let params = RegistrationParams::deserialize(params)?;
         for r in &params.registrations {
             match r.method.as_str() {
                 lsp_types::notification::DidChangeWatchedFiles::METHOD => {
-                    let opt: DidChangeWatchedFilesRegistrationOptions =
-                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                    let opt = DidChangeWatchedFilesRegistrationOptions::deserialize(
+                        r.register_options.as_ref().unwrap_or(&Value::Null),
+                    )?;
                     if !self.get(|state| state.watchers.contains_key(language_id))? {
                         let (watcher_tx, watcher_rx) = mpsc::channel();
                         // TODO: configurable duration.
@@ -2837,12 +2728,11 @@ impl LanguageClient {
             state.registrations.extend(params.registrations);
             Ok(())
         })?;
-        info!("End {}", lsp_types::request::RegisterCapability::METHOD);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn client_unregister_capability(&self, language_id: &str, params: &Value) -> Result<Value> {
-        info!("Begin {}", lsp_types::request::UnregisterCapability::METHOD);
         let params = UnregistrationParams::deserialize(params)?;
         let mut regs_removed = vec![];
         for r in &params.unregisterations {
@@ -2859,8 +2749,9 @@ impl LanguageClient {
         for r in &regs_removed {
             match r.method.as_str() {
                 lsp_types::notification::DidChangeWatchedFiles::METHOD => {
-                    let opt: DidChangeWatchedFilesRegistrationOptions =
-                        serde_json::from_value(r.register_options.clone().unwrap_or_default())?;
+                    let opt = DidChangeWatchedFilesRegistrationOptions::deserialize(
+                        r.register_options.as_ref().unwrap_or(&Value::Null),
+                    )?;
                     self.update(|state| {
                         if let Some(ref mut watcher) = state.watchers.get_mut(language_id) {
                             for w in opt.watchers {
@@ -2876,12 +2767,11 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", lsp_types::request::UnregisterCapability::METHOD);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn exit(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", lsp_types::notification::Exit::METHOD);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -2899,30 +2789,27 @@ impl LanguageClient {
         if let Err(err) = self.cleanup(&language_id) {
             error!("Error: {:?}", err);
         }
-        info!("End {}", lsp_types::notification::Exit::METHOD);
         Ok(())
     }
 
     /////// Extensions by this plugin ///////
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn get_state(&self, _params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_GET_STATE);
         let s = self.get(|state| serde_json::to_string(state))??;
-        info!("End {}", REQUEST_GET_STATE);
         Ok(Value::String(s))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn is_alive(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_IS_ALIVE);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let is_alive = self.get(|state| state.clients.contains_key(&Some(language_id.clone())))?;
-        info!("End {}", REQUEST_IS_ALIVE);
         Ok(Value::Bool(is_alive))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn register_server_commands(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_REGISTER_SERVER_COMMANDS);
         let commands = HashMap::<String, Vec<String>>::deserialize(params)?;
         self.update(|state| {
             state.server_commands.extend(commands);
@@ -2933,36 +2820,33 @@ impl LanguageClient {
             serde_json::to_string(&self.get(|state| state.server_commands.clone())?)?
         );
         self.vim()?.command(&exp)?;
-        info!("End {}", REQUEST_REGISTER_SERVER_COMMANDS);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn set_logging_level(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_SET_LOGGING_LEVEL);
         let logging_level =
             try_get("loggingLevel", params)?.ok_or_else(|| anyhow!("loggingLevel not found!"))?;
         self.update(|state| {
             state.logger.set_level(logging_level)?;
             Ok(())
         })?;
-        info!("End {}", REQUEST_SET_LOGGING_LEVEL);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn set_diagnostics_list(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_SET_DIAGNOSTICS_LIST);
         let diagnostics_list = try_get("diagnosticsList", params)?
             .ok_or_else(|| anyhow!("diagnosticsList not found!"))?;
         self.update(|state| {
             state.diagnostics_list = diagnostics_list;
             Ok(())
         })?;
-        info!("End {}", REQUEST_SET_DIAGNOSTICS_LIST);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn register_handlers(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_REGISTER_HANDLERS);
         let handlers: Result<HashMap<String, String>> = params
             .as_object()
             .ok_or_else(|| anyhow!("Invalid arguments!"))?
@@ -2984,14 +2868,13 @@ impl LanguageClient {
             state.user_handlers.extend(handlers);
             Ok(())
         })?;
-        info!("End {}", REQUEST_REGISTER_HANDLERS);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn omnicomplete(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_OMNI_COMPLETE);
         let result = self.text_document_completion(params)?;
-        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
+        let result = <Option<CompletionResponse>>::deserialize(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let matches = match result {
             CompletionResponse::Array(arr) => arr,
@@ -3005,12 +2888,11 @@ impl LanguageClient {
             .map(|item| VimCompleteItem::from_lsp(item, complete_position))
             .collect();
         let matches = matches?;
-        info!("End {}", REQUEST_OMNI_COMPLETE);
         Ok(serde_json::to_value(matches)?)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_buf_new_file(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_BUF_NEW_FILE);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
         }
@@ -3026,12 +2908,11 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", NOTIFICATION_HANDLE_BUF_NEW_FILE);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_buf_enter(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_BUF_ENTER);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
         }
@@ -3048,12 +2929,11 @@ impl LanguageClient {
                 .rpcclient
                 .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;
         }
-        info!("End {}", NOTIFICATION_HANDLE_BUF_ENTER);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_file_type(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_FILE_TYPE);
         if self.vim()?.get_filename(params)?.is_empty() {
             return Ok(());
         }
@@ -3083,12 +2963,11 @@ impl LanguageClient {
             }
         }
 
-        info!("End {}", NOTIFICATION_HANDLE_FILE_TYPE);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_text_changed(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_TEXT_CHANGED);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         if !self.get(|state| state.server_commands.contains_key(&language_id))? {
@@ -3111,19 +2990,17 @@ impl LanguageClient {
         }
 
         self.text_document_did_change(params)?;
-        info!("End {}", NOTIFICATION_HANDLE_TEXT_CHANGED);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_buf_write_post(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         self.text_document_did_save(params)?;
-        info!("End {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_buf_delete(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         if !self.get(|state| state.server_commands.contains_key(&language_id))? {
@@ -3138,12 +3015,11 @@ impl LanguageClient {
             Ok(())
         })?;
         self.text_document_did_close(params)?;
-        info!("End {}", NOTIFICATION_HANDLE_BUF_WRITE_POST);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn handle_cursor_moved(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_HANDLE_CURSOR_MOVED);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let line = self.vim()?.get_position(params)?.line;
@@ -3294,7 +3170,6 @@ impl LanguageClient {
 
         self.draw_virtual_texts(&params)?;
 
-        info!("End {}", NOTIFICATION_HANDLE_CURSOR_MOVED);
         Ok(())
     }
 
@@ -3466,8 +3341,8 @@ impl LanguageClient {
             .cursor(position.line + 1, position.character + 1)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn fzf_sink_location(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_FZF_SINK_LOCATION);
         let params = match params {
             Value::Array(ref arr) => Value::Array(arr.clone()),
             _ => {
@@ -3475,7 +3350,7 @@ impl LanguageClient {
             }
         };
 
-        let lines: Vec<String> = serde_json::from_value(params.clone())?;
+        let lines = <Vec<String>>::deserialize(&params)?;
         if lines.is_empty() {
             anyhow!("No selection!");
         }
@@ -3511,12 +3386,11 @@ impl LanguageClient {
         self.edit(&None, &filename)?;
         self.vim()?.cursor(line + 1, character + 1)?;
 
-        info!("End {}", NOTIFICATION_FZF_SINK_LOCATION);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn fzf_sink_command(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_FZF_SINK_COMMAND);
         let selection: String =
             try_get("selection", params)?.ok_or_else(|| anyhow!("selection not found!"))?;
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
@@ -3538,7 +3412,6 @@ impl LanguageClient {
             None => return Err(anyhow!("Action not stashed, please try again")),
         };
 
-        info!("End {}", NOTIFICATION_FZF_SINK_COMMAND);
         Ok(())
     }
 
@@ -3616,10 +3489,9 @@ impl LanguageClient {
         }
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn ncm_refresh(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_NCM_REFRESH);
-        let params: NCMRefreshParams =
-            serde_json::from_value(jsonrpc_core::to_value(params.clone())?)?;
+        let params = NCMRefreshParams::deserialize(params)?;
         let NCMRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
@@ -3636,7 +3508,7 @@ impl LanguageClient {
             "character": character,
             "handle": false,
         }))?;
-        let result: Option<CompletionResponse> = serde_json::from_value(result)?;
+        let result = <Option<CompletionResponse>>::deserialize(result)?;
         let result = result.unwrap_or_else(|| CompletionResponse::Array(vec![]));
         let is_incomplete = match result {
             CompletionResponse::Array(_) => false,
@@ -3654,17 +3526,13 @@ impl LanguageClient {
             "cm#complete",
             json!([info.name, ctx, ctx.startcol, matches, is_incomplete]),
         )?;
-        info!("End {}", REQUEST_NCM_REFRESH);
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn ncm2_on_complete(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_NCM2_ON_COMPLETE);
-
-        let orig_ctx: Value = serde_json::from_value(jsonrpc_core::to_value(params.clone())?)?;
-        let orig_ctx = &orig_ctx["ctx"];
-
-        let ctx: NCM2Context = serde_json::from_value(orig_ctx.clone())?;
+        let orig_ctx = &params["ctx"];
+        let ctx = NCM2Context::deserialize(orig_ctx)?;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
         }
@@ -3682,7 +3550,7 @@ impl LanguageClient {
         let is_incomplete;
         let matches;
         if let Ok(ref value) = result {
-            let completion = serde_json::from_value(value.clone())?;
+            let completion = CompletionResponse::deserialize(value)?;
             is_incomplete = match completion {
                 CompletionResponse::List(ref list) => list.is_incomplete,
                 _ => false,
@@ -3703,12 +3571,11 @@ impl LanguageClient {
             "ncm2#complete",
             json!([orig_ctx, ctx.startccol, matches, is_incomplete]),
         )?;
-        info!("End {}", REQUEST_NCM2_ON_COMPLETE);
         result
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn explain_error_at_point(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_EXPLAIN_ERROR_AT_POINT);
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
         let diag = self.get(|state| {
@@ -3763,33 +3630,29 @@ impl LanguageClient {
         }
 
         self.preview(explanation.as_str())?;
-
-        info!("End {}", REQUEST_EXPLAIN_ERROR_AT_POINT);
         Ok(Value::Null)
     }
 
     // Extensions by language servers.
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn language_status(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_LANGUAGE_STATUS);
         let params = LanguageStatusParams::deserialize(params)?;
         let msg = format!("{} {}", params.typee, params.message);
         self.vim()?.echomsg(&msg)?;
-        info!("End {}", NOTIFICATION_LANGUAGE_STATUS);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn rust_handle_begin_build(&self, _params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_RUST_BEGIN_BUILD);
         self.vim()?.command(vec![
             format!("let {}=1", VIM_SERVER_STATUS),
             format!("let {}='Rust: build begin'", VIM_SERVER_STATUS_MESSAGE),
         ])?;
-        info!("End {}", NOTIFICATION_RUST_BEGIN_BUILD);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn rust_handle_diagnostics_begin(&self, _params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_RUST_DIAGNOSTICS_BEGIN);
         self.vim()?.command(vec![
             format!("let {}=1", VIM_SERVER_STATUS),
             format!(
@@ -3797,22 +3660,20 @@ impl LanguageClient {
                 VIM_SERVER_STATUS_MESSAGE
             ),
         ])?;
-        info!("End {}", NOTIFICATION_RUST_DIAGNOSTICS_BEGIN);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn rust_handle_diagnostics_end(&self, _params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_RUST_DIAGNOSTICS_END);
         self.vim()?.command(vec![
             format!("let {}=0", VIM_SERVER_STATUS),
             format!("let {}='Rust: diagnostics end'", VIM_SERVER_STATUS_MESSAGE),
         ])?;
-        info!("End {}", NOTIFICATION_RUST_DIAGNOSTICS_END);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn window_progress(&self, params: &Value) -> Result<()> {
-        info!("Begin {}", NOTIFICATION_WINDOW_PROGRESS);
         let params = WindowProgressParams::deserialize(params)?;
 
         let done = params.done.unwrap_or(false);
@@ -3843,12 +3704,11 @@ impl LanguageClient {
                 &escape_single_quote(buf)
             ),
         ])?;
-        info!("End {}", NOTIFICATION_WINDOW_PROGRESS);
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn start_server(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_START_SERVER);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let cmdargs: Vec<String> = try_get("cmdargs", params)?.unwrap_or_default();
@@ -3986,8 +3846,6 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        info!("End {}", REQUEST_START_SERVER);
-
         if self.get(|state| state.clients.len())? == 2 {
             self.define_signs()?;
         }
@@ -4083,11 +3941,8 @@ impl LanguageClient {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn workspace_did_change_watched_files(&self, params: &Value) -> Result<()> {
-        info!(
-            "Begin {}",
-            lsp_types::notification::DidChangeWatchedFiles::METHOD
-        );
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -4097,15 +3952,11 @@ impl LanguageClient {
             params,
         )?;
 
-        info!(
-            "End {}",
-            lsp_types::notification::DidChangeWatchedFiles::METHOD
-        );
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn java_class_file_contents(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_CLASS_FILE_CONTENTS);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -4134,12 +3985,11 @@ impl LanguageClient {
         self.vim()?
             .command("setlocal buftype=nofile filetype=java noswapfile")?;
 
-        info!("End {}", REQUEST_CLASS_FILE_CONTENTS);
         Ok(Value::String(content))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn debug_info(&self, params: &Value) -> Result<Value> {
-        info!("Begin {}", REQUEST_DEBUG_INFO);
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let mut msg = String::new();
@@ -4164,7 +4014,6 @@ impl LanguageClient {
             msg += &format!("Log file: {:?}\n", state.logger.path);
         })?;
         self.vim()?.echo(&msg)?;
-        info!("End {}", REQUEST_DEBUG_INFO);
         Ok(json!(msg))
     }
 }
