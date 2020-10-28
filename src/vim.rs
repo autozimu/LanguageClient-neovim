@@ -154,8 +154,9 @@ impl Vim {
         Ok(insert_spaces == 1)
     }
 
-    pub fn get_text(&self, bufname: &str) -> Result<Vec<String>> {
-        self.rpcclient.call("LSP#text", json!([bufname]))
+    pub fn get_text(&self, bufname: &str, params: &Value) -> Result<Vec<String>> {
+        try_get("text", params)?
+            .map_or_else(|| self.rpcclient.call("LSP#text", json!([bufname])), Ok)
     }
 
     pub fn get_handle(&self, params: &Value) -> Result<bool> {

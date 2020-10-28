@@ -462,7 +462,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_document_highlight(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(&Value::Null)?;
         let language_id = self.vim()?.get_language_id(&filename, &Value::Null)?;
         let position = self.vim()?.get_position(&Value::Null)?;
@@ -1307,7 +1306,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_hover(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1347,7 +1345,6 @@ impl LanguageClient {
     /// Generic find locations, e.g, definitions, references.
     #[tracing::instrument(level = "info", skip(self))]
     pub fn find_locations(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let method: String =
             try_get("method", params)?.ok_or_else(|| anyhow!("method not found in request!"))?;
         let filename = self.vim()?.get_filename(params)?;
@@ -1411,7 +1408,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_rename(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1458,7 +1454,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_document_symbol(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -1521,7 +1516,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_code_action(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let range = Range::deserialize(&params["range"])?;
@@ -1646,7 +1640,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_signature_help(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let position = self.vim()?.get_position(params)?;
@@ -1725,7 +1718,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_formatting(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -1763,7 +1755,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_range_formatting(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let start_line = try_get("range_start_line", params)?
@@ -1815,7 +1806,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn completion_item_resolve(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let completion_item: CompletionItem = try_get("completionItem", params)?
@@ -1934,7 +1924,6 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn workspace_symbol(&self, params: &Value) -> Result<Value> {
-        self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
@@ -2155,7 +2144,7 @@ impl LanguageClient {
     pub fn text_document_did_open(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        let text = self.vim()?.get_text(&filename)?;
+        let text = self.vim()?.get_text(&filename, params)?;
         let set_omnifunc: bool = self
             .vim()?
             .eval("s:GetVar('LanguageClient_setOmnifunc', v:true)")?;
@@ -2205,7 +2194,7 @@ impl LanguageClient {
             return self.text_document_did_open(params);
         }
 
-        let text = self.vim()?.get_text(&filename)?.join("\n");
+        let text = self.vim()?.get_text(&filename, params)?.join("\n");
         let text_state = self.get(|state| {
             state
                 .text_documents
@@ -3888,7 +3877,6 @@ impl LanguageClient {
             .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 1]))?;
 
         self.text_document_did_open(&params)?;
-        self.text_document_did_change(&params)?;
 
         self.vim()?
             .rpcclient
