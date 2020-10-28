@@ -188,7 +188,7 @@ fn loop_read(
         if message.is_empty() {
             continue;
         }
-        info!("<= {:?} {}", language_id, message);
+        debug!("<= {:?} {}", language_id, message);
         // FIXME: Remove extra `meta` property from javascript-typescript-langserver and
         // `requestMethod` sent by Sorbet.
         let s = RE_REMOVE_EXTRA_FIELDS.replace(message, "");
@@ -235,7 +235,7 @@ fn loop_write(
 
     for msg in rx.iter() {
         let s = serde_json::to_string(&msg)?;
-        info!("=> {:?} {}", language_id, s);
+        debug!("=> {:?} {}", language_id, s);
         if language_id.is_none() {
             // Use different convention for two reasons,
             // 1. If using '\r\ncontent', nvim will receive output as `\r` + `content`, while vim
