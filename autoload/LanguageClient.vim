@@ -1360,6 +1360,18 @@ function! LanguageClient#workspace_executeCommand(command, ...) abort
     return LanguageClient#Call('workspace/executeCommand', l:params, l:Callback)
 endfunction
 
+function! s:shutdownCallback(...) abort
+    call LanguageClient#exit()
+    echom '[LC] Server shutdown complete'
+endfunction
+
+function! LanguageClient#shutdown() abort
+    return LanguageClient#Call('shutdown', {
+                \ 'languageId': &filetype,
+                \ },
+                \ function('s:shutdownCallback'))
+endfunction
+
 function! LanguageClient#exit() abort
     return LanguageClient#Notify('exit', {
                 \ 'languageId': &filetype,
