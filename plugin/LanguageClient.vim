@@ -153,25 +153,31 @@ endfunction
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop call LanguageClient#shutdown()
 
-augroup languageClient
+function! s:ConfigureAutocmds()
+  let l:commands = get(g:, 'LanguageClient_serverCommands', {})
+  if !has_key(l:commands, &filetype)
+    " skip setting autocmds if the filetype doesn't have a configured server command
+    return
+  endif
+
+  call LanguageClient#handleFileType()
+  augroup languageClient
     autocmd!
-    autocmd FileType * call LanguageClient#handleFileType()
-    autocmd BufNewFile * call LanguageClient#handleBufNewFile()
-    autocmd BufEnter * call LanguageClient#handleBufEnter()
-    autocmd BufWritePost * call LanguageClient#handleBufWritePost()
-    autocmd BufDelete * call LanguageClient#handleBufDelete()
-    autocmd TextChanged * call LanguageClient#handleTextChanged()
-    autocmd TextChangedI * call LanguageClient#handleTextChanged()
+    autocmd BufNewFile <buffer> call LanguageClient#handleBufNewFile()
+    autocmd BufEnter <buffer> call LanguageClient#handleBufEnter()
+    autocmd BufWritePost <buffer> call LanguageClient#handleBufWritePost()
+    autocmd BufDelete <buffer> call LanguageClient#handleBufDelete()
+    autocmd TextChanged <buffer> call LanguageClient#handleTextChanged()
+    autocmd TextChangedI <buffer> call LanguageClient#handleTextChanged()
     if exists('##TextChangedP')
-        autocmd TextChangedP * call LanguageClient#handleTextChanged()
+        autocmd TextChangedP <buffer> call LanguageClient#handleTextChanged()
     endif
-    autocmd CursorMoved * call LanguageClient#handleCursorMoved()
-    autocmd VimLeavePre * call LanguageClient#handleVimLeavePre()
+    autocmd CursorMoved <buffer> call LanguageClient#handleCursorMoved()
+    autocmd VimLeavePre <buffer> call LanguageClient#handleVimLeavePre()
 
-    autocmd CompleteDone * call LanguageClient#handleCompleteDone()
-
+    autocmd CompleteDone <buffer> call LanguageClient#handleCompleteDone()
     if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
-        autocmd CompleteDone *
+        autocmd CompleteDone <buffer>
                     \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
     endif
 
@@ -192,4 +198,10 @@ augroup languageClient
     nnoremap <Plug>(lcn-format-sync)        :call LanguageClient_textDocument_formatting_sync()<CR>
     nnoremap <Plug>(lcn-diagnostics-next)   :call LanguageClient_diagnosticsNext()<CR>
     nnoremap <Plug>(lcn-diagnostics-prev)   :call LanguageClient_diagnosticsPrevious()<CR>
+  augroup END
+endfunction
+
+augroup languageClient_fileType
+    autocmd!
+    autocmd FileType * call s:ConfigureAutocmds()
 augroup END
