@@ -135,6 +135,7 @@ pub struct State {
 
     #[serde(skip_serializing)]
     pub clients: HashMap<LanguageId, Arc<RpcClient>>,
+    #[serde(skip_serializing)]
     pub restarts: HashMap<LanguageId, u8>,
 
     #[serde(skip_serializing)]

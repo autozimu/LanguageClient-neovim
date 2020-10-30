@@ -2873,6 +2873,7 @@ impl LanguageClient {
             if let Err(err) = ret {
                 warn!("Failed to start language server automatically. {}", err);
             }
+            self.text_document_did_open(params)?;
         }
 
         Ok(())
@@ -2927,6 +2928,7 @@ impl LanguageClient {
                 if let Err(err) = ret {
                     warn!("Failed to start language server automatically. {}", err);
                 }
+                self.text_document_did_open(params)?;
             }
         }
 
@@ -3788,15 +3790,13 @@ impl LanguageClient {
             .rpcclient
             .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 1]))?;
 
-        self.text_document_did_open(&params)?;
-        self.text_document_did_change(&params)?;
-
         self.vim()?
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageClientStarted")?;
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     fn on_server_crash(&self, language_id: &LanguageId) -> Result<()> {
         if language_id.is_none() {
             return Ok(());
@@ -3853,6 +3853,10 @@ impl LanguageClient {
         self.vim()?.echoerr("Server crashed, restarting client")?;
         std::thread::sleep(Duration::from_millis(300 * (restarts as u64).pow(2)));
         self.start_server(&json!({"languageId": language_id.clone().unwrap()}))?;
+        self.text_document_did_open(&json!({
+            "languageId": language_id.clone().unwrap(),
+            "filename": filename,
+        }))?;
 
         Ok(())
     }
