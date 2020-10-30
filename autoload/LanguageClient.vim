@@ -1466,7 +1466,7 @@ function! LanguageClient_contextMenu() abort
 				\ get(g:, 'LanguageClient_fzfContextMenu', 1))
     if l:useSelectionUI
             \ && (type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
-                \ || (get(g:, 'LanguageClient_selectionUI', v:null) ==? 'FZF'
+                \ || (get(g:, 'LanguageClient_selectionUI', 'FZF') ==? 'FZF'
                     \ && get(g:, 'loaded_fzf')
                 \ )
             \ )
