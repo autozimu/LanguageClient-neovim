@@ -1,5 +1,5 @@
-use crate::rpcclient::RpcClient;
 use crate::{
+    rpcclient::RpcClient,
     sign::Sign,
     types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
     utils::Canonicalize,
@@ -21,6 +21,21 @@ pub fn try_get<'a, R: Deserialize<'a>>(key: &str, params: &'a Value) -> Result<O
     } else {
         Ok(<Option<R>>::deserialize(value)?)
     }
+}
+
+#[derive(Clone, Copy, Serialize)]
+pub struct HighlightSource {
+    pub buffer: Bufnr,
+    pub source: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Highlight {
+    pub line: u64,
+    pub character_start: u64,
+    pub character_end: u64,
+    pub group: String,
+    pub text: String,
 }
 
 #[derive(PartialEq)]
@@ -221,6 +236,21 @@ impl Vim {
         let parms = json!([0, [], "a", { "title": title }]);
         self.rpcclient.notify("setloclist", parms)?;
         Ok(())
+    }
+
+    /// clears all highlights in the current buffer.
+    pub fn clear_highlights(&self) -> Result<()> {
+        self.rpcclient.notify("s:ClearHighlights", json!([]))
+    }
+
+    /// replaces the highlights of the current document with the passed highlights.
+    pub fn set_highlights(&self, highlights: &[Highlight]) -> Result<()> {
+        if highlights.is_empty() {
+            return Ok(());
+        }
+
+        self.rpcclient
+            .notify("s:SetHighlights", json!([highlights]))
     }
 
     pub fn create_namespace(&self, name: &str) -> Result<i64> {

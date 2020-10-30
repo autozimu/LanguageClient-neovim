@@ -5,7 +5,7 @@ use crate::{
     vim::Vim,
     watcher::FSWatch,
 };
-use crate::{logger::Logger, viewport::Viewport};
+use crate::{logger::Logger, viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
@@ -119,12 +119,6 @@ pub enum Call {
     Notification(LanguageId, jsonrpc_core::Notification),
 }
 
-#[derive(Clone, Copy, Serialize)]
-pub struct HighlightSource {
-    pub buffer: Bufnr,
-    pub source: u64,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UseVirtualText {
     Diagnostics,
@@ -169,7 +163,6 @@ pub struct State {
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
-    pub document_highlight_source: Option<HighlightSource>,
     pub user_handlers: HashMap<String, String>,
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, FSWatch>,
@@ -259,7 +252,6 @@ impl State {
             highlights: HashMap::new(),
             highlights_placed: HashMap::new(),
             highlight_match_ids: Vec::new(),
-            document_highlight_source: None,
             user_handlers: HashMap::new(),
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),
@@ -504,22 +496,6 @@ pub struct TextDocumentSemanticHighlightState {
     pub last_version: Option<i64>,
     pub symbols: Vec<SemanticHighlightingInformation>,
     pub highlights: Option<Vec<Highlight>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Highlight {
-    pub line: u64,
-    pub character_start: u64,
-    pub character_end: u64,
-    pub group: String,
-    pub text: String,
-}
-
-impl PartialEq for Highlight {
-    fn eq(&self, other: &Self) -> bool {
-        // Quick check whether highlight should be updated.
-        self.text == other.text && self.group == other.group
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
