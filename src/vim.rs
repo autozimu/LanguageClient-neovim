@@ -241,15 +241,7 @@ impl Vim {
         )
     }
 
-    pub fn set_signs(
-        &self,
-        filename: &str,
-        signs_to_add: &[Sign],
-        signs_to_delete: &[Sign],
-    ) -> Result<i8> {
-        self.rpcclient.call(
-            "s:set_signs",
-            json!([filename, signs_to_add, signs_to_delete]),
-        )
+    pub fn set_signs(&self, filename: &str, signs: &[Sign]) -> Result<i8> {
+        self.rpcclient.call("s:set_signs", json!([filename, signs]))
     }
 }

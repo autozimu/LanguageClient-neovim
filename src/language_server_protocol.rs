@@ -1,6 +1,7 @@
-use crate::extensions::java;
 use crate::language_client::LanguageClient;
+use crate::sign::Sign;
 use crate::vim::{try_get, Mode};
+use crate::{extensions::java, viewport::Viewport};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -1082,7 +1083,7 @@ impl LanguageClient {
             }
             self.process_diagnostics(&f, &[])?;
         }
-        self.handle_cursor_moved(&Value::Null)?;
+        self.handle_cursor_moved(&Value::Null, true)?;
 
         self.update(|state| {
             state.clients.remove(&Some(language_id.into()));
@@ -2407,7 +2408,7 @@ impl LanguageClient {
         });
 
         self.process_diagnostics(&current_filename, &diagnostics)?;
-        self.handle_cursor_moved(&Value::Null)?;
+        self.handle_cursor_moved(&Value::Null, true)?;
         self.vim()?
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageClientDiagnosticsChanged")?;
@@ -2973,7 +2974,7 @@ impl LanguageClient {
                 self.get(|state| state.diagnostics.get(&filename).cloned())?
             {
                 self.process_diagnostics(&filename, &diagnostics)?;
-                self.handle_cursor_moved(params)?;
+                self.handle_cursor_moved(params, true)?;
             }
         } else {
             let auto_start: u8 = self
@@ -3036,7 +3037,6 @@ impl LanguageClient {
             state.text_documents.retain(|f, _| f != &filename);
             state.diagnostics.retain(|f, _| f != &filename);
             state.line_diagnostics.retain(|fl, _| fl.0 != *filename);
-            state.signs.retain(|f, _| f != &filename);
             Ok(())
         })?;
         self.text_document_did_close(params)?;
@@ -3044,7 +3044,32 @@ impl LanguageClient {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub fn handle_cursor_moved(&self, params: &Value) -> Result<()> {
+    fn get_signs_to_display(&self, filename: &str, viewport: &Viewport) -> Result<Vec<Sign>> {
+        let signs: Vec<_> = self.get(|state| {
+            let diagnostics = state.diagnostics.get(filename).cloned().unwrap_or_default();
+            let mut diagnostics = diagnostics
+                .iter()
+                .filter(|diag| viewport.overlaps(diag.range))
+                .sorted_by_key(|diag| {
+                    (
+                        diag.range.start.line,
+                        diag.severity.unwrap_or(DiagnosticSeverity::Hint),
+                    )
+                })
+                .collect_vec();
+            diagnostics.dedup_by_key(|diag| diag.range.start.line);
+            diagnostics
+                .into_iter()
+                .take(state.diagnostics_signs_max.unwrap_or(std::usize::MAX))
+                .map(Into::into)
+                .collect()
+        })?;
+
+        Ok(signs)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    pub fn handle_cursor_moved(&self, params: &Value, force_redraw: bool) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let line = self.vim()?.get_position(params)?.line;
@@ -3080,67 +3105,23 @@ impl LanguageClient {
             })?;
         }
 
-        let viewport = self.vim()?.get_viewport(params)?;
+        let current_viewport = self.vim()?.get_viewport(params)?;
+        let previous_viewport = self.get(|state| state.viewports.get(&filename).cloned())?;
+        match previous_viewport {
+            // if the viewport hasn't changed and force_redraw is not set, we can safely exit this
+            // function early and save us some sign and virtual text redrawing.
+            Some(pv) if pv == current_viewport && !force_redraw => {
+                return Ok(());
+            }
+            _ => {}
+        }
 
-        // use the most severe diagnostic of each line as the sign
-        let signs_next: Vec<_> = self.update(|state| {
-            let mut diagnostics = state
-                .diagnostics
-                .entry(filename.clone())
-                .or_default()
-                .iter()
-                .filter(|diag| viewport.overlaps(diag.range))
-                .sorted_by_key(|diag| {
-                    (
-                        diag.range.start.line,
-                        diag.severity.unwrap_or(DiagnosticSeverity::Hint),
-                    )
-                })
-                .collect_vec();
-            diagnostics.dedup_by_key(|diag| diag.range.start.line);
-            Ok(diagnostics
-                .into_iter()
-                .take(state.diagnostics_signs_max.unwrap_or(std::usize::MAX))
-                .map(Into::into)
-                .collect())
-        })?;
+        let signs = self.get_signs_to_display(&filename, &current_viewport)?;
         self.update(|state| {
-            let signs_prev: Vec<_> = state
-                .signs
-                .entry(filename.clone())
-                .or_default()
-                .iter()
-                .map(|(_, sign)| sign.clone())
-                .collect();
-            let mut signs_to_add = vec![];
-            let mut signs_to_delete = vec![];
-            let diffs = diff::slice(&signs_next, &signs_prev);
-            for diff in diffs {
-                match diff {
-                    diff::Result::Left(s) => {
-                        signs_to_add.push(s.clone());
-                    }
-                    diff::Result::Right(s) => {
-                        signs_to_delete.push(s.clone());
-                    }
-                    _ => {}
-                }
-            }
-
-            let signs = state.signs.entry(filename.clone()).or_default();
-            // signs might be deleted AND added in the same line to change severity,
-            // so deletions must be before additions
-            for sign in &signs_to_delete {
-                signs.remove(&sign.line);
-            }
-            for sign in &signs_to_add {
-                signs.insert(sign.line, sign.clone());
-            }
-            state
-                .vim
-                .set_signs(&filename, &signs_to_add, &signs_to_delete)?;
+            state.viewports.insert(filename.clone(), current_viewport);
             Ok(())
         })?;
+        self.vim()?.set_signs(&filename, &signs)?;
 
         let highlights: Vec<_> = self.update(|state| {
             Ok(state
@@ -3149,7 +3130,7 @@ impl LanguageClient {
                 .or_insert_with(Vec::new)
                 .iter()
                 .filter_map(|h| {
-                    if h.line < viewport.start || h.line > viewport.end {
+                    if h.line < current_viewport.start || h.line > current_viewport.end {
                         return None;
                     }
 
@@ -3185,7 +3166,7 @@ impl LanguageClient {
 
             self.vim()?.rpcclient.notify(
                 "nvim_buf_clear_highlight",
-                json!([0, source, viewport.start, viewport.end]),
+                json!([0, source, current_viewport.start, current_viewport.end]),
             )?;
 
             self.vim()?

@@ -1,12 +1,11 @@
-use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
-use crate::sign::Sign;
 use crate::{
     language_client::LanguageClient,
     utils::{code_action_kind_as_str, ToUrl},
     vim::Vim,
     watcher::FSWatch,
 };
+use crate::{logger::Logger, viewport::Viewport};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
@@ -22,7 +21,7 @@ use pathdiff::diff_paths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     io::{BufRead, BufReader, BufWriter, Write},
     net::TcpStream,
     path::{Path, PathBuf},
@@ -151,6 +150,7 @@ pub struct State {
     pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
+    pub viewports: HashMap<String, Viewport>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
     pub semantic_scopes: HashMap<String, Vec<Vec<String>>>,
     pub semantic_scope_to_hl_group_table: HashMap<String, Vec<Option<String>>>,
@@ -163,8 +163,6 @@ pub struct State {
     pub code_lens_hl_group: String,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
-    /// Active signs.
-    pub signs: HashMap<String, BTreeMap<u64, Sign>>,
     pub namespace_ids: HashMap<String, i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
@@ -248,6 +246,7 @@ impl State {
             registrations: vec![],
             roots: HashMap::new(),
             text_documents: HashMap::new(),
+            viewports: HashMap::new(),
             text_documents_metadata: HashMap::new(),
             semantic_scopes: HashMap::new(),
             semantic_scope_to_hl_group_table: HashMap::new(),
@@ -255,7 +254,6 @@ impl State {
             code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
-            signs: HashMap::new(),
             namespace_ids: HashMap::new(),
             highlight_source: None,
             highlights: HashMap::new(),
