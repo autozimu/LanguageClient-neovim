@@ -2783,6 +2783,22 @@ impl LanguageClient {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
+    pub fn shutdown(&self, params: &Value) -> Result<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let language_id = self.vim()?.get_language_id(&filename, params)?;
+
+        let _: () = self
+            .get_client(&Some(language_id.clone()))?
+            .call(lsp_types::request::Shutdown::METHOD, Value::Null)?;
+
+        self.vim()?
+            .rpcclient
+            .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;
+
+        Ok(Value::Null)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn exit(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -2794,13 +2810,10 @@ impl LanguageClient {
             error!("Error: {:?}", err);
         }
 
-        self.vim()?
-            .rpcclient
-            .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;
-
         if let Err(err) = self.cleanup(&language_id) {
             error!("Error: {:?}", err);
         }
+
         Ok(())
     }
 
@@ -3901,10 +3914,21 @@ impl LanguageClient {
             return Ok(());
         }
 
+        // we don't want to restart if the server was shut down by the user, so check
+        // VIM_IS_SERVER_RUNNING as that should be true at this point only if the server exited
+        // unexpectedly.
+        let filename = self.vim()?.get_filename(&Value::Null)?;
+        let is_running: u8 = self
+            .vim()?
+            .getbufvar(filename.as_str(), VIM_IS_SERVER_RUNNING)?;
+        let is_running = is_running == 1;
+        if !is_running {
+            return Ok(());
+        }
+
         self.vim()?
             .rpcclient
             .notify("s:ExecuteAutocmd", "LanguageServerCrashed")?;
-        let filename = self.vim()?.get_filename(&Value::Null)?;
         self.vim()?
             .rpcclient
             .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;

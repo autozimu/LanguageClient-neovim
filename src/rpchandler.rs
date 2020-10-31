@@ -97,6 +97,7 @@ impl LanguageClient {
             request::ResolveCompletionItem::METHOD => self.completion_item_resolve(&params),
             request::ExecuteCommand::METHOD => self.workspace_execute_command(&params),
             request::ApplyWorkspaceEdit::METHOD => self.workspace_apply_edit(&params),
+            request::Shutdown::METHOD => self.shutdown(&params),
             request::DocumentHighlightRequest::METHOD => {
                 self.text_document_document_highlight(&params)
             }

@@ -151,7 +151,7 @@ function! LanguageClient_textDocument_switchSourceHeader(...)
 endfunction
 
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
-command! LanguageClientStop :call LanguageClient#exit()
+command! LanguageClientStop call LanguageClient#shutdown()
 
 augroup languageClient
     autocmd!
