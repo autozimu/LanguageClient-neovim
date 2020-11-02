@@ -709,6 +709,11 @@ endfunction
 function! LanguageClient#Write(message) abort
     let l:message = a:message . "\n"
     if has('nvim')
+        " abort write if nvim is exiting
+        if get(v:, 'exiting', v:null) isnot v:null
+          return
+        endif
+
         " jobsend respond 1 for success.
         return !jobsend(s:job, l:message)
     elseif has('channel')
