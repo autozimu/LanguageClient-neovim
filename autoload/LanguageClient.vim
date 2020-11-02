@@ -177,15 +177,33 @@ function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts
     endfor
 endfunction
 
-function! s:set_signs(file, signs_to_add, signs_to_delete) abort
-    " TODO: Optimize to update sign instead of add + remove sign.
-    for l:sign in a:signs_to_add
-        let l:line = l:sign['line'] + 1
-        execute ':sign place ' . l:sign['id'] . ' line=' . l:line . ' name=' . l:sign['name'] . ' file=' . a:file
-    endfor
-    for l:sign in a:signs_to_delete
-        execute ':sign unplace ' . l:sign['id']
-    endfor
+function! s:place_sign(id, name, file, line) abort
+  if !exists('*sign_place')
+    execute 'sign place id=' . a:id . ' name=' . a:name . ' file=' . a:file . ' line=' . a:line
+  endif
+
+  call sign_place(0, 'LanguageClientNeovim', a:name, a:file, { 'lnum': a:line })
+endfunction
+
+" clears all signs on the buffer with the given name
+function! s:clear_buffer_signs(file) abort
+  if !exists('*sign_unplace')
+    execute 'sign unplace * group=LanguageClientNeovim buffer=' . a:file
+  else
+    call sign_unplace('LanguageClientNeovim', { 'buffer': a:file })
+  endif
+endfunction
+
+" replaces the signs on a file with the ones passed as an argument
+function! s:set_signs(file, signs) abort
+  call s:clear_buffer_signs(a:file)
+
+  for l:sign in a:signs
+    let l:line = l:sign['line'] + 1
+    let l:name = l:sign['name']
+    let l:id = l:sign['id']
+    call s:place_sign(l:id, l:name, a:file, l:line)
+  endfor
 endfunction
 
 " Execute serious of ex commands.

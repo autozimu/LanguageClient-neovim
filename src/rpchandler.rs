@@ -191,7 +191,7 @@ impl LanguageClient {
             NOTIFICATION_HANDLE_TEXT_CHANGED => self.handle_text_changed(&params)?,
             NOTIFICATION_HANDLE_BUF_WRITE_POST => self.handle_buf_write_post(&params)?,
             NOTIFICATION_HANDLE_BUF_DELETE => self.handle_buf_delete(&params)?,
-            NOTIFICATION_HANDLE_CURSOR_MOVED => self.handle_cursor_moved(&params)?,
+            NOTIFICATION_HANDLE_CURSOR_MOVED => self.handle_cursor_moved(&params, false)?,
             NOTIFICATION_HANDLE_COMPLETE_DONE => self.handle_complete_done(&params)?,
             NOTIFICATION_FZF_SINK_LOCATION => self.fzf_sink_location(&params)?,
             NOTIFICATION_FZF_SINK_COMMAND => self.fzf_sink_command(&params)?,
