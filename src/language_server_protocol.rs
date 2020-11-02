@@ -650,7 +650,7 @@ impl LanguageClient {
             }) {
                 let line = diagnostic.range.start.line + 1;
                 let col = diagnostic.range.start.character + 1;
-                let _: String = self.vim()?.rpcclient.call("cursor", json!([line, col]))?;
+                self.vim()?.cursor(line, col)?;
             } else {
                 self.vim()?.echomsg("No diagnostics found")?;
             }
