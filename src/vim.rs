@@ -9,17 +9,17 @@ use anyhow::Result;
 use jsonrpc_core::Value;
 use log::*;
 use lsp_types::Position;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{path::Path, sync::Arc};
 
 /// Try get value of an variable from RPC params.
-pub fn try_get<R: DeserializeOwned>(key: &str, params: &Value) -> Result<Option<R>> {
+pub fn try_get<'a, R: Deserialize<'a>>(key: &str, params: &'a Value) -> Result<Option<R>> {
     let value = &params[key];
     if value == &Value::Null {
         Ok(None)
     } else {
-        Ok(serde_json::from_value(value.clone())?)
+        Ok(<Option<R>>::deserialize(value)?)
     }
 }
 
