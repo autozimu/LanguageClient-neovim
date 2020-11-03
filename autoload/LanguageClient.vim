@@ -806,7 +806,6 @@ function! LanguageClient#textDocument_hover(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:Callback),
@@ -869,7 +868,6 @@ function! LanguageClient#textDocument_references(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'includeDeclaration': v:true,
@@ -883,7 +881,6 @@ endfunction
 function! LanguageClient#textDocument_rename(...) abort
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'cword': expand('<cword>'),
@@ -898,7 +895,6 @@ function! LanguageClient#textDocument_documentSymbol(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -909,7 +905,6 @@ function! LanguageClient#workspace_symbol(...) abort
     let l:Callback = get(a:000, 2, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'query': get(a:000, 0, ''),
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
@@ -921,7 +916,6 @@ function! LanguageClient#textDocument_codeLens(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:Callback),
@@ -1046,7 +1040,6 @@ function! LanguageClient#textDocument_documentHighlight(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:Callback),
