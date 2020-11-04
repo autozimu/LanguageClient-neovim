@@ -5,14 +5,18 @@ use serde::Deserialize;
 use serde_json::Value;
 
 pub mod command {
-    pub const TEST: &str = "test";
-    pub const GENERATE: &str = "generate";
+    // older versions of gopls send code lens commands without the `gopls` prefix
+    // so probably a good idea to maintain both for a while.
+    pub(super) const TEST: &str = "test";
+    pub(super) const GOPLS_TEST: &str = "gopls.test";
+    pub(super) const GENERATE: &str = "generate";
+    pub(super) const GOPLS_GENERATE: &str = "gopls.generate";
 }
 
 impl LanguageClient {
     pub fn handle_gopls_command(&self, cmd: &Command) -> Result<bool> {
         match cmd.command.as_str() {
-            command::TEST => {
+            command::TEST | command::GOPLS_TEST => {
                 if let Some(args) = &cmd.arguments {
                     if let Some(file) = args.get(0) {
                         let file = String::deserialize(file)?;
@@ -40,7 +44,7 @@ impl LanguageClient {
                     }
                 }
             }
-            command::GENERATE => {
+            command::GENERATE | command::GOPLS_GENERATE => {
                 if let Some(arguments) = &cmd.arguments {
                     if let Some(package) = arguments.get(0) {
                         let package = String::deserialize(package)?;
