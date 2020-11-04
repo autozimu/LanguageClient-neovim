@@ -290,6 +290,11 @@ function! s:MatchDelete(ids) abort
 endfunction
 
 function! s:ApplySemanticHighlights(bufnr, ns_id, clears, highlights) abort
+    " TODO: implement this for vim8
+    if !has('nvim')
+      return
+    endif
+
     for clear in a:clears
         call nvim_buf_clear_namespace(a:bufnr, a:ns_id, clear.line_start, clear.line_end)
     endfor
@@ -300,10 +305,45 @@ function! s:ApplySemanticHighlights(bufnr, ns_id, clears, highlights) abort
 endfunction
 
 " Batch version of nvim_buf_add_highlight
-function! s:AddHighlights(source, highlights) abort
+function! s:AddHighlights(namespace_id, highlights) abort
+  if has('nvim')
     for hl in a:highlights
-        call nvim_buf_add_highlight(0, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
+        call nvim_buf_add_highlight(0, a:namespace_id, hl.group, hl.line, hl.character_start, hl.character_end)
     endfor
+  else
+    let match_ids = []
+    for hl in a:highlights
+      let match_id = matchaddpos(hl.group, [[hl.line + 1, hl.character_start + 1, hl.character_end - hl.character_start]])
+      let match_ids = add(match_ids, match_id)
+    endfor
+
+    call setbufvar(bufname(), 'document_highlight_match_ids', match_ids)
+  endif
+endfunction
+
+function! s:SetHighlights(highlights) abort
+  call s:ClearHighlights()
+  if has('nvim')
+    let s:namespace_id = nvim_create_namespace('__LCN_DOCUMENT_HIGHLIGHTS__')
+    call s:AddHighlights(s:namespace_id, a:highlights)
+  else
+    call s:AddHighlights(0, a:highlights)
+  endif
+endfunction
+
+function! s:ClearHighlights() abort
+  if has('nvim')
+    let s:namespace_id = nvim_create_namespace('__LCN_DOCUMENT_HIGHLIGHTS__')
+    call nvim_buf_clear_namespace(0, s:namespace_id, 0, -1)
+  else
+    let match_ids = get(b:, 'document_highlight_match_ids', [])
+    for mid in match_ids
+      " call inside a try/catch to avoid error for manually cleared matches
+      try | call matchdelete(mid) | catch
+      endtry
+    endfor
+    call setbufvar(bufname(), 'document_highlight_match_ids', [])
+  endif
 endfunction
 
 " Get an variable value.

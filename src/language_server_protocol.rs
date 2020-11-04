@@ -1,7 +1,7 @@
 use crate::language_client::LanguageClient;
 use crate::sign::Sign;
 use crate::vim::{try_get, Mode};
-use crate::{extensions::java, viewport::Viewport};
+use crate::{extensions::java, viewport::Viewport, vim::Highlight};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -508,53 +508,7 @@ impl LanguageClient {
                 })
                 .collect::<Result<Vec<_>>>()?;
 
-            let buffer = self.vim()?.get_bufnr(&filename, params)?;
-
-            // The following code needs to be inside the critical section as a whole to update
-            // everything correctly and not leave hanging highlights.
-            self.update(|state| {
-                let source = if let Some(hs) = state.document_highlight_source {
-                    if hs.buffer == buffer {
-                        // If we want to highlight in the same buffer as last time, we can reuse
-                        // the previous source.
-                        Some(hs.source)
-                    } else {
-                        // Clear the highlight in the previous buffer.
-                        state.vim.rpcclient.notify(
-                            "nvim_buf_clear_highlight",
-                            json!([hs.buffer, hs.source, 0, -1]),
-                        )?;
-
-                        None
-                    }
-                } else {
-                    None
-                };
-
-                let source = match source {
-                    Some(source) => source,
-                    None => {
-                        // Create a new source.
-                        let source = state.vim.rpcclient.call(
-                            "nvim_buf_add_highlight",
-                            json!([buffer, 0, "Error", 1, 1, 1]),
-                        )?;
-                        state.document_highlight_source = Some(HighlightSource { buffer, source });
-                        source
-                    }
-                };
-
-                state
-                    .vim
-                    .rpcclient
-                    .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
-                state
-                    .vim
-                    .rpcclient
-                    .notify("s:AddHighlights", json!([source, highlights]))?;
-
-                Ok(())
-            })?;
+            self.vim()?.set_highlights(&highlights)?;
         }
 
         Ok(result)
@@ -562,20 +516,7 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn clear_document_highlight(&self, _params: &Value) -> Result<()> {
-        // The following code needs to be inside the critical section as a whole to update
-        // everything correctly and not leave hanging highlights.
-        self.update(|state| {
-            if let Some(HighlightSource { buffer, source }) = state.document_highlight_source.take()
-            {
-                state
-                    .vim
-                    .rpcclient
-                    .notify("nvim_buf_clear_highlight", json!([buffer, source, 0, -1]))?;
-            }
-            Ok(())
-        })?;
-
-        Ok(())
+        self.vim()?.clear_highlights()
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -3139,41 +3080,7 @@ impl LanguageClient {
                 .collect())
         })?;
 
-        if Some(highlights.clone())
-            != self.get(|state| state.highlights_placed.get(&filename).cloned())?
-            && self.get(|state| state.is_nvim)?
-        {
-            let source = if let Some(source) = self.get(|state| state.highlight_source)? {
-                source
-            } else {
-                let source = self
-                    .vim()?
-                    .rpcclient
-                    .call("nvim_buf_add_highlight", json!([0, 0, "Error", 1, 1, 1]))?;
-                self.update(|state| {
-                    state.highlight_source = Some(source);
-                    Ok(())
-                })?;
-                source
-            };
-
-            self.update(|state| {
-                state
-                    .highlights_placed
-                    .insert(filename.clone(), highlights.clone());
-                Ok(())
-            })?;
-
-            self.vim()?.rpcclient.notify(
-                "nvim_buf_clear_highlight",
-                json!([0, source, current_viewport.start, current_viewport.end]),
-            )?;
-
-            self.vim()?
-                .rpcclient
-                .notify("s:AddHighlights", json!([source, highlights]))?;
-        }
-
+        self.vim()?.set_highlights(&highlights)?;
         self.draw_virtual_texts(&params)?;
 
         Ok(())
