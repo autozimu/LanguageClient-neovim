@@ -1056,7 +1056,7 @@ function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
     return l:result isnot v:null
 endfunction
 
-function! LanguageClient#textDocument_didOpen() abort
+function! LanguageClient#textDocument_didOpen(...) abort
     return LanguageClient#Notify('textDocument/didOpen', {
                 \ 'filename': LSP#filename(),
                 \ 'text': LSP#text(),
@@ -1113,7 +1113,7 @@ function! LanguageClient#startServer(...) abort
                 \ 'cmdargs': [],
                 \ }
     call extend(l:params, a:0 > 0 ? {'cmdargs': a:000} : {})
-    return LanguageClient#Call('languageClient/startServer', l:params, v:null)
+    return LanguageClient#Call('languageClient/startServer', l:params, funcref('LanguageClient#textDocument_didOpen'))
 endfunction
 
 function! LanguageClient#registerServerCommands(cmds, ...) abort
