@@ -1327,6 +1327,10 @@ function! LanguageClient_NCM2OnComplete(context) abort
 endfunction
 
 function! LanguageClient#explainErrorAtPoint(...) abort
+    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview()
+        return
+    endif
+
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'buftype': &buftype,
