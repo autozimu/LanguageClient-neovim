@@ -786,12 +786,15 @@ function! s:SkipSendingMessage() abort
         return v:false
     endif
 
-    return &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+    let l:commands = get(g:, 'LanguageClient_serverCommands', {})
+    let l:has_command = has_key(l:commands, &filetype)
+
+    return !l:has_command || &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
 endfunction
 
 function! LanguageClient#Call(method, params, callback, ...) abort
     if s:SkipSendingMessage()
-        " call s:Debug('Skip sending message')
+        echo '[LC] Server not configured for filetype ' . &filetype
         return
     endif
 
