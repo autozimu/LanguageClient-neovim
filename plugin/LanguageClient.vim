@@ -153,18 +153,33 @@ endfunction
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop call LanguageClient#shutdown()
 
-function! s:ConfigureAutocmds()
-  let l:commands = get(g:, 'LanguageClient_serverCommands', {})
-  if !has_key(l:commands, &filetype)
-    " skip setting autocmds if the filetype doesn't have a configured server command
+function! s:OnBufEnter()
+  if !s:HasCommand()
+    return
+  endif
+
+  call LanguageClient#handleBufEnter()
+  call s:ConfigureAutocmds()
+endfunction
+
+function! s:OnFileType()
+  if !s:HasCommand()
     return
   endif
 
   call LanguageClient#handleFileType()
+  call s:ConfigureAutocmds()
+endfunction
+
+function! s:HasCommand()
+  let l:commands = get(g:, 'LanguageClient_serverCommands', {})
+  return has_key(l:commands, &filetype)
+endfunction
+
+function! s:ConfigureAutocmds()
   augroup languageClient
     autocmd!
     autocmd BufNewFile <buffer> call LanguageClient#handleBufNewFile()
-    autocmd BufEnter <buffer> call LanguageClient#handleBufEnter()
     autocmd BufWritePost <buffer> call LanguageClient#handleBufWritePost()
     autocmd BufDelete <buffer> call LanguageClient#handleBufDelete()
     autocmd TextChanged <buffer> call LanguageClient#handleTextChanged()
@@ -203,5 +218,6 @@ endfunction
 
 augroup languageClient_fileType
     autocmd!
-    autocmd FileType * call s:ConfigureAutocmds()
+    autocmd FileType * call s:OnFileType()
+    autocmd BufEnter * call s:OnBufEnter()
 augroup END
