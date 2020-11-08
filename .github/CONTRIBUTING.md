@@ -1,10 +1,29 @@
 # Prerequisites
 
-- [rust] toolchain
+- [rust] toolchain or [nix]
 
 [rust]: https://www.rust-lang.org
+[nix]: https://nixos.org/
 
 # Development
+
+Clone this repo into some place, e.g., `~/.vim-plugins`
+
+```sh
+mkdir -p ~/.vim-plugins
+cd ~/.vim-plugins
+git clone https://github.com/autozimu/LanguageClient-neovim.git
+cd LanguageClient-neovim
+git checkout dev
+# nix users can execute nix-shell at this point
+make dev
+```
+
+Add this plugin to vim/neovim `runtimepath`,
+
+```vim
+set runtimepath+=~/.vim-plugins/LanguageClient-neovim
+```
 
 Put those settings inside vimrc,
 
@@ -14,7 +33,7 @@ let g:LanguageClient_loggingLevel = 'INFO' " Optional, use higher logging level
 ```
 
 - Make necessary changes.
-- Execute `make` to build, format and [lint][clippy].
+- Execute `make dev` to build, format and [lint][clippy].
 - Running separate vim/neovim. Verify changes.
 - Run tests. (See below section)
 
