@@ -786,10 +786,13 @@ function! s:SkipSendingMessage() abort
         return v:false
     endif
 
-    let l:commands = get(g:, 'LanguageClient_serverCommands', {})
-    let l:has_command = has_key(l:commands, &filetype)
-
+    let l:has_command = LanguageClient#HasCommand(&filetype)
     return !l:has_command || &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+endfunction
+
+function! LanguageClient#HasCommand(filetype) abort
+  let l:commands = s:GetVar('LanguageClient_serverCommands', {})
+  return has_key(l:commands, a:filetype)
 endfunction
 
 function! LanguageClient#Call(method, params, callback, ...) abort

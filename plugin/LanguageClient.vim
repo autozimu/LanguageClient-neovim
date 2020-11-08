@@ -154,7 +154,7 @@ command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop call LanguageClient#shutdown()
 
 function! s:OnBufEnter()
-  if !s:HasCommand()
+  if !LanguageClient#HasCommand(&filetype)
     return
   endif
 
@@ -163,17 +163,12 @@ function! s:OnBufEnter()
 endfunction
 
 function! s:OnFileType()
-  if !s:HasCommand()
+  if !LanguageClient#HasCommand(&filetype)
     return
   endif
 
   call LanguageClient#handleFileType()
   call s:ConfigureAutocmds()
-endfunction
-
-function! s:HasCommand()
-  let l:commands = get(g:, 'LanguageClient_serverCommands', {})
-  return has_key(l:commands, &filetype)
 endfunction
 
 function! s:ConfigureAutocmds()
