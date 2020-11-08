@@ -1270,6 +1270,12 @@ impl LanguageClient {
 
         let hover = Option::<Hover>::deserialize(&result)?;
         if let Some(hover) = hover {
+            if hover.to_display().is_empty() {
+                self.vim()?
+                    .echowarn("No hover information found for symbol")?;
+                return Ok(Value::Null);
+            }
+
             let hover_preview = self.get(|state| state.hover_preview)?;
             let use_preview = match hover_preview {
                 HoverPreviewOption::Always => true,
