@@ -1,6 +1,6 @@
 all: release
 
-dev: build fmt clippy vint
+dev: build fmt clippy vim-lint
 
 ci: vim-lint python-lint check-fmt-and-clippy test integration-test
 
