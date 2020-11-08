@@ -524,6 +524,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype) abort
         endif
 
         call setline(1, lines)
+        " trigger refresh on plasticboy/vim-markdown
+        normal! i
         setlocal nomodified nomodifiable
 
         wincmd p
