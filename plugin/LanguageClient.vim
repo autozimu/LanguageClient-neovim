@@ -150,6 +150,10 @@ function! LanguageClient_textDocument_switchSourceHeader(...)
     return call('LanguageClient#textDocument_switchSourceHeader', a:000)
 endfunction
 
+function! LanguageClient_showCompletionItemDocumentation(...)
+    return call('LanguageClient#showCompletionItemDocumentation', a:000)
+endfunction
+
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop call LanguageClient#shutdown()
 
@@ -184,11 +188,13 @@ function! s:ConfigureAutocmds()
     endif
     autocmd CursorMoved <buffer> call LanguageClient#handleCursorMoved()
     autocmd VimLeavePre <buffer> call LanguageClient#handleVimLeavePre()
-
     autocmd CompleteDone <buffer> call LanguageClient#handleCompleteDone()
     if get(g:, 'LanguageClient_signatureHelpOnCompleteDone', 0)
         autocmd CompleteDone <buffer>
                     \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
+    endif
+    if exists('##CompleteChanged') && get(g:, 'LanguageClient_showCompletionDocs', 1)
+      autocmd CompleteChanged <buffer> call LanguageClient#handleCompleteChanged(deepcopy(v:event))
     endif
 
     nnoremap <Plug>(lcn-menu)               :call LanguageClient_contextMenu()<CR>
