@@ -9,8 +9,6 @@ pub mod command {
     // so probably a good idea to maintain both for a while.
     pub(super) const TEST: &str = "test";
     pub(super) const GOPLS_TEST: &str = "gopls.test";
-    pub(super) const GENERATE: &str = "generate";
-    pub(super) const GOPLS_GENERATE: &str = "gopls.generate";
 }
 
 impl LanguageClient {
@@ -44,21 +42,6 @@ impl LanguageClient {
                     }
                 }
             }
-            command::GENERATE | command::GOPLS_GENERATE => {
-                if let Some(arguments) = &cmd.arguments {
-                    if let Some(package) = arguments.get(0) {
-                        let package = String::deserialize(package)?;
-                        let recursive =
-                            bool::deserialize(arguments.get(1).unwrap_or(&Value::Bool(false)))?;
-                        let cmd = match (package, recursive) {
-                            (package, false) => format!("term go generate -x {}", package),
-                            (_, true) => "term go generate -x ./...".into(),
-                        };
-                        self.vim()?.command(cmd)?;
-                    }
-                }
-            }
-
             _ => return Ok(false),
         }
 
