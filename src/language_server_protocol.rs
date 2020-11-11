@@ -2604,7 +2604,7 @@ impl LanguageClient {
             return Ok(());
         }
 
-        match threshold {
+        match params.typ {
             MessageType::Error => error!("{}", params.message),
             MessageType::Warning => warn!("{}", params.message),
             MessageType::Info => info!("{}", params.message),
@@ -2619,7 +2619,14 @@ impl LanguageClient {
     pub fn window_show_message(&self, params: &Value) -> Result<()> {
         let params = ShowMessageParams::deserialize(params)?;
         let msg = format!("[{:?}] {}", params.typ, params.message);
-        self.vim()?.echomsg(&msg)?;
+
+        match params.typ {
+            MessageType::Error => self.vim()?.echoerr(msg)?,
+            MessageType::Warning => self.vim()?.echowarn(msg)?,
+            MessageType::Info => self.vim()?.echomsg(msg)?,
+            MessageType::Log => self.vim()?.echomsg(msg)?,
+        };
+
         Ok(())
     }
 
