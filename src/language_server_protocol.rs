@@ -1046,11 +1046,10 @@ impl LanguageClient {
         Ok(())
     }
 
-    fn preview<D>(&self, to_display: &D) -> Result<()>
+    fn preview<D>(&self, to_display: &D, bufname: &str) -> Result<()>
     where
         D: ToDisplay + ?Sized,
     {
-        let bufname = "__LanguageClient__";
         let filetype = &to_display.vim_filetype();
         let lines = to_display.to_display();
 
@@ -1283,7 +1282,7 @@ impl LanguageClient {
                 HoverPreviewOption::Auto => hover.lines_len() > 1,
             };
             if use_preview {
-                self.preview(&hover)?
+                self.preview(&hover, "__LCNHover__")?
             } else {
                 self.vim()?.echo_ellipsis(hover.to_string())?
             }
@@ -3524,6 +3523,7 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn explain_error_at_point(&self, params: &Value) -> Result<Value> {
+        let silent_mode: bool = try_get("silent", params)?.unwrap_or_default();
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
         let diag = self.get(|state| {
@@ -3542,7 +3542,12 @@ impl LanguageClient {
                         position.character
                     )
                 })
-        })??;
+        })?;
+
+        if silent_mode && diag.is_err() {
+            return Ok(Value::Null);
+        }
+        let diag = diag?;
 
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let root = self.get(|state| state.roots.get(&language_id).cloned().unwrap_or_default())?;
@@ -3577,7 +3582,7 @@ impl LanguageClient {
             }
         }
 
-        self.preview(explanation.as_str())?;
+        self.preview(explanation.as_str(), "__LCNExplainError__")?;
         Ok(Value::Null)
     }
 
