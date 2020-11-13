@@ -14,6 +14,35 @@ let s:POPUP_WINDOW_AVAILABLE = exists('*popup_atcursor')
 " timers to control throttling
 let s:timers = {}
 
+if !hlexists('LanguageClientCodeLens')
+  hi link LanguageClientCodeLens Title
+endif
+
+if !hlexists('LanguageClientWarningSign')
+  hi link LanguageClientWarningSign todo
+endif
+
+if !hlexists('LanguageClientWarning')
+  hi link LanguageClientWarning SpellCap
+endif
+
+if !hlexists('LanguageClientInfoSign')
+  hi link LanguageClientInfoSign LanguageClientWarningSign
+endif
+
+if !hlexists('LanguageClientInfo')
+  hi link LanguageClientInfo LanguageClientWarning
+endif
+
+if !hlexists('LanguageClientErrorSign')
+  hi link LanguageClientErrorSign error
+endif
+
+if !hlexists('LanguageClientError')
+  hi link LanguageClientError SpellBad
+endif
+
+
 function! s:AddPrefix(message) abort
     return '[LC] ' . a:message
 endfunction

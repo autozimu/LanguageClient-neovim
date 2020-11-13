@@ -155,7 +155,7 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
     pub code_lens: HashMap<String, Vec<CodeLens>>,
-    pub code_lens_hl_group: String,
+    pub code_lens_display: CodeLensDisplay,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub namespace_ids: HashMap<String, i64>,
@@ -291,7 +291,7 @@ impl State {
             server_stderr: None,
             preferred_markup_kind: None,
             enable_extensions: None,
-            code_lens_hl_group: "Comment".into(),
+            code_lens_display: CodeLensDisplay::default(),
             restart_on_crash: true,
             max_restart_retries: 5,
 
@@ -403,6 +403,20 @@ impl FromStr for DiagnosticsList {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CodeLensDisplay {
+    pub virtual_texthl: String,
+}
+
+impl Default for CodeLensDisplay {
+    fn default() -> Self {
+        CodeLensDisplay {
+            virtual_texthl: "LanguageClientCodeLens".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiagnosticsDisplay {
     pub name: String,
     pub texthl: String,
@@ -418,9 +432,9 @@ impl DiagnosticsDisplay {
             1,
             Self {
                 name: "Error".to_owned(),
-                texthl: "ALEError".to_owned(),
+                texthl: "LanguageClientError".to_owned(),
                 sign_text: "✖".to_owned(),
-                sign_texthl: "ALEErrorSign".to_owned(),
+                sign_texthl: "LanguageClientErrorSign".to_owned(),
                 virtual_texthl: "Error".to_owned(),
             },
         );
@@ -428,9 +442,9 @@ impl DiagnosticsDisplay {
             2,
             Self {
                 name: "Warning".to_owned(),
-                texthl: "ALEWarning".to_owned(),
+                texthl: "LanguageClientWarning".to_owned(),
                 sign_text: "⚠".to_owned(),
-                sign_texthl: "ALEWarningSign".to_owned(),
+                sign_texthl: "LanguageClientWarningSign".to_owned(),
                 virtual_texthl: "Todo".to_owned(),
             },
         );
@@ -438,9 +452,9 @@ impl DiagnosticsDisplay {
             3,
             Self {
                 name: "Information".to_owned(),
-                texthl: "ALEInfo".to_owned(),
+                texthl: "LanguageClientInfo".to_owned(),
                 sign_text: "ℹ".to_owned(),
-                sign_texthl: "ALEInfoSign".to_owned(),
+                sign_texthl: "LanguageClientInfoSign".to_owned(),
                 virtual_texthl: "Todo".to_owned(),
             },
         );
@@ -448,9 +462,9 @@ impl DiagnosticsDisplay {
             4,
             Self {
                 name: "Hint".to_owned(),
-                texthl: "ALEInfo".to_owned(),
+                texthl: "LanguageClientInfo".to_owned(),
                 sign_text: "➤".to_owned(),
-                sign_texthl: "ALEInfoSign".to_owned(),
+                sign_texthl: "LanguageClientInfoSign".to_owned(),
                 virtual_texthl: "Todo".to_owned(),
             },
         );

@@ -179,7 +179,7 @@ impl LanguageClient {
             preferred_markup_kind,
             hide_virtual_texts_on_insert,
             enable_extensions,
-            code_lens_hl_group,
+            code_lens_display,
         ): (
             Option<usize>,
             String,
@@ -194,7 +194,7 @@ impl LanguageClient {
             Option<Vec<MarkupKind>>,
             u8,
             Option<HashMap<String, bool>>,
-            String,
+            Value,
         ) = self.vim()?.eval(
             [
                 "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
@@ -210,7 +210,7 @@ impl LanguageClient {
                 "get(g:, 'LanguageClient_preferredMarkupKind', v:null)",
                 "s:GetVar('LanguageClient_hideVirtualTextsOnInsert', 0)",
                 "get(g:, 'LanguageClient_enableExtensions', v:null)",
-                "get(g:, 'LanguageClient_codeLensHighlightGroup', 'Comment')",
+                "get(g:, 'LanguageClient_codeLensDisplay', v:null)",
             ]
             .as_ref(),
         )?;
@@ -337,7 +337,9 @@ impl LanguageClient {
             state.is_nvim = is_nvim;
             state.preferred_markup_kind = preferred_markup_kind;
             state.enable_extensions = enable_extensions;
-            state.code_lens_hl_group = code_lens_hl_group;
+            state.code_lens_display = serde_json::from_value(
+                serde_json::to_value(&state.code_lens_display)?.combine(&code_lens_display),
+            )?;
             state.max_restart_retries = max_restart_retries;
             state.restart_on_crash = restart_on_crash == 1;
 
@@ -3208,7 +3210,7 @@ impl LanguageClient {
         let mut virtual_texts = vec![];
         let code_lenses =
             self.get(|state| state.code_lens.get(filename).cloned().unwrap_or_default())?;
-        let code_lens_hl_group = self.get(|state| state.code_lens_hl_group.clone())?;
+        let code_lens_display = self.get(|state| state.code_lens_display.clone())?;
 
         for cl in code_lenses {
             if let Some(command) = cl.command {
@@ -3225,7 +3227,7 @@ impl LanguageClient {
                     None => virtual_texts.push(VirtualText {
                         line,
                         text,
-                        hl_group: code_lens_hl_group.clone(),
+                        hl_group: code_lens_display.virtual_texthl.clone(),
                     }),
                 }
             }
