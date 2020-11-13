@@ -103,30 +103,30 @@ Default: >
     {
         1: {
             "name": "Error",
-            "texthl": "ALEError",
+            "texthl": "LanguageClientError",
             "signText": "✖",
-            "signTexthl": "ALEErrorSign",
+            "signTexthl": "LanguageClientErrorSign",
             "virtualTexthl": "Error",
         },
         2: {
             "name": "Warning",
-            "texthl": "ALEWarning",
+            "texthl": "LanguageClientWarning",
             "signText": "⚠",
-            "signTexthl": "ALEWarningSign",
+            "signTexthl": "LanguageClientWarningSign",
             "virtualTexthl": "Todo",
         },
         3: {
             "name": "Information",
-            "texthl": "ALEInfo",
+            "texthl": "LanguageClientInfo",
             "signText": "ℹ",
-            "signTexthl": "ALEInfoSign",
+            "signTexthl": "LanguageClientInfoSign",
             "virtualTexthl": "Todo",
         },
         4: {
             "name": "Hint",
-            "texthl": "ALEInfo",
+            "texthl": "LanguageClientInfo",
             "signText": "➤",
-            "signTexthl": "ALEInfoSign",
+            "signTexthl": "LanguageClientInfoSign",
             "virtualTexthl": "Todo",
         },
     }
@@ -629,11 +629,14 @@ The default value for this config, or the absence of this config, enables extens
 
 Default: v:null
 
-2.41 g:LanguageClient_codeLensHighlightGroup          *g:LanguageClient_codeLensHighlightGroup*
+2.41 g:LanguageClient_codeLensDisplay          *g:LanguageClient_codeLensDisplay*
 
-Highlight group to be used for code lens.
+Control how code lenses are displayed.
 
-Default: 'Comment'
+Default: >
+  {
+    "virtualTexthl": "LanguageClientCodeLens",
+  }
 
 2.42 g:LanguageClient_hoverMarginSize        *g:LanguageClient_hoverMarginSize*
 
