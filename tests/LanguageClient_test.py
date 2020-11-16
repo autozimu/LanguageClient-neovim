@@ -39,7 +39,7 @@ def assertRetry(predicate, retry_max=100):
 
 
 def getLanguageClientBuffers(nvim):
-    return [b for b in nvim.buffers if b.name.endswith("__LanguageClient__")]
+    return [b for b in nvim.buffers if b.name.endswith("__LCNHover__")]
 
 
 @pytest.fixture(scope="module")
@@ -324,7 +324,7 @@ def test_textDocument_hover_float_window_move_cursor_into_window(nvim):
 
     # Moves cursor into floating window
     nvim.funcs.LanguageClient_textDocument_hover()
-    assert nvim.current.buffer.name.endswith("__LanguageClient__")
+    assert nvim.current.buffer.name.endswith("__LCNHover__")
 
     # Close the window
     nvim.command('close')
