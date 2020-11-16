@@ -239,18 +239,19 @@ impl Vim {
     }
 
     /// clears all highlights in the current buffer.
-    pub fn clear_highlights(&self) -> Result<()> {
-        self.rpcclient.notify("s:ClearHighlights", json!([]))
+    pub fn clear_highlights(&self, namespace: &str) -> Result<()> {
+        self.rpcclient
+            .notify("s:ClearHighlights", json!([namespace]))
     }
 
     /// replaces the highlights of the current document with the passed highlights.
-    pub fn set_highlights(&self, highlights: &[Highlight]) -> Result<()> {
+    pub fn set_highlights(&self, highlights: &[Highlight], namespace: &str) -> Result<()> {
         if highlights.is_empty() {
-            return Ok(());
+            return self.clear_highlights(namespace);
         }
 
         self.rpcclient
-            .notify("s:SetHighlights", json!([highlights]))
+            .notify("s:SetHighlights", json!([highlights, namespace]))
     }
 
     pub fn create_namespace(&self, name: &str) -> Result<i64> {

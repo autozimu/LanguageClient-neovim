@@ -510,7 +510,8 @@ impl LanguageClient {
                 })
                 .collect::<Result<Vec<_>>>()?;
 
-            self.vim()?.set_highlights(&highlights)?;
+            self.vim()?
+                .set_highlights(&highlights, "__LCN_DOCUMENT_HIGHLIGHT__")?;
         }
 
         Ok(result)
@@ -518,7 +519,7 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn clear_document_highlight(&self, _params: &Value) -> Result<()> {
-        self.vim()?.clear_highlights()
+        self.vim()?.clear_highlights("__LCN_DOCUMENT_HIGHLIGHT__")
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -3117,7 +3118,8 @@ impl LanguageClient {
                 .collect())
         })?;
 
-        self.vim()?.set_highlights(&highlights)?;
+        self.vim()?
+            .set_highlights(&highlights, "__LCN_DIAGNOSTIC_HIGHLIGHT__")?;
         self.draw_virtual_texts(&params)?;
 
         Ok(())
