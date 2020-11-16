@@ -585,9 +585,9 @@ function! s:OpenHoverPreview(bufname, lines, filetype, ...) abort
     endif
 endfunction
 
-function! s:MoveIntoHoverPreview() abort
+function! s:MoveIntoHoverPreview(bufname) abort
     for bufnr in range(1, bufnr('$'))
-        if bufname(bufnr) ==# '__LanguageClient__'
+        if bufname(bufnr) ==# a:bufname
             let winnr = bufwinnr(bufnr)
             if winnr != -1
                 execute winnr . 'wincmd w'
@@ -890,7 +890,7 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
-    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview()
+    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview('__LCNHover__')
         return
     endif
     let l:Callback = get(a:000, 1, v:null)
@@ -1378,7 +1378,9 @@ function! LanguageClient_NCM2OnComplete(context) abort
 endfunction
 
 function! LanguageClient#explainErrorAtPoint(...) abort
-    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview()
+    let extra = get(a:000, 0, {})
+    let silent_mode = get(extra, 'silent', v:false)
+    if s:ShouldUseFloatWindow() && !silent_mode && s:MoveIntoHoverPreview('__LCNExplainError__')
         return
     endif
 
@@ -1390,7 +1392,7 @@ function! LanguageClient#explainErrorAtPoint(...) abort
                 \ 'character': LSP#character(),
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
-    call extend(l:params, get(a:000, 0, {}))
+    call extend(l:params, extra)
     return LanguageClient#Call('languageClient/explainErrorAtPoint', l:params, l:Callback)
 endfunction
 
