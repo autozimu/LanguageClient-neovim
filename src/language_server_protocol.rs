@@ -1108,7 +1108,7 @@ impl LanguageClient {
             InitializeParams {
                 client_info: Some(ClientInfo {
                     name: "LanguageClient-neovim".into(),
-                    version: Some(self.version.clone()),
+                    version: Some(self.version()),
                 }),
                 process_id: Some(u64::from(std::process::id())),
                 /* deprecated in lsp types, but can't initialize without it */
