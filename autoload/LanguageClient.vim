@@ -932,11 +932,17 @@ function! LanguageClient#textDocument_switchSourceHeader(...) abort
 endfunction
 
 function! LanguageClient#textDocument_definition(...) abort
+    let l:Callback = get(a:000, 1, v:null)
     let l:params = {
-                \ 'method': 'textDocument/definition',
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'handle': s:IsFalse(l:Callback),
+                \ 'gotoCmd': v:null,
                 \ }
     call extend(l:params, get(a:000, 0, {}))
-    return call('LanguageClient#findLocations', [l:params] + a:000[1:])
+    return LanguageClient#Call('textDocument/definition', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_typeDefinition(...) abort

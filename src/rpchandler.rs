@@ -90,6 +90,7 @@ impl LanguageClient {
             request::CodeActionRequest::METHOD => self.text_document_code_action(&params),
             request::Completion::METHOD => self.text_document_completion(&params),
             request::SignatureHelpRequest::METHOD => self.text_document_signature_help(&params),
+            request::GotoDefinition::METHOD => self.text_document_definition(&params),
             request::References::METHOD => self.text_document_references(&params),
             request::Formatting::METHOD => self.text_document_formatting(&params),
             request::RangeFormatting::METHOD => self.text_document_range_formatting(&params),
