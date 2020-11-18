@@ -15,12 +15,24 @@ use std::{
 
 #[derive(Clone)]
 pub struct LanguageClient {
-    pub version: String,
-    pub state_mutex: Arc<Mutex<State>>,
-    pub clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
+    version: String,
+    state_mutex: Arc<Mutex<State>>,
+    clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
 }
 
 impl LanguageClient {
+    pub fn new(version: String, state: State) -> Self {
+        LanguageClient {
+            version,
+            state_mutex: Arc::new(Mutex::new(state)),
+            clients_mutex: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub fn version(&self) -> String {
+        self.version.clone()
+    }
+
     // NOTE: Don't expose this as public.
     // MutexGuard could easily halt the program when one guard is not released immediately after use.
     fn lock(&self) -> Result<MutexGuard<State>> {

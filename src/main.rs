@@ -13,8 +13,7 @@ mod vimext;
 mod watcher;
 
 use anyhow::Result;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use language_client::LanguageClient;
 use types::State;
 
 #[macro_use]
@@ -26,11 +25,8 @@ fn main() -> Result<()> {
     let _ = clap::app_from_crate!().get_matches();
 
     let (tx, rx) = crossbeam::channel::unbounded();
-    let language_client = language_client::LanguageClient {
-        version: env!("CARGO_PKG_VERSION").into(),
-        state_mutex: Arc::new(Mutex::new(State::new(tx)?)),
-        clients_mutex: Arc::new(Mutex::new(HashMap::new())),
-    };
-
+    let version = env!("CARGO_PKG_VERSION").into();
+    let state = State::new(tx)?;
+    let language_client = LanguageClient::new(version, state);
     language_client.loop_call(&rx)
 }
