@@ -1659,9 +1659,18 @@ impl LanguageClient {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
+    pub fn text_document_definition(&self, params: &Value) -> Result<Value> {
+        let params = json!({
+            "method": lsp_types::request::GotoDefinition::METHOD,
+        })
+        .combine(params);
+        let result = self.find_locations(&params)?;
+        Ok(result)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_references(&self, params: &Value) -> Result<Value> {
         let include_declaration: bool = try_get("includeDeclaration", params)?.unwrap_or(true);
-        // TODO: cleanup.
         let params = json!({
             "method": lsp_types::request::References::METHOD,
             "context": ReferenceContext {
