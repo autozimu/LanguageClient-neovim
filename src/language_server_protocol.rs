@@ -3510,7 +3510,8 @@ impl LanguageClient {
         let is_incomplete;
         let matches;
         if let Ok(ref value) = result {
-            let completion = CompletionResponse::deserialize(value)?;
+            let completion = <Option<CompletionResponse>>::deserialize(value)?;
+            let completion = completion.unwrap_or_else(|| CompletionResponse::Array(vec![]));
             is_incomplete = match completion {
                 CompletionResponse::List(ref list) => list.is_incomplete,
                 _ => false,
