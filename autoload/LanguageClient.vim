@@ -1520,7 +1520,7 @@ function! LanguageClient#serverStatusMessage() abort
 endfunction
 
 function! LanguageClient#isServerRunning() abort
-    return b:LanguageClient_isServerRunning
+    return get(b:, 'LanguageClient_isServerRunning', 0)
 endfunction
 
 " Example function usable for status line.
