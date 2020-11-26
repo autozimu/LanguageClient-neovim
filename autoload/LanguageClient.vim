@@ -551,6 +551,8 @@ function! s:OpenHoverPreview(bufname, lines, filetype, ...) abort
           let pop_win_id = popup_atcursor(a:lines, { 'padding': l:padding })
         endif
         call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)
+        " trigger refresh on plasticboy/vim-markdown
+        call win_execute(pop_win_id, 'doautocmd InsertLeave')
     elseif display_approach ==# 'preview'
         execute 'silent! noswapfile pedit!' a:bufname
         wincmd P
