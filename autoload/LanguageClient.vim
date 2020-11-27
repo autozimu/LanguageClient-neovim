@@ -1312,6 +1312,9 @@ endfunction
 " there will Mutex poison error.
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
+  call s:timer_stop('LanguageClient#handleCursorMoved')
+
+  function! DebounceHandleCursorMoved() abort
     let l:cursor_line = getcurpos()[1] - 1
     if l:cursor_line == s:last_cursor_line
         return
@@ -1328,6 +1331,9 @@ function! LanguageClient#handleCursorMoved() abort
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
     endtry
+  endfunction
+
+  call s:timer_start_store(100, { -> DebounceHandleCursorMoved() }, 'LanguageClient#handleCursorMoved')
 endfunction
 
 function! LanguageClient#handleCompleteDone() abort
@@ -1711,14 +1717,18 @@ endfunction
 
 " receives the v:event from the CompleteChanged autocmd
 function! LanguageClient#handleCompleteChanged(event) abort
-  " this timer is just to stop textlock from locking our changes
-  call timer_start(0, funcref('s:ClosePopups'))
-
-  if has_key(s:timers, 'LanguageClient#handleCompleteChanged')
-    call timer_stop(s:timers['LanguageClient#handleCompleteChanged'])
+  " this function needs timer_start because by the time it is called the
+  " `textlock` lock is set, so calling something (ClosePopups in this case) in
+  " a timer basically unsets that lock.
+  if !exists('*timer_start')
+    return
   endif
 
-  function! Debounced(event) abort
+  " this timer is just to stop textlock from locking our changes
+  call s:timer_start(0, funcref('s:ClosePopups'))
+  call s:timer_stop('LanguageClient#handleCompleteChanged')
+
+  function! DebounceHandleCompleteChanged(event) abort
     let l:user_data = get(v:completed_item, 'user_data', '')
     if len(l:user_data) ==# 0
       return
@@ -1751,7 +1761,7 @@ function! LanguageClient#handleCompleteChanged(event) abort
     endif
   endfunction
 
-  let s:timers['LanguageClient#handleCompleteChanged'] = timer_start(100, { -> Debounced(a:event) })
+  call s:timer_start_store(100, { -> DebounceHandleCompleteChanged(a:event) }, 'LanguageClient#handleCompleteChanged')
 endfunction
 
 function! s:ShowCompletionItemDocumentation(doc, completion_event) abort
@@ -1783,6 +1793,36 @@ function! s:ShowCompletionItemDocumentation(doc, completion_event) abort
   endif
   let l:x_pos = l:pos['width'] + l:pos['col'] + 1
   call s:OpenHoverPreview('CompletionItemDocumentation', l:lines, l:kind, l:x_pos, l:pos['row'])
+endfunction
+
+" s:timer_stop tries to stop the timer with the given name by calling vim's
+" timer_stop. If vim's timer_stop function does not exist it just returns.
+function! s:timer_stop(name) abort
+	if !exists('*timer_stop')
+		return
+	endif
+
+	if has_key(s:timers, a:name)
+  	call timer_stop(s:timers[a:name])
+	endif
+endfunction
+
+" s:timer_start tries to start a timer by calling vim's timer_start function,
+" if it does not exist it just calls the function given in the second
+" argument.
+function! s:timer_start(delay, func) abort
+	if !exists('*timer_start')
+		return a:func()
+	endif
+
+  return timer_start(a:delay, a:func)
+endfunction
+
+" s:timer_start_store calls s:timer_start and stores the returned timer_id in
+" a script scoped s:timers variable that we can use to debounce function
+" calls.
+function! s:timer_start_store(delay, func, name) abort
+  let s:timers[a:name] = s:timer_start(a:delay, a:func)
 endfunction
 
 let g:LanguageClient_loaded = s:Launch()
