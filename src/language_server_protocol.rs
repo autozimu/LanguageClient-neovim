@@ -1,7 +1,8 @@
+use crate::config::Config;
+use crate::extensions::java;
 use crate::language_client::LanguageClient;
 use crate::sign::Sign;
 use crate::vim::{try_get, Mode};
-use crate::{extensions::java, viewport::Viewport, vim::Highlight};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -13,6 +14,7 @@ use crate::{
     viewport,
     watcher::FSWatch,
 };
+use crate::{viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Context, Error, Result};
 use glob::glob;
 use itertools::Itertools;
@@ -32,7 +34,7 @@ use lsp_types::{
     DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse, Documentation,
     ExecuteCommandParams, FormattingOptions, GenericCapability, GotoCapability,
     GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
-    InitializedParams, Location, LogMessageParams, MarkupKind, MessageType, NumberOrString,
+    InitializedParams, Location, LogMessageParams, MessageType, NumberOrString,
     ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
     ProgressParams, ProgressParamsValue, PublishDiagnosticsClientCapabilities,
     PublishDiagnosticsParams, Range, ReferenceContext, RegistrationParams, RenameParams,
@@ -40,9 +42,9 @@ use lsp_types::{
     ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpCapability,
     SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, TextEdit, TraceOption, UnregistrationParams,
-    VersionedTextDocumentIdentifier, WorkDoneProgress, WorkDoneProgressParams,
-    WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
+    TextDocumentPositionParams, TextEdit, UnregistrationParams, VersionedTextDocumentIdentifier,
+    WorkDoneProgress, WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit,
+    WorkspaceSymbolParams,
 };
 use maplit::hashmap;
 use serde::de::Deserialize;
@@ -52,9 +54,8 @@ use std::{
     fs::{read_to_string, File},
     io::{BufRead, BufReader, BufWriter},
     net::TcpStream,
-    path::{Path, PathBuf},
+    path::Path,
     process::Stdio,
-    str::FromStr,
     sync::{mpsc, Arc, MutexGuard},
     thread,
     time::{Duration, Instant},
@@ -93,255 +94,30 @@ impl LanguageClient {
     /////// Utils ///////
     #[tracing::instrument(level = "info", skip(self))]
     fn sync_settings(&self) -> Result<()> {
-        let (logging_file, logging_level, server_stderr): (
-            Option<PathBuf>,
-            log::LevelFilter,
-            Option<String>,
-        ) = self.vim()?.eval(
-            [
-                "get(g:, 'LanguageClient_loggingFile', v:null)",
-                "get(g:, 'LanguageClient_loggingLevel', 'WARN')",
-                "get(g:, 'LanguageClient_serverStderr', v:null)",
-            ]
-            .as_ref(),
-        )?;
-        self.update(|state| state.logger.update_settings(logging_level, logging_file))?;
-
-        #[allow(clippy::type_complexity)]
-        let (
-            auto_start,
-            server_commands,
-            selection_ui,
-            trace,
-            settings_path,
-            load_settings,
-            root_markers,
-            change_throttle,
-            wait_output_timeout,
-            diagnostics_enable,
-            diagnostics_list,
-            diagnostics_display,
-            window_log_message_level,
-            hover_preview,
-            completion_prefer_text_edit,
-            is_nvim,
-        ): (
-            u64,
-            HashMap<String, Vec<String>>,
-            Option<String>,
-            Option<String>,
-            Vec<String>,
-            u64,
-            Option<RootMarkers>,
-            Option<f64>,
-            Option<f64>,
-            u64,
-            Option<String>,
-            Value,
-            String,
-            Option<String>,
-            u64,
-            u64,
-        ) = self.vim()?.eval(
-            [
-                "!!get(g:, 'LanguageClient_autoStart', 1)",
-                "s:GetVar('LanguageClient_serverCommands', {})",
-                "s:getSelectionUI()",
-                "get(g:, 'LanguageClient_trace', v:null)",
-                "map(s:ToList(get(g:, 'LanguageClient_settingsPath', '.vim/settings.json')), 'expand(v:val)')",
-                "!!get(g:, 'LanguageClient_loadSettings', 1)",
-                "get(g:, 'LanguageClient_rootMarkers', v:null)",
-                "get(g:, 'LanguageClient_changeThrottle', v:null)",
-                "get(g:, 'LanguageClient_waitOutputTimeout', v:null)",
-                "!!get(g:, 'LanguageClient_diagnosticsEnable', 1)",
-                "get(g:, 'LanguageClient_diagnosticsList', 'Quickfix')",
-                "get(g:, 'LanguageClient_diagnosticsDisplay', {})",
-                "get(g:, 'LanguageClient_windowLogMessageLevel', 'Warning')",
-                "get(g:, 'LanguageClient_hoverPreview', 'Auto')",
-                "get(g:, 'LanguageClient_completionPreferTextEdit', 0)",
-                "has('nvim')",
-            ]
-            .as_ref(),
-        )?;
-
-        #[allow(clippy::type_complexity)]
-        let (
-            diagnostics_signs_max,
-            diagnostics_max_severity,
-            diagnostics_ignore_sources,
-            document_highlight_display,
-            selection_ui_auto_open,
-            use_virtual_text,
-            echo_project_root,
-            semantic_highlight_maps,
-            semantic_scope_separator,
-            apply_completion_text_edits,
-            preferred_markup_kind,
-            hide_virtual_texts_on_insert,
-            enable_extensions,
-            code_lens_display,
-        ): (
-            Option<usize>,
-            String,
-            Vec<String>,
-            Value,
-            u8,
-            UseVirtualText,
-            u8,
-            HashMap<String, HashMap<String, String>>,
-            String,
-            u8,
-            Option<Vec<MarkupKind>>,
-            u8,
-            Option<HashMap<String, bool>>,
-            Value,
-        ) = self.vim()?.eval(
-            [
-                "get(g:, 'LanguageClient_diagnosticsSignsMax', v:null)",
-                "get(g:, 'LanguageClient_diagnosticsMaxSeverity', 'Hint')",
-                "get(g:, 'LanguageClient_diagnosticsIgnoreSources', [])",
-                "get(g:, 'LanguageClient_documentHighlightDisplay', {})",
-                "!!s:GetVar('LanguageClient_selectionUI_autoOpen', 1)",
-                "s:useVirtualText()",
-                "!!s:GetVar('LanguageClient_echoProjectRoot', 1)",
-                "s:GetVar('LanguageClient_semanticHighlightMaps', {})",
-                "s:GetVar('LanguageClient_semanticScopeSeparator', ':')",
-                "get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1)",
-                "get(g:, 'LanguageClient_preferredMarkupKind', v:null)",
-                "s:GetVar('LanguageClient_hideVirtualTextsOnInsert', 0)",
-                "get(g:, 'LanguageClient_enableExtensions', v:null)",
-                "get(g:, 'LanguageClient_codeLensDisplay', v:null)",
-            ]
-            .as_ref(),
-        )?;
-
-        #[allow(clippy::type_complexity)]
-        let (restart_on_crash, max_restart_retries): (u8, u8) = self.vim()?.eval(
-            [
-                "get(g:, 'LanguageClient_restartOnCrash', 1)",
-                "get(g:, 'LanguageClient_maxRestartRetries', 5)",
-            ]
-            .as_ref(),
-        )?;
-
-        // vimscript use 1 for true, 0 for false.
-        let auto_start = auto_start == 1;
-        let selection_ui_auto_open = selection_ui_auto_open == 1;
-        let load_settings = load_settings == 1;
-
-        let trace = match trace {
-            Some(t) => match t.to_ascii_uppercase().as_str() {
-                "OFF" => Some(TraceOption::Off),
-                "MESSAGES" => Some(TraceOption::Messages),
-                "VERBOSE" => Some(TraceOption::Verbose),
-                _ => return Err(anyhow!("Invalid option for LanguageClient_trace: {}", t)),
-            },
-            None => Some(TraceOption::default()),
-        };
-
-        let selection_ui = if let Some(s) = selection_ui {
-            SelectionUI::from_str(&s)?
-        } else if self.vim()?.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1 {
-            SelectionUI::Funcref
-        } else {
-            SelectionUI::default()
-        };
-
-        let change_throttle = change_throttle.map(|t| Duration::from_millis((t * 1000.0) as u64));
-        let wait_output_timeout =
-            Duration::from_millis((wait_output_timeout.unwrap_or(10.0) * 1000.0) as u64);
-
-        let diagnostics_enable = diagnostics_enable == 1;
-
-        let diagnostics_list = if let Some(s) = diagnostics_list {
-            DiagnosticsList::from_str(&s)?
-        } else {
-            DiagnosticsList::Disabled
-        };
-
-        let window_log_level = match window_log_message_level.to_ascii_uppercase().as_str() {
-            "ERROR" => MessageType::Error,
-            "WARNING" => MessageType::Warning,
-            "INFO" => MessageType::Info,
-            "LOG" => MessageType::Log,
-            _ => {
-                return Err(anyhow!(
-                    "Invalid option for LanguageClient_windowLogMessageLevel: {}",
-                    window_log_message_level
-                ))
-            }
-        };
-
-        let hover_preview = if let Some(s) = hover_preview {
-            HoverPreviewOption::from_str(&s)?
-        } else {
-            HoverPreviewOption::Auto
-        };
-
-        let prefer_text_edit = completion_prefer_text_edit == 1;
-        let apply_completion_edits = apply_completion_text_edits == 1;
-
-        let is_nvim = is_nvim == 1;
-
-        let diagnostics_max_severity = match diagnostics_max_severity.to_ascii_uppercase().as_str()
-        {
-            "ERROR" => DiagnosticSeverity::Error,
-            "WARNING" => DiagnosticSeverity::Warning,
-            "INFORMATION" => DiagnosticSeverity::Information,
-            "HINT" => DiagnosticSeverity::Hint,
-            _ => {
-                return Err(anyhow!(
-                    "Invalid option for LanguageClient_diagnosticsMaxSeverity: {}",
-                    diagnostics_max_severity
-                ))
-            }
-        };
+        let mut config = Config::parse(self.vim()?)?;
+        self.update(|state| {
+            state
+                .logger
+                .update_settings(config.logging_level.clone(), config.logging_file.clone())
+        })?;
 
         let semantic_highlight_language_ids: Vec<String> =
-            semantic_highlight_maps.keys().cloned().collect();
+            config.semantic_highlight_maps.keys().cloned().collect();
 
+        let mut current_config = self.write_config()?;
         self.update(|state| {
-            state.auto_start = auto_start;
-            state.semantic_highlight_maps = semantic_highlight_maps;
-            state.semantic_scope_separator = semantic_scope_separator;
+            // merge defaults with user provided config
+            let mut diagnostics_display = current_config.diagnostics_display.clone();
+            diagnostics_display.extend(config.diagnostics_display);
+            config.diagnostics_display = diagnostics_display;
+
+            // merge defaults with user provided config
+            let mut document_highlight_display = current_config.document_highlight_display.clone();
+            document_highlight_display.extend(config.document_highlight_display);
+            config.document_highlight_display = document_highlight_display;
+
+            *current_config = config;
             state.semantic_scope_to_hl_group_table.clear();
-            state.server_commands.extend(server_commands);
-            state.selection_ui = selection_ui;
-            state.selection_ui_auto_open = selection_ui_auto_open;
-            state.trace = trace;
-            state.diagnostics_enable = diagnostics_enable;
-            state.diagnostics_list = diagnostics_list;
-            state.diagnostics_display = serde_json::from_value(
-                serde_json::to_value(&state.diagnostics_display)?.combine(&diagnostics_display),
-            )?;
-            state.diagnostics_signs_max = diagnostics_signs_max;
-            state.diagnostics_max_severity = diagnostics_max_severity;
-            state.diagnostics_ignore_sources = diagnostics_ignore_sources;
-            state.document_highlight_display = serde_json::from_value(
-                serde_json::to_value(&state.document_highlight_display)?
-                    .combine(&document_highlight_display),
-            )?;
-            state.window_log_message_level = window_log_level;
-            state.settings_path = settings_path;
-            state.load_settings = load_settings;
-            state.root_markers = root_markers;
-            state.change_throttle = change_throttle;
-            state.wait_output_timeout = wait_output_timeout;
-            state.hover_preview = hover_preview;
-            state.completion_prefer_text_edit = prefer_text_edit;
-            state.apply_completion_additional_text_edits = apply_completion_edits;
-            state.use_virtual_text = use_virtual_text;
-            state.hide_virtual_texts_on_insert = hide_virtual_texts_on_insert == 1;
-            state.echo_project_root = echo_project_root == 1;
-            state.server_stderr = server_stderr;
-            state.is_nvim = is_nvim;
-            state.preferred_markup_kind = preferred_markup_kind;
-            state.enable_extensions = enable_extensions;
-            state.code_lens_display = serde_json::from_value(
-                serde_json::to_value(&state.code_lens_display)?.combine(&code_lens_display),
-            )?;
-            state.max_restart_retries = max_restart_retries;
-            state.restart_on_crash = restart_on_crash == 1;
 
             Ok(())
         })?;
@@ -354,14 +130,14 @@ impl LanguageClient {
     }
 
     fn get_workspace_settings(&self, root: &str) -> Result<Value> {
-        if !self.get(|state| state.load_settings)? {
+        if !self.read_config()?.load_settings {
             return Ok(Value::Null);
         }
 
         let mut res = Value::Null;
         let mut last_err = None;
         let mut at_least_one_success = false;
-        for orig_path in self.get(|state| state.settings_path.clone())? {
+        for orig_path in &self.read_config()?.settings_path {
             let path = Path::new(root).join(orig_path);
             let buffer = read_to_string(&path)
                 .with_context(|| format!("Failed to read file ({})", path.to_string_lossy()));
@@ -393,13 +169,9 @@ impl LanguageClient {
     }
 
     fn define_signs(&self) -> Result<()> {
-        info!("Defining signs");
-
         let mut cmds = vec![];
-        for entry in self
-            .get(|state| state.diagnostics_display.clone())?
-            .values()
-        {
+        let diagnostics_display = &self.read_config()?.diagnostics_display;
+        for entry in diagnostics_display.values() {
             cmds.push(format!(
                 "sign define LanguageClient{} text={} texthl={}",
                 entry.name, entry.sign_text, entry.sign_texthl,
@@ -486,8 +258,7 @@ impl LanguageClient {
 
         let document_highlight = <Option<Vec<DocumentHighlight>>>::deserialize(&result)?;
         if let Some(document_highlight) = document_highlight {
-            let document_highlight_display =
-                self.get(|state| state.document_highlight_display.clone())?;
+            let document_highlight_display = &self.read_config()?.document_highlight_display;
             let highlights = document_highlight
                 .into_iter()
                 .map(|DocumentHighlight { range, kind }| {
@@ -625,8 +396,8 @@ impl LanguageClient {
             .collect();
 
         let title = "[LC]: diagnostics";
-        let diagnostics_list = self.get(|state| state.diagnostics_list)?;
-        match diagnostics_list {
+
+        match self.read_config()?.diagnostics_list {
             DiagnosticsList::Quickfix => {
                 self.vim()?.setqflist(&qflist, "r", title)?;
             }
@@ -679,7 +450,7 @@ impl LanguageClient {
         })?;
 
         // Highlight.
-        let diagnostics_display = self.get(|state| state.diagnostics_display.clone())?;
+        let diagnostics_display = &self.read_config()?.diagnostics_display;
 
         let mut highlights = vec![];
         for dn in diagnostics {
@@ -714,7 +485,7 @@ impl LanguageClient {
             Ok(())
         })?;
 
-        if !self.get(|state| state.is_nvim)? {
+        if !self.read_config()?.is_nvim {
             // Clear old highlights.
             let ids = self.get(|state| state.highlight_match_ids.clone())?;
             self.vim()?
@@ -893,14 +664,13 @@ impl LanguageClient {
     /// ScopeIndex -> Option<HighlightGroup>
     #[tracing::instrument(level = "info", skip(self))]
     fn update_semantic_highlight_tables(&self, language_id: &str) -> Result<()> {
-        let (opt_scopes, opt_hl_map, scope_separator) = self.get(|state| {
-            (
-                state.semantic_scopes.get(language_id).cloned(),
-                state.semantic_highlight_maps.get(language_id).cloned(),
-                state.semantic_scope_separator.clone(),
-            )
-        })?;
-
+        let opt_scopes = self.get(|state| state.semantic_scopes.get(language_id).cloned())?;
+        let opt_hl_map = self
+            .read_config()?
+            .semantic_highlight_maps
+            .get(language_id)
+            .cloned();
+        let scope_separator = &self.read_config()?.semantic_scope_separator;
         if let (Some(semantic_scopes), Some(shm)) = (opt_scopes, opt_hl_map) {
             let mut table: Vec<Option<String>> = Vec::new();
 
@@ -966,13 +736,13 @@ impl LanguageClient {
 
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
         let filetype: String = self.vim()?.eval("&filetype")?;
-        let enabled_extensions = self.get(|state| state.enable_extensions.clone())?;
-        if !enabled_extensions
-            .unwrap_or_default()
-            .get(&filetype)
-            .cloned()
-            .unwrap_or(true)
-        {
+        let enabled_extensions = self
+            .read_config()?
+            .enable_extensions
+            .as_ref()
+            .map(|c| c.get(&filetype).copied().unwrap_or(true))
+            .unwrap_or(true);
+        if !enabled_extensions {
             return Ok(false);
         }
 
@@ -1099,8 +869,8 @@ impl LanguageClient {
             Some(initialization_options)
         };
 
-        let trace = self.get(|state| state.trace)?;
-        let preferred_markup_kind = self.get(|state| state.preferred_markup_kind.clone())?;
+        let trace = self.read_config()?.trace;
+        let preferred_markup_kind = self.read_config()?.preferred_markup_kind.clone();
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -1205,7 +975,7 @@ impl LanguageClient {
                     }),
                     ..ClientCapabilities::default()
                 },
-                trace,
+                trace: Some(trace),
                 workspace_folders: None,
             },
         )?;
@@ -1278,7 +1048,7 @@ impl LanguageClient {
                 return Ok(Value::Null);
             }
 
-            let hover_preview = self.get(|state| state.hover_preview)?;
+            let hover_preview = self.read_config()?.hover_preview;
             let use_preview = match hover_preview {
                 HoverPreviewOption::Always => true,
                 HoverPreviewOption::Never => false,
@@ -1833,7 +1603,7 @@ impl LanguageClient {
             .map(|it| ListItem::string_item(it, self, &cwd))
             .collect();
 
-        match self.get(|state| state.selection_ui)? {
+        match self.read_config()?.selection_ui {
             SelectionUI::Funcref => {
                 self.vim()?.rpcclient.notify(
                     "s:selectionUI_funcref",
@@ -1865,8 +1635,8 @@ impl LanguageClient {
     where
         T: ListItem,
     {
-        let selection_ui = self.get(|state| state.selection_ui)?;
-        let selection_ui_auto_open = self.get(|state| state.selection_ui_auto_open)?;
+        let selection_ui = self.read_config()?.selection_ui;
+        let selection_ui_auto_open = self.read_config()?.selection_ui_auto_open;
 
         match selection_ui {
             SelectionUI::Funcref => {
@@ -2074,8 +1844,9 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_code_lens(&self, params: &Value) -> Result<Value> {
-        let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
-        if UseVirtualText::No == use_virtual_text || UseVirtualText::Diagnostics == use_virtual_text
+        let use_virtual_text = &self.read_config()?.use_virtual_text;
+        if &UseVirtualText::No == use_virtual_text
+            || &UseVirtualText::Diagnostics == use_virtual_text
         {
             return Ok(Value::Null);
         }
@@ -2196,6 +1967,7 @@ impl LanguageClient {
             return Ok(());
         }
 
+        let change_throttle = self.read_config()?.change_throttle.is_some();
         let version = self.update(|state| {
             let document = state
                 .text_documents
@@ -2206,7 +1978,7 @@ impl LanguageClient {
             document.version = version;
             document.text = text.clone();
 
-            if state.change_throttle.is_some() {
+            if change_throttle {
                 let metadata = state
                     .text_documents_metadata
                     .entry(filename.clone())
@@ -2240,7 +2012,11 @@ impl LanguageClient {
     pub fn text_document_did_save(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        if !self.get(|state| state.server_commands.contains_key(&language_id))? {
+        if !self
+            .read_config()?
+            .server_commands
+            .contains_key(&language_id)
+        {
             return Ok(());
         }
 
@@ -2278,7 +2054,7 @@ impl LanguageClient {
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_publish_diagnostics(&self, params: &Value) -> Result<()> {
         let params = PublishDiagnosticsParams::deserialize(params)?;
-        if !self.get(|state| state.diagnostics_enable)? {
+        if !self.read_config()?.diagnostics_enable {
             return Ok(());
         }
 
@@ -2290,8 +2066,8 @@ impl LanguageClient {
         // Unify name to avoid mismatch due to case insensitivity.
         let filename = filename.canonicalize();
 
-        let diagnostics_max_severity = self.get(|state| state.diagnostics_max_severity)?;
-        let ignore_sources = self.get(|state| state.diagnostics_ignore_sources.clone())?;
+        let diagnostics_max_severity = self.read_config()?.diagnostics_max_severity;
+        let ignore_sources = &self.read_config()?.diagnostics_ignore_sources;
         let mut diagnostics = params
             .diagnostics
             .iter()
@@ -2610,7 +2386,7 @@ impl LanguageClient {
     #[tracing::instrument(level = "info", skip(self))]
     pub fn window_log_message(&self, params: &Value) -> Result<()> {
         let params = LogMessageParams::deserialize(params)?;
-        let threshold = self.get(|state| state.window_log_message_level)?;
+        let threshold = self.read_config()?.window_log_message_level;
         if params.typ.to_int()? > threshold.to_int()? {
             return Ok(());
         }
@@ -2822,13 +2598,10 @@ impl LanguageClient {
     #[tracing::instrument(level = "info", skip(self))]
     pub fn register_server_commands(&self, params: &Value) -> Result<Value> {
         let commands = HashMap::<String, Vec<String>>::deserialize(params)?;
-        self.update(|state| {
-            state.server_commands.extend(commands);
-            Ok(())
-        })?;
+        self.write_config()?.server_commands.extend(commands);
         let exp = format!(
             "let g:LanguageClient_serverCommands={}",
-            serde_json::to_string(&self.get(|state| state.server_commands.clone())?)?
+            serde_json::to_string(&self.read_config()?.server_commands)?
         );
         self.vim()?.command(&exp)?;
         Ok(Value::Null)
@@ -2849,10 +2622,7 @@ impl LanguageClient {
     pub fn set_diagnostics_list(&self, params: &Value) -> Result<Value> {
         let diagnostics_list = try_get("diagnosticsList", params)?
             .ok_or_else(|| anyhow!("diagnosticsList not found!"))?;
-        self.update(|state| {
-            state.diagnostics_list = diagnostics_list;
-            Ok(())
-        })?;
+        self.write_config()?.diagnostics_list = diagnostics_list;
         Ok(Value::Null)
     }
 
@@ -2983,13 +2753,18 @@ impl LanguageClient {
     pub fn handle_text_changed(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        if !self.get(|state| state.server_commands.contains_key(&language_id))? {
+        if !self
+            .read_config()?
+            .server_commands
+            .contains_key(&language_id)
+        {
             return Ok(());
         }
 
+        let change_throttle = self.read_config()?.change_throttle;
         let skip_notification = self.get(|state| {
             if let Some(metadata) = state.text_documents_metadata.get(&filename) {
-                if let Some(throttle) = state.change_throttle {
+                if let Some(throttle) = change_throttle {
                     if metadata.last_change.elapsed() < throttle {
                         return true;
                     }
@@ -3016,7 +2791,11 @@ impl LanguageClient {
     pub fn handle_buf_delete(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        if !self.get(|state| state.server_commands.contains_key(&language_id))? {
+        if !self
+            .read_config()?
+            .server_commands
+            .contains_key(&language_id)
+        {
             return Ok(());
         }
 
@@ -3032,6 +2811,10 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     fn get_signs_to_display(&self, filename: &str, viewport: &Viewport) -> Result<Vec<Sign>> {
+        let max_signs = self
+            .read_config()?
+            .diagnostics_signs_max
+            .unwrap_or(std::usize::MAX);
         let signs: Vec<_> = self.get(|state| {
             let diagnostics = state.diagnostics.get(filename).cloned().unwrap_or_default();
             let mut diagnostics = diagnostics
@@ -3047,7 +2830,7 @@ impl LanguageClient {
             diagnostics.dedup_by_key(|diag| diag.range.start.line);
             diagnostics
                 .into_iter()
-                .take(state.diagnostics_signs_max.unwrap_or(std::usize::MAX))
+                .take(max_signs)
                 .map(Into::into)
                 .collect()
         })?;
@@ -3060,7 +2843,11 @@ impl LanguageClient {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let line = self.vim()?.get_position(params)?.line;
-        if !self.get(|state| state.server_commands.contains_key(&language_id))? {
+        if !self
+            .read_config()?
+            .server_commands
+            .contains_key(&language_id)
+        {
             return Ok(());
         }
         if !self.get(|state| state.diagnostics.contains_key(&filename))?
@@ -3134,7 +2921,7 @@ impl LanguageClient {
     }
 
     fn draw_virtual_texts(&self, params: &Value) -> Result<()> {
-        if !self.get(|state| state.is_nvim)? {
+        if !self.read_config()?.is_nvim {
             return Ok(());
         }
 
@@ -3144,7 +2931,7 @@ impl LanguageClient {
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
         let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
         let is_insert_mode = self.vim()?.get_mode()? == Mode::Insert;
-        if self.get(|state| state.hide_virtual_texts_on_insert)? && is_insert_mode {
+        if self.read_config()?.hide_virtual_texts_on_insert && is_insert_mode {
             self.vim()?.set_virtual_texts(
                 bufnr,
                 namespace_id,
@@ -3156,16 +2943,17 @@ impl LanguageClient {
         }
 
         let mut virtual_texts = vec![];
-        let use_virtual_text = self.get(|state| state.use_virtual_text.clone())?;
+        let use_virtual_text = &self.read_config()?.use_virtual_text;
 
         // code lens
-        if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
+        if &UseVirtualText::All == use_virtual_text || &UseVirtualText::CodeLens == use_virtual_text
+        {
             virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
         }
 
         // diagnostics
-        if UseVirtualText::All == use_virtual_text
-            || UseVirtualText::Diagnostics == use_virtual_text
+        if &UseVirtualText::All == use_virtual_text
+            || &UseVirtualText::Diagnostics == use_virtual_text
         {
             let vt_diagnostics = self
                 .virtual_texts_from_diagnostics(filename, viewport)?
@@ -3191,7 +2979,7 @@ impl LanguageClient {
     ) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
         let diagnostics = self.get(|state| state.diagnostics.clone())?;
-        let diagnostics_display = self.get(|state| state.diagnostics_display.clone())?;
+        let diagnostics_display = &self.read_config()?.diagnostics_display;
         let diag_list = diagnostics.get(filename);
         if let Some(diag_list) = diag_list {
             for diag in diag_list {
@@ -3220,7 +3008,7 @@ impl LanguageClient {
         let mut virtual_texts = vec![];
         let code_lenses =
             self.get(|state| state.code_lens.get(filename).cloned().unwrap_or_default())?;
-        let code_lens_display = self.get(|state| state.code_lens_display.clone())?;
+        let code_lens_display = self.read_config()?.code_lens_display.clone();
 
         for cl in code_lenses {
             if let Some(command) = cl.command {
@@ -3263,7 +3051,7 @@ impl LanguageClient {
         };
 
         let mut edits = vec![];
-        if self.get(|state| state.completion_prefer_text_edit)? {
+        if self.read_config()?.completion_prefer_text_edit {
             if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
                 error!("insert and replace is not supported");
             }
@@ -3286,7 +3074,7 @@ impl LanguageClient {
             }
         }
 
-        if self.get(|state| state.apply_completion_additional_text_edits)? {
+        if self.read_config()?.apply_completion_text_edits {
             if let Some(aedits) = lspitem.additional_text_edits {
                 edits.extend(aedits);
             };
@@ -3713,7 +3501,10 @@ impl LanguageClient {
         info!("settings synced");
 
         let command = self
-            .get(|state| state.server_commands.get(&language_id).cloned())?
+            .read_config()?
+            .server_commands
+            .get(&language_id)
+            .cloned()
             .ok_or_else(|| {
                 Error::from(LCError::NoServerCommands {
                     language_id: language_id.clone(),
@@ -3727,13 +3518,13 @@ impl LanguageClient {
             get_root_path(
                 Path::new(&filename),
                 &language_id,
-                &self.get(|state| state.root_markers.clone())?,
+                &self.read_config()?.root_markers,
             )?
             .to_string_lossy()
             .into()
         };
         let message = format!("Project root: {}", root);
-        if self.get(|state| state.echo_project_root)? {
+        if self.read_config()?.echo_project_root {
             self.vim()?.echomsg_ellipsis(&message)?;
         }
         info!("{}", message);
@@ -3764,7 +3555,7 @@ impl LanguageClient {
                     })
                     .collect();
 
-                let stderr = match self.get(|state| state.server_stderr.clone())? {
+                let stderr = match self.read_config()?.server_stderr {
                     Some(ref path) => std::fs::OpenOptions::new()
                         .create(true)
                         .append(true)
@@ -3873,12 +3664,11 @@ impl LanguageClient {
             .rpcclient
             .notify("setbufvar", json!([filename, VIM_IS_SERVER_RUNNING, 0]))?;
 
-        let restart_on_crash = self.get(|state| state.restart_on_crash)?;
-        if !restart_on_crash {
+        if !self.read_config()?.restart_on_crash {
             return Ok(());
         }
 
-        let max_restart_retries = self.get(|state| state.max_restart_retries)?;
+        let max_restart_retries = self.read_config()?.max_restart_retries;
         let mut restarts =
             self.get(|state| state.restarts.get(language_id).cloned().unwrap_or_default())?;
         restarts += 1;
@@ -4029,6 +3819,11 @@ impl LanguageClient {
     pub fn debug_info(&self, params: &Value) -> Result<Value> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
+        let server_stderr = self
+            .read_config()?
+            .server_stderr
+            .clone()
+            .unwrap_or_default();
         let mut msg = String::new();
         self.get(|state| {
             msg += &format!(
@@ -4043,10 +3838,7 @@ impl LanguageClient {
                     .map(|c| c.process_id)
                     .unwrap_or_default(),
             );
-            msg += &format!(
-                "Language server stderr: {}\n",
-                state.server_stderr.clone().unwrap_or_default()
-            );
+            msg += &format!("Language server stderr: {}\n", server_stderr,);
             msg += &format!("Log level: {}\n", state.logger.level);
             msg += &format!("Log file: {:?}\n", state.logger.path);
         })?;

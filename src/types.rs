@@ -1,3 +1,4 @@
+use crate::logger::Logger;
 use crate::rpcclient::RpcClient;
 use crate::{
     language_client::LanguageClient,
@@ -5,7 +6,7 @@ use crate::{
     vim::Vim,
     watcher::FSWatch,
 };
-use crate::{logger::Logger, viewport::Viewport, vim::Highlight};
+use crate::{viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
@@ -14,7 +15,7 @@ use lsp_types::{
     DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
     InitializeResult, InsertTextFormat, Location, MarkedString, MarkupContent, MarkupKind,
     MessageType, NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
-    TextDocumentItem, TextDocumentPositionParams, TraceOption, Url, WorkspaceEdit,
+    TextDocumentItem, TextDocumentPositionParams, Url, WorkspaceEdit,
 };
 use maplit::hashmap;
 use pathdiff::diff_paths;
@@ -28,7 +29,7 @@ use std::{
     process::{ChildStdin, ChildStdout},
     str::FromStr,
     sync::{mpsc, Arc},
-    time::{Duration, Instant},
+    time::Instant,
 };
 use thiserror::Error;
 
@@ -155,7 +156,6 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
     pub code_lens: HashMap<String, Vec<CodeLens>>,
-    pub code_lens_display: CodeLensDisplay,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub namespace_ids: HashMap<String, i64>,
@@ -170,46 +170,11 @@ pub struct State {
     #[serde(skip_serializing)]
     pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 
-    pub is_nvim: bool,
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
     pub stashed_code_action_actions: Vec<CodeAction>,
 
-    // User settings.
-    pub server_commands: HashMap<String, Vec<String>>,
-    // languageId => (scope_regex => highlight group)
-    pub semantic_highlight_maps: HashMap<String, HashMap<String, String>>,
-    pub semantic_scope_separator: String,
-    pub auto_start: bool,
-    pub selection_ui: SelectionUI,
-    pub selection_ui_auto_open: bool,
-    pub trace: Option<TraceOption>,
-    pub diagnostics_enable: bool,
-    pub diagnostics_list: DiagnosticsList,
-    pub diagnostics_display: HashMap<u64, DiagnosticsDisplay>,
-    pub diagnostics_signs_max: Option<usize>,
-    pub diagnostics_max_severity: DiagnosticSeverity,
-    pub diagnostics_ignore_sources: Vec<String>,
-    pub document_highlight_display: HashMap<u64, DocumentHighlightDisplay>,
-    pub window_log_message_level: MessageType,
-    pub settings_path: Vec<String>,
-    pub load_settings: bool,
-    pub root_markers: Option<RootMarkers>,
-    pub change_throttle: Option<Duration>,
-    pub wait_output_timeout: Duration,
-    pub hover_preview: HoverPreviewOption,
-    pub completion_prefer_text_edit: bool,
-    pub apply_completion_additional_text_edits: bool,
-    pub use_virtual_text: UseVirtualText,
-    pub hide_virtual_texts_on_insert: bool,
-    pub echo_project_root: bool,
-    pub enable_extensions: Option<HashMap<String, bool>>,
-
-    pub server_stderr: Option<String>,
     pub logger: Logger,
-    pub preferred_markup_kind: Option<Vec<MarkupKind>>,
-    pub restart_on_crash: bool,
-    pub max_restart_retries: u8,
 }
 
 impl State {
@@ -257,43 +222,9 @@ impl State {
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),
 
-            is_nvim: false,
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_code_action_actions: vec![],
-
-            server_commands: HashMap::new(),
-            semantic_highlight_maps: HashMap::new(),
-            semantic_scope_separator: ":".into(),
-            auto_start: true,
-            selection_ui: SelectionUI::LocationList,
-            selection_ui_auto_open: true,
-            trace: None,
-            diagnostics_enable: true,
-            diagnostics_list: DiagnosticsList::Quickfix,
-            diagnostics_display: DiagnosticsDisplay::default(),
-            diagnostics_signs_max: None,
-            diagnostics_max_severity: DiagnosticSeverity::Hint,
-            diagnostics_ignore_sources: vec![],
-            document_highlight_display: DocumentHighlightDisplay::default(),
-            window_log_message_level: MessageType::Warning,
-            settings_path: vec![format!(".vim{}settings.json", std::path::MAIN_SEPARATOR)],
-            load_settings: false,
-            root_markers: None,
-            change_throttle: None,
-            wait_output_timeout: Duration::from_secs(10),
-            hover_preview: HoverPreviewOption::default(),
-            completion_prefer_text_edit: false,
-            apply_completion_additional_text_edits: true,
-            use_virtual_text: UseVirtualText::All,
-            hide_virtual_texts_on_insert: true,
-            echo_project_root: true,
-            server_stderr: None,
-            preferred_markup_kind: None,
-            enable_extensions: None,
-            code_lens_display: CodeLensDisplay::default(),
-            restart_on_crash: true,
-            max_restart_retries: 5,
 
             logger,
         })

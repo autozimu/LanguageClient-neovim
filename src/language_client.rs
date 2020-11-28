@@ -1,4 +1,5 @@
 use crate::{
+    config::Config,
     types::{LanguageId, State},
     utils::diff_value,
     vim::Vim,
@@ -10,7 +11,8 @@ use serde_json::Value;
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
-    sync::{Arc, Mutex, MutexGuard},
+    sync::RwLockReadGuard,
+    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockWriteGuard},
 };
 
 #[derive(Clone)]
@@ -18,6 +20,7 @@ pub struct LanguageClient {
     version: String,
     state_mutex: Arc<Mutex<State>>,
     clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
+    config: Arc<RwLock<Config>>,
 }
 
 impl LanguageClient {
@@ -26,11 +29,26 @@ impl LanguageClient {
             version,
             state_mutex: Arc::new(Mutex::new(state)),
             clients_mutex: Arc::new(Mutex::new(HashMap::new())),
+            config: Arc::new(RwLock::new(Config::default())),
         }
     }
 
     pub fn version(&self) -> String {
         self.version.clone()
+    }
+
+    /// write config gives a write lock into the underlying config.
+    pub fn write_config(&self) -> Result<RwLockWriteGuard<Config>> {
+        self.config
+            .write()
+            .map_err(|err| anyhow!("Failed to get config write lock: {:?}", err))
+    }
+
+    /// read config gives a read lock into the underlying config.
+    pub fn read_config(&self) -> Result<RwLockReadGuard<Config>> {
+        self.config
+            .read()
+            .map_err(|err| anyhow!("Failed to get config read lock: {:?}", err))
     }
 
     // NOTE: Don't expose this as public.
