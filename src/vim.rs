@@ -75,13 +75,43 @@ impl From<&str> for Mode {
     }
 }
 
+// detect_deadlocks runs a background thread that detects deadlocks with parking_lot.
+fn detect_deadlocks(client: Arc<RpcClient>) -> () {
+    use parking_lot::deadlock;
+    use std::thread;
+    use std::time::Duration;
+
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_secs(5));
+        let deadlocks = deadlock::check_deadlock();
+        if deadlocks.is_empty() {
+            continue;
+        }
+
+        let _ = client.notify("s:Echoerr", "Deadlock detected, see logs for more info");
+        log::error!("{} deadlocks detected", deadlocks.len());
+        for (i, threads) in deadlocks.iter().enumerate() {
+            log::error!("Deadlock #{}", i);
+            for t in threads {
+                log::error!("Thread Id {:#?}", t.thread_id());
+                log::error!("{:#?}", t.backtrace());
+            }
+        }
+    });
+}
+
 #[derive(Clone)]
 pub struct Vim {
     pub rpcclient: Arc<RpcClient>,
 }
 
 impl Vim {
-    pub fn new(rpcclient: Arc<RpcClient>) -> Self {
+    pub fn new(rpcclient: Arc<RpcClient>, debug_locks: bool) -> Self {
+        let client = Arc::clone(&rpcclient);
+        if debug_locks {
+            detect_deadlocks(client);
+        }
+
         Self { rpcclient }
     }
 

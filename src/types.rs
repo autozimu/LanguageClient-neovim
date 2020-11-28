@@ -179,7 +179,7 @@ pub struct State {
 
 impl State {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(tx: crossbeam::channel::Sender<Call>) -> Result<Self> {
+    pub fn new(tx: crossbeam::channel::Sender<Call>, debug_locks: bool) -> Result<Self> {
         let logger = Logger::new()?;
 
         let client = Arc::new(RpcClient::new(
@@ -199,7 +199,7 @@ impl State {
             },
             restarts: HashMap::new(),
 
-            vim: Vim::new(client),
+            vim: Vim::new(client, debug_locks),
 
             capabilities: HashMap::new(),
             registrations: vec![],

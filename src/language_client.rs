@@ -4,15 +4,15 @@ use crate::{
     utils::diff_value,
     vim::Vim,
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use log::*;
 use serde_json::Value;
 
+use parking_lot::{Mutex, MutexGuard, RwLock};
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
-    sync::RwLockReadGuard,
-    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockWriteGuard},
+    sync::Arc,
 };
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ pub struct LanguageClient {
     version: String,
     state_mutex: Arc<Mutex<State>>,
     clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
-    config: Arc<RwLock<Config>>,
+    pub config: Arc<RwLock<Config>>,
 }
 
 impl LanguageClient {
@@ -37,26 +37,10 @@ impl LanguageClient {
         self.version.clone()
     }
 
-    /// write config gives a write lock into the underlying config.
-    pub fn write_config(&self) -> Result<RwLockWriteGuard<Config>> {
-        self.config
-            .write()
-            .map_err(|err| anyhow!("Failed to get config write lock: {:?}", err))
-    }
-
-    /// read config gives a read lock into the underlying config.
-    pub fn read_config(&self) -> Result<RwLockReadGuard<Config>> {
-        self.config
-            .read()
-            .map_err(|err| anyhow!("Failed to get config read lock: {:?}", err))
-    }
-
     // NOTE: Don't expose this as public.
     // MutexGuard could easily halt the program when one guard is not released immediately after use.
-    fn lock(&self) -> Result<MutexGuard<State>> {
-        self.state_mutex
-            .lock()
-            .map_err(|err| anyhow!("Failed to lock state: {:?}", err))
+    fn lock(&self) -> MutexGuard<State> {
+        self.state_mutex.lock()
     }
 
     // This fetches a mutex that is unique to the provided languageId.
@@ -65,14 +49,7 @@ impl LanguageClient {
     // checker. Otherwise, there is no way to guarantee that the mutex in the hash map wouldn't be
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
     pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Result<Arc<Mutex<()>>> {
-        let map_guard = self.clients_mutex.lock();
-        let mut map = map_guard.map_err(|err| {
-            anyhow!(
-                "Failed to lock client creation for languageId {:?}: {:?}",
-                language_id,
-                err,
-            )
-        })?;
+        let mut map = self.clients_mutex.lock();
         if !map.contains_key(&language_id) {
             map.insert(language_id.clone(), Arc::new(Mutex::new(())));
         }
@@ -81,11 +58,11 @@ impl LanguageClient {
     }
 
     pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
-        Ok(f(self.lock()?.deref()))
+        Ok(f(self.lock().deref()))
     }
 
     pub fn update<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
-        let mut state = self.lock()?;
+        let mut state = self.lock();
         let mut state = state.deref_mut();
 
         let v = if log_enabled!(log::Level::Debug) {
