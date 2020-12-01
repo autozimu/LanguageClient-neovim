@@ -1239,8 +1239,7 @@ impl LanguageClient {
         Ok(result)
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    pub fn text_document_code_action(&self, params: &Value) -> Result<Value> {
+    pub fn get_code_actions(&self, params: &Value) -> Result<Value> {
         self.text_document_did_change(params)?;
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
@@ -1276,6 +1275,40 @@ impl LanguageClient {
             },
         )?;
 
+        Ok(result)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    pub fn execute_code_action(&self, params: &Value) -> Result<Value> {
+        let result = self.get_code_actions(params)?;
+        let response = <Option<CodeActionResponse>>::deserialize(&result)?;
+        let response: CodeActionResponse = response.unwrap_or_default();
+        let kind: String =
+            try_get("kind", params)?.ok_or_else(|| anyhow!("Missing kind parameter"))?;
+        let action_kind = CodeActionKind::from(kind.clone());
+        let actions: Vec<CodeActionOrCommand> = response.into_iter().filter(|a| matches!(a,
+            CodeActionOrCommand::CodeAction(action) if action.kind.is_some() && action.kind.as_ref().unwrap() == &action_kind)
+        ).collect();
+        if actions.len() > 1 {
+            return Err(anyhow!("Too many code actions found with kind {}", kind));
+        }
+        if actions.len() == 0 {
+            return Err(anyhow!("No code actions found with kind {}", kind));
+        }
+
+        match actions.first().cloned() {
+            Some(CodeActionOrCommand::CodeAction(action)) => {
+                self.handle_code_action_selection(&[action], 0)?
+            }
+            _ => return Err(anyhow!("No code actions found with kind {}", kind)),
+        }
+
+        Ok(result)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    pub fn text_document_code_action(&self, params: &Value) -> Result<Value> {
+        let result = self.get_code_actions(params)?;
         let response = <Option<CodeActionResponse>>::deserialize(&result)?;
         let response = response.unwrap_or_default();
 

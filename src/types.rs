@@ -64,6 +64,7 @@ pub const REQUEST_CODE_LENS_ACTION: &str = "LanguageClient/handleCodeLensAction"
 pub const REQUEST_SEMANTIC_SCOPES: &str = "languageClient/semanticScopes";
 pub const REQUEST_SHOW_SEMANTIC_HL_SYMBOLS: &str = "languageClient/showSemanticHighlightSymbols";
 pub const REQUEST_CLASS_FILE_CONTENTS: &str = "java/classFileContents";
+pub const REQUEST_EXECUTE_CODE_ACTION: &str = "languageClient/executeCodeAction";
 
 pub const NOTIFICATION_HANDLE_BUF_NEW_FILE: &str = "languageClient/handleBufNewFile";
 pub const NOTIFICATION_HANDLE_BUF_ENTER: &str = "languageClient/handleBufEnter";

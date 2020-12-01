@@ -1049,6 +1049,20 @@ function! LanguageClient#textDocument_codeAction(...) abort
   call s:do_codeAction('n', a:000)
 endfunction
 
+function! LanguageClient#executeCodeAction(kind, ...) abort
+  let l:Callback = get(a:000, 1, v:null)
+  let l:params = {
+              \ 'filename': LSP#filename(),
+              \ 'line': LSP#line(),
+              \ 'character': LSP#character(),
+              \ 'handle': s:IsFalse(l:Callback),
+              \ 'range': LSP#range('n'),
+              \ 'kind': a:kind,
+              \ }
+  call extend(l:params, get(a:000, 0, {}))
+  return LanguageClient#Call('languageClient/executeCodeAction', l:params, l:Callback)
+endfunction
+
 function! LanguageClient#textDocument_completion(...) abort
     " Note: do not add 'text' as it might be huge.
     let l:params = {
