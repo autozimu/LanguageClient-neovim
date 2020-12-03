@@ -6,9 +6,8 @@ use crate::{
 };
 use anyhow::Result;
 use log::*;
-use serde_json::Value;
-
 use parking_lot::{Mutex, MutexGuard, RwLock};
+use serde_json::Value;
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
@@ -20,7 +19,7 @@ pub struct LanguageClient {
     version: String,
     state_mutex: Arc<Mutex<State>>,
     clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
-    pub config: Arc<RwLock<Config>>,
+    config: Arc<RwLock<Config>>,
 }
 
 impl LanguageClient {
@@ -57,11 +56,19 @@ impl LanguageClient {
         Ok(mutex)
     }
 
-    pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
+    pub fn get_config<K>(&self, f: impl FnOnce(&Config) -> K) -> K {
+        f(self.config.read().deref())
+    }
+
+    pub fn update_config<K>(&self, f: impl FnOnce(&mut Config) -> K) -> K {
+        f(self.config.write().deref_mut())
+    }
+
+    pub fn get_state<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
         Ok(f(self.lock().deref()))
     }
 
-    pub fn update<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
+    pub fn update_state<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
         let mut state = self.lock();
         let mut state = state.deref_mut();
 
@@ -88,6 +95,6 @@ impl LanguageClient {
     }
 
     pub fn vim(&self) -> Result<Vim> {
-        self.get(|state| state.vim.clone())
+        self.get_state(|state| state.vim.clone())
     }
 }
