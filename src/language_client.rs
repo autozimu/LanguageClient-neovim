@@ -4,14 +4,13 @@ use crate::{
     utils::diff_value,
     vim::Vim,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::*;
-use parking_lot::{Mutex, MutexGuard, RwLock};
 use serde_json::Value;
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
-    sync::Arc,
+    sync::{Arc, Mutex, MutexGuard, RwLock},
 };
 
 #[derive(Clone)]
@@ -38,8 +37,10 @@ impl LanguageClient {
 
     // NOTE: Don't expose this as public.
     // MutexGuard could easily halt the program when one guard is not released immediately after use.
-    fn lock(&self) -> MutexGuard<State> {
-        self.state_mutex.lock()
+    fn lock(&self) -> Result<MutexGuard<State>> {
+        self.state_mutex
+            .lock()
+            .map_err(|err| anyhow!("Failed to lock state: {:?}", err))
     }
 
     // This fetches a mutex that is unique to the provided languageId.
@@ -48,7 +49,14 @@ impl LanguageClient {
     // checker. Otherwise, there is no way to guarantee that the mutex in the hash map wouldn't be
     // garbage collected as a result of another modification updating the hash map, while something was holding the lock
     pub fn get_client_update_mutex(&self, language_id: LanguageId) -> Result<Arc<Mutex<()>>> {
-        let mut map = self.clients_mutex.lock();
+        let map_guard = self.clients_mutex.lock();
+        let mut map = map_guard.map_err(|err| {
+            anyhow!(
+                "Failed to lock client creation for languageId {:?}: {:?}",
+                language_id,
+                err,
+            )
+        })?;
         if !map.contains_key(&language_id) {
             map.insert(language_id.clone(), Arc::new(Mutex::new(())));
         }
@@ -56,20 +64,28 @@ impl LanguageClient {
         Ok(mutex)
     }
 
-    pub fn get_config<K>(&self, f: impl FnOnce(&Config) -> K) -> K {
-        f(self.config.read().deref())
+    pub fn get_config<K>(&self, f: impl FnOnce(&Config) -> K) -> Result<K> {
+        Ok(f(self
+            .config
+            .read()
+            .map_err(|err| anyhow!("Failed to lock config for reading: {:?}", err))?
+            .deref()))
     }
 
-    pub fn update_config<K>(&self, f: impl FnOnce(&mut Config) -> K) -> K {
-        f(self.config.write().deref_mut())
+    pub fn update_config<K>(&self, f: impl FnOnce(&mut Config) -> K) -> Result<K> {
+        Ok(f(self
+            .config
+            .write()
+            .map_err(|err| anyhow!("Failed to lock config for writing: {:?}", err))?
+            .deref_mut()))
     }
 
     pub fn get_state<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
-        Ok(f(self.lock().deref()))
+        Ok(f(self.lock()?.deref()))
     }
 
     pub fn update_state<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
-        let mut state = self.lock();
+        let mut state = self.lock()?;
         let mut state = state.deref_mut();
 
         let v = if log_enabled!(log::Level::Debug) {

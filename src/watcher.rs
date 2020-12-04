@@ -1,10 +1,9 @@
 use anyhow::{anyhow, Result};
 use notify::{DebouncedEvent, RecursiveMode, Watcher};
-use parking_lot::Mutex;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -25,7 +24,10 @@ struct DirWatch {
 }
 
 fn interested(dirs: &Arc<Mutex<HashMap<PathBuf, DirWatch>>>, path: &Path) -> Result<bool> {
-    let dirs = dirs.lock();
+    let dirs = dirs
+        .lock()
+        .map_err(|err| anyhow!("Failed to lock watcher: {:?}", err))?;
+
     if let Some(dw) = dirs.get(path) {
         if dw.full_directory {
             return Ok(true);
@@ -211,7 +213,10 @@ impl FSWatch {
             UnwatchInfo::File(dirname.to_owned(), name.to_owned()),
         );
 
-        let mut dirs = self.dirs.lock();
+        let mut dirs = self
+            .dirs
+            .lock()
+            .map_err(|err| anyhow!("Failed to lock watcher: {:?}", err))?;
         match dirs.get_mut(dirname) {
             Some(dw) => {
                 dw.files.insert(name.to_string());
@@ -259,7 +264,10 @@ impl FSWatch {
             },
 
             RecursiveMode::NonRecursive => {
-                let mut dirs = self.dirs.lock();
+                let mut dirs = self
+                    .dirs
+                    .lock()
+                    .map_err(|err| anyhow!("Failed to lock watcher: {:?}", err))?;
                 match dirs.get_mut(path.as_ref()) {
                     Some(dw) => {
                         dw.full_directory = true;
@@ -301,7 +309,10 @@ impl FSWatch {
             }
         };
 
-        let mut dirs = self.dirs.lock();
+        let mut dirs = self
+            .dirs
+            .lock()
+            .map_err(|err| anyhow!("Failed to lock watcher: {:?}", err))?;
         let mut dw = dirs
             .get_mut(key)
             .ok_or_else(|| anyhow!("Unexpected watcher state: file not watched"))?;

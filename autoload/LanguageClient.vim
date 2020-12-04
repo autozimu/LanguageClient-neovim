@@ -777,13 +777,8 @@ function! s:Launch() abort
         return 0
     endif
 
-    let l:cmd = [l:binpath]
-    if get(g:, 'LanguageClient_debugLocks', 0)
-      let l:cmd = add(l:cmd, '--debug-locks')
-    endif
-
     if has('nvim')
-        let s:job = jobstart(l:cmd, {
+        let s:job = jobstart([l:binpath], {
                     \ 'on_stdout': function('s:HandleMessage'),
                     \ 'on_stderr': function('s:HandleMessage'),
                     \ 'on_exit': function('s:HandleMessage'),
@@ -798,7 +793,7 @@ function! s:Launch() abort
             return 1
         endif
     elseif has('job')
-        let s:job = job_start(l:cmd, {
+        let s:job = job_start([l:binpath], {
                     \ 'out_cb': function('s:HandleStdoutVim'),
                     \ 'err_cb': function('s:HandleStderrVim'),
                     \ 'exit_cb': function('s:HandleExitVim'),
