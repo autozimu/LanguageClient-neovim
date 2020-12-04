@@ -1,4 +1,5 @@
 use crate::{
+    config::Config,
     types::{LanguageId, State},
     utils::diff_value,
     vim::Vim,
@@ -6,11 +7,10 @@ use crate::{
 use anyhow::{anyhow, Result};
 use log::*;
 use serde_json::Value;
-
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Arc, Mutex, MutexGuard, RwLock},
 };
 
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct LanguageClient {
     version: String,
     state_mutex: Arc<Mutex<State>>,
     clients_mutex: Arc<Mutex<HashMap<LanguageId, Arc<Mutex<()>>>>>,
+    config: Arc<RwLock<Config>>,
 }
 
 impl LanguageClient {
@@ -26,6 +27,7 @@ impl LanguageClient {
             version,
             state_mutex: Arc::new(Mutex::new(state)),
             clients_mutex: Arc::new(Mutex::new(HashMap::new())),
+            config: Arc::new(RwLock::new(Config::default())),
         }
     }
 
@@ -62,11 +64,27 @@ impl LanguageClient {
         Ok(mutex)
     }
 
-    pub fn get<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
+    pub fn get_config<K>(&self, f: impl FnOnce(&Config) -> K) -> Result<K> {
+        Ok(f(self
+            .config
+            .read()
+            .map_err(|err| anyhow!("Failed to lock config for reading: {:?}", err))?
+            .deref()))
+    }
+
+    pub fn update_config<K>(&self, f: impl FnOnce(&mut Config) -> K) -> Result<K> {
+        Ok(f(self
+            .config
+            .write()
+            .map_err(|err| anyhow!("Failed to lock config for writing: {:?}", err))?
+            .deref_mut()))
+    }
+
+    pub fn get_state<T>(&self, f: impl FnOnce(&State) -> T) -> Result<T> {
         Ok(f(self.lock()?.deref()))
     }
 
-    pub fn update<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
+    pub fn update_state<T>(&self, f: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
         let mut state = self.lock()?;
         let mut state = state.deref_mut();
 
@@ -93,6 +111,6 @@ impl LanguageClient {
     }
 
     pub fn vim(&self) -> Result<Vim> {
-        self.get(|state| state.vim.clone())
+        self.get_state(|state| state.vim.clone())
     }
 }

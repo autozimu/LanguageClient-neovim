@@ -70,7 +70,7 @@ impl LanguageClient {
         let params = serde_json::to_value(method_call.params.clone())?;
 
         let user_handler =
-            self.get(|state| state.user_handlers.get(&method_call.method).cloned())?;
+            self.get_state(|state| state.user_handlers.get(&method_call.method).cloned())?;
         if let Some(user_handler) = user_handler {
             return self.vim()?.rpcclient.call(&user_handler, params);
         }
@@ -104,7 +104,7 @@ impl LanguageClient {
             }
             // Extensions.
             REQUEST_FIND_LOCATIONS => self.find_locations(&params),
-            REQUEST_GET_STATE => self.get_state(&params),
+            REQUEST_GET_STATE => self.get_client_state(&params),
             REQUEST_IS_ALIVE => self.is_alive(&params),
             REQUEST_START_SERVER => self.start_server(&params),
             REQUEST_REGISTER_SERVER_COMMANDS => self.register_server_commands(&params),
@@ -160,7 +160,7 @@ impl LanguageClient {
         let params = serde_json::to_value(notification.params.clone())?;
 
         let user_handler =
-            self.get(|state| state.user_handlers.get(&notification.method).cloned())?;
+            self.get_state(|state| state.user_handlers.get(&notification.method).cloned())?;
         if let Some(user_handler) = user_handler {
             return self.vim()?.rpcclient.notify(&user_handler, params);
         }
