@@ -178,29 +178,16 @@ pub struct State {
 }
 
 impl State {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(tx: crossbeam::channel::Sender<Call>, debug_locks: bool) -> Result<Self> {
-        let logger = Logger::new()?;
-
-        let client = Arc::new(RpcClient::new(
-            None,
-            BufReader::new(std::io::stdin()),
-            BufWriter::new(std::io::stdout()),
-            None,
-            tx.clone(),
-            |_: &LanguageId| {},
-        )?);
-
-        Ok(Self {
+    pub fn new(
+        tx: crossbeam::channel::Sender<Call>,
+        client: Arc<RpcClient>,
+        logger: Logger,
+    ) -> Self {
+        Self {
             tx,
-
-            clients: hashmap! {
-                None => client.clone(),
-            },
+            vim: Vim::new(Arc::clone(&client)),
+            clients: hashmap! { None => client },
             restarts: HashMap::new(),
-
-            vim: Vim::new(client, debug_locks),
-
             capabilities: HashMap::new(),
             registrations: vec![],
             roots: HashMap::new(),
@@ -221,13 +208,11 @@ impl State {
             user_handlers: HashMap::new(),
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),
-
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_code_action_actions: vec![],
-
             logger,
-        })
+        }
     }
 }
 
