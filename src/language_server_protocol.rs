@@ -187,7 +187,6 @@ impl LanguageClient {
     pub fn apply_workspace_edit(&self, edit: &WorkspaceEdit) -> Result<()> {
         let mut filename = self.vim()?.get_filename(&Value::Null)?;
         let mut position = self.vim()?.get_position(&Value::Null)?;
-
         if let Some(ref changes) = edit.document_changes {
             match changes {
                 DocumentChanges::Edits(ref changes) => {
@@ -735,13 +734,7 @@ impl LanguageClient {
 
     fn try_handle_command_by_client(&self, cmd: &Command) -> Result<bool> {
         let filetype: String = self.vim()?.eval("&filetype")?;
-        let enabled_extensions = self.get_config(|c| {
-            c.enable_extensions
-                .as_ref()
-                .map(|c| c.get(&filetype).copied().unwrap_or(true))
-                .unwrap_or(true)
-        })?;
-        if !enabled_extensions {
+        if !self.extensions_enabled(&filetype)? {
             return Ok(false);
         }
 
@@ -884,7 +877,7 @@ impl LanguageClient {
                 /* deprecated in lsp types, but can't initialize without it */
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
-                initialization_options,
+                initialization_options: initialization_options.clone(),
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
                         color_provider: Some(GenericCapability {
@@ -982,9 +975,21 @@ impl LanguageClient {
 
         let initialize_result = InitializeResult::deserialize(&result)?;
         self.update_state(|state| {
+            let server_name = initialize_result
+                .server_info
+                .as_ref()
+                .map(|info| info.name.clone());
+            match (server_name, initialization_options) {
+                (Some(name), Some(options)) => {
+                    state.initialization_options.insert(name, options);
+                }
+                _ => {}
+            }
+
             state
                 .capabilities
                 .insert(language_id.clone(), initialize_result);
+
             Ok(())
         })?;
 
@@ -1943,6 +1948,7 @@ impl LanguageClient {
             .notify("s:ExecuteAutocmd", "LanguageClientTextDocumentDidOpenPost")?;
 
         self.text_document_code_lens(params)?;
+        self.text_document_inlay_hints(&language_id, &filename)?;
 
         Ok(())
     }
@@ -1989,7 +1995,7 @@ impl LanguageClient {
             Ok(version)
         })?;
 
-        self.get_client(&Some(language_id))?.notify(
+        self.get_client(&Some(language_id.clone()))?.notify(
             lsp_types::notification::DidChangeTextDocument::METHOD,
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
@@ -2005,6 +2011,7 @@ impl LanguageClient {
         )?;
 
         self.text_document_code_lens(params)?;
+        self.text_document_inlay_hints(&language_id, &filename)?;
 
         Ok(())
     }
@@ -2019,7 +2026,7 @@ impl LanguageClient {
 
         let uri = filename.to_url()?;
 
-        self.get_client(&Some(language_id))?.notify(
+        self.get_client(&Some(language_id.clone()))?.notify(
             lsp_types::notification::DidSaveTextDocument::METHOD,
             DidSaveTextDocumentParams {
                 text: None,
@@ -2931,7 +2938,17 @@ impl LanguageClient {
 
         // code lens
         if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
-            virtual_texts.extend(self.virtual_texts_from_code_lenses(filename)?.into_iter());
+            virtual_texts.extend(
+                self.virtual_texts_from_code_lenses(filename, &viewport)?
+                    .into_iter(),
+            );
+        }
+
+        // inlay hints
+        if UseVirtualText::All == use_virtual_text || UseVirtualText::CodeLens == use_virtual_text {
+            let additional_virtual_texts =
+                self.virtual_texts_from_inlay_hints(filename, &viewport)?;
+            virtual_texts.extend(additional_virtual_texts);
         }
 
         // diagnostics
@@ -2939,7 +2956,7 @@ impl LanguageClient {
             || UseVirtualText::Diagnostics == use_virtual_text
         {
             let vt_diagnostics = self
-                .virtual_texts_from_diagnostics(filename, viewport)?
+                .virtual_texts_from_diagnostics(filename, &viewport)?
                 .into_iter();
             virtual_texts.extend(vt_diagnostics);
         }
@@ -2958,7 +2975,7 @@ impl LanguageClient {
     fn virtual_texts_from_diagnostics(
         &self,
         filename: &str,
-        viewport: viewport::Viewport,
+        viewport: &viewport::Viewport,
     ) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
         let diagnostics = self.get_state(|state| state.diagnostics.clone())?;
@@ -2987,11 +3004,52 @@ impl LanguageClient {
         Ok(virtual_texts)
     }
 
-    fn virtual_texts_from_code_lenses(&self, filename: &str) -> Result<Vec<VirtualText>> {
+    fn virtual_texts_from_inlay_hints(
+        &self,
+        filename: &str,
+        viewport: &viewport::Viewport,
+    ) -> Result<Vec<VirtualText>> {
+        let inlay_hints: Vec<InlayHint> = self.get_state(|state| {
+            state
+                .inlay_hints
+                .get(filename)
+                .map(|s| {
+                    s.iter()
+                        .filter(|hint| viewport.overlaps(hint.range))
+                        .cloned()
+                        .collect()
+                })
+                .unwrap_or_default()
+        })?;
+        let hl_group = self.get_config(|c| c.code_lens_display.virtual_texthl.clone())?;
+
+        let virtual_texts = inlay_hints
+            .into_iter()
+            .map(|hint| VirtualText {
+                line: hint.range.end.line,
+                text: hint.label,
+                hl_group: hl_group.clone(),
+            })
+            .collect();
+        Ok(virtual_texts)
+    }
+
+    fn virtual_texts_from_code_lenses(
+        &self,
+        filename: &str,
+        viewport: &viewport::Viewport,
+    ) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
-        let code_lenses =
-            self.get_state(|state| state.code_lens.get(filename).cloned().unwrap_or_default())?;
-        let code_lens_display = self.get_config(|c| c.code_lens_display.clone())?;
+        let code_lenses: Vec<CodeLens> =
+            self.get_state(|state| match state.code_lens.get(filename) {
+                Some(cls) => cls
+                    .into_iter()
+                    .filter(|cl| viewport.overlaps(cl.range))
+                    .cloned()
+                    .collect(),
+                None => vec![],
+            })?;
+        let hl_group = self.get_config(|c| c.code_lens_display.virtual_texthl.clone())?;
 
         for cl in code_lenses {
             if let Some(command) = cl.command {
@@ -3008,7 +3066,7 @@ impl LanguageClient {
                     None => virtual_texts.push(VirtualText {
                         line,
                         text,
-                        hl_group: code_lens_display.virtual_texthl.clone(),
+                        hl_group: hl_group.clone(),
                     }),
                 }
             }
