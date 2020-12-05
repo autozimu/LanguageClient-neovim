@@ -1025,6 +1025,21 @@ Signature: LanguageClient#textDocument_switchSourceHeader(...)
 
 Calls clangd's `textDocument/switchSourceHeader` extension request.
 
+*LanguageClient#executeCodeAction*
+Signature: LanguageClient#executeCodeAction(kind, ...)
+
+Tries to execute the code action with the give kind under the cursor position.
+The action will only be executed if there is exactly one code action with that
+kind under the cursor.
+
+This function can be used to create commands for common LSP actions, such as
+`source.organizeImports`.  To do so you can create a command like this:
+
+  command! OrganizeImports call LanguageClient#executeCodeAction('source.organizeImports')
+
+Note that this only works for code actions, not commands, and only in normal
+mode.
+
 ==============================================================================
 5. Mappings                                           *LanguageClientMappings*
 
