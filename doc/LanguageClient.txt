@@ -255,7 +255,7 @@ need to `expand` it.
 
 Example:
 
-    `let g:LanguageClient_loggingFile = expand('~/.vim/LanguageClient.log')``
+    `let g:LanguageClient_loggingFile = expand('~/.vim/LanguageClient.log')`
 
 
 2.15 g:LanguageClient_loggingLevel           *g:LanguageClient_loggingLevel*
