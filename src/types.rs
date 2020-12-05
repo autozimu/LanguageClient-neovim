@@ -10,6 +10,7 @@ use crate::{viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
+use lsp_types::Range;
 use lsp_types::{
     CodeAction, CodeLens, Command, CompletionItem, CompletionTextEdit, Diagnostic,
     DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
@@ -128,6 +129,12 @@ pub enum UseVirtualText {
     No,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct InlayHint {
+    pub range: Range,
+    pub label: String,
+}
+
 #[derive(Serialize)]
 pub struct State {
     // Program state.
@@ -156,6 +163,8 @@ pub struct State {
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
     // filename => codeLens.
     pub code_lens: HashMap<String, Vec<CodeLens>>,
+    // filename => inlayHint.
+    pub inlay_hints: HashMap<String, Vec<InlayHint>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
     pub namespace_ids: HashMap<String, i64>,
@@ -175,6 +184,7 @@ pub struct State {
     pub stashed_code_action_actions: Vec<CodeAction>,
 
     pub logger: Logger,
+    pub initialization_options: HashMap<String, Value>,
 }
 
 impl State {
@@ -197,6 +207,7 @@ impl State {
             semantic_scopes: HashMap::new(),
             semantic_scope_to_hl_group_table: HashMap::new(),
             semantic_highlights: HashMap::new(),
+            inlay_hints: HashMap::new(),
             code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
@@ -211,6 +222,7 @@ impl State {
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_code_action_actions: vec![],
+            initialization_options: HashMap::new(),
             logger,
         }
     }

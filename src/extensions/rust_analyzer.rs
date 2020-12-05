@@ -1,8 +1,9 @@
-use crate::{language_client::LanguageClient, types::WorkspaceEditWithCursor};
+use crate::types;
+use crate::{language_client::LanguageClient, types::WorkspaceEditWithCursor, utils::ToUrl};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Value;
-use lsp_types::{Command, Location};
-use serde::Deserialize;
+use lsp_types::{request::Request, Command, Location, Range, TextDocumentIdentifier};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 // Runnable wraps the two possible shapes of a runnable action from rust-analyzer. Old-ish versions
@@ -46,6 +47,35 @@ enum GenericRunnableKind {
     Cargo,
 }
 
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub enum InlayKind {
+    TypeHint,
+    ParameterHint,
+    ChainingHint,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InlayHint {
+    pub range: Range,
+    pub kind: InlayKind,
+    pub label: String,
+}
+
+impl Into<types::InlayHint> for InlayHint {
+    fn into(self) -> types::InlayHint {
+        types::InlayHint {
+            range: self.range,
+            label: self.label,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InlayHintsParams {
+    text_document: TextDocumentIdentifier,
+}
+
 pub mod command {
     pub const SHOW_REFERENCES: &str = "rust-analyzer.showReferences";
     pub const SELECT_APPLY_SOURCE_CHANGE: &str = "rust-analyzer.selectAndApplySourceChange";
@@ -54,7 +84,55 @@ pub mod command {
     pub const RUN: &str = "rust-analyzer.run";
 }
 
+pub mod request {
+    pub enum InlayHintsRequest {}
+
+    impl lsp_types::request::Request for InlayHintsRequest {
+        type Params = super::InlayHintsParams;
+        type Result = Vec<super::InlayHint>;
+        const METHOD: &'static str = "rust-analyzer/inlayHints";
+    }
+}
+
+const FILETYPE: &'static str = "rust";
+pub const SERVER_NAME: &'static str = "rust-analyzer";
+
 impl LanguageClient {
+    pub fn rust_analyzer_inlay_hints(&self, filename: &str) -> Result<Vec<types::InlayHint>> {
+        let inlay_hints_enabled = self.get_state(|state| {
+            state
+                .initialization_options
+                .get(SERVER_NAME)
+                .as_ref()
+                .map(|opt| {
+                    opt.pointer("/inlayHints/enable")
+                        .unwrap_or(&Value::Bool(false))
+                        == &Value::Bool(true)
+                })
+                .unwrap_or_default()
+        })?;
+        if !inlay_hints_enabled {
+            return Ok(vec![]);
+        }
+
+        let result: Vec<InlayHint> = self.get_client(&Some(FILETYPE.into()))?.call(
+            request::InlayHintsRequest::METHOD,
+            InlayHintsParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_string().to_url()?,
+                },
+            },
+        )?;
+
+        // we are only able to display chaining hints at the moment, as we can't place virtual texts in
+        // between words
+        Ok(result
+            .into_iter()
+            .filter(|h| h.kind == InlayKind::ChainingHint)
+            .map(InlayHint::into)
+            .collect())
+    }
+
     pub fn handle_rust_analyzer_command(&self, cmd: &Command) -> Result<bool> {
         match cmd.command.as_str() {
             command::SHOW_REFERENCES => {
