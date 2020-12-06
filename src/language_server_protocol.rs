@@ -860,7 +860,14 @@ impl LanguageClient {
 
         let settings = self.get_workspace_settings(&root)?;
         let initialization_options =
-            merged_initialization_options(language_id.as_str(), &command, &settings)?;
+            merged_initialization_options(language_id.as_str(), &command, &settings);
+        let initialization_options = match initialization_options {
+            Err(err) => {
+                self.vim()?.echoerr(err.to_string())?;
+                None
+            }
+            Ok(opts) => opts,
+        };
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -3922,8 +3929,7 @@ fn merged_initialization_options(
     // warn the user that they are using a deprecated workspace settings
     // file format and direct them to the documentation about the new one
     if settings.pointer("/initializationOptions").is_some() {
-        let message = "You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`";
-        return Err(anyhow!(message));
+        return Err(LCError::BadWorkspaceSettings.into());
     }
 
     let server_name = command.name();
