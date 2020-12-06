@@ -17,8 +17,8 @@ CONTENTS                                               *LanguageClientContents*
 ==============================================================================
 1. Usage                                                 *LanguageClientUsage*
 
-Before using of LanguageClient, it is necessary to specify commands that are
-going to be used to start language server. See |LanguageClient_serverCommands|
+Before using LanguageClient, it is necessary to specify commands that are
+going to be used to start a language server. See |LanguageClient_serverCommands|
 for detail. Here is a simple example config: >
 
     let g:LanguageClient_serverCommands = {
