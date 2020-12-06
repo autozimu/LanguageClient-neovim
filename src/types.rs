@@ -46,8 +46,6 @@ pub enum LCError {
     NoServerCommands { language_id: String },
     #[error("Language server is not running for: {}", language_id)]
     ServerNotRunning { language_id: String },
-    #[error("You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`")]
-    BadWorkspaceSettings,
 }
 
 pub const REQUEST_GET_STATE: &str = "languageClient/getState";
