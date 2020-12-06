@@ -185,7 +185,22 @@ pub struct State {
     pub stashed_code_action_actions: Vec<CodeAction>,
 
     pub logger: Logger,
-    pub initialization_options: HashMap<String, Value>,
+    /// Stores a JSON with the initialization options for all servers started with this client, each
+    /// server will store its initialization options in an object in the root of this JSON, keyed
+    /// with the name of th server. So if you are running both gopls and rust-analyzer in the same
+    /// instance of LanguageClient-neovim, initialization_options will look something like this:
+    ///
+    /// ```json
+    /// {
+    ///  "gopls": {  }
+    ///  "rust-analyzer": {  }
+    /// }
+    /// ```
+    ///
+    /// This assumes that there are no conflicting options, but it should be a safe assumption, as
+    /// servers seem to use a root section with the name of the server to group its initialization
+    /// options.
+    pub initialization_options: Value,
 }
 
 impl State {
@@ -223,7 +238,7 @@ impl State {
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
             stashed_code_action_actions: vec![],
-            initialization_options: HashMap::new(),
+            initialization_options: Value::Null,
             logger,
         }
     }

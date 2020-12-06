@@ -982,7 +982,9 @@ impl LanguageClient {
                 .map(|info| info.name.clone());
             match (server_name, initialization_options) {
                 (Some(name), Some(options)) => {
-                    state.initialization_options.insert(name, options);
+                    state.initialization_options = state
+                        .initialization_options
+                        .combine(&json!({ name: options }));
                 }
                 _ => {}
             }
