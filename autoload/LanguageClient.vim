@@ -546,7 +546,14 @@ function! s:OpenHoverPreview(bufname, lines, filetype, ...) abort
     elseif display_approach ==# 'popup_win'
         let l:padding = [1, 1, 1, 1]
         if get(a:000, 0, v:null) isnot v:null && get(a:000, 1, v:null) isnot v:null
-          let pop_win_id = popup_create(a:lines, { 'line': get(a:000, 1) + 1, 'col': get(a:000, 0) + 1, 'padding': l:padding })
+          let pop_win_id = popup_create(a:lines, {
+                \ 'line': get(a:000, 1) + 1,
+                \ 'col': get(a:000, 0) + 1,
+                \ 'padding': l:padding,
+                \ 'drag': 1,
+                \ 'border': [1,1,1,1],
+                \ 'moved': 'any'
+                \ })
         else
           let pop_win_id = popup_atcursor(a:lines, { 'padding': l:padding })
         endif
