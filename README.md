@@ -2,7 +2,7 @@
 
 # LanguageClient-neovim
 
-[![CircleCI](https://circleci.com/gh/autozimu/LanguageClient-neovim.svg?style=svg)](https://circleci.com/gh/autozimu/LanguageClient-neovim)
+[![CircleCI](https://circleci.com/gh/autozimu/LanguageClient-neovim.svg?style=svg)](https://circleci.com/gh/autozimu/LanguageClient-neovim) [![Join the chat at https://gitter.im/LanguageClient-neovim/LanguageClient-neovim](https://badges.gitter.im/LanguageClient-neovim/LanguageClient-neovim.svg)](https://gitter.im/LanguageClient-neovim/LanguageClient-neovim?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [Language Server Protocol](LSP) support for [vim] and [neovim].
 
