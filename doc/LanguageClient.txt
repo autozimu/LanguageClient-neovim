@@ -555,20 +555,20 @@ server, effectively letting it decide which markup kind to use.
 
 Example setting 1. Set the preferred markup kind to `plaintext`
   ```
-  let g:LanguageClient_preferredMarkupKind: ['plaintext']
+  let g:LanguageClient_preferredMarkupKind = ['plaintext']
   ```
 
 Example setting 2. Set the preferred markup kind to `plaintext` and `markdown`
 as a fallback.
 
   ```
-  let g:LanguageClient_preferredMarkupKind: ['plaintext', 'markdown']
+  let g:LanguageClient_preferredMarkupKind = ['plaintext', 'markdown']
   ```
 
 Example setting 3. Set the preferred markup kind to `markdown`
 
   ```
-  let g:LanguageClient_preferredMarkupKind: ['markdown']
+  let g:LanguageClient_preferredMarkupKind = ['markdown']
   ```
 
 This setting may have no effect if the server decides not to honour it.
