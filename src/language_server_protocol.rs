@@ -835,45 +835,6 @@ impl LanguageClient {
         }
     }
 
-    fn server_initialization_options_for_language_id(
-        &self,
-        root: &str,
-        language_id: &str,
-    ) -> Result<Option<Value>> {
-        let server_command = self.get_config(|c| c.server_commands.get(language_id).cloned())?;
-        if server_command.is_none() {
-            return Err(anyhow!(
-                "No server command found for language {}",
-                language_id
-            ));
-        }
-        let server_command = server_command.unwrap();
-
-        let server_name = server_command.name();
-        let settings = self.get_workspace_settings(&root).unwrap_or(Value::Null);
-        // warn the user that they are using a deprecated workspace settings
-        // file format and direct them to the documentation about the new one
-        if settings.pointer("/initializationOptions").is_some() {
-            let message = "You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`";
-            self.vim()?.echoerr(message)?;
-        }
-
-        let section = format!("/{}", server_name);
-        let default_initialization_options = get_default_initialization_options(&language_id);
-        let server_initialization_options = server_command.initialization_options();
-        let workspace_initialization_options =
-            settings.pointer(section.as_str()).unwrap_or(&Value::Null);
-        let initialization_options = default_initialization_options
-            .combine(&server_initialization_options)
-            .combine(workspace_initialization_options);
-
-        if initialization_options.is_null() {
-            Ok(None)
-        } else {
-            Ok(Some(initialization_options))
-        }
-    }
-
     /////// LSP ///////
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -888,8 +849,18 @@ impl LanguageClient {
 
         let trace = self.get_config(|c| c.trace)?;
         let preferred_markup_kind = self.get_config(|c| c.preferred_markup_kind.clone())?;
-        let initialization_options = self
-            .server_initialization_options_for_language_id(root.as_str(), language_id.as_str())?;
+        let command = self.get_config(|c| c.server_commands.get(&language_id).cloned())?;
+        if command.is_none() {
+            return Err(anyhow!(
+                "No server command found for language {}",
+                language_id
+            ));
+        }
+        let command = command.unwrap();
+
+        let settings = self.get_workspace_settings(&root)?;
+        let initialization_options =
+            merged_initialization_options(language_id.as_str(), &command, &settings)?;
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -3690,7 +3661,7 @@ impl LanguageClient {
             };
 
         let lcn = self.clone();
-        let on_server_crash = move |language_id: &LanguageId| -> () {
+        let on_server_crash = move |language_id: &LanguageId| {
             if let Err(err) = lcn.on_server_crash(language_id) {
                 error!("Restart attempt failed: {}", err);
             }
@@ -3943,62 +3914,61 @@ impl LanguageClient {
     }
 }
 
+fn merged_initialization_options(
+    language_id: &str,
+    command: &ServerCommand,
+    settings: &Value,
+) -> Result<Option<Value>> {
+    // warn the user that they are using a deprecated workspace settings
+    // file format and direct them to the documentation about the new one
+    if settings.pointer("/initializationOptions").is_some() {
+        let message = "You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`";
+        return Err(anyhow!(message));
+    }
+
+    let server_name = command.name();
+    let section = format!("/{}", server_name);
+    let default_initialization_options = get_default_initialization_options(&language_id);
+    let server_initialization_options = command.initialization_options();
+    let workspace_initialization_options =
+        settings.pointer(section.as_str()).unwrap_or(&Value::Null);
+    let initialization_options = default_initialization_options
+        .combine(&server_initialization_options)
+        .combine(workspace_initialization_options);
+
+    if initialization_options.is_null() {
+        Ok(None)
+    } else {
+        Ok(Some(initialization_options))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::config::{Config, ServerCommand, ServerDetails};
-    use crate::logger::Logger;
-    use std::io::Write;
-
-    lazy_static! {
-        static ref LOGGER: Logger = Logger::new().unwrap();
-    }
+    use crate::config::{ServerCommand, ServerDetails};
 
     #[test]
     fn test_expands_initialization_options() {
-        let dir = tempfile::tempdir().expect("could not create tempdir");
-        let file_path = dir.path().join("settings.json");
-        // workspace local settings
-        let mut file = File::create(&file_path).expect("could not create file");
-        write!(
-            file,
-            r#"{{
-                "rust-analyzer.rustfmt.overrideCommand": ["rustfmt"],
-                "rust-analyzer.checkOnSave.overrideCommand": ["cargo", "check"]
-            }}"#
-        )
-        .expect("could not write to file");
+        let settings = json!({
+            "rust-analyzer": {
+                "rustfmt": {
+                    "overrideCommand": ["rustfmt"],
+                },
+                "checkOnSave": {
+                    "overrideCommand": ["cargo", "check"],
+                }
+            },
+        });
+        let command = ServerCommand::Detailed(ServerDetails {
+            name: "rust-analyzer".into(),
+            command: vec!["rust-analyzer".into()],
+            initialization_options: Some(json!({
+                "inlayHints.enable": true,
+            })),
+        });
 
-        let mut config = Config::default();
-        config.settings_path = vec![file_path.to_str().unwrap_or_default().to_string()];
-        config.load_settings = true;
-        // global server settings
-        config.server_commands = hashmap! {
-            String::from("rust") => ServerCommand::Detailed(ServerDetails {
-                name: "rust-analyzer".into(),
-                command: vec!["rust-analyzer".into()],
-                initialization_options: Some(json!({
-                    "inlayHints.enable": true,
-                })),
-            }),
-        };
-
-        let (tx, _) = crossbeam::channel::unbounded();
-        let client = Arc::new(
-            RpcClient::new(
-                None,
-                BufReader::new(std::io::stdin()),
-                BufWriter::new(std::io::stdout()),
-                None,
-                tx.clone(),
-                |_: &LanguageId| {},
-            )
-            .unwrap(),
-        );
-        let mut state = State::new(tx, client, *LOGGER);
-        let language_client = LanguageClient::new("test", state);
-        let options = language_client
-            .server_initialization_options_for_language_id("/", "rust")
+        let options = merged_initialization_options("rust", &command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4019,48 +3989,18 @@ mod test {
 
     #[test]
     fn test_handles_empty_global_options() {
-        let dir = tempfile::tempdir().expect("could not create tempdir");
-        let file_path = dir.path().join("settings.json");
-        // workspace local settings
-        let mut file = File::create(&file_path).expect("could not create file");
-        write!(
-            file,
-            r#"{{
-                "gopls": {{
-                    "local": "github.com/import/path/to/package"
-                }}
-            }}"#
-        )
-        .expect("could not write to file");
+        let settings = json!({
+            "gopls": {
+                "local": "github.com/import/path/to/package"
+            }
+        });
+        let command = ServerCommand::Detailed(ServerDetails {
+            name: "gopls".into(),
+            command: vec!["gopls".into()],
+            initialization_options: None,
+        });
 
-        let mut config = Config::default();
-        config.settings_path = vec![file_path.to_str().unwrap_or_default().to_string()];
-        config.load_settings = true;
-        // global server settings
-        config.server_commands = hashmap! {
-            String::from("go") => ServerCommand::Detailed(ServerDetails {
-                name: "gopls".into(),
-                command: vec!["gopls".into()],
-                initialization_options: None,
-            }),
-        };
-
-        let (tx, _) = crossbeam::channel::unbounded();
-        let client = Arc::new(
-            RpcClient::new(
-                None,
-                BufReader::new(std::io::stdin()),
-                BufWriter::new(std::io::stdout()),
-                None,
-                tx.clone(),
-                |_: &LanguageId| {},
-            )
-            .unwrap(),
-        );
-        let mut state = State::new(tx, client, *LOGGER);
-        let language_client = LanguageClient::new("test", state);
-        let options = language_client
-            .server_initialization_options_for_language_id("/", "go")
+        let options = merged_initialization_options("go", &command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4073,50 +4013,20 @@ mod test {
 
     #[test]
     fn test_merges_global_and_workspace_local_options() {
-        let dir = tempfile::tempdir().expect("could not create tempdir");
-        let file_path = dir.path().join("settings.json");
-        // workspace local settings
-        let mut file = File::create(&file_path).expect("could not create file");
-        write!(
-            file,
-            r#"{{
-                "gopls": {{
-                    "local": "github.com/import/path/to/package"
-                }}
-            }}"#
-        )
-        .expect("could not write to file");
+        let settings = json!({
+            "gopls": {
+                "local": "github.com/import/path/to/package"
+            }
+        });
+        let command = ServerCommand::Detailed(ServerDetails {
+            name: "gopls".into(),
+            command: vec!["gopls".into()],
+            initialization_options: Some(json!({
+                "usePlaceholders": true,
+            })),
+        });
 
-        let mut config = Config::default();
-        config.settings_path = vec![file_path.to_str().unwrap_or_default().to_string()];
-        config.load_settings = true;
-        // global server settings
-        config.server_commands = hashmap! {
-            String::from("go") => ServerCommand::Detailed(ServerDetails {
-                name: "gopls".into(),
-                command: vec!["gopls".into()],
-                initialization_options: Some(json!({
-                    "usePlaceholders": true,
-                })),
-            }),
-        };
-
-        let (tx, _) = crossbeam::channel::unbounded();
-        let client = Arc::new(
-            RpcClient::new(
-                None,
-                BufReader::new(std::io::stdin()),
-                BufWriter::new(std::io::stdout()),
-                None,
-                tx.clone(),
-                |_: &LanguageId| {},
-            )
-            .unwrap(),
-        );
-        let mut state = State::new(tx, client, *LOGGER);
-        let language_client = LanguageClient::new("test", state);
-        let options = language_client
-            .server_initialization_options_for_language_id("/", "go")
+        let options = merged_initialization_options("go", &command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4130,43 +4040,14 @@ mod test {
 
     #[test]
     fn test_handles_options_for_simple_commands() {
-        let dir = tempfile::tempdir().expect("could not create tempdir");
-        let file_path = dir.path().join("settings.json");
-        // workspace local settings
-        let mut file = File::create(&file_path).expect("could not create file");
-        write!(
-            file,
-            r#"{{
-                "gopls": {{
-                    "local": "github.com/import/path/to/package"
-                }}
-            }}"#
-        )
-        .expect("could not write to file");
+        let settings = json!({
+            "gopls": {
+                "local": "github.com/import/path/to/package"
+            }
+        });
+        let command = ServerCommand::Simple(vec!["gopls".into()]);
 
-        let mut config = Config::default();
-        config.settings_path = vec![file_path.to_str().unwrap_or_default().to_string()];
-        config.load_settings = true;
-        config.server_commands = hashmap! {
-            String::from("go") => ServerCommand::Simple(vec!["gopls".into()]),
-        };
-
-        let (tx, _) = crossbeam::channel::unbounded();
-        let client = Arc::new(
-            RpcClient::new(
-                None,
-                BufReader::new(std::io::stdin()),
-                BufWriter::new(std::io::stdout()),
-                None,
-                tx.clone(),
-                |_: &LanguageId| {},
-            )
-            .unwrap(),
-        );
-        let mut state = State::new(tx, client, *LOGGER);
-        let language_client = LanguageClient::new("test", state);
-        let options = language_client
-            .server_initialization_options_for_language_id("/", "go")
+        let options = merged_initialization_options("go", &command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
