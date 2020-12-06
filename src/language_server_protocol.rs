@@ -861,8 +861,8 @@ impl LanguageClient {
         }
         let command = command.unwrap();
 
-        let settings = self.get_workspace_settings(&root)?;
         let vim = self.vim()?;
+        let settings = self.get_workspace_settings(&root).unwrap_or_default();
         let initialization_options =
             merged_initialization_options(&command, &settings, Some(&vim))?;
 
