@@ -1,11 +1,8 @@
+use crate::config::{Config, ServerCommand};
 use crate::extensions::java;
 use crate::language_client::LanguageClient;
 use crate::sign::Sign;
 use crate::vim::{try_get, Mode};
-use crate::{
-    config::{Config, ServerCommand},
-    vim::Vim,
-};
 use crate::{
     rpcclient::RpcClient,
     types::*,
@@ -861,10 +858,14 @@ impl LanguageClient {
         }
         let command = command.unwrap();
 
-        let vim = self.vim()?;
         let settings = self.get_workspace_settings(&root).unwrap_or_default();
-        let initialization_options =
-            merged_initialization_options(&command, &settings, Some(&vim))?;
+        // warn the user that they are using a deprecated workspace settings
+        // file format and direct them to the documentation about the new one
+        if settings.pointer("/initializationOptions").is_some() {
+            let _ = self.vim()?.echoerr("You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`");
+        }
+
+        let initialization_options = merged_initialization_options(&command, &settings)?;
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -962,6 +963,7 @@ impl LanguageClient {
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
                         apply_edit: Some(true),
+                        configuration: Some(true),
                         did_change_watched_files: Some(GenericCapability {
                             dynamic_registration: Some(true),
                         }),
@@ -3923,14 +3925,7 @@ impl LanguageClient {
 fn merged_initialization_options(
     command: &ServerCommand,
     settings: &Value,
-    vim: Option<&Vim>,
 ) -> Result<Option<Value>> {
-    // warn the user that they are using a deprecated workspace settings
-    // file format and direct them to the documentation about the new one
-    if settings.pointer("/initializationOptions").is_some() && vim.is_some() {
-        let _ = vim.unwrap().echoerr("You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`");
-    }
-
     let server_name = command.name();
     let section = format!("/{}", server_name);
     let default_initialization_options = get_default_initialization_options(&server_name);
@@ -3973,7 +3968,7 @@ mod test {
             })),
         });
 
-        let options = merged_initialization_options(&command, &settings, None)
+        let options = merged_initialization_options(&command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4005,7 +4000,7 @@ mod test {
             initialization_options: None,
         });
 
-        let options = merged_initialization_options(&command, &settings, None)
+        let options = merged_initialization_options(&command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4031,7 +4026,7 @@ mod test {
             })),
         });
 
-        let options = merged_initialization_options(&command, &settings, None)
+        let options = merged_initialization_options(&command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
@@ -4052,7 +4047,7 @@ mod test {
         });
         let command = ServerCommand::Simple(vec!["gopls".into()]);
 
-        let options = merged_initialization_options(&command, &settings, None)
+        let options = merged_initialization_options(&command, &settings)
             .expect("could not get initialization options");
         assert!(options.is_some());
         assert_eq!(
