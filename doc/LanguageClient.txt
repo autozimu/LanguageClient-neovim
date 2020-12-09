@@ -75,17 +75,49 @@ To use the language server with Vim's formatting operator |gq|, set 'formatexpr'
 
 2.1 g:LanguageClient_serverCommands          *g:LanguageClient_serverCommands*
 
-String to list map. Defines commands to start language server for specific
-filetype. For example: >
+Dictionary to specify the servers to be used for each filetype. The keys are
+strings representing the filetypes and the values are either
+  1 - a list of strings that form a command
+  2 - a dictionary with keys name, command and initializationOptions, where:
+    - name: is the name of the server, which should match the root node of the
+      configuration options specified in the settings.json file for this server
+    - command: is the same list of strings in option 1
+    - initializationOptions: is an optional dictionary with options to be passed
+      to the server. The values to be set here are highly dependent on each
+      server so you should see the documentation for each server to find out
+      what to configure in here (if anything).  The options set in
+      initializationOptions are merged with the default settings for each
+      language server and with the workspace settings defined by the user in
+      the files specified in the variable `LanguageClient_settingsPath'. The
+      order in which these settings are merged is first the defualt settings,
+      then the server settings configured in this section and lastly the
+      contents of the files in the `LanguageClient_settingsPath` variable in
+      the order in which they were listed.
+
+For example: >
 
     let g:LanguageClient_serverCommands = {
         \ 'rust': ['rustup', 'run', 'stable', 'rls'],
-        \ }
+        \ 'go': {
+        \   'name': 'gopls',
+        \   'command': ['gopls'],
+        \   'initializationOptions': {
+        \     'usePlaceholders': v:true,
+        \     'codelens': {
+        \       'generate': v:true,
+        \       'test': v:true,
+        \     },
+        \   },
+        \ },
+        \}
 
-In the example above, 'run', 'stable', and 'rls' are arguments to the
-'rustup' command line tool.
+In the configuration for the rust filetype above, 'run', 'stable', and 'rls'
+are arguments to the 'rustup' command line tool. And in the configuration for
+the go filetype the server is configured to run the command `gopls` with no
+additional arguments, and with the initialization options set in the
+`initializationOptions` key.
 
-Or tcp connection string to the server, >
+You can also use a tcp connection to the server, for example: >
     let g:LanguageClient_serverCommands = {
         \ 'javascript': ['tcp://127.0.0.1:2089'],
         \ }
@@ -93,7 +125,14 @@ Or tcp connection string to the server, >
 Note: environmental variables are not supported except home directory alias `~`.
 
 Default: {}
-Valid Option: Map<String, List<String> | String>
+
+
+
+Valid Option: Map<String, List<String> | {
+    name: String
+    command: List<String>
+    initializationOptions?: Map<String, Any>
+  }>
 
 2.2 g:LanguageClient_diagnosticsDisplay  *g:LanguageClient_diagnosticsDisplay*
 
@@ -231,9 +270,34 @@ path this is relative to the workspace directory. If several paths are
 provided, then the corresponding settings are merged with precedence going to
 the last file.
 
+The initialization options found in the files in this config are combined with
+the initialization options specified in the server command, if any. The former
+taking precedence over the latter.
+
+Note that the key under which the initialization options for each server lives
+matches the key under which the server expects it's configuration. This is
+important for servers that can request configuration via a
+`workspace/configuration` request.
+
+Previously, the initialization options lived under a `initializationOptions`
+key, which worked, but made answering that `workspace/configuration` request
+hard, since we couldn't really get the correct path to the setting the server
+requested. Since version 0.1.161 of this plugin, that key has been deprecated
+and you'll see a message saying that you should move off of it if your settings
+file includes an `initializationOptions` key.
+
 Example settings file content: >
     {
-        "rust.clippy_preference": "on"
+        "gopls": {
+          "usePlaceholders": true,
+          "local": "github.com/my/pkg",
+        },
+        "rust-analyzer": {
+          "inlayHints": {
+            "enable": true,
+            "chainingHints": true
+          },
+        },
     }
 
 Default: ".vim/settings.json"

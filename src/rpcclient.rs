@@ -43,7 +43,7 @@ impl RpcClient {
         writer: impl Write + Send + 'static,
         process_id: Option<u32>,
         sink: Sender<Call>,
-        on_crash: impl Fn(&LanguageId) -> () + Clone + Send + 'static,
+        on_crash: impl Fn(&LanguageId) + Clone + Send + 'static,
     ) -> Result<Self> {
         let (reader_tx, reader_rx): (Sender<(Id, Sender<jsonrpc_core::Output>)>, _) = unbounded();
 

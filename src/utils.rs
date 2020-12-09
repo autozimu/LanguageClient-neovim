@@ -397,7 +397,7 @@ where
 
 pub fn get_default_initialization_options(language_id: &str) -> Value {
     match language_id {
-        "java" => json!({
+        "lsp4j" => json!({
             "extendedClientCapabilities": {
                 "classFileContentsSupport": true
             }
@@ -706,6 +706,24 @@ mod test {
             json!({
                 "rust": {
                     "rls": true
+                }
+            })
+        );
+        assert_eq!(
+            expand_json_path(json!({
+                "rust-analyzer.inlayHints.enable": true,
+                "rust-analyzer.inlayHints.chainingHints": true,
+                "rust-analyzer.rustfmt.overrideCommand": ["rustfmt"],
+            })),
+            json!({
+                "rust-analyzer": {
+                    "rustfmt": {
+                        "overrideCommand": ["rustfmt"]
+                    },
+                    "inlayHints": {
+                        "enable": true,
+                        "chainingHints": true,
+                    }
                 }
             })
         );

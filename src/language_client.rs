@@ -22,9 +22,9 @@ pub struct LanguageClient {
 }
 
 impl LanguageClient {
-    pub fn new(version: String, state: State) -> Self {
+    pub fn new(version: impl Into<String>, state: State) -> Self {
         LanguageClient {
-            version,
+            version: version.into(),
             state_mutex: Arc::new(Mutex::new(state)),
             clients_mutex: Arc::new(Mutex::new(HashMap::new())),
             config: Arc::new(RwLock::new(Config::default())),

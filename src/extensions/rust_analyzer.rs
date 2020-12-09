@@ -94,8 +94,8 @@ pub mod request {
     }
 }
 
-const FILETYPE: &'static str = "rust";
-pub const SERVER_NAME: &'static str = "rust-analyzer";
+const FILETYPE: &str = "rust";
+pub const SERVER_NAME: &str = "rust-analyzer";
 
 impl LanguageClient {
     pub fn rust_analyzer_inlay_hints(&self, filename: &str) -> Result<Vec<types::InlayHint>> {
