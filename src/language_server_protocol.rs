@@ -963,7 +963,6 @@ impl LanguageClient {
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
                         apply_edit: Some(true),
-                        configuration: Some(true),
                         did_change_watched_files: Some(GenericCapability {
                             dynamic_registration: Some(true),
                         }),
