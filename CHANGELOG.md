@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.162]
+
+## [0.1.161]
+
+### Fixed
+- Fix incorrect deserialization of completion items in NCM2 (#1151)
+- Fix markdown syntax on hover (#1039)
+- Fix diagnostics signs logic (#1126)
+
+### Added
+- Add support for initialization options in server command (#1116)
+- Add function to execute code action by kind (#1160)
+- Add support for rust-analyzer chaining hints (#1108)
+- Add parameter to explainErrorAtPoint to enable running silently (#1143)
+- Use separate namespace for document and diagnostic highlights (#1145)
+- Add LanguageClient_codeLensDisplay config (#1144)
+- Add completion item documentation (#1043)
+- Do not send notifications/requests for buffers without a configured server (#1121)
+- Add support for document highlight on vim8 (#1123)
+- Add automatic server restart on crash (#1113)
+
 ## [0.1.160]
 
 ### Fixed

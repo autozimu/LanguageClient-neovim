@@ -6,7 +6,7 @@
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
 
-version=0.1.160
+version=0.1.161
 name=languageclient
 
 arch=$(uname -sm)
