@@ -3033,26 +3033,28 @@ impl LanguageClient {
         viewport: &viewport::Viewport,
     ) -> Result<Vec<VirtualText>> {
         let mut virtual_texts = vec![];
-        let diagnostics = self.get_state(|state| state.diagnostics.clone())?;
+        let diagnostics =
+            self.get_state(|state| state.diagnostics.get(filename).cloned().unwrap_or_default())?;
+        let diagnostics: Vec<Diagnostic> = diagnostics
+            .into_iter()
+            .sorted_by(|a, b| Ord::cmp(&b.severity, &a.severity))
+            .collect();
         let diagnostics_display = self.get_config(|c| c.diagnostics_display.clone())?;
-        let diag_list = diagnostics.get(filename);
-        if let Some(diag_list) = diag_list {
-            for diag in diag_list {
-                if viewport.overlaps(diag.range) {
-                    let mut explanation = diag.message.clone();
-                    if let Some(source) = &diag.source {
-                        explanation = format!("{}: {}\n", source, explanation);
-                    }
-                    virtual_texts.push(VirtualText {
-                        line: diag.range.start.line,
-                        text: explanation.replace("\n", "  "),
-                        hl_group: diagnostics_display
-                            .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
-                            .ok_or_else(|| anyhow!("Failed to get display"))?
-                            .virtual_texthl
-                            .clone(),
-                    });
+        for diag in diagnostics {
+            if viewport.overlaps(diag.range) {
+                let mut explanation = diag.message.clone();
+                if let Some(source) = &diag.source {
+                    explanation = format!("{}: {}\n", source, explanation);
                 }
+                virtual_texts.push(VirtualText {
+                    line: diag.range.start.line,
+                    text: explanation.replace("\n", "  "),
+                    hl_group: diagnostics_display
+                        .get(&(diag.severity.unwrap_or(DiagnosticSeverity::Hint) as u64))
+                        .ok_or_else(|| anyhow!("Failed to get display"))?
+                        .virtual_texthl
+                        .clone(),
+                });
             }
         }
 
