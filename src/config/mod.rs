@@ -194,6 +194,11 @@ impl Config {
             None => HoverPreviewOption::Auto,
         };
 
+        let mut diagnostics_display = DiagnosticsDisplay::default();
+        res.diagnostics_display.into_iter().for_each(|(k, v)| {
+            diagnostics_display.insert(k, v);
+        });
+
         Ok(Config {
             auto_start: res.auto_start == 1,
             server_commands: res.server_commands,
@@ -210,7 +215,7 @@ impl Config {
             ),
             diagnostics_enable: res.diagnostics_enable == 1,
             diagnostics_list,
-            diagnostics_display: res.diagnostics_display,
+            diagnostics_display,
             code_lens_display: res.code_lens_display.unwrap_or_default(),
             window_log_message_level: message_type(&res.window_log_message_level)?,
             hover_preview,
