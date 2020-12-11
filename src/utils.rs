@@ -117,10 +117,7 @@ where
 }
 
 fn has_extension(path: &Path, ext: &str) -> bool {
-    match path.extension().and_then(|e| e.to_str()) {
-        Some(path_ext) if path_ext == ext => true,
-        _ => false,
-    }
+    matches!(path.extension().and_then(|e| e.to_str()), Some(path_ext) if path_ext == ext)
 }
 
 fn traverse_up<'a, F>(path: &'a Path, predicate: F) -> Result<&'a Path>
