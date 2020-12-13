@@ -1,0 +1,94 @@
+name: Build and upload binaries to release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            binary: languageclient
+            asset_name: languageclient-${{ github.event.release.tag_name }}-x86_64-unknown-linux-musl
+          - target: aarch64-unknown-linux-musl
+            binary: languageclient
+            asset_name: languageclient-${{ github.event.release.tag_name }}-aarch64-unknown-linux-musl
+          - target: i686-unknown-linux-musl
+            binary: languageclient
+            asset_name: languageclient-${{ github.event.release.tag_name }}-i686-unknown-linux-musl
+          - target: x86_64-pc-windows-gnu
+            binary: languageclient.exe
+            asset_name: languageclient-${{ github.event.release.tag_name }}-x86_64-pc-windows-gnu.exe
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install cross
+        run: cargo install cross
+
+      - name: Compile
+        run: cross build --release --locked --target=${{ matrix.target }}
+
+      - name: Hash
+        run: cp target/${{ matrix.target }}/release/${{ matrix.binary }} bin/${{ matrix.binary }} && sha256sum bin/${{ matrix.binary }} | tee bin/languageclient.sha256
+
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.target }}/release/${{ matrix.binary }}
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
+
+      - name: Upload sha to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: bin/languageclient.sha256
+          asset_name: ${{ matrix.asset_name }}.sha256
+          tag: ${{ github.ref }}
+
+  build-mac:
+    name: Build mac
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Compile
+        run: cargo build --release --locked
+
+      - name: Hash
+        run: cp target/release/languageclient bin/languageclient && openssl sha256 bin/languageclient | awk '{print $2 " bin/languageclient"}' > bin/languageclient.sha256
+
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/languageclient
+          asset_name: languageclient-${{ github.event.release.tag_name }}-x86_64-apple-darwin
+          tag: ${{ github.ref }}
+
+      - name: Upload sha to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: bin/languageclient.sha256
+          asset_name: languageclient-${{ github.event.release.tag_name }}-x86_64-apple-darwin.sha256
+          tag: ${{ github.ref }}

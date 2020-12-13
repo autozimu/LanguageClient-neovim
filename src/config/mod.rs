@@ -203,7 +203,7 @@ impl Config {
             auto_start: res.auto_start == 1,
             server_commands: res.server_commands,
             selection_ui,
-            trace: trace(&res.trace.unwrap_or("off".to_string()))?,
+            trace: trace(&res.trace.unwrap_or_else(|| "off".to_string()))?,
             settings_path: res.settings_path,
             load_settings: res.load_settings == 1,
             root_markers: res.root_markers,

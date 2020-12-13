@@ -7,10 +7,7 @@ use lsp_types::request::{self, Request};
 use serde_json::Value;
 
 fn is_content_modified_error(err: &anyhow::Error) -> bool {
-    match err.downcast_ref::<LSError>() {
-        Some(err) if err == &LSError::ContentModified => true,
-        _ => false,
-    }
+    matches!(err.downcast_ref::<LSError>(), Some(err) if err == &LSError::ContentModified)
 }
 
 impl LanguageClient {

@@ -98,7 +98,7 @@ impl LanguageClient {
         self.update_state(|state| {
             state
                 .logger
-                .update_settings(config.logging_level.clone(), config.logging_file.clone())
+                .update_settings(config.logging_level, config.logging_file.clone())
         })?;
 
         let semantic_highlight_language_ids: Vec<String> =
@@ -982,13 +982,10 @@ impl LanguageClient {
                 .server_info
                 .as_ref()
                 .map(|info| info.name.clone());
-            match (server_name, initialization_options) {
-                (Some(name), Some(options)) => {
-                    state.initialization_options = state
-                        .initialization_options
-                        .combine(&json!({ name: options }));
-                }
-                _ => {}
+            if let (Some(name), Some(options)) = (server_name, initialization_options) {
+                state.initialization_options = state
+                    .initialization_options
+                    .combine(&json!({ name: options }));
             }
 
             state
@@ -1302,7 +1299,7 @@ impl LanguageClient {
         if actions.len() > 1 {
             return Err(anyhow!("Too many code actions found with kind {}", kind));
         }
-        if actions.len() == 0 {
+        if actions.is_empty() {
             return Err(anyhow!("No code actions found with kind {}", kind));
         }
 
@@ -2081,7 +2078,7 @@ impl LanguageClient {
 
         let uri = filename.to_url()?;
 
-        self.get_client(&Some(language_id.clone()))?.notify(
+        self.get_client(&Some(language_id))?.notify(
             lsp_types::notification::DidSaveTextDocument::METHOD,
             DidSaveTextDocumentParams {
                 text: None,
@@ -2610,7 +2607,7 @@ impl LanguageClient {
         let language_id = self.vim()?.get_language_id(&filename, params)?;
 
         let _: () = self
-            .get_client(&Some(language_id.clone()))?
+            .get_client(&Some(language_id))?
             .call(lsp_types::request::Shutdown::METHOD, Value::Null)?;
 
         self.vim()?
@@ -3100,7 +3097,7 @@ impl LanguageClient {
         let code_lenses: Vec<CodeLens> =
             self.get_state(|state| match state.code_lens.get(filename) {
                 Some(cls) => cls
-                    .into_iter()
+                    .iter()
                     .filter(|cl| viewport.overlaps(cl.range))
                     .cloned()
                     .collect(),
@@ -3642,7 +3639,7 @@ impl LanguageClient {
                 (None, reader, writer)
             } else {
                 let command: Vec<_> = command
-                    .into_iter()
+                    .iter()
                     .map(|cmd| match shellexpand::full(&cmd) {
                         Ok(cmd) => cmd.as_ref().into(),
                         Err(err) => {

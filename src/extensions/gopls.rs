@@ -18,7 +18,8 @@ impl LanguageClient {
                 if let Some(args) = &cmd.arguments {
                     if let Some(file) = args.get(0) {
                         let file = String::deserialize(file)?;
-                        let path = parse_package_path(file.as_str()).unwrap_or("./...".into());
+                        let path =
+                            parse_package_path(file.as_str()).unwrap_or_else(|| "./...".into());
                         let run = <Option<Vec<String>>>::deserialize(
                             args.get(1).unwrap_or(&Value::Null),
                         )?;
@@ -30,10 +31,10 @@ impl LanguageClient {
                         let run = run.unwrap_or_default();
                         let bench = bench.unwrap_or_default();
 
-                        if run.len() > 0 {
+                        if !run.is_empty() {
                             let cmd = format!("term go test -run '{}' {}", run.join("|"), path);
                             self.vim()?.command(cmd)?;
-                        } else if bench.len() > 0 {
+                        } else if !bench.is_empty() {
                             let cmd = format!("term go test -bench '{}' {}", bench.join("|"), path);
                             self.vim()?.command(cmd)?;
                         } else {

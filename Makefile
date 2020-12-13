@@ -54,9 +54,6 @@ integration-test-docker:
 integration-test-docker-debug:
 	docker run --interactive --tty --volume ${CURDIR}:/root/.config/nvim autozimu/languageclientneovim
 
-cleanup-binary-tags:
-	ci/cleanup-binary-tags.py
-
 clean:
 	cargo clean
 	rm -rf bin/languageclient
