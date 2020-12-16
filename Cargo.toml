@@ -28,7 +28,7 @@ serde_json = "1"
 json-patch = "0.2"
 crossbeam = "0.7.3"
 jsonrpc-core = "15"
-lsp-types = { version = "0.83", features = ["proposed"] }
+lsp-types = { version = "0.85", features = ["proposed"] }
 url = "2"
 pathdiff = "0"
 diff = "0"

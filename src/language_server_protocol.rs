@@ -21,7 +21,7 @@ use itertools::Itertools;
 use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
 use lsp_types::{
-    notification::Notification, request::Request, ApplyWorkspaceEditParams,
+    notification::Notification, request::Request, AnnotatedTextEdit, ApplyWorkspaceEditParams,
     ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo, CodeAction, CodeActionCapability,
     CodeActionContext, CodeActionKind, CodeActionKindLiteralSupport, CodeActionLiteralSupport,
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens, Command,
@@ -226,7 +226,14 @@ impl LanguageClient {
             }
         } else if let Some(ref changes) = edit.changes {
             for (uri, edits) in changes {
-                position = self.apply_text_edits(&uri.filepath()?, edits, position)?;
+                position = self.apply_text_edits(
+                    &uri.filepath()?,
+                    &edits
+                        .into_iter()
+                        .map(|e| lsp_types::OneOf::Left(e.clone()))
+                        .collect::<Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>>>(),
+                    position,
+                )?;
             }
         }
         self.edit(&None, &filename)?;
@@ -298,7 +305,7 @@ impl LanguageClient {
     fn apply_text_edits<P: AsRef<Path> + std::fmt::Debug>(
         &self,
         path: P,
-        edits: &[TextEdit],
+        edits: &[lsp_types::OneOf<TextEdit, AnnotatedTextEdit>],
         position: Position,
     ) -> Result<Position> {
         if edits.is_empty() {
@@ -313,7 +320,13 @@ impl LanguageClient {
         // same order the server sent it, and so that a delete/replace (according to the LSP spec,
         // there can only be one per start position and it must be after the inserts) will work on
         // the original document, not on the just-inserted text.
-        edits.sort_by_key(|edit| (edit.range.start.line, edit.range.start.character));
+        edits.sort_by_key(|edit| match edit {
+            lsp_types::OneOf::Left(edit) => (edit.range.start.line, edit.range.start.character),
+            lsp_types::OneOf::Right(ae) => (
+                ae.text_edit.range.start.line,
+                ae.text_edit.range.start.character,
+            ),
+        });
         edits.reverse();
 
         self.edit(&None, path)?;
@@ -713,7 +726,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn get_line(&self, path: impl AsRef<Path>, line: u64) -> Result<String> {
+    pub fn get_line(&self, path: impl AsRef<Path>, line: u32) -> Result<String> {
         let value: Value = self.vim()?.rpcclient.call(
             "getbufline",
             json!([path.as_ref().to_string_lossy(), line + 1]),
@@ -725,7 +738,7 @@ impl LanguageClient {
             let reader = BufReader::new(File::open(path)?);
             text = reader
                 .lines()
-                .nth(line.to_usize()?)
+                .nth(line as usize)
                 .ok_or_else(|| anyhow!("Failed to get line! line: {}", line))??;
         }
 
@@ -875,7 +888,7 @@ impl LanguageClient {
                     name: "LanguageClient-neovim".into(),
                     version: Some(self.version()),
                 }),
-                process_id: Some(u64::from(std::process::id())),
+                process_id: Some(u32::from(std::process::id())),
                 /* deprecated in lsp types, but can't initialize without it */
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
@@ -973,6 +986,7 @@ impl LanguageClient {
                 },
                 trace: Some(trace),
                 workspace_folders: None,
+                locale: None,
             },
         )?;
 
@@ -1774,6 +1788,8 @@ impl LanguageClient {
         self.apply_workspace_edit(&params.edit)?;
         Ok(serde_json::to_value(ApplyWorkspaceEditResponse {
             applied: true,
+            failure_reason: None,
+            failed_change: None,
         })?)
     }
 
@@ -2052,7 +2068,7 @@ impl LanguageClient {
             DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
                     uri: filename.to_url()?,
-                    version: Some(version),
+                    version,
                 },
                 content_changes: vec![TextDocumentContentChangeEvent {
                     range: None,
@@ -2291,7 +2307,7 @@ impl LanguageClient {
              * single line so simply clear between the first and last line to
              * ensure no highlights are left dangling
              */
-            let mut clear_region: Option<(u64, u64)> = None;
+            let mut clear_region: Option<(u32, u32)> = None;
             let mut highlights = Vec::with_capacity(semantic_hl_state.symbols.len());
 
             for line in &semantic_hl_state.symbols {
@@ -2303,9 +2319,9 @@ impl LanguageClient {
 
                         if let Some(Some(group)) = hl_table.get(token.scope as usize) {
                             highlights.push(Highlight {
-                                line: line.line as u64,
-                                character_start: token.character as u64,
-                                character_end: token.character as u64 + token.length as u64,
+                                line: line.line as u32,
+                                character_start: token.character,
+                                character_end: token.character + token.length as u32,
                                 group: group.clone(),
                                 text: String::new(),
                             });
@@ -2314,10 +2330,10 @@ impl LanguageClient {
 
                     match clear_region {
                         Some((begin, _)) => {
-                            clear_region = Some((begin, line.line as u64 + 1));
+                            clear_region = Some((begin, line.line as u32 + 1));
                         }
                         None => {
-                            clear_region = Some((line.line as u64, line.line as u64 + 1));
+                            clear_region = Some((line.line as u32, line.line as u32 + 1));
                         }
                     }
                 }
@@ -2720,7 +2736,7 @@ impl LanguageClient {
             CompletionResponse::List(list) => list.items,
         };
 
-        let complete_position: Option<u64> = try_get("complete_position", params)?;
+        let complete_position: Option<u32> = try_get("complete_position", params)?;
 
         let matches: Result<Vec<VimCompleteItem>> = matches
             .iter()
@@ -3161,7 +3177,7 @@ impl LanguageClient {
                 // Check that we're not doing anything stupid before going ahead with this.
                 let mut edit = edit;
                 edit.range.end.character =
-                    edit.range.start.character + completed_item.word.len() as u64;
+                    edit.range.start.character + completed_item.word.len() as u32;
                 if edit.range.end != position || edit.range.start.line != edit.range.end.line {
                     return Ok(());
                 }
@@ -3179,7 +3195,14 @@ impl LanguageClient {
             return Ok(());
         }
 
-        let position = self.apply_text_edits(filename, &edits, position)?;
+        let position = self.apply_text_edits(
+            filename,
+            &edits
+                .into_iter()
+                .map(|e| lsp_types::OneOf::Left(e))
+                .collect::<Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>>>(),
+            position,
+        )?;
         self.vim()?
             .cursor(position.line + 1, position.character + 1)
     }
@@ -3218,12 +3241,12 @@ impl LanguageClient {
         let line = tokens_iter
             .next()
             .ok_or_else(|| anyhow!("Failed to get line! tokens: {:?}", tokens))?
-            .to_int()?
+            .parse::<u32>()?
             - 1;
         let character = tokens_iter
             .next()
             .ok_or_else(|| anyhow!("Failed to get character! tokens: {:?}", tokens))?
-            .to_int()?
+            .parse::<u32>()?
             - 1;
 
         self.edit(&None, &filename)?;

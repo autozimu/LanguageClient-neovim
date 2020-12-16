@@ -6,17 +6,17 @@ use serde::{Deserialize, Serialize};
 /// Inclusive at start, exclusive at end. Both start and end are 0-based.
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Copy, Clone)]
 pub struct Viewport {
-    pub start: u64,
-    pub end: u64,
+    pub start: u32,
+    pub end: u32,
 }
 
 impl Viewport {
     #[allow(dead_code)]
-    pub fn new(start: u64, end: u64) -> Self {
+    pub fn new(start: u32, end: u32) -> Self {
         Self { start, end }
     }
 
-    fn contains(&self, line: u64) -> bool {
+    fn contains(&self, line: u32) -> bool {
         line >= self.start && line < self.end
     }
 
