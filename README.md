@@ -37,7 +37,7 @@ Using [`vim-plug`](https://github.com/junegunn/vim-plug):
 ```vim
 Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
-    \ 'do': 'bash install.sh',
+    \ 'do': 'bash install.sh && :UpdateRemotePlugins',
     \ }
 
 " (Optional) Multi-entry selection UI.
@@ -58,7 +58,7 @@ let g:LanguageClient_serverCommands = {
     \ 'ruby': ['~/.rbenv/shims/solargraph', 'stdio'],
     \ }
 
-" note that if you are using Plug mapping you should not use `noremap` mappings.
+" Note: if you are using Plug mapping, you should not use `noremap` mappings.
 nmap <F5> <Plug>(lcn-menu)
 " Or map each action separately
 nmap <silent>K <Plug>(lcn-hover)
@@ -66,9 +66,9 @@ nmap <silent> gd <Plug>(lcn-definition)
 nmap <silent> <F2> <Plug>(lcn-rename)
 ```
 
-Run command `nvim +PlugInstall +UpdateRemotePlugins +qa` in shell to install
-this plugin. Install corresponding language servers. Restart neovim/vim and
-language services will be available right away. Happy hacking!
+Restart neovim and run `:PlugInstall` in it to install this 
+plugin. After restarting again, language services will be available 
+right away. Happy hacking!
 
 # Mappings
 
