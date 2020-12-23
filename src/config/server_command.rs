@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::utils::expand_json_path;
 use jsonrpc_core::Value;
 use serde::{Deserialize, Serialize};
@@ -8,6 +10,7 @@ pub struct ServerDetails {
     pub command: Vec<String>,
     pub name: String,
     pub initialization_options: Option<Value>,
+    pub handlers: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -45,6 +48,13 @@ impl ServerCommand {
                 let options = cmd.initialization_options.clone();
                 expand_json_path(options.unwrap_or_default())
             }
+        }
+    }
+
+    pub fn handlers(&self) -> HashMap<String, String> {
+        match self {
+            ServerCommand::Simple(_) => HashMap::new(),
+            ServerCommand::Detailed(cmd) => cmd.handlers.clone().unwrap_or_default(),
         }
     }
 
