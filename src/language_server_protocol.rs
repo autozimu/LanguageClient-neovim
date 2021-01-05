@@ -22,24 +22,25 @@ use jsonrpc_core::Value;
 use log::{debug, error, info, warn};
 use lsp_types::{
     notification::Notification, request::Request, AnnotatedTextEdit, ApplyWorkspaceEditParams,
-    ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo, CodeAction, CodeActionCapability,
-    CodeActionContext, CodeActionKind, CodeActionKindLiteralSupport, CodeActionLiteralSupport,
-    CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens, Command,
-    CompletionCapability, CompletionItem, CompletionItemCapability, CompletionResponse,
-    CompletionTextEdit, ConfigurationParams, Diagnostic, DiagnosticSeverity,
-    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
+    ApplyWorkspaceEditResponse, ClientCapabilities, ClientInfo, CodeAction,
+    CodeActionClientCapabilities, CodeActionContext, CodeActionKind, CodeActionKindLiteralSupport,
+    CodeActionLiteralSupport, CodeActionOrCommand, CodeActionParams, CodeActionResponse, CodeLens,
+    CodeLensClientCapabilities, Command, CompletionClientCapabilities, CompletionItem,
+    CompletionItemCapability, CompletionResponse, CompletionTextEdit, ConfigurationParams,
+    Diagnostic, DiagnosticSeverity, DidChangeConfigurationParams, DidChangeTextDocumentParams,
+    DidChangeWatchedFilesClientCapabilities, DidChangeWatchedFilesParams,
     DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentChangeOperation, DocumentChanges,
-    DocumentFormattingParams, DocumentHighlight, DocumentHighlightKind,
-    DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse, Documentation,
-    ExecuteCommandParams, FormattingOptions, GenericCapability, GotoCapability,
-    GotoDefinitionResponse, Hover, HoverCapability, InitializeParams, InitializeResult,
+    DocumentColorClientCapabilities, DocumentFormattingParams, DocumentHighlight,
+    DocumentHighlightKind, DocumentRangeFormattingParams, DocumentSymbolParams,
+    DocumentSymbolResponse, Documentation, ExecuteCommandParams, FormattingOptions, GotoCapability,
+    GotoDefinitionResponse, Hover, HoverClientCapabilities, InitializeParams, InitializeResult,
     InitializedParams, Location, LogMessageParams, MessageType, NumberOrString,
     ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
     ProgressParams, ProgressParamsValue, PublishDiagnosticsClientCapabilities,
     PublishDiagnosticsParams, Range, ReferenceContext, RegistrationParams, RenameParams,
     ResourceOp, SemanticHighlightingClientCapability, SemanticHighlightingParams,
-    ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpCapability,
+    ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpClientCapabilities,
     SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
     TextDocumentPositionParams, TextEdit, UnregistrationParams, VersionedTextDocumentIdentifier,
@@ -895,10 +896,10 @@ impl LanguageClient {
                 initialization_options: initialization_options.clone(),
                 capabilities: ClientCapabilities {
                     text_document: Some(TextDocumentClientCapabilities {
-                        color_provider: Some(GenericCapability {
+                        color_provider: Some(DocumentColorClientCapabilities {
                             dynamic_registration: Some(false),
                         }),
-                        completion: Some(CompletionCapability {
+                        completion: Some(CompletionClientCapabilities {
                             completion_item: Some(CompletionItemCapability {
                                 snippet_support: Some(has_snippet_support),
                                 documentation_format: preferred_markup_kind.clone(),
@@ -909,9 +910,9 @@ impl LanguageClient {
                                 insert_replace_support: Some(false),
                                 ..CompletionItemCapability::default()
                             }),
-                            ..CompletionCapability::default()
+                            ..CompletionClientCapabilities::default()
                         }),
-                        code_action: Some(CodeActionCapability {
+                        code_action: Some(CodeActionClientCapabilities {
                             code_action_literal_support: Some(CodeActionLiteralSupport {
                                 code_action_kind: CodeActionKindLiteralSupport {
                                     value_set: [
@@ -928,9 +929,9 @@ impl LanguageClient {
                                     .collect(),
                                 },
                             }),
-                            ..CodeActionCapability::default()
+                            ..CodeActionClientCapabilities::default()
                         }),
-                        signature_help: Some(SignatureHelpCapability {
+                        signature_help: Some(SignatureHelpClientCapabilities {
                             signature_information: Some(SignatureInformationSettings {
                                 active_parameter_support: None,
                                 documentation_format: preferred_markup_kind.clone(),
@@ -938,7 +939,7 @@ impl LanguageClient {
                                     label_offset_support: Some(true),
                                 }),
                             }),
-                            ..SignatureHelpCapability::default()
+                            ..SignatureHelpClientCapabilities::default()
                         }),
                         declaration: Some(GotoCapability {
                             link_support: Some(true),
@@ -960,7 +961,7 @@ impl LanguageClient {
                             related_information: Some(true),
                             ..PublishDiagnosticsClientCapabilities::default()
                         }),
-                        code_lens: Some(GenericCapability {
+                        code_lens: Some(CodeLensClientCapabilities {
                             dynamic_registration: Some(true),
                         }),
                         semantic_highlighting_capabilities: Some(
@@ -968,16 +969,16 @@ impl LanguageClient {
                                 semantic_highlighting: true,
                             },
                         ),
-                        hover: Some(HoverCapability {
+                        hover: Some(HoverClientCapabilities {
                             content_format: preferred_markup_kind,
-                            ..HoverCapability::default()
+                            ..HoverClientCapabilities::default()
                         }),
                         ..TextDocumentClientCapabilities::default()
                     }),
                     workspace: Some(WorkspaceClientCapabilities {
                         apply_edit: Some(true),
                         configuration: Some(true),
-                        did_change_watched_files: Some(GenericCapability {
+                        did_change_watched_files: Some(DidChangeWatchedFilesClientCapabilities {
                             dynamic_registration: Some(true),
                         }),
                         ..WorkspaceClientCapabilities::default()
@@ -1538,6 +1539,7 @@ impl LanguageClient {
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp_types::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
+            change_annotations: None,
             document_changes: None,
         };
         self.apply_workspace_edit(&edit)?;
@@ -1590,6 +1592,7 @@ impl LanguageClient {
         let text_edits = text_edits.unwrap_or_default();
         let edit = lsp_types::WorkspaceEdit {
             changes: Some(hashmap! {filename.to_url()? => text_edits}),
+            change_annotations: None,
             document_changes: None,
         };
         self.apply_workspace_edit(&edit)?;
