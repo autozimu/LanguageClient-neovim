@@ -23,6 +23,9 @@ jobs:
           - target: x86_64-pc-windows-gnu
             binary: languageclient.exe
             asset_name: languageclient-${{ github.event.release.tag_name }}-x86_64-pc-windows-gnu.exe
+          - target: armv7-unknown-linux-musleabihf
+            binary: languageclient
+            asset_name: languageclient-${{ github.event.release.tag_name }}-armv7-unknown-linux-musleabihf
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
