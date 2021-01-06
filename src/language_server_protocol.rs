@@ -230,7 +230,7 @@ impl LanguageClient {
                 position = self.apply_text_edits(
                     &uri.filepath()?,
                     &edits
-                        .into_iter()
+                        .iter()
                         .map(|e| lsp_types::OneOf::Left(e.clone()))
                         .collect::<Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>>>(),
                     position,
@@ -889,7 +889,7 @@ impl LanguageClient {
                     name: "LanguageClient-neovim".into(),
                     version: Some(self.version()),
                 }),
-                process_id: Some(u32::from(std::process::id())),
+                process_id: Some(std::process::id()),
                 /* deprecated in lsp types, but can't initialize without it */
                 root_path: Some(root.clone()),
                 root_uri: Some(root.to_url()?),
@@ -3202,7 +3202,7 @@ impl LanguageClient {
             filename,
             &edits
                 .into_iter()
-                .map(|e| lsp_types::OneOf::Left(e))
+                .map(lsp_types::OneOf::Left)
                 .collect::<Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>>>(),
             position,
         )?;
