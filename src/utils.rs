@@ -561,7 +561,7 @@ mod test {
         .map(|l| l.to_owned())
         .collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -577,7 +577,7 @@ mod test {
 }
 "#
             .to_owned(),
-        };
+        });
 
         let position = Position::new(0, 0);
 
@@ -595,7 +595,7 @@ mod test {
 
         let expect: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -607,7 +607,7 @@ mod test {
                 },
             },
             new_text: r#"nb = 123"#.to_owned(),
-        };
+        });
 
         let position = Position::new(0, 1);
 
@@ -626,8 +626,8 @@ mod test {
             .map(|l| l.to_owned())
             .collect();
 
-        let edits = [
-            TextEdit {
+        let edits: Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>> = vec![
+            lsp_types::OneOf::Left(TextEdit {
                 range: Range {
                     start: Position {
                         line: 0,
@@ -639,8 +639,8 @@ mod test {
                     },
                 },
                 new_text: "bcde".to_owned(),
-            },
-            TextEdit {
+            }),
+            lsp_types::OneOf::Left(TextEdit {
                 range: Range {
                     start: Position {
                         line: 0,
@@ -652,7 +652,7 @@ mod test {
                     },
                 },
                 new_text: "newline\n".to_owned(),
-            },
+            }),
         ];
 
         let position = Position::new(0, 4);
@@ -672,7 +672,7 @@ mod test {
 
         let expected_lines: Vec<String> = "a\r\nbc = 123".lines().map(|l| l.to_owned()).collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -684,7 +684,7 @@ mod test {
                 },
             },
             new_text: "a\r\n".to_owned(),
-        };
+        });
 
         let position = Position::new(0, 2);
         let expected_position = Position::new(1, 1);
