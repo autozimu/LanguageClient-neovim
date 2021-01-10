@@ -31,9 +31,9 @@ pub struct HighlightSource {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Highlight {
-    pub line: u64,
-    pub character_start: u64,
-    pub character_end: u64,
+    pub line: u32,
+    pub character_start: u32,
+    pub character_end: u32,
     pub group: String,
     pub text: String,
 }
@@ -158,7 +158,7 @@ impl Vim {
         try_get(key, params)
     }
 
-    pub fn get_tab_size(&self) -> Result<u64> {
+    pub fn get_tab_size(&self) -> Result<u32> {
         let expr = "shiftwidth()";
 
         self.eval(expr)
@@ -205,12 +205,12 @@ impl Vim {
         self.rpcclient.notify("s:Echowarn", message.as_ref())
     }
 
-    pub fn cursor(&self, lnum: u64, col: u64) -> Result<()> {
+    pub fn cursor(&self, lnum: u32, col: u32) -> Result<()> {
         self.rpcclient.notify("cursor", json!([lnum, col]))
     }
 
     #[allow(dead_code)]
-    pub fn setline(&self, lnum: u64, text: &[String]) -> Result<()> {
+    pub fn setline(&self, lnum: u32, text: &[String]) -> Result<()> {
         self.rpcclient.notify("setline", json!([lnum, text]))
     }
 
@@ -262,8 +262,8 @@ impl Vim {
         &self,
         buf_id: i64,
         ns_id: i64,
-        line_start: u64,
-        line_end: u64,
+        line_start: u32,
+        line_end: u32,
         virtual_texts: &[VirtualText],
     ) -> Result<i8> {
         self.rpcclient.call(

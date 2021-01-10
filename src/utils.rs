@@ -1,7 +1,7 @@
-use crate::types::{RootMarkers, ToUsize};
+use crate::types::RootMarkers;
 use anyhow::{anyhow, Result};
 use log::*;
-use lsp_types::{CodeAction, Position, TextEdit, Url};
+use lsp_types::{AnnotatedTextEdit, CodeAction, Position, TextEdit, Url};
 use serde_json::json;
 use serde_json::Value;
 use std::{
@@ -188,7 +188,7 @@ fn offset_to_position(lines: &[String], offset: usize) -> Position {
     let mut offset = offset;
     for (line, text) in lines.iter().enumerate() {
         if offset <= text.len() {
-            return Position::new(line as u64, offset as u64);
+            return Position::new(line as u32, offset as u32);
         }
 
         offset -= text.len() + 1;
@@ -196,21 +196,30 @@ fn offset_to_position(lines: &[String], offset: usize) -> Position {
 
     let last_line = lines.len() - 1;
     let last_character = lines[last_line].len();
-    Position::new(last_line as u64, last_character as u64)
+    Position::new(last_line as u32, last_character as u32)
 }
 
 pub fn apply_text_edits(
     lines: &[String],
-    edits: &[TextEdit],
+    edits: &[lsp_types::OneOf<TextEdit, AnnotatedTextEdit>],
     position: &Position,
 ) -> Result<(Vec<String>, Position)> {
     // Edits are ordered from bottom to top, from right to left.
     let mut edits_by_index = vec![];
     for edit in edits {
-        let start_line = edit.range.start.line.to_usize()?;
-        let start_character: usize = edit.range.start.character.to_usize()?;
-        let end_line: usize = edit.range.end.line.to_usize()?;
-        let end_character: usize = edit.range.end.character.to_usize()?;
+        let edit = match edit {
+            lsp_types::OneOf::Left(edit) => edit,
+            // We don't support annotated edits yet, if we eventually do, change this and signal
+            // support for it in the initialize request.
+            lsp_types::OneOf::Right(_) => {
+                return Err(anyhow!("Received unexpected annotated edit"))
+            }
+        };
+
+        let start_line = edit.range.start.line as usize;
+        let start_character: usize = edit.range.start.character as usize;
+        let end_line: usize = edit.range.end.line as usize;
+        let end_character: usize = edit.range.end.character as usize;
 
         let start = lines[..std::cmp::min(start_line, lines.len())]
             .iter()
@@ -423,8 +432,8 @@ pub fn decode_parameter_label(
         lsp_types::ParameterLabel::LabelOffsets([start, finish]) => {
             // Offsets are based on a UTF-16 string representation, inclusive start,
             // exclusive finish.
-            let start = start.to_usize()?;
-            let finish = finish.to_usize()?;
+            let start = start as usize;
+            let finish = finish as usize;
             let utf16: Vec<u16> = signature.encode_utf16().collect();
             let begin = utf16
                 .get(..start)
@@ -552,7 +561,7 @@ mod test {
         .map(|l| l.to_owned())
         .collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -568,7 +577,7 @@ mod test {
 }
 "#
             .to_owned(),
-        };
+        });
 
         let position = Position::new(0, 0);
 
@@ -586,7 +595,7 @@ mod test {
 
         let expect: Vec<String> = r#"nb = 123"#.lines().map(|l| l.to_owned()).collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -598,7 +607,7 @@ mod test {
                 },
             },
             new_text: r#"nb = 123"#.to_owned(),
-        };
+        });
 
         let position = Position::new(0, 1);
 
@@ -617,8 +626,8 @@ mod test {
             .map(|l| l.to_owned())
             .collect();
 
-        let edits = [
-            TextEdit {
+        let edits: Vec<lsp_types::OneOf<TextEdit, AnnotatedTextEdit>> = vec![
+            lsp_types::OneOf::Left(TextEdit {
                 range: Range {
                     start: Position {
                         line: 0,
@@ -630,8 +639,8 @@ mod test {
                     },
                 },
                 new_text: "bcde".to_owned(),
-            },
-            TextEdit {
+            }),
+            lsp_types::OneOf::Left(TextEdit {
                 range: Range {
                     start: Position {
                         line: 0,
@@ -643,7 +652,7 @@ mod test {
                     },
                 },
                 new_text: "newline\n".to_owned(),
-            },
+            }),
         ];
 
         let position = Position::new(0, 4);
@@ -663,7 +672,7 @@ mod test {
 
         let expected_lines: Vec<String> = "a\r\nbc = 123".lines().map(|l| l.to_owned()).collect();
 
-        let edit = TextEdit {
+        let edit = lsp_types::OneOf::<TextEdit, AnnotatedTextEdit>::Left(TextEdit {
             range: Range {
                 start: Position {
                     line: 0,
@@ -675,7 +684,7 @@ mod test {
                 },
             },
             new_text: "a\r\n".to_owned(),
-        };
+        });
 
         let position = Position::new(0, 2);
         let expected_position = Position::new(1, 1);

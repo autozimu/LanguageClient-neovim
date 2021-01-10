@@ -167,7 +167,7 @@ pub struct State {
     // filename => inlayHint.
     pub inlay_hints: HashMap<String, Vec<InlayHint>>,
     #[serde(skip_serializing)]
-    pub line_diagnostics: HashMap<(String, u64), String>,
+    pub line_diagnostics: HashMap<(String, u32), String>,
     pub namespace_ids: HashMap<String, i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
@@ -180,7 +180,7 @@ pub struct State {
     #[serde(skip_serializing)]
     pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 
-    pub last_cursor_line: u64,
+    pub last_cursor_line: u32,
     pub last_line_diagnostic: String,
     pub stashed_code_action_actions: Vec<CodeAction>,
 
@@ -452,22 +452,22 @@ impl DocumentHighlightDisplay {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextDocumentSemanticHighlightState {
-    pub last_version: Option<i64>,
+    pub last_version: i32,
     pub symbols: Vec<SemanticHighlightingInformation>,
     pub highlights: Option<Vec<Highlight>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClearNamespace {
-    pub line_start: u64,
-    pub line_end: u64,
+    pub line_start: u32,
+    pub line_end: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QuickfixEntry {
     pub filename: String,
-    pub lnum: u64,
-    pub col: Option<u64>,
+    pub lnum: u32,
+    pub col: Option<u32>,
     pub nr: Option<String>,
     pub text: Option<String>,
     #[serde(rename = "type")]
@@ -492,8 +492,8 @@ pub struct NCMInfo {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NCMContext {
     pub bufnr: u64,
-    pub lnum: u64,
-    pub col: u64,
+    pub lnum: u32,
+    pub col: u32,
     pub filetype: String,
     pub typed: String,
     pub filepath: String,
@@ -519,13 +519,13 @@ pub struct NCMRefreshParams {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NCM2Context {
     pub bufnr: u64,
-    pub lnum: u64,
-    pub ccol: u64,
+    pub lnum: u32,
+    pub ccol: u32,
     pub filetype: String,
     pub typed: String,
     pub filepath: String,
     pub scope: String,
-    pub startccol: u64,
+    pub startccol: u32,
     pub base: String,
 }
 
@@ -560,7 +560,7 @@ pub struct VimCompleteItemUserData {
 }
 
 impl VimCompleteItem {
-    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Result<Self> {
+    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u32>) -> Result<Self> {
         debug!(
             "LSP CompletionItem to VimCompleteItem: {:?}, {:?}",
             lspitem, complete_position
@@ -693,17 +693,11 @@ pub trait ToInt {
     fn to_int(&self) -> Result<u64>;
 }
 
-impl<'a> ToInt for &'a str {
-    fn to_int(&self) -> Result<u64> {
-        Ok(u64::from_str(self)?)
-    }
-}
-
 impl ToInt for jsonrpc_core::Id {
     fn to_int(&self) -> Result<u64> {
         match *self {
             jsonrpc_core::Id::Num(id) => Ok(id),
-            jsonrpc_core::Id::Str(ref s) => s.as_str().to_int(),
+            jsonrpc_core::Id::Str(ref s) => Ok(s.as_str().parse()?),
             jsonrpc_core::Id::Null => Err(anyhow!("Null id")),
         }
     }
@@ -895,16 +889,6 @@ impl ToInt for MessageType {
 impl ToInt for DocumentHighlightKind {
     fn to_int(&self) -> Result<u64> {
         Ok(*self as u64)
-    }
-}
-
-pub trait ToUsize {
-    fn to_usize(&self) -> Result<usize>;
-}
-
-impl ToUsize for u64 {
-    fn to_usize(&self) -> Result<usize> {
-        Ok(*self as usize)
     }
 }
 
@@ -1195,7 +1179,7 @@ pub enum RawMessage {
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
 pub struct VirtualText {
-    pub line: u64,
+    pub line: u32,
     pub text: String,
     pub hl_group: String,
 }

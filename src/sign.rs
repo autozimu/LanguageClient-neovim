@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Sign {
     pub id: u64,
     /// line number. 0-based.
-    pub line: u64,
+    pub line: u32,
     pub name: String,
 }
 
@@ -14,7 +14,7 @@ impl From<&Diagnostic> for Sign {
         let line = diagnostic.range.start.line;
         let severity = diagnostic.severity.unwrap_or(DiagnosticSeverity::Hint);
         let name = format!("LanguageClient{:?}", severity);
-        let id = 75_000 + line * DiagnosticSeverity::Hint as u64 + severity as u64;
+        let id = 75_000 + line as u64 * DiagnosticSeverity::Hint as u64 + severity as u64;
 
         Sign { id, line, name }
     }
