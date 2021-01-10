@@ -58,5 +58,6 @@ case "${arch}" in
     "Linux aarch64") download $name-$version-aarch64-unknown-linux-musl ;;
     "Darwin x86_64") download $name-$version-x86_64-apple-darwin ;;
     "FreeBSD amd64") download $name-$version-x86_64-unknown-freebsd ;;
+    "Linux armv7"*) download $name-$version-armv7-unknown-musleabihf ;;
     *) echo "No pre-built binary available for ${arch}."; try_build ;;
 esac
