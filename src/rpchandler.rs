@@ -158,6 +158,19 @@ impl LanguageClient {
     ) -> Result<()> {
         let params = serde_json::to_value(notification.params.clone())?;
 
+        // handle custom, server specific handlers
+        let custom_handler = self.get_state(|state| {
+            state
+                .custom_handlers
+                .get(language_id.unwrap_or_default())
+                .map(|h| h.get(&notification.method).cloned())
+                .unwrap_or_default()
+        })?;
+        if let Some(handler) = custom_handler {
+            return self.vim()?.rpcclient.notify(&handler, params);
+        }
+
+        // handle custom, server agnostic handlers
         let user_handler =
             self.get_state(|state| state.user_handlers.get(&notification.method).cloned())?;
         if let Some(user_handler) = user_handler {

@@ -78,11 +78,11 @@ To use the language server with Vim's formatting operator |gq|, set 'formatexpr'
 Dictionary to specify the servers to be used for each filetype. The keys are
 strings representing the filetypes and the values are either
   1 - a list of strings that form a command
-  2 - a dictionary with keys name, command and initializationOptions, where:
-    - name: is the name of the server, which should match the root node of the
+  2 - a dictionary with the following keys:
+    - name: the name of the server, which should match the root node of the
       configuration options specified in the settings.json file for this server
-    - command: is the same list of strings in option 1
-    - initializationOptions: is an optional dictionary with options to be passed
+    - command: the same list of strings in option 1
+    - initializationOptions: an optional dictionary with options to be passed
       to the server. The values to be set here are highly dependent on each
       server so you should see the documentation for each server to find out
       what to configure in here (if anything).  The options set in
@@ -93,6 +93,13 @@ strings representing the filetypes and the values are either
       then the server settings configured in this section and lastly the
       contents of the files in the `LanguageClient_settingsPath` variable in
       the order in which they were listed.
+    - handlers: an optional dictionary of custom handlers to register for this
+      server. The keys for this dictionary should be (LSP) method names, and
+      the values should be vim functions to be executed upon receiving an event
+      with that method. The function will be called with a single param which
+      is the JSON-RPC message itself. Note that any events will only be handled
+      once, so if you register a handler for an event, the function you specify
+      will dictate all that happens with that event.
 
 For example: >
 
@@ -108,14 +115,21 @@ For example: >
         \       'test': v:true,
         \     },
         \   },
+        \   'handlers': {
+        \    'window/logMessage': 'LogMessage'
+        \   }
         \ },
         \}
 
 In the configuration for the rust filetype above, 'run', 'stable', and 'rls'
-are arguments to the 'rustup' command line tool. And in the configuration for
-the go filetype the server is configured to run the command `gopls` with no
-additional arguments, and with the initialization options set in the
-`initializationOptions` key.
+are arguments to the 'rustup' command line tool.
+
+In the configuration for the go filetype the server is configured to run the
+command `gopls` with no additional arguments, and with the initialization
+options set in the `initializationOptions` key. Also, the go server is
+configured to run the vim function LogMessage upon receiving an event with
+method `window/logMessage`.  Remember that both initializationOptions and
+handlers are optional, so you can omit specifying those if you wish.
 
 You can also use a tcp connection to the server, for example: >
     let g:LanguageClient_serverCommands = {

@@ -175,6 +175,12 @@ pub struct State {
     // TODO: make file specific.
     pub highlight_match_ids: Vec<u32>,
     pub user_handlers: HashMap<String, String>,
+    /// server_handlers stores a hashmap keyed by filetype with values being another hashmap, keyed
+    /// by method and values being a vim function to call when an LSP event with that method is
+    /// received.
+    /// The difference between user_handlers and server_handlers is that this one is filetype
+    /// specific, and user_handlers is global, the handlers are ran for all language servers.
+    pub custom_handlers: HashMap<String, HashMap<String, String>>,
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, FSWatch>,
     #[serde(skip_serializing)]
@@ -233,6 +239,7 @@ impl State {
             highlights_placed: HashMap::new(),
             highlight_match_ids: Vec::new(),
             user_handlers: HashMap::new(),
+            custom_handlers: HashMap::new(),
             watchers: HashMap::new(),
             watcher_rxs: HashMap::new(),
             last_cursor_line: 0,

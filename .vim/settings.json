@@ -4,5 +4,16 @@
         "all_targets": false,
         "build_on_save": true,
         "wait_to_build": 0
+    },
+    "rust-analyzer": {
+      "diagnostics": {
+        "disabled": ["macro-error"]
+      },
+      "procMacro": {
+        "enable": true
+      },
+      "cargo": {
+        "loadOutDirsFromCheck": true
+      }
     }
 }

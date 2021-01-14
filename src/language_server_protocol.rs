@@ -872,6 +872,17 @@ impl LanguageClient {
         }
         let command = command.unwrap();
 
+        let handlers = command.handlers();
+        if !handlers.is_empty() {
+            self.update_state(|s| {
+                s.custom_handlers
+                    .entry(language_id.clone())
+                    .or_insert_with(HashMap::new)
+                    .extend(handlers);
+                Ok(())
+            })?;
+        }
+
         let settings = self.get_workspace_settings(&root).unwrap_or_default();
         // warn the user that they are using a deprecated workspace settings
         // file format and direct them to the documentation about the new one
@@ -4008,6 +4019,7 @@ mod test {
             initialization_options: Some(json!({
                 "inlayHints.enable": true,
             })),
+            handlers: None,
         });
 
         let options = merged_initialization_options(&command, &settings)
@@ -4040,6 +4052,7 @@ mod test {
             name: "gopls".into(),
             command: vec!["gopls".into()],
             initialization_options: None,
+            handlers: None,
         });
 
         let options = merged_initialization_options(&command, &settings)
@@ -4066,6 +4079,7 @@ mod test {
             initialization_options: Some(json!({
                 "usePlaceholders": true,
             })),
+            handlers: None,
         });
 
         let options = merged_initialization_options(&command, &settings)
