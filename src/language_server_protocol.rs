@@ -43,9 +43,9 @@ use lsp_types::{
     ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpClientCapabilities,
     SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, TextEdit, UnregistrationParams, VersionedTextDocumentIdentifier,
-    WorkDoneProgress, WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit,
-    WorkspaceSymbolParams,
+    TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
+    UnregistrationParams, VersionedTextDocumentIdentifier, WorkDoneProgress,
+    WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
 use serde::de::Deserialize;
@@ -2102,6 +2102,26 @@ impl LanguageClient {
     pub fn text_document_did_save(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
+        let has_capability = self.get_state(|s| {
+            s.capabilities
+                .get(&language_id)
+                .as_ref()
+                .map(|i| match i.capabilities.text_document_sync.as_ref() {
+                    Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::None)) => false,
+                    Some(TextDocumentSyncCapability::Kind(_)) => true,
+                    Some(TextDocumentSyncCapability::Options(o)) => match o.save {
+                        Some(lsp_types::TextDocumentSyncSaveOptions::Supported(b)) => b,
+                        Some(lsp_types::TextDocumentSyncSaveOptions::SaveOptions(_)) => true,
+                        None => false,
+                    },
+                    None => false,
+                })
+                .unwrap_or_default()
+        })?;
+        if !has_capability {
+            return Ok(());
+        }
+
         if !self.get_config(|c| c.server_commands.contains_key(&language_id))? {
             return Ok(());
         }
