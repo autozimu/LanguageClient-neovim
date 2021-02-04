@@ -180,6 +180,12 @@ impl LanguageClient {
             ));
         }
 
+        let cld = self.get_config(|c| c.code_lens_display.clone())?;
+        cmds.push(format!(
+            "sign define LanguageClientCodeLens text={} texthl={}",
+            cld.sign_text, cld.sign_texthl
+        ));
+
         self.vim()?.command(cmds)?;
         Ok(())
     }
@@ -2892,10 +2898,11 @@ impl LanguageClient {
     #[tracing::instrument(level = "info", skip(self))]
     fn get_signs_to_display(&self, filename: &str, viewport: &Viewport) -> Result<Vec<Sign>> {
         let max_signs = self.get_config(|c| c.diagnostics_signs_max.unwrap_or(std::usize::MAX))?;
-        let signs: Vec<_> = self.get_state(|state| {
+        let mut signs = vec![];
+        let mut diagnostics: Vec<Sign> = self.get_state(|state| {
             let diagnostics = state.diagnostics.get(filename).cloned().unwrap_or_default();
             let mut diagnostics = diagnostics
-                .iter()
+                .into_iter()
                 .filter(|diag| viewport.overlaps(diag.range))
                 .sorted_by_key(|diag| {
                     (
@@ -2905,14 +2912,22 @@ impl LanguageClient {
                 })
                 .collect_vec();
             diagnostics.dedup_by_key(|diag| diag.range.start.line);
-            diagnostics
-                .into_iter()
-                .take(max_signs)
-                .map(Into::into)
-                .collect()
+            diagnostics.iter().map(Into::into).collect_vec()
         })?;
 
-        Ok(signs)
+        let mut code_lenses: Vec<Sign> = self.get_state(|state| {
+            let ccll = state.code_lens.get(filename).cloned().unwrap_or_default();
+            let ccll = ccll
+                .iter()
+                .filter(|cl| viewport.overlaps(cl.range))
+                .map(Into::into)
+                .collect_vec();
+            ccll
+        })?;
+
+        signs.append(&mut diagnostics);
+        signs.append(&mut code_lenses);
+        Ok(signs.into_iter().take(max_signs).collect())
     }
 
     #[tracing::instrument(level = "info", skip(self))]
