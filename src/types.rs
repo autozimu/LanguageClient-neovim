@@ -356,12 +356,16 @@ impl FromStr for DiagnosticsList {
 #[serde(rename_all = "camelCase")]
 pub struct CodeLensDisplay {
     pub virtual_texthl: String,
+    pub sign_text: String,
+    pub sign_texthl: String,
 }
 
 impl Default for CodeLensDisplay {
     fn default() -> Self {
         CodeLensDisplay {
             virtual_texthl: "LanguageClientCodeLens".into(),
+            sign_text: "🔍".to_owned(),
+            sign_texthl: "Todo".to_owned(),
         }
     }
 }
