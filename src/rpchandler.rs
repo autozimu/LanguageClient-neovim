@@ -1,5 +1,8 @@
 use crate::extensions::clangd;
-use crate::{language_client::LanguageClient, language_server_protocol::Direction, types::*};
+use crate::{
+    language_client::LanguageClient, language_server_protocol::Direction, rpcclient::RpcClient,
+    types::*,
+};
 use anyhow::{anyhow, Result};
 use log::*;
 use lsp_types::notification::{self, Notification};

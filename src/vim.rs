@@ -1,5 +1,5 @@
 use crate::{
-    rpcclient::RpcClient,
+    rpcclient::{Client, RpcClient},
     sign::Sign,
     types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
     utils::Canonicalize,
@@ -77,11 +77,11 @@ impl From<&str> for Mode {
 
 #[derive(Clone)]
 pub struct Vim {
-    pub rpcclient: Arc<RpcClient>,
+    pub rpcclient: Arc<Client>,
 }
 
 impl Vim {
-    pub fn new(rpcclient: Arc<RpcClient>) -> Self {
+    pub fn new(rpcclient: Arc<Client>) -> Self {
         Self { rpcclient }
     }
 

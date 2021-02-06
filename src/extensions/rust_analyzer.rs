@@ -1,5 +1,8 @@
 use crate::types;
-use crate::{language_client::LanguageClient, types::WorkspaceEditWithCursor, utils::ToUrl};
+use crate::{
+    language_client::LanguageClient, rpcclient::RpcClient, types::WorkspaceEditWithCursor,
+    utils::ToUrl,
+};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Value;
 use lsp_types::{request::Request, Command, Location, Range, TextDocumentIdentifier};

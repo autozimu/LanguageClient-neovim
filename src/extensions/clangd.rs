@@ -1,4 +1,4 @@
-use crate::{language_client::LanguageClient, utils::ToUrl};
+use crate::{language_client::LanguageClient, rpcclient::RpcClient, utils::ToUrl};
 use anyhow::Result;
 use jsonrpc_core::Value;
 use lsp_types::{request::Request, TextDocumentIdentifier};

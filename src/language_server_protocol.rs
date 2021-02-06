@@ -4,7 +4,7 @@ use crate::language_client::LanguageClient;
 use crate::sign::Sign;
 use crate::vim::{try_get, Mode};
 use crate::{
-    rpcclient::RpcClient,
+    rpcclient::{io::IoRpcClient, Backend, Client, RpcClient},
     types::*,
     utils::{
         apply_text_edits, code_action_kind_as_str, convert_to_vim_str, decode_parameter_label,
@@ -69,7 +69,7 @@ pub enum Direction {
 }
 
 impl LanguageClient {
-    pub fn get_client(&self, language_id: &LanguageId) -> Result<Arc<RpcClient>> {
+    pub fn get_client(&self, language_id: &LanguageId) -> Result<Arc<Client>> {
         self.get_state(|state| state.clients.get(language_id).cloned())?
             .ok_or_else(|| {
                 LCError::ServerNotRunning {
@@ -3728,7 +3728,7 @@ impl LanguageClient {
             }
         };
 
-        let client = RpcClient::new(
+        let client = IoRpcClient::new(
             Some(language_id.clone()),
             reader,
             writer,
@@ -3737,9 +3737,12 @@ impl LanguageClient {
             on_server_crash,
         )?;
         self.update_state(|state| {
-            state
-                .clients
-                .insert(Some(language_id.clone()), Arc::new(client));
+            state.clients.insert(
+                Some(language_id.clone()),
+                Arc::new(Client {
+                    backend: Backend::Io(client),
+                }),
+            );
             Ok(())
         })?;
 
@@ -3963,7 +3966,7 @@ impl LanguageClient {
                 state
                     .clients
                     .get(&Some(language_id.clone()))
-                    .map(|c| c.process_id)
+                    .map(|c| c.process_id())
                     .unwrap_or_default(),
             );
             msg += &format!("Language server stderr: {}\n", server_stderr,);

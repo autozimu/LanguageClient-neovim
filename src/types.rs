@@ -1,5 +1,5 @@
 use crate::logger::Logger;
-use crate::rpcclient::RpcClient;
+use crate::rpcclient::Client;
 use crate::{
     language_client::LanguageClient,
     utils::{code_action_kind_as_str, ToUrl},
@@ -143,7 +143,7 @@ pub struct State {
     pub tx: crossbeam::channel::Sender<Call>,
 
     #[serde(skip_serializing)]
-    pub clients: HashMap<LanguageId, Arc<RpcClient>>,
+    pub clients: HashMap<LanguageId, Arc<Client>>,
     #[serde(skip_serializing)]
     pub restarts: HashMap<LanguageId, u8>,
 
@@ -210,11 +210,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(
-        tx: crossbeam::channel::Sender<Call>,
-        client: Arc<RpcClient>,
-        logger: Logger,
-    ) -> Self {
+    pub fn new(tx: crossbeam::channel::Sender<Call>, client: Arc<Client>, logger: Logger) -> Self {
         Self {
             tx,
             vim: Vim::new(Arc::clone(&client)),

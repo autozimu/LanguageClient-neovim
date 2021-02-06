@@ -1,3 +1,4 @@
+use crate::rpcclient::RpcClient;
 use crate::types::{Call, Id, LSError, LanguageId, RawMessage, ToInt, ToParams, ToRpcError};
 use anyhow::{anyhow, Result};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
@@ -24,7 +25,7 @@ lazy_static! {
 }
 
 #[derive(Serialize)]
-pub struct RpcClient {
+pub struct IoRpcClient {
     language_id: LanguageId,
     #[serde(skip_serializing)]
     id: AtomicU64,
@@ -35,7 +36,7 @@ pub struct RpcClient {
     pub process_id: Option<u32>,
 }
 
-impl RpcClient {
+impl IoRpcClient {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
         language_id: LanguageId,
@@ -91,8 +92,14 @@ impl RpcClient {
             writer_tx,
         })
     }
+}
 
-    pub fn call<R: DeserializeOwned>(
+impl RpcClient for IoRpcClient {
+    fn process_id(&self) -> Option<u32> {
+        self.process_id
+    }
+
+    fn call<R: DeserializeOwned>(
         &self,
         method: impl AsRef<str>,
         params: impl Serialize,
@@ -124,7 +131,7 @@ impl RpcClient {
         }
     }
 
-    pub fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Result<()> {
+    fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Result<()> {
         let method = method.as_ref();
 
         let msg = jsonrpc_core::Notification {
@@ -136,7 +143,7 @@ impl RpcClient {
         Ok(())
     }
 
-    pub fn output(&self, id: Id, result: Result<impl Serialize>) -> Result<()> {
+    fn output(&self, id: Id, result: Result<impl Serialize>) -> Result<()> {
         let output = match result {
             Ok(ok) => jsonrpc_core::Output::Success(jsonrpc_core::Success {
                 jsonrpc: Some(jsonrpc_core::Version::V2),

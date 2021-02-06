@@ -16,7 +16,7 @@ mod watcher;
 use anyhow::Result;
 use language_client::LanguageClient;
 use logger::Logger;
-use rpcclient::RpcClient;
+use rpcclient::{io::IoRpcClient, Backend, Client};
 use std::{
     io::{BufReader, BufWriter},
     sync::Arc,
@@ -34,14 +34,16 @@ fn main() -> Result<()> {
     let version: String = env!("CARGO_PKG_VERSION").into();
     let logger = Logger::new()?;
     let (tx, rx) = crossbeam::channel::unbounded();
-    let rpcclient = Arc::new(RpcClient::new(
-        None,
-        BufReader::new(std::io::stdin()),
-        BufWriter::new(std::io::stdout()),
-        None,
-        tx.clone(),
-        |_: &LanguageId| {},
-    )?);
+    let rpcclient = Arc::new(Client {
+        backend: Backend::Io(IoRpcClient::new(
+            None,
+            BufReader::new(std::io::stdin()),
+            BufWriter::new(std::io::stdout()),
+            None,
+            tx.clone(),
+            |_: &LanguageId| {},
+        )?),
+    });
 
     let state = State::new(tx, rpcclient, logger);
     let language_client = LanguageClient::new(version, state);
