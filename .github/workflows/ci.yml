@@ -29,7 +29,7 @@ jobs:
     - name: Install other dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 nodejs-dev node-gyp libssl1.0 npm make
+        sudo apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 libnode-dev node-gyp libssl1.0 npm make
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
         python3 -m pip install neovim vim-vint
