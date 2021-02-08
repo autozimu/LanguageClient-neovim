@@ -96,6 +96,9 @@ impl LanguageClient {
             request::ResolveCompletionItem::METHOD => self.completion_item_resolve(&params),
             request::ExecuteCommand::METHOD => self.workspace_execute_command(&params),
             request::ApplyWorkspaceEdit::METHOD => self.workspace_apply_edit(&params),
+            request::SemanticTokensFullRequest::METHOD => {
+                self.text_document_semantic_tokens_full(&params)
+            }
             request::Shutdown::METHOD => self.shutdown(&params),
             request::DocumentHighlightRequest::METHOD => {
                 self.text_document_document_highlight(&params)
@@ -116,8 +119,6 @@ impl LanguageClient {
             REQUEST_CLASS_FILE_CONTENTS => self.java_class_file_contents(&params),
             REQUEST_DEBUG_INFO => self.debug_info(&params),
             REQUEST_CODE_LENS_ACTION => self.handle_code_lens_action(&params),
-            REQUEST_SEMANTIC_SCOPES => self.semantic_scopes(&params),
-            REQUEST_SHOW_SEMANTIC_HL_SYMBOLS => self.semantic_highlight_symbols(&params),
             REQUEST_EXECUTE_CODE_ACTION => self.execute_code_action(&params),
 
             clangd::request::SwitchSourceHeader::METHOD => {
@@ -189,9 +190,6 @@ impl LanguageClient {
             notification::DidCloseTextDocument::METHOD => self.text_document_did_close(&params)?,
             notification::PublishDiagnostics::METHOD => {
                 self.text_document_publish_diagnostics(&params)?
-            }
-            notification::SemanticHighlighting::METHOD => {
-                self.text_document_semantic_highlight(&params)?
             }
             notification::Progress::METHOD => self.progress(&params)?,
             notification::LogMessage::METHOD => self.window_log_message(&params)?,

@@ -1,4 +1,4 @@
-use crate::config::{Config, LoggerConfig, ServerCommand};
+use crate::config::{Config, LoggerConfig, SemanticTokenMapping, ServerCommand};
 use crate::extensions::java;
 use crate::language_client::LanguageClient;
 use crate::sign::Sign;
@@ -7,9 +7,9 @@ use crate::{
     rpcclient::RpcClient,
     types::*,
     utils::{
-        apply_text_edits, code_action_kind_as_str, convert_to_vim_str, decode_parameter_label,
-        escape_single_quote, expand_json_path, get_default_initialization_options, get_root_path,
-        vim_cmd_args_to_value, Canonicalize, Combine, ToUrl,
+        apply_text_edits, code_action_kind_as_str, decode_parameter_label, escape_single_quote,
+        expand_json_path, get_default_initialization_options, get_root_path, vim_cmd_args_to_value,
+        Canonicalize, Combine, ToUrl,
     },
     viewport,
     watcher::FSWatch,
@@ -39,12 +39,14 @@ use lsp_types::{
     ParameterInformation, ParameterInformationSettings, PartialResultParams, Position,
     ProgressParams, ProgressParamsValue, PublishDiagnosticsClientCapabilities,
     PublishDiagnosticsParams, Range, ReferenceContext, RegistrationParams, RenameParams,
-    ResourceOp, SemanticHighlightingClientCapability, SemanticHighlightingParams,
-    ShowMessageParams, ShowMessageRequestParams, SignatureHelp, SignatureHelpClientCapabilities,
-    SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
-    UnregistrationParams, VersionedTextDocumentIdentifier, WorkDoneProgress,
+    ResourceOp, SemanticToken, SemanticTokenModifier, SemanticTokensClientCapabilities,
+    SemanticTokensClientCapabilitiesRequests, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensParams, SemanticTokensResult, SemanticTokensServerCapabilities,
+    ServerCapabilities, ShowMessageParams, ShowMessageRequestParams, SignatureHelp,
+    SignatureHelpClientCapabilities, SignatureInformationSettings, SymbolInformation,
+    TextDocumentClientCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+    TextDocumentItem, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextEdit, UnregistrationParams, VersionedTextDocumentIdentifier, WorkDoneProgress,
     WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit, WorkspaceSymbolParams,
 };
 use maplit::hashmap;
@@ -108,8 +110,6 @@ impl LanguageClient {
             log::error!("{}", err);
         }
         let mut config = config?;
-        let semantic_highlight_language_ids: Vec<String> =
-            config.semantic_highlight_maps.keys().cloned().collect();
 
         // merge defaults with user provided config
         let mut diagnostics_display = self.get_config(|c| c.diagnostics_display.clone())?;
@@ -124,15 +124,11 @@ impl LanguageClient {
 
         self.update_config(|c| *c = config)?;
 
-        self.update_state(|state| {
-            state.semantic_scope_to_hl_group_table.clear();
+        // self.update_state(|state| {
+        //     state.semantic_scope_to_hl_group_table.clear();
 
-            Ok(())
-        })?;
-
-        for language_id in semantic_highlight_language_ids {
-            self.update_semantic_highlight_tables(&language_id)?;
-        }
+        //     Ok(())
+        // })?;
 
         Ok(())
     }
@@ -670,75 +666,6 @@ impl LanguageClient {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    fn parse_semantic_scopes(&self, language_id: &str, result: &Value) -> Result<()> {
-        let result = InitializeResult::deserialize(result)?;
-
-        if let Some(capability) = result.capabilities.semantic_highlighting {
-            self.update_state(|state| {
-                state
-                    .semantic_scopes
-                    .insert(language_id.into(), capability.scopes.unwrap_or_default());
-                Ok(())
-            })?;
-        }
-
-        Ok(())
-    }
-
-    /// Build the Semantic Highlight Lookup Table of
-    ///
-    /// ScopeIndex -> Option<HighlightGroup>
-    #[tracing::instrument(level = "info", skip(self))]
-    fn update_semantic_highlight_tables(&self, language_id: &str) -> Result<()> {
-        let opt_scopes = self.get_state(|state| state.semantic_scopes.get(language_id).cloned())?;
-        let opt_hl_map =
-            self.get_config(|c| c.semantic_highlight_maps.get(language_id).cloned())?;
-        let scope_separator = self.get_config(|c| c.semantic_scope_separator.clone())?;
-        if let (Some(semantic_scopes), Some(shm)) = (opt_scopes, opt_hl_map) {
-            let mut table: Vec<Option<String>> = Vec::new();
-
-            for scope_list in semantic_scopes {
-                // Combine all scopes ["scopeA", "scopeB", ...] -> "scopeA:scopeB:..."
-                let scope_str = scope_list.iter().join(&scope_separator);
-
-                let mut matched = false;
-                for (scope_regex, hl_group) in &shm {
-                    let match_expr = format!(
-                        "({} =~ {})",
-                        convert_to_vim_str(&scope_str),
-                        convert_to_vim_str(scope_regex)
-                    );
-
-                    let matches: i32 = self.vim()?.eval(match_expr)?;
-
-                    if matches == 1 {
-                        table.push(Some(hl_group.clone()));
-                        matched = true;
-                        break;
-                    }
-                }
-
-                if !matched {
-                    table.push(None);
-                }
-            }
-
-            self.update_state(|state| {
-                state
-                    .semantic_scope_to_hl_group_table
-                    .insert(language_id.into(), table);
-                Ok(())
-            })?;
-        } else {
-            self.update_state(|state| {
-                state.semantic_scope_to_hl_group_table.remove(language_id);
-                Ok(())
-            })?;
-        }
-        Ok(())
-    }
-
     pub fn get_line(&self, path: impl AsRef<Path>, line: u32) -> Result<String> {
         let value: Value = self.vim()?.rpcclient.call(
             "getbufline",
@@ -903,6 +830,7 @@ impl LanguageClient {
         }
 
         let initialization_options = merged_initialization_options(&command, &settings)?;
+        log::error!("{:?}", initialization_options);
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -987,11 +915,19 @@ impl LanguageClient {
                         code_lens: Some(CodeLensClientCapabilities {
                             dynamic_registration: Some(true),
                         }),
-                        semantic_highlighting_capabilities: Some(
-                            SemanticHighlightingClientCapability {
-                                semantic_highlighting: true,
+                        semantic_tokens: Some(SemanticTokensClientCapabilities {
+                            dynamic_registration: None,
+                            requests: SemanticTokensClientCapabilitiesRequests {
+                                range: Some(false),
+                                full: Some(SemanticTokensFullOptions::Bool(true)),
                             },
-                        ),
+                            token_types: vec![],
+                            token_modifiers: vec![],
+                            formats: vec![],
+                            overlapping_token_support: Some(false),
+                            multiline_token_support: Some(false),
+                        }),
+                        semantic_highlighting_capabilities: None,
                         hover: Some(HoverClientCapabilities {
                             content_format: preferred_markup_kind,
                             ..HoverClientCapabilities::default()
@@ -1026,6 +962,19 @@ impl LanguageClient {
                     .combine(&json!({ name: options }));
             }
 
+            let capabilities: ServerCapabilities = initialize_result.capabilities.clone();
+            if let Some(cap) = capabilities.semantic_tokens_provider {
+                let legend = match cap {
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(c) => c.legend,
+                    SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(c) => {
+                        c.semantic_tokens_options.legend
+                    }
+                };
+                state
+                    .semantic_token_legends
+                    .insert(language_id.clone(), legend);
+            }
+
             state
                 .capabilities
                 .insert(language_id.clone(), initialize_result);
@@ -1043,11 +992,6 @@ impl LanguageClient {
             error!("{}\n{:?}", message, e);
             self.vim()?.echoerr(&message)?;
         }
-        if let Err(e) = self.parse_semantic_scopes(&language_id, &result) {
-            let message = format!("LanguageClient: failed to parse semantic scopes: {}", e);
-            error!("{}\n{:?}", message, e);
-            self.vim()?.echoerr(&message)?;
-        }
 
         Ok(result)
     }
@@ -1056,7 +1000,6 @@ impl LanguageClient {
     fn initialized(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
-        self.update_semantic_highlight_tables(&language_id)?;
         self.get_client(&Some(language_id))?.notify(
             lsp_types::notification::Initialized::METHOD,
             InitializedParams {},
@@ -2289,214 +2232,50 @@ impl LanguageClient {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub fn text_document_semantic_highlight(&self, params: &Value) -> Result<()> {
-        let mut params = SemanticHighlightingParams::deserialize(params)?;
+    pub fn text_document_semantic_tokens_full(&self, params: &Value) -> Result<Value> {
+        let filename = self.vim()?.get_filename(params)?;
+        let language_id = self.vim()?.get_language_id(&filename, params)?;
+        let client = self.get_client(&Some(language_id.clone()))?;
+        let response: SemanticTokensResult = client.call(
+            lsp_types::request::SemanticTokensFullRequest::METHOD,
+            SemanticTokensParams {
+                text_document: TextDocumentIdentifier {
+                    uri: filename.to_url()?,
+                },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
+            },
+        )?;
 
-        // TODO: Do we need to handle the versioning of the file?
-        let mut filename = params
-            .text_document
-            .uri
-            .filepath()?
-            .to_string_lossy()
-            .into_owned();
-        // Workaround bug: remove first '/' in case of '/C:/blabla'.
-        if filename.starts_with('/') && filename.chars().nth(2) == Some(':') {
-            filename.remove(0);
+        let legend = self.get_state(|s| s.semantic_token_legends.get(&language_id).cloned())?;
+        if legend.is_none() {
+            return Ok(Value::Null);
         }
-        // Unify name to avoid mismatch due to case insensitivity.
-        let filename = filename.canonicalize();
-        let language_id = self.vim()?.get_language_id(&filename, &Value::Null)?;
+        let legend = legend.unwrap();
 
-        let opt_hl_table = self.get_state(|state| {
-            state
-                .semantic_scope_to_hl_group_table
-                .get(&language_id)
-                .cloned()
-        })?;
+        let mappings = self
+            .get_config(|c| c.semantic_token_mappings.clone())
+            .unwrap_or_default();
+        if mappings.is_empty() {
+            return Ok(Value::Null);
+        }
 
-        // Sort lines in ascending order
-        params.lines.sort_by(|a, b| a.line.cmp(&b.line));
-
-        // Remove obviously invalid values
-        while let Some(line_info) = params.lines.first() {
-            if line_info.line >= 0 {
-                break;
-            } else {
-                warn!(
-                    "Invalid Semantic Highlight Line: {}",
-                    params.lines.remove(0).line
-                );
+        let highlights: Vec<Highlight> = match response {
+            SemanticTokensResult::Tokens(r) => {
+                semantic_tokens_to_highlights(&legend, mappings, r.data)
             }
-        }
-
-        let semantic_hl_state = TextDocumentSemanticHighlightState {
-            last_version: params.text_document.version,
-            symbols: params.lines,
-            highlights: None,
+            SemanticTokensResult::Partial(_) => vec![],
         };
 
-        if let Some(hl_table) = opt_hl_table {
-            let ns_id = self.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
+        let ns_id = self.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
+        let buffer = self.vim()?.get_bufnr(&filename, &Value::Null)?;
+        let clears: Vec<ClearNamespace> = Vec::new();
+        self.vim()?.rpcclient.notify(
+            "s:ApplySemanticHighlights",
+            json!([buffer, ns_id, clears, highlights]),
+        )?;
 
-            let buffer = self.vim()?.get_bufnr(&filename, &Value::Null)?;
-
-            if buffer == -1 {
-                error!(
-                    "Received Semantic Highlighting for non-open buffer: {}",
-                    filename
-                );
-                return Ok(());
-            }
-
-            /*
-             * Currently servers update entire regions of text at a time or a
-             * single line so simply clear between the first and last line to
-             * ensure no highlights are left dangling
-             */
-            let mut clear_region: Option<(u32, u32)> = None;
-            let mut highlights = Vec::with_capacity(semantic_hl_state.symbols.len());
-
-            for line in &semantic_hl_state.symbols {
-                if let Some(tokens) = &line.tokens {
-                    for token in tokens {
-                        if token.length == 0 {
-                            continue;
-                        }
-
-                        if let Some(Some(group)) = hl_table.get(token.scope as usize) {
-                            highlights.push(Highlight {
-                                line: line.line as u32,
-                                character_start: token.character,
-                                character_end: token.character + token.length as u32,
-                                group: group.clone(),
-                                text: String::new(),
-                            });
-                        }
-                    }
-
-                    match clear_region {
-                        Some((begin, _)) => {
-                            clear_region = Some((begin, line.line as u32 + 1));
-                        }
-                        None => {
-                            clear_region = Some((line.line as u32, line.line as u32 + 1));
-                        }
-                    }
-                }
-            }
-
-            info!(
-                "Semantic Highlighting Region [{}, {}]:",
-                semantic_hl_state
-                    .symbols
-                    .first()
-                    .map_or(-1, |h| h.line as i64),
-                semantic_hl_state
-                    .symbols
-                    .last()
-                    .map_or(-1, |h| h.line as i64)
-            );
-
-            info!(
-                "Semantic Highlighting Region (Parsed) [{}, {}]:",
-                highlights.first().map_or(-1, |h| h.line as i64),
-                highlights.last().map_or(-1, |h| h.line as i64)
-            );
-
-            let mut clears = Vec::new();
-            if let Some((begin, end)) = clear_region {
-                clears.push(ClearNamespace {
-                    line_start: begin,
-                    line_end: end,
-                });
-            }
-
-            let mut num_semantic_hls = 0;
-            let num_new_semantic_hls = highlights.len();
-
-            self.update_state(|state| {
-                state.vim.rpcclient.notify(
-                    "s:ApplySemanticHighlights",
-                    json!([buffer, ns_id, clears, highlights]),
-                )?;
-
-                let old_semantic_hl_state = state
-                    .semantic_highlights
-                    .insert(language_id.clone(), semantic_hl_state);
-
-                let semantic_hl_state = state.semantic_highlights.get_mut(&language_id).unwrap();
-
-                let mut combined_hls = Vec::with_capacity(highlights.len());
-
-                let mut existing_hls = old_semantic_hl_state
-                    .map_or(Vec::new(), |hl_state| {
-                        hl_state.highlights.unwrap_or_default()
-                    })
-                    .into_iter()
-                    .peekable();
-
-                let mut new_hls = highlights.into_iter().peekable();
-
-                // Incrementally update the highlighting
-                loop {
-                    match (existing_hls.peek(), new_hls.peek()) {
-                        (Some(existing_hl), Some(new_hl)) => {
-                            use std::cmp::Ordering;
-
-                            match existing_hl.line.cmp(&new_hl.line) {
-                                Ordering::Less => {
-                                    if clear_region.unwrap_or((0, 0)).0 <= existing_hl.line
-                                        && existing_hl.line < clear_region.unwrap_or((0, 0)).1
-                                    {
-                                        // within clear region, this highlight gets cleared
-                                        existing_hls.next();
-                                    } else {
-                                        combined_hls
-                                            .push(existing_hls.next().expect("unreachable"));
-                                    }
-                                }
-                                Ordering::Greater => {
-                                    combined_hls.push(new_hls.next().expect("unreachable"));
-                                }
-                                Ordering::Equal => {
-                                    // existing highlight on same line as new, it gets cleared
-                                    existing_hls.next();
-                                }
-                            }
-                        }
-                        (Some(_), None) => {
-                            combined_hls.push(existing_hls.next().expect("unreachable"));
-                        }
-                        (None, Some(_)) => {
-                            combined_hls.push(new_hls.next().expect("unreachable"));
-                        }
-                        (None, None) => {
-                            break;
-                        }
-                    }
-                }
-
-                num_semantic_hls = combined_hls.len();
-
-                semantic_hl_state.highlights = Some(combined_hls);
-
-                Ok(())
-            })?;
-
-            info!(
-                "Applied Semantic Highlighting for {} Symbols ({} new)",
-                num_semantic_hls, num_new_semantic_hls
-            )
-        } else {
-            self.update_state(|state| {
-                state
-                    .semantic_highlights
-                    .insert(language_id.clone(), semantic_hl_state);
-                Ok(())
-            })?;
-        }
-
-        Ok(())
+        Ok(Value::Null)
     }
 
     // logs a message to with the specified level to the log file if the threshold is below the
@@ -3336,80 +3115,6 @@ impl LanguageClient {
         Ok(())
     }
 
-    pub fn semantic_scopes(&self, params: &Value) -> Result<Value> {
-        let filename = self.vim()?.get_filename(params)?;
-        let language_id = self.vim()?.get_language_id(&filename, params)?;
-
-        let (scopes, mut scope_mapping) = self.get_state(|state| {
-            (
-                state
-                    .semantic_scopes
-                    .get(&language_id)
-                    .cloned()
-                    .unwrap_or_default(),
-                state
-                    .semantic_scope_to_hl_group_table
-                    .get(&language_id)
-                    .cloned()
-                    .unwrap_or_default(),
-            )
-        })?;
-
-        let mut semantic_scopes = Vec::new();
-
-        // If the user has not set up highlighting yet the table does not exist
-        if scopes.len() > scope_mapping.len() {
-            scope_mapping.resize(scopes.len(), None);
-        }
-
-        for (scope, opt_hl_group) in scopes.iter().zip(scope_mapping.iter()) {
-            if let Some(hl_group) = opt_hl_group {
-                semantic_scopes.push(json!({
-                    "scope": scope,
-                    "hl_group": hl_group,
-                }));
-            } else {
-                semantic_scopes.push(json!({
-                    "scope": scope,
-                    "hl_group": "None",
-                }));
-            }
-        }
-
-        Ok(json!(semantic_scopes))
-    }
-
-    pub fn semantic_highlight_symbols(&self, params: &Value) -> Result<Value> {
-        let filename = self.vim()?.get_filename(params)?;
-        let language_id = self.vim()?.get_language_id(&filename, params)?;
-
-        let (opt_scopes, opt_hl_state) = self.get_state(|state| {
-            (
-                state.semantic_scopes.get(&language_id).cloned(),
-                state.semantic_highlights.get(&language_id).cloned(),
-            )
-        })?;
-
-        if let (Some(scopes), Some(hl_state)) = (opt_scopes, opt_hl_state) {
-            let mut symbols = Vec::new();
-
-            for sym in hl_state.symbols {
-                for token in sym.tokens.unwrap_or_default() {
-                    symbols.push(json!({
-                        "line": sym.line as u64,
-                        "character_start": token.character as u64,
-                        "character_end": token.character as u64 + token.length as u64,
-                        "scope": scopes.get(token.scope as usize).cloned().unwrap_or_default()
-                    }));
-                }
-            }
-
-            Ok(json!(symbols))
-        } else {
-            Ok(json!([]))
-        }
-    }
-
     #[tracing::instrument(level = "info", skip(self))]
     pub fn ncm_refresh(&self, params: &Value) -> Result<Value> {
         let params = NCMRefreshParams::deserialize(params)?;
@@ -4037,10 +3742,213 @@ fn merged_initialization_options(
     }
 }
 
+fn semantic_tokens_to_highlights(
+    legend: &SemanticTokensLegend,
+    mappings: Vec<SemanticTokenMapping>,
+    tokens: Vec<SemanticToken>,
+) -> Vec<Highlight> {
+    tokens
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, d)| {
+            let token_modifiers = resolve_token_modifiers(&legend, d.token_modifiers_bitset);
+            let mapping = resolve_token_mapping(&legend, &mappings, &token_modifiers, d);
+            let line: u32 = tokens.iter().take(idx + 1).map(|i| i.delta_line).sum();
+            let mut character_start = d.delta_start;
+            // loop backwards over the results for as long as we find that the previous token also
+            // has a delta_line of zero.
+            if idx > 0 && d.delta_line == 0 {
+                let mut inner_idx = idx;
+                loop {
+                    character_start += tokens[inner_idx - 1].delta_start;
+                    if inner_idx - 1 == 0 || tokens[inner_idx - 1].delta_line != 0 {
+                        break;
+                    }
+                    inner_idx -= 1;
+                }
+            }
+            mapping.map(|m| Highlight {
+                line,
+                character_start,
+                character_end: character_start + d.length,
+                group: m.highlight_group.clone(),
+                text: m.highlight_group,
+            })
+        })
+        .collect()
+}
+
+/// LSP uses a bitset to indicate which token modifiers apply for a given token. The actual
+/// modifiers are obtained from the legend at the indexes indicated by the bits set to 1 in the
+/// bitset.
+fn resolve_token_modifiers(
+    legend: &SemanticTokensLegend,
+    bitset: u32,
+) -> Vec<SemanticTokenModifier> {
+    format!("{:#b}", bitset)
+        .replace("0b", "")
+        .chars()
+        .into_iter()
+        .enumerate()
+        .filter_map(|(idx, c)| match c.to_string().parse::<usize>().unwrap() {
+            0 => None,
+            v => Some(legend.token_modifiers[v * idx].clone()),
+        })
+        .collect()
+}
+
+/// LSP uses integers to indicate an encoded semantic token type that corresponds to each token, in
+/// order to get the name of the type we must index the token_types field of the legend with the
+/// number that represents the encoded token type.
+fn resolve_token_mapping(
+    legend: &SemanticTokensLegend,
+    mappings: &[SemanticTokenMapping],
+    token_modifiers: &[SemanticTokenModifier],
+    token: &SemanticToken,
+) -> Option<SemanticTokenMapping> {
+    let token_type = legend.token_types[token.token_type as usize].clone();
+    let mappings: Vec<SemanticTokenMapping> = mappings
+        .iter()
+        .filter(|i| i.name == token_type.as_str())
+        .cloned()
+        .collect();
+    if mappings.is_empty() {
+        return None;
+    }
+
+    // get either the mapping that matches both type and modifiers or the mapping with no modifiers
+    mappings
+        .iter()
+        .find(|m| {
+            token_modifiers
+                .iter()
+                .all(|i| m.modifiers.contains(&i.as_str().to_owned()))
+        })
+        .or_else(|| Some(mappings.first().unwrap()))
+        .cloned()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::config::{ServerCommand, ServerDetails};
+    use lsp_types::SemanticTokenType;
+
+    #[test]
+    fn it_resolves_the_correct_mapping() {
+        let legend = SemanticTokensLegend {
+            token_types: vec![SemanticTokenType::CLASS, SemanticTokenType::FUNCTION],
+            token_modifiers: vec![],
+        };
+        let mappings = vec![
+            SemanticTokenMapping::new("function", &[], "Function"),
+            SemanticTokenMapping::new("comment", &[], "Comment"),
+        ];
+        let actual = resolve_token_mapping(
+            &legend,
+            &mappings,
+            &[],
+            &SemanticToken {
+                token_type: 1,
+                delta_line: 0,
+                delta_start: 0,
+                length: 0,
+                token_modifiers_bitset: 0,
+            },
+        );
+        let expect = SemanticTokenMapping::new("function", &[], "Function");
+
+        assert!(actual.is_some());
+        assert_eq!(expect, actual.unwrap());
+    }
+
+    #[test]
+    fn it_resolves_to_the_correct_modifiers() {
+        let legend = SemanticTokensLegend {
+            token_types: vec![],
+            token_modifiers: vec![
+                SemanticTokenModifier::DECLARATION,
+                SemanticTokenModifier::ASYNC,
+                SemanticTokenModifier::DEPRECATED,
+            ],
+        };
+        let actual = resolve_token_modifiers(&legend, 3);
+        let expect = vec![
+            SemanticTokenModifier::DECLARATION,
+            SemanticTokenModifier::ASYNC,
+        ];
+        assert_eq!(expect, actual);
+    }
+
+    #[test]
+    fn it_maps_the_example_in_the_spec() {
+        // inputs:
+        //      { deltaLine: 2, deltaStartChar: 5, length: 3, tokenType: 0, tokenModifiers: 3 },
+        //      { deltaLine: 0, deltaStartChar: 5, length: 4, tokenType: 1, tokenModifiers: 0 },
+        //      { deltaLine: 3, deltaStartChar: 2, length: 7, tokenType: 2, tokenModifiers: 0 }
+        //
+        // outputs:
+        //      { line: 2, startChar:  5, length: 3, tokenType: 0, tokenModifiers: 3 },
+        //      { line: 2, startChar: 10, length: 4, tokenType: 1, tokenModifiers: 0 },
+        //      { line: 5, startChar:  2, length: 7, tokenType: 2, tokenModifiers: 0 }
+        //
+        let tokens = vec![
+            SemanticToken {
+                delta_line: 2,
+                delta_start: 5,
+                length: 3,
+                token_type: 1,
+                token_modifiers_bitset: 0,
+            },
+            SemanticToken {
+                delta_line: 0,
+                delta_start: 5,
+                length: 4,
+                token_type: 1,
+                token_modifiers_bitset: 0,
+            },
+            SemanticToken {
+                delta_line: 3,
+                delta_start: 2,
+                length: 7,
+                token_type: 1,
+                token_modifiers_bitset: 0,
+            },
+        ];
+        let legend = SemanticTokensLegend {
+            token_types: vec![SemanticTokenType::FUNCTION, SemanticTokenType::TYPE],
+            token_modifiers: vec![],
+        };
+        let mappings = vec![
+            SemanticTokenMapping::new("function", &[], "Function"),
+            SemanticTokenMapping::new("type", &[], "Type"),
+        ];
+        let actual = semantic_tokens_to_highlights(&legend, mappings, tokens);
+        let expect = vec![
+            Highlight {
+                line: 2,
+                character_start: 5,
+                character_end: 8,
+                group: "Type".into(),
+                text: "Type".into(),
+            },
+            Highlight {
+                line: 2,
+                character_start: 10,
+                character_end: 14,
+                group: "Type".into(),
+                text: "Type".into(),
+            },
+            Highlight {
+                line: 5,
+                character_start: 2,
+                character_end: 9,
+                group: "Type".into(),
+                text: "Type".into(),
+            },
+        ];
+        assert_eq!(expect, actual);
+    }
 
     #[test]
     fn test_expands_initialization_options() {
