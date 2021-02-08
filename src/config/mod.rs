@@ -15,6 +15,23 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::{path::PathBuf, str::FromStr, time::Duration};
 
+#[derive(Deserialize)]
+pub struct LoggerConfig {
+    pub logging_file: Option<PathBuf>,
+    pub logging_level: log::LevelFilter,
+}
+
+impl LoggerConfig {
+    pub fn parse(vim: Vim) -> Result<Self> {
+        let req = r#"{
+            "logging_file": get(g:, 'LanguageClient_loggingFile', v:null),
+            "logging_level": get(g:, 'LanguageClient_loggingLevel', 'WARN'),
+        }"#;
+        let res: LoggerConfig = vim.eval(req.replace("\n", ""))?;
+        Ok(res)
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub auto_start: bool,
@@ -34,8 +51,6 @@ pub struct Config {
     pub hover_preview: HoverPreviewOption,
     pub completion_prefer_text_edit: bool,
     pub is_nvim: bool,
-    pub logging_file: Option<PathBuf>,
-    pub logging_level: log::LevelFilter,
     pub server_stderr: Option<String>,
     pub diagnostics_signs_max: Option<usize>,
     pub diagnostics_max_severity: DiagnosticSeverity,
@@ -88,8 +103,6 @@ impl Default for Config {
             preferred_markup_kind: None,
             enable_extensions: None,
             is_nvim: false,
-            logging_file: None,
-            logging_level: log::LevelFilter::Off,
             restart_on_crash: true,
             max_restart_retries: 5,
         }
@@ -98,8 +111,6 @@ impl Default for Config {
 
 #[derive(Deserialize)]
 struct DeserializableConfig {
-    logging_file: Option<PathBuf>,
-    logging_level: log::LevelFilter,
     server_stderr: Option<String>,
     auto_start: u8,
     server_commands: HashMap<String, ServerCommand>,
@@ -170,8 +181,6 @@ impl Config {
             "code_lens_display": get(g:, 'LanguageClient_codeLensDisplay', v:null),
             "restart_on_crash": get(g:, 'LanguageClient_restartOnCrash', 1),
             "max_restart_retries": get(g:, 'LanguageClient_maxRestartRetries', 5),
-            "logging_file": get(g:, 'LanguageClient_loggingFile', v:null),
-            "logging_level": get(g:, 'LanguageClient_loggingLevel', 'WARN'),
             "server_stderr": get(g:, 'LanguageClient_serverStderr', v:null),
         }"#;
 
@@ -221,8 +230,6 @@ impl Config {
             hover_preview,
             completion_prefer_text_edit: res.completion_prefer_text_edit == 1,
             is_nvim: res.is_nvim == 1,
-            logging_file: res.logging_file,
-            logging_level: res.logging_level,
             server_stderr: res.server_stderr,
             diagnostics_signs_max: res.diagnostics_signs_max,
             diagnostics_max_severity: diagnostics_severity(&res.diagnostics_max_severity)?,

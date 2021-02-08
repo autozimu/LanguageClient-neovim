@@ -1,4 +1,4 @@
-use crate::config::{Config, ServerCommand};
+use crate::config::{Config, LoggerConfig, ServerCommand};
 use crate::extensions::java;
 use crate::language_client::LanguageClient;
 use crate::sign::Sign;
@@ -95,13 +95,19 @@ impl LanguageClient {
     /////// Utils ///////
     #[tracing::instrument(level = "info", skip(self))]
     fn sync_settings(&self) -> Result<()> {
-        let mut config = Config::parse(self.vim()?)?;
+        let logger_config = LoggerConfig::parse(self.vim()?)?;
         self.update_state(|state| {
-            state
-                .logger
-                .update_settings(config.logging_level, config.logging_file.clone())
+            state.logger.update_settings(
+                logger_config.logging_level,
+                logger_config.logging_file.clone(),
+            )
         })?;
 
+        let config = Config::parse(self.vim()?);
+        if let Err(ref err) = config {
+            log::error!("{}", err);
+        }
+        let mut config = config?;
         let semantic_highlight_language_ids: Vec<String> =
             config.semantic_highlight_maps.keys().cloned().collect();
 
