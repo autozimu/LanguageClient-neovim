@@ -683,14 +683,14 @@ impl ToRpcError for anyhow::Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Result<Params>;
+    fn to_params(&self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Result<Params> {
+    fn to_params(&self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
@@ -1010,11 +1010,11 @@ impl Default for TextDocumentItemMetadata {
 }
 
 pub trait ToLSP<T> {
-    fn to_lsp(self) -> Result<T>;
+    fn to_lsp(&self) -> Result<T>;
 }
 
 impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
-    fn to_lsp(self) -> Result<Vec<FileEvent>> {
+    fn to_lsp(&self) -> Result<Vec<FileEvent>> {
         match self {
             notify::DebouncedEvent::Create(p) => Ok(vec![FileEvent {
                 uri: p.to_url()?,

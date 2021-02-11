@@ -829,8 +829,7 @@ impl LanguageClient {
             let _ = self.vim()?.echoerr("You seem to be using an incorrect workspace settings format for LanguageClient-neovim, to learn more about this error see `:help g:LanguageClient_settingsPath`");
         }
 
-        let initialization_options = merged_initialization_options(&command, &settings)?;
-        log::error!("{:?}", initialization_options);
+        let initialization_options = merged_initialization_options(&command, &settings);
 
         let result: Value = self.get_client(&Some(language_id.clone()))?.call(
             lsp_types::request::Initialize::METHOD,
@@ -2233,6 +2232,13 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn text_document_semantic_tokens_full(&self, params: &Value) -> Result<Value> {
+        let is_enabled = self
+            .get_config(|c| c.semantic_highlighting_enabled)
+            .unwrap_or_default();
+        if !is_enabled {
+            return Ok(Value::Null);
+        }
+
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let client = self.get_client(&Some(language_id.clone()))?;
@@ -3721,10 +3727,7 @@ impl LanguageClient {
     }
 }
 
-fn merged_initialization_options(
-    command: &ServerCommand,
-    settings: &Value,
-) -> Result<Option<Value>> {
+fn merged_initialization_options(command: &ServerCommand, settings: &Value) -> Option<Value> {
     let server_name = command.name();
     let section = format!("/{}", server_name);
     let default_initialization_options = get_default_initialization_options(&server_name);
@@ -3736,9 +3739,9 @@ fn merged_initialization_options(
         .combine(workspace_initialization_options);
 
     if initialization_options.is_null() {
-        Ok(None)
+        None
     } else {
-        Ok(Some(initialization_options))
+        Some(initialization_options)
     }
 }
 
@@ -3789,10 +3792,11 @@ fn resolve_token_modifiers(
         .replace("0b", "")
         .chars()
         .into_iter()
+        .rev()
         .enumerate()
         .filter_map(|(idx, c)| match c.to_string().parse::<usize>().unwrap() {
             0 => None,
-            v => Some(legend.token_modifiers[v * idx].clone()),
+            _ => Some(legend.token_modifiers[idx].clone()),
         })
         .collect()
 }
@@ -3816,16 +3820,9 @@ fn resolve_token_mapping(
         return None;
     }
 
-    // get either the mapping that matches both type and modifiers or the mapping with no modifiers
-    mappings
-        .iter()
-        .find(|m| {
-            token_modifiers
-                .iter()
-                .all(|i| m.modifiers.contains(&i.as_str().to_owned()))
-        })
-        .or_else(|| Some(mappings.first().unwrap()))
-        .cloned()
+    // get either the mapping that matches both type and modifiers
+    let modifiers: Vec<&str> = token_modifiers.iter().map(|i| i.as_str()).collect();
+    mappings.iter().find(|m| modifiers == m.modifiers).cloned()
 }
 
 #[cfg(test)]
@@ -3867,16 +3864,26 @@ mod test {
         let legend = SemanticTokensLegend {
             token_types: vec![],
             token_modifiers: vec![
-                SemanticTokenModifier::DECLARATION,
-                SemanticTokenModifier::ASYNC,
                 SemanticTokenModifier::DEPRECATED,
+                SemanticTokenModifier::DECLARATION,
+                SemanticTokenModifier::DOCUMENTATION,
+                SemanticTokenModifier::ASYNC,
             ],
         };
+
+        // if the token_modifier is 3 then it translates to a 0b0011 bitset, which means we want
+        // the modifiers in index 0 and 1 of the legend.
         let actual = resolve_token_modifiers(&legend, 3);
         let expect = vec![
+            SemanticTokenModifier::DEPRECATED,
             SemanticTokenModifier::DECLARATION,
-            SemanticTokenModifier::ASYNC,
         ];
+        assert_eq!(expect, actual);
+
+        // if the token_modifier is 2 then it translates to a 0b0010 bitset, which means we want
+        // the modifiers in index 1 of the legend.
+        let actual = resolve_token_modifiers(&legend, 2);
+        let expect = vec![SemanticTokenModifier::DECLARATION];
         assert_eq!(expect, actual);
     }
 
@@ -3971,8 +3978,7 @@ mod test {
             handlers: None,
         });
 
-        let options = merged_initialization_options(&command, &settings)
-            .expect("could not get initialization options");
+        let options = merged_initialization_options(&command, &settings);
         assert!(options.is_some());
         assert_eq!(
             json!({
@@ -4004,8 +4010,7 @@ mod test {
             handlers: None,
         });
 
-        let options = merged_initialization_options(&command, &settings)
-            .expect("could not get initialization options");
+        let options = merged_initialization_options(&command, &settings);
         assert!(options.is_some());
         assert_eq!(
             json!({
@@ -4031,8 +4036,7 @@ mod test {
             handlers: None,
         });
 
-        let options = merged_initialization_options(&command, &settings)
-            .expect("could not get initialization options");
+        let options = merged_initialization_options(&command, &settings);
         assert!(options.is_some());
         assert_eq!(
             json!({
@@ -4052,8 +4056,7 @@ mod test {
         });
         let command = ServerCommand::Simple(vec!["gopls".into()]);
 
-        let options = merged_initialization_options(&command, &settings)
-            .expect("could not get initialization options");
+        let options = merged_initialization_options(&command, &settings);
         assert!(options.is_some());
         assert_eq!(
             json!({

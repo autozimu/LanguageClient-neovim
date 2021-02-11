@@ -182,11 +182,15 @@ impl LanguageClient {
             notification::DidChangeConfiguration::METHOD => {
                 self.workspace_did_change_configuration(&params)?
             }
-            notification::DidOpenTextDocument::METHOD => self.text_document_did_open(&params)?,
-            notification::DidChangeTextDocument::METHOD => {
-                self.text_document_did_change(&params)?
+            notification::DidOpenTextDocument::METHOD => {
+                self.text_document_did_open(&params)?;
             }
-            notification::DidSaveTextDocument::METHOD => self.text_document_did_save(&params)?,
+            notification::DidChangeTextDocument::METHOD => {
+                self.text_document_did_change(&params)?;
+            }
+            notification::DidSaveTextDocument::METHOD => {
+                self.text_document_did_save(&params)?;
+            }
             notification::DidCloseTextDocument::METHOD => self.text_document_did_close(&params)?,
             notification::PublishDiagnostics::METHOD => {
                 self.text_document_publish_diagnostics(&params)?
@@ -196,11 +200,20 @@ impl LanguageClient {
             notification::ShowMessage::METHOD => self.window_show_message(&params)?,
             notification::Exit::METHOD => self.exit(&params)?,
             // Extensions.
-            NOTIFICATION_HANDLE_FILE_TYPE => self.handle_file_type(&params)?,
+            NOTIFICATION_HANDLE_FILE_TYPE => {
+                self.handle_file_type(&params)?;
+                self.text_document_semantic_tokens_full(&params)?;
+            }
             NOTIFICATION_HANDLE_BUF_NEW_FILE => self.handle_buf_new_file(&params)?,
-            NOTIFICATION_HANDLE_BUF_ENTER => self.handle_buf_enter(&params)?,
+            NOTIFICATION_HANDLE_BUF_ENTER => {
+                self.handle_buf_enter(&params)?;
+                self.text_document_semantic_tokens_full(&params)?;
+            }
             NOTIFICATION_HANDLE_TEXT_CHANGED => self.handle_text_changed(&params)?,
-            NOTIFICATION_HANDLE_BUF_WRITE_POST => self.handle_buf_write_post(&params)?,
+            NOTIFICATION_HANDLE_BUF_WRITE_POST => {
+                self.handle_buf_write_post(&params)?;
+                self.text_document_semantic_tokens_full(&params)?;
+            }
             NOTIFICATION_HANDLE_BUF_DELETE => self.handle_buf_delete(&params)?,
             NOTIFICATION_HANDLE_CURSOR_MOVED => self.handle_cursor_moved(&params, false)?,
             NOTIFICATION_HANDLE_COMPLETE_DONE => self.handle_complete_done(&params)?,

@@ -97,6 +97,7 @@ pub struct Config {
     ///     { "name": "type", "modifiers": [], "highlightGroup": "Type" }
     /// ]
     pub semantic_token_mappings: Vec<SemanticTokenMapping>,
+    pub semantic_highlighting_enabled: bool,
 }
 
 impl Default for Config {
@@ -134,6 +135,7 @@ impl Default for Config {
             restart_on_crash: true,
             max_restart_retries: 5,
             semantic_token_mappings: vec![],
+            semantic_highlighting_enabled: false,
         }
     }
 }
@@ -172,6 +174,7 @@ struct DeserializableConfig {
     restart_on_crash: u8,
     max_restart_retries: u8,
     semantic_token_mappings: Vec<SemanticTokenMapping>,
+    semantic_highlighting_enabled: u8,
 }
 
 impl Config {
@@ -209,21 +212,36 @@ impl Config {
             "max_restart_retries": get(g:, 'LanguageClient_maxRestartRetries', 5),
             "server_stderr": get(g:, 'LanguageClient_serverStderr', v:null),
             "semantic_token_mappings": get(g:, 'LanguageClient_semanticTokenMappings', []),
+            "semantic_highlighting_enabled": get(g:, 'LanguageClient_semanticHighlightingEnabled', 0),
         }"#;
 
         let res: DeserializableConfig = vim.eval(req.replace("\n", ""))?;
-
         let mut default_mappings = vec![
-            SemanticTokenMapping::new("type", &[], "Type"),
-            SemanticTokenMapping::new("class", &[], "Structure"),
-            SemanticTokenMapping::new("enum", &[], "Structure"),
-            SemanticTokenMapping::new("interface", &[], "Structure"),
-            SemanticTokenMapping::new("typeParameter", &[], "Typedef"),
+            SemanticTokenMapping::new("type", &["declaration"], "Type"),
+            SemanticTokenMapping::new("class", &["declaration"], "Structure"),
+            SemanticTokenMapping::new("enum", &["declaration"], "Structure"),
+            SemanticTokenMapping::new("interface", &["declaration"], "Structure"),
+            SemanticTokenMapping::new("struct", &["declaration"], "Structure"),
+            // SemanticTokenMapping::new("typeParameter", &[], "Typedef"),
+            // SemanticTokenMapping::new("parameter", &[], "Identifier"),
+            // SemanticTokenMapping::new("variable", &[], "Identifier"),
+            // SemanticTokenMapping::new("property", &[], "Typedef"),
+            // SemanticTokenMapping::new("enumMember", &[], "Typedef"),
+            // SemanticTokenMapping::new("event", &[], "Typedef"),
             SemanticTokenMapping::new("function", &[], "Function"),
+            SemanticTokenMapping::new("method", &[], "Function"),
+            SemanticTokenMapping::new("macro", &[], "Function"),
+            SemanticTokenMapping::new("function", &["deprecated"], "Comment"),
+            SemanticTokenMapping::new("method", &["deprecated"], "Comment"),
+            SemanticTokenMapping::new("macro", &["deprecated"], "Comment"),
+            SemanticTokenMapping::new("keyword", &[], "Keyword"),
+            // SemanticTokenMapping::new("modifier", &[], "Function"),
+            SemanticTokenMapping::new("comment", &[], "Comment"),
+            SemanticTokenMapping::new("comment", &["documentation"], "Special"),
             SemanticTokenMapping::new("string", &[], "String"),
             SemanticTokenMapping::new("number", &[], "Number"),
+            SemanticTokenMapping::new("regexp", &[], "String"),
             SemanticTokenMapping::new("operator", &[], "Operator"),
-            SemanticTokenMapping::new("comment", &[], "Comment"),
         ];
         // itertools returns the first item that matches the predicate in unique_by, so custom
         // mappings go first to favor the user configured mappings over the default ones.
@@ -293,6 +311,7 @@ impl Config {
             restart_on_crash: res.restart_on_crash == 1,
             max_restart_retries: res.max_restart_retries,
             semantic_token_mappings,
+            semantic_highlighting_enabled: res.semantic_highlighting_enabled == 1,
         })
     }
 }
