@@ -688,27 +688,13 @@ let g:LanguageClient_semanticTokenMappings = [
 ];
 <
 
-Note the mappings included in this config will be merged with the default ones.
-
 The first mapping in that example maps the tokens of type `comment` to the
 highlight group `Comment`, and the second matches the tokens of type `comment`
 that have the `documentation` modifier to the `Question` highlight group, this
 way documentation comments and regular comments are (potentially) displayed
 with a different colour.
 
-Default: [
-  { 'name': 'comment',        'modifiers': [], 'highlightGroup': 'Comment' },
-  { 'name': 'function',       'modifiers': [], 'highlightGroup': 'Function' },
-  { 'name': 'struct',         'modifiers': [], 'highlightGroup': 'Structure' },
-  { 'name': 'enum',           'modifiers': [], 'highlightGroup': 'Structure' },
-  { 'name': 'class',          'modifiers': [], 'highlightGroup': 'Structure' },
-  { 'name': 'interface',      'modifiers': [], 'highlightGroup': 'Structure' },
-  { 'name': 'type',           'modifiers': [], 'highlightGroup': 'Type' },
-  { 'name': 'typeParameter',  'modifiers': [], 'highlightGroup': 'Typedef' },
-  { 'name': 'string',         'modifiers': [], 'highlightGroup': 'String' },
-  { 'name': 'number',         'modifiers': [], 'highlightGroup': 'Number' },
-  { 'name': 'operator',       'modifiers': [], 'highlightGroup': 'Operator' },
-]
+Default: []
 
 For a full list of the possible token types (name) see the LSP documentation:
 https://microsoft.github.io/language-server-protocol/specifications/specification-current/

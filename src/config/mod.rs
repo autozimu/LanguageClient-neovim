@@ -1,8 +1,5 @@
 mod server_command;
 
-use itertools::Itertools;
-pub use server_command::*;
-
 use crate::{
     types::{
         CodeLensDisplay, DiagnosticsDisplay, DiagnosticsList, DocumentHighlightDisplay,
@@ -13,6 +10,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 use lsp_types::{DiagnosticSeverity, MarkupKind, MessageType, TraceOption};
 use serde::Deserialize;
+pub use server_command::*;
 use std::collections::HashMap;
 use std::{path::PathBuf, str::FromStr, time::Duration};
 
@@ -37,11 +35,13 @@ impl LoggerConfig {
 #[serde(rename_all = "camelCase")]
 pub struct SemanticTokenMapping {
     pub name: String,
+    #[serde(default)]
     pub modifiers: Vec<String>,
     pub highlight_group: String,
 }
 
 impl SemanticTokenMapping {
+    #[allow(dead_code)]
     pub fn new(name: &str, modifiers: &[&str], highlight_group: &str) -> Self {
         Self {
             name: name.to_owned(),
@@ -216,42 +216,6 @@ impl Config {
         }"#;
 
         let res: DeserializableConfig = vim.eval(req.replace("\n", ""))?;
-        let mut default_mappings = vec![
-            SemanticTokenMapping::new("type", &["declaration"], "Type"),
-            SemanticTokenMapping::new("class", &["declaration"], "Structure"),
-            SemanticTokenMapping::new("enum", &["declaration"], "Structure"),
-            SemanticTokenMapping::new("interface", &["declaration"], "Structure"),
-            SemanticTokenMapping::new("struct", &["declaration"], "Structure"),
-            // SemanticTokenMapping::new("typeParameter", &[], "Typedef"),
-            // SemanticTokenMapping::new("parameter", &[], "Identifier"),
-            // SemanticTokenMapping::new("variable", &[], "Identifier"),
-            // SemanticTokenMapping::new("property", &[], "Typedef"),
-            // SemanticTokenMapping::new("enumMember", &[], "Typedef"),
-            // SemanticTokenMapping::new("event", &[], "Typedef"),
-            SemanticTokenMapping::new("function", &[], "Function"),
-            SemanticTokenMapping::new("method", &[], "Function"),
-            SemanticTokenMapping::new("macro", &[], "Function"),
-            SemanticTokenMapping::new("function", &["deprecated"], "Comment"),
-            SemanticTokenMapping::new("method", &["deprecated"], "Comment"),
-            SemanticTokenMapping::new("macro", &["deprecated"], "Comment"),
-            SemanticTokenMapping::new("keyword", &[], "Keyword"),
-            // SemanticTokenMapping::new("modifier", &[], "Function"),
-            SemanticTokenMapping::new("comment", &[], "Comment"),
-            SemanticTokenMapping::new("comment", &["documentation"], "Special"),
-            SemanticTokenMapping::new("string", &[], "String"),
-            SemanticTokenMapping::new("number", &[], "Number"),
-            SemanticTokenMapping::new("regexp", &[], "String"),
-            SemanticTokenMapping::new("operator", &[], "Operator"),
-        ];
-        // itertools returns the first item that matches the predicate in unique_by, so custom
-        // mappings go first to favor the user configured mappings over the default ones.
-        let mut mappings = res.semantic_token_mappings;
-        mappings.append(&mut default_mappings);
-        let semantic_token_mappings = mappings
-            .into_iter()
-            .unique_by(|i| format!("{}.{}", i.modifiers.join("."), i.name))
-            .collect();
-
         let loaded_fzf = vim.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1;
         let selection_ui = match res.selection_ui {
             Some(s) => SelectionUI::from_str(&s)?,
@@ -310,7 +274,7 @@ impl Config {
             enable_extensions: res.enable_extensions,
             restart_on_crash: res.restart_on_crash == 1,
             max_restart_retries: res.max_restart_retries,
-            semantic_token_mappings,
+            semantic_token_mappings: res.semantic_token_mappings,
             semantic_highlighting_enabled: res.semantic_highlighting_enabled == 1,
         })
     }
