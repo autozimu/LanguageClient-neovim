@@ -271,6 +271,15 @@ function! s:selectionUI_funcref(source, sink) abort
     endif
 endfunction
 
+function! s:GetFZFAction() abort
+    let l:default_fzf_action = {
+                \ 'ctrl-t': 'tab split',
+                \ 'ctrl-x': 'split',
+                \ 'ctrl-v': 'vsplit'
+                \ }
+    return get(g:, 'fzf_action', l:default_fzf_action)
+endfunction
+
 function! s:FZF(source, sink) abort
     if !get(g:, 'loaded_fzf')
         call s:Echoerr('FZF not loaded!')
@@ -285,9 +294,11 @@ function! s:FZF(source, sink) abort
             let l:options = []
         endif
     endif
+    call add(l:options, '--expect='.join(keys(s:GetFZFAction()), ','))
+
     call fzf#run(fzf#wrap({
                 \ 'source': a:source,
-                \ 'sink': function(a:sink),
+                \ 'sink*': function(a:sink),
                 \ 'options': l:options,
                 \ }))
     if has('nvim') && !has('nvim-0.4')
