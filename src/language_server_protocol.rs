@@ -3271,13 +3271,19 @@ impl LanguageClient {
             }
         };
 
-        let lines = <Vec<String>>::deserialize(&params)?;
+        let lines = <Vec<String>>::deserialize(&params[0])?;
         if lines.is_empty() {
             anyhow!("No selection!");
         }
 
+        let fzf_action: HashMap<String, String> = self.vim()?.eval("s:GetFZFAction()")?;
+        let goto_cmd = match lines.get(0) {
+            Some(action) if fzf_action.contains_key(action) => fzf_action.get(action).cloned(),
+            _ => Some("edit".to_string()),
+        };
+
         let location = lines
-            .get(0)
+            .get(1)
             .ok_or_else(|| anyhow!("Failed to get line! lines: {:?}", lines))?
             .split('\t')
             .next()
@@ -3304,7 +3310,7 @@ impl LanguageClient {
             .parse::<u32>()?
             - 1;
 
-        self.edit(&None, &filename)?;
+        self.edit(&goto_cmd, &filename)?;
         self.vim()?.cursor(line + 1, character + 1)?;
 
         Ok(())

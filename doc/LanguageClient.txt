@@ -228,10 +228,11 @@ Valid options: "fzf" | "quickfix" | "location-list" | |Funcref|
 If you use a |Funcref|, the referenced function should have two arguments
 (source, sink). The "source" argument can be either a command string or a
 list. The sink argument can be a command string or a |Funcref| that takes the
-selected line as its first argument.
+selected line as its argument.
 
-An example implementation is "s:FZF()" in autoload/LanguageClient.vim. For
-details, see the source and sink arguments of fzf#run():
+An example implementation is "s:FZF()" in autoload/LanguageClient.vim which
+supports opening selected file in different ways (configurable via
+|g:fzf_action|). For details, see the source and sink arguments of fzf#run():
 https://github.com/junegunn/fzf/blob/master/README-VIM.md#fzfrun
 
 Another example, this time using vim-clap: >
