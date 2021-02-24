@@ -3103,8 +3103,9 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn fzf_sink_command(&self, params: &Value) -> Result<()> {
-        let selection: String =
+        let fzf_selection: Vec<String> =
             try_get("selection", params)?.ok_or_else(|| anyhow!("selection not found!"))?;
+        let selection = &fzf_selection[1]; // ignore the first element `fzf_action`
         let tokens: Vec<&str> = selection.splitn(2, ": ").collect();
         let kind = tokens
             .get(0)
