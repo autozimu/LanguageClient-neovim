@@ -29,7 +29,7 @@ pub struct HighlightSource {
     pub source: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Highlight {
     pub line: u32,
     pub character_start: u32,

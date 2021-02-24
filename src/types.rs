@@ -10,7 +10,6 @@ use crate::{viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Result};
 use jsonrpc_core::Params;
 use log::*;
-use lsp_types::Range;
 use lsp_types::{
     CodeAction, CodeLens, Command, CompletionItem, CompletionTextEdit, Diagnostic,
     DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
@@ -18,6 +17,7 @@ use lsp_types::{
     MessageType, NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
     TextDocumentItem, TextDocumentPositionParams, Url, WorkspaceEdit,
 };
+use lsp_types::{Range, SemanticTokensLegend};
 use maplit::hashmap;
 use pathdiff::diff_paths;
 use serde::{Deserialize, Serialize};
@@ -62,8 +62,6 @@ pub const REQUEST_EXPLAIN_ERROR_AT_POINT: &str = "languageClient/explainErrorAtP
 pub const REQUEST_FIND_LOCATIONS: &str = "languageClient/findLocations";
 pub const REQUEST_DEBUG_INFO: &str = "languageClient/debugInfo";
 pub const REQUEST_CODE_LENS_ACTION: &str = "LanguageClient/handleCodeLensAction";
-pub const REQUEST_SEMANTIC_SCOPES: &str = "languageClient/semanticScopes";
-pub const REQUEST_SHOW_SEMANTIC_HL_SYMBOLS: &str = "languageClient/showSemanticHighlightSymbols";
 pub const REQUEST_CLASS_FILE_CONTENTS: &str = "java/classFileContents";
 pub const REQUEST_EXECUTE_CODE_ACTION: &str = "languageClient/executeCodeAction";
 
@@ -156,8 +154,15 @@ pub struct State {
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub viewports: HashMap<String, Viewport>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
-    pub semantic_scopes: HashMap<String, Vec<Vec<String>>>,
-    pub semantic_scope_to_hl_group_table: HashMap<String, Vec<Option<String>>>,
+    /// semantic_token_legends is a map of language id to semantic tokens legend. The semantic
+    /// tokengs legend is returned by the server upon initialization.
+    ///
+    /// For example:
+    ///
+    /// {
+    ///     "rust": { "token_types": ["type", "struct", "variable"] }
+    /// }
+    pub semantic_token_legends: HashMap<String, SemanticTokensLegend>,
     // filename => semantic highlight state
     pub semantic_highlights: HashMap<String, TextDocumentSemanticHighlightState>,
     // filename => diagnostics.
@@ -226,8 +231,7 @@ impl State {
             text_documents: HashMap::new(),
             viewports: HashMap::new(),
             text_documents_metadata: HashMap::new(),
-            semantic_scopes: HashMap::new(),
-            semantic_scope_to_hl_group_table: HashMap::new(),
+            semantic_token_legends: HashMap::new(),
             semantic_highlights: HashMap::new(),
             inlay_hints: HashMap::new(),
             code_lens: HashMap::new(),
@@ -679,14 +683,14 @@ impl ToRpcError for anyhow::Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Result<Params>;
+    fn to_params(&self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Result<Params> {
+    fn to_params(&self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
@@ -1006,11 +1010,11 @@ impl Default for TextDocumentItemMetadata {
 }
 
 pub trait ToLSP<T> {
-    fn to_lsp(self) -> Result<T>;
+    fn to_lsp(&self) -> Result<T>;
 }
 
 impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
-    fn to_lsp(self) -> Result<Vec<FileEvent>> {
+    fn to_lsp(&self) -> Result<Vec<FileEvent>> {
         match self {
             notify::DebouncedEvent::Create(p) => Ok(vec![FileEvent {
                 uri: p.to_url()?,

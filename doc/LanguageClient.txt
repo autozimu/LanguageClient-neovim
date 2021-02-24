@@ -516,104 +516,7 @@ Valid options: 1 | 0
 
 2.33 g:LanguageClient_semanticHighlightMaps   *g:LanguageClient_semanticHighlightMaps*
 
-String to list/map map. Defines the mapping of semantic highlighting "scopes" to
-highlight groups. This depends on the LSP server supporting the proposed
-semantic highlighting protocol, see:
-
-https://github.com/microsoft/language-server-protocol/issues/18
-https://github.com/microsoft/vscode-languageserver-node/issues/368
-
-
-Like |g:LanguageClient_serverCommands| this is a map where the keys are
-filetypes. However each submap has |regexp| keys and highlight group names
-as values (see |highlight-groups|).
->
-    let g:LanguageClient_semanticHighlightMaps = {
-        \ 'java': {
-        \   '^entity.name.function.java': 'Function',
-        \   '^entity.name.type.class.java': 'Type',
-        \   '^[^:]*entity.name.function.java': 'Function',
-        \   '^[^:]entity.name.type.class.java': 'Type'
-        \ }
-        \ }
-
-The |regexp| in the keys will be used to match semantic scopes. Then any symbols
-that have a semantic scope that matches the key will be highlighted with the
-associated highlight group value. Currently there is no defined order if a
-semantic scope can match multiple keys, so it is recommended to make the keys
-more specific to only match the desired scope(s).
-
-There are a fixed set of semantic scopes defined by the LSP server on startup.
-These can be viewed by calling |LanguageClient_showSemanticScopes| which will
-show all the semantic scopes and their currently mapped highlight group for
-the currently open buffer's filetype.
->
-     call LanguageClient_showSemanticScopes()
-
-     == Output from eclipse.jdt.ls ==
-
-     Highlight Group:
-      None
-     Semantic Scope:
-      invalid.deprecated.java
-       meta.class.java
-        source.java
-
-     Highlight Group:
-      None
-     Semantic Scope:
-      variable.other.autoboxing.java
-       meta.method.body.java
-        meta.method.java
-         meta.class.body.java
-          meta.class.java
-           source.java
-
-     ...
-
-Each semantic scope is a list of strings. They are printed with increasing
-indent to make it easier to read. For example the first scope is:
->
-     ['invalid.deprecated.java', 'meta.class.java', 'source.java']
-
-It is currently isn't mapped to any highlight group as indicated by the None.
-
-Often its more useful to find what semantic scope corresponds to a piece of
-text. This can be done by calling |LanguageClient_showCursorSemanticHighlightSymbols|
-while hovering over the text of interest.
->
-     call LanguageClient_showCursorSemanticHighlightSymbols()
-
-When matching the semantic scopes to keys in |LanguageClient_semanticHighlightMaps|,
-the scopes are concatentated using |LanguageClient_semanticScopeSeparator|
-which is set to the string |':'| by default. For the previous example the
-semantic scope would have this string form using the default separator:
->
-     invalid.deprecated.java:meta.class.java:source.java
-
-Here are a couple of example |regexp| keys that can/cannot match this scope:
->
-     'meta.class.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
-     '^meta.class.java' !~ 'invalid.deprecated.java:meta.class.java:source.java'
-     '^invalid.deprecated.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
-     'source.java$' =~ 'invalid.deprecated.java:meta.class.java:source.java'
-     'meta.class.java:source.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
-     'invalid.deprecated.java:.*:source.java' =~ 'invalid.deprecated.java:meta.class.java:source.java'
-
-Example configuration for eclipse.jdt.ls:
->
-     let g:LanguageClient_semanticHighlightMaps = {}
-     let g:LanguageClient_semanticHighlightMaps['java'] = {
-       \ '^storage.modifier.static.java:entity.name.function.java': 'JavaStaticMemberFunction',
-       \ '^meta.definition.variable.java:meta.class.body.java:meta.class.java': 'JavaMemberVariable',
-       \ '^entity.name.function.java': 'Function',
-       \ '^[^:]*entity.name.function.java': 'Function',
-       \ '^[^:]*entity.name.type.class.java': 'Type',
-       \ }
-
-     highlight! JavaStaticMemberFunction ctermfg=Green cterm=none guifg=Green gui=none
-     highlight! JavaMemberVariable ctermfg=White cterm=italic guifg=White gui=italic
-
+Deprecated, see g:LanguageClient_semanticTokenMappings.
 
 2.34 g:LanguageClient_applyCompletionAdditionalTextEdits *g:LanguageClient_applyCompletionAdditionalTextEdits*
 
@@ -759,6 +662,43 @@ Show completion item documentation in a floating window right next to pmenu.
 
 Default: 1
 Valid options: 1 | 0
+
+2.46 g:LanguageClient_semanticHighlightingEnabled *g:LanguageClient_semanticHighlightingEnabled*
+
+If enabled, the client will call the LSP semantic tokens method after opening,
+modifying or saving a buffer to try and apply semantic highlighting to the
+buffer.
+
+Default: 0
+Valid options: 1 | 0
+
+2.47 g:LanguageClient_semanticTokenMappings *g:LanguageClient_semanticTokenMappings*
+
+Maps LSP token types to vim highlight groups. Each item in this array is a
+dictionary with the fields name, modifiers and highlightGroup, where name is
+the name of the LSP token type, modifiers is a list of modifiers that need to
+be present in that token for this mapping to match and highlightGroup is the
+vim highlight group that should be applied to the token.
+
+Example:
+
+>
+let g:LanguageClient_semanticTokenMappings = [
+  { 'name': 'comment', 'modifiers': [], 'highlightGroup': 'Comment' },
+  { 'name': 'comment', 'modifiers': ['documentation'], 'highlightGroup': 'Question' },
+];
+<
+
+The first mapping in that example maps the tokens of type `comment` to the
+highlight group `Comment`, and the second matches the tokens of type `comment`
+that have the `documentation` modifier to the `Question` highlight group, this
+way documentation comments and regular comments are (potentially) displayed
+with a different colour.
+
+Default: []
+
+For a full list of the possible token types (name) see the LSP documentation:
+https://microsoft.github.io/language-server-protocol/specifications/specification-current/
 
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*

@@ -1,7 +1,5 @@
 mod server_command;
 
-pub use server_command::*;
-
 use crate::{
     types::{
         CodeLensDisplay, DiagnosticsDisplay, DiagnosticsList, DocumentHighlightDisplay,
@@ -12,6 +10,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 use lsp_types::{DiagnosticSeverity, MarkupKind, MessageType, TraceOption};
 use serde::Deserialize;
+pub use server_command::*;
 use std::collections::HashMap;
 use std::{path::PathBuf, str::FromStr, time::Duration};
 
@@ -29,6 +28,26 @@ impl LoggerConfig {
         }"#;
         let res: LoggerConfig = vim.eval(req.replace("\n", ""))?;
         Ok(res)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticTokenMapping {
+    pub name: String,
+    #[serde(default)]
+    pub modifiers: Vec<String>,
+    pub highlight_group: String,
+}
+
+impl SemanticTokenMapping {
+    #[allow(dead_code)]
+    pub fn new(name: &str, modifiers: &[&str], highlight_group: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            modifiers: modifiers.iter().map(|i| i.to_string()).collect(),
+            highlight_group: highlight_group.to_owned(),
+        }
     }
 }
 
@@ -59,22 +78,32 @@ pub struct Config {
     pub selection_ui_auto_open: bool,
     pub use_virtual_text: UseVirtualText,
     pub echo_project_root: bool,
-    pub semantic_highlight_maps: HashMap<String, HashMap<String, String>>,
-    pub semantic_scope_separator: String,
     pub apply_completion_text_edits: bool,
     pub preferred_markup_kind: Option<Vec<MarkupKind>>,
     pub hide_virtual_texts_on_insert: bool,
     pub enable_extensions: Option<HashMap<String, bool>>,
     pub restart_on_crash: bool,
     pub max_restart_retries: u8,
+    /// semantic_token_mappings is a vec of SemanticTokenMappings, where a SemanticTokenMapping
+    /// defines the token type by it's name, the modifiers and the highlight group to be applied to
+    /// it.
+    ///
+    /// If no modifiers are configured for a type it will apply for all tokens of that type.
+    ///
+    /// For example:
+    ///
+    /// [
+    ///     { "name": "function", "modifiers": ["async"], "highlightGroup": "Function" }
+    ///     { "name": "type", "modifiers": [], "highlightGroup": "Type" }
+    /// ]
+    pub semantic_token_mappings: Vec<SemanticTokenMapping>,
+    pub semantic_highlighting_enabled: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             server_commands: HashMap::new(),
-            semantic_highlight_maps: HashMap::new(),
-            semantic_scope_separator: ":".into(),
             auto_start: true,
             selection_ui: SelectionUI::LocationList,
             selection_ui_auto_open: true,
@@ -105,6 +134,8 @@ impl Default for Config {
             is_nvim: false,
             restart_on_crash: true,
             max_restart_retries: 5,
+            semantic_token_mappings: vec![],
+            semantic_highlighting_enabled: false,
         }
     }
 }
@@ -135,8 +166,6 @@ struct DeserializableConfig {
     selection_ui_auto_open: u8,
     use_virtual_text: UseVirtualText,
     echo_project_root: u8,
-    semantic_highlight_maps: HashMap<String, HashMap<String, String>>,
-    semantic_scope_separator: String,
     apply_completion_text_edits: u8,
     preferred_markup_kind: Option<Vec<MarkupKind>>,
     hide_virtual_texts_on_insert: u8,
@@ -144,6 +173,8 @@ struct DeserializableConfig {
     code_lens_display: Option<CodeLensDisplay>,
     restart_on_crash: u8,
     max_restart_retries: u8,
+    semantic_token_mappings: Vec<SemanticTokenMapping>,
+    semantic_highlighting_enabled: u8,
 }
 
 impl Config {
@@ -172,8 +203,6 @@ impl Config {
             "selection_ui_auto_open": !!s:GetVar('LanguageClient_selectionUI_autoOpen', 1),
             "use_virtual_text": s:useVirtualText(),
             "echo_project_root": !!s:GetVar('LanguageClient_echoProjectRoot', 1),
-            "semantic_highlight_maps": s:GetVar('LanguageClient_semanticHighlightMaps', {}),
-            "semantic_scope_separator": s:GetVar('LanguageClient_semanticScopeSeparator', ':'),
             "apply_completion_text_edits": get(g:, 'LanguageClient_applyCompletionAdditionalTextEdits', 1),
             "preferred_markup_kind": get(g:, 'LanguageClient_preferredMarkupKind', v:null),
             "hide_virtual_texts_on_insert": s:GetVar('LanguageClient_hideVirtualTextsOnInsert', 0),
@@ -182,10 +211,11 @@ impl Config {
             "restart_on_crash": get(g:, 'LanguageClient_restartOnCrash', 1),
             "max_restart_retries": get(g:, 'LanguageClient_maxRestartRetries', 5),
             "server_stderr": get(g:, 'LanguageClient_serverStderr', v:null),
+            "semantic_token_mappings": get(g:, 'LanguageClient_semanticTokenMappings', []),
+            "semantic_highlighting_enabled": get(g:, 'LanguageClient_semanticHighlightingEnabled', 0),
         }"#;
 
         let res: DeserializableConfig = vim.eval(req.replace("\n", ""))?;
-
         let loaded_fzf = vim.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1;
         let selection_ui = match res.selection_ui {
             Some(s) => SelectionUI::from_str(&s)?,
@@ -238,14 +268,14 @@ impl Config {
             selection_ui_auto_open: res.selection_ui_auto_open == 1,
             use_virtual_text: res.use_virtual_text,
             echo_project_root: res.echo_project_root == 1,
-            semantic_highlight_maps: res.semantic_highlight_maps,
-            semantic_scope_separator: res.semantic_scope_separator,
             apply_completion_text_edits: res.apply_completion_text_edits == 1,
             preferred_markup_kind: res.preferred_markup_kind,
             hide_virtual_texts_on_insert: res.hide_virtual_texts_on_insert == 1,
             enable_extensions: res.enable_extensions,
             restart_on_crash: res.restart_on_crash == 1,
             max_restart_retries: res.max_restart_retries,
+            semantic_token_mappings: res.semantic_token_mappings,
+            semantic_highlighting_enabled: res.semantic_highlighting_enabled == 1,
         })
     }
 }

@@ -907,6 +907,22 @@ function! LanguageClient#Notify(method, params) abort
                 \ }))
 endfunction
 
+function! LanguageClient#textDocument_semanticTokensFull(...) abort
+    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview('__LCNHover__')
+        return
+    endif
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'text': LSP#text(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'handle': s:IsFalse(l:Callback),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/semanticTokens/full', l:params, l:Callback)
+endfunction
+
 function! LanguageClient#textDocument_hover(...) abort
     if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview('__LCNHover__')
         return
@@ -1690,20 +1706,6 @@ function! s:print_semantic_scopes(response) abort
     endfor
 
     echo l:msg
-endfunction
-
-function! LanguageClient#showSemanticHighlightSymbols(...) abort
-    let l:params = get(a:000, 0, {})
-    let l:Callback = get(a:000, 1, v:null)
-
-    return LanguageClient#Call('languageClient/showSemanticHighlightSymbols', l:params, l:Callback)
-endfunction
-
-function! LanguageClient_showCursorSemanticHighlightSymbols(...) abort
-    let l:params = get(a:000, 0, {})
-    let l:Callback = get(a:000, 1, function('s:print_cursor_semantic_symbol'))
-
-    return LanguageClient#showSemanticHighlightSymbols(l:params, l:Callback)
 endfunction
 
 function! s:print_cursor_semantic_symbol(response) abort
