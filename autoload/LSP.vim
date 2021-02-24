@@ -73,25 +73,21 @@ function! s:get_position() abort
 		\ }
 endfunction
 
-function! s:get_visual_selection() abort
-    let [line_start, column_start] = getpos("'<")[1:2]
-    let [line_end, column_end] = getpos("'>")[1:2]
-    let lines = getline(line_start, line_end)
-    if len(lines) == 0
-        echohl Error | echom '[LC] No lines found in range.' | echohl None
-        return ''
-    endif
-    let lines[-1] = lines[-1][: column_end - 2]
-    let lines[0] = lines[0][column_start - 1:]
-
-    return {
-      \ 'start': {
-        \ 'line': line_start - 1,
-        \ 'character': column_start - 1,
-        \ },
-      \ 'end': {
-        \ 'line': line_end - 1,
-        \ 'character': column_end - 1,
-        \ }
-      \ }
+function! s:get_visual_selection() abort     
+    let line_start = line("'<")                               
+    let column_start = col("'<")                      
+    let line_end = line("'>")                    
+    let column_end = col("'>")     
+                                                                              
+    "no selection -> all values are 0 -> [LC] invalid value: integer `-1`, expected u64     
+    return {                                                            
+      \ 'start': {                                    
+        \ 'line': line_start - 1,                 
+        \ 'character': column_start - 1,     
+        \ },                                 
+      \ 'end': {                        
+        \ 'line': line_end - 1,      
+        \ 'character': column_end - 1,      
+        \ }                                
+      \ }           
 endfunction
