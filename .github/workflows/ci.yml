@@ -18,6 +18,11 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 20
 
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16.x
+
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -29,12 +34,11 @@ jobs:
     - name: Install other dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 libnode-dev node-gyp libssl1.0 npm make
+        sudo apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest make
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
         python3 -m pip install neovim vim-vint
-        sudo curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o /usr/local/bin/rust-analyzer
-        sudo chmod +x /usr/local/bin/rust-analyzer
+        go install golang.org/x/tools/gopls@v0.6.6
 
     - name: Test
       run: make integration-test
