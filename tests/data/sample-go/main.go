@@ -20,3 +20,8 @@ func yo() {
 	log.Println(b)
 	log.Println(otherYo())
 }
+
+func yoWithDiagnostic() {
+	x := 0
+	x = x
+}

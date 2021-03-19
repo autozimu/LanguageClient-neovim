@@ -9,6 +9,8 @@ threading.current_thread().name = "Test"
 
 
 NVIM_LISTEN_ADDRESS = "/tmp/nvim-LanguageClient-IntegrationTest"
+EXPLAIN_ERROR_BUFFER = "__LCNExplainError__"
+HOVER_BUFFER = "__LCNHover__"
 
 
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -36,8 +38,8 @@ def assertRetry(predicate, retry_max=100):
     assert predicate()
 
 
-def getLanguageClientBuffers(nvim):
-    return [b for b in nvim.buffers if b.name.endswith("__LCNHover__")]
+def getBufferByName(nvim, name: str):
+    return [b for b in nvim.buffers if b.name.endswith(name)]
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +52,18 @@ def nvim() -> neovim.Nvim:
 @pytest.fixture(autouse=True)
 def setup(nvim):
     nvim.command("%bdelete!")
+
+
+def test_explainErrorAtPoint(nvim):
+    nvim.command("edit! {}".format(PATH_MAIN_GO))
+    time.sleep(1)
+    nvim.funcs.cursor(26, 2)
+    nvim.funcs.LanguageClient_explainErrorAtPoint()
+    time.sleep(1)
+    buf = getBufferByName(nvim, EXPLAIN_ERROR_BUFFER)[0]
+    expect = "1. assign: self-assignment of x to x"
+
+    assert expect in "\n".join(buf)
 
 
 def test_textDocument_definition(nvim):
@@ -68,7 +82,7 @@ def test_textDocument_hover(nvim):
     nvim.funcs.cursor(10, 16)
     nvim.funcs.LanguageClient_textDocument_hover()
     time.sleep(1)
-    buf = getLanguageClientBuffers(nvim)[0]
+    buf = getBufferByName(nvim, HOVER_BUFFER)[0]
     expect = "func greet() int32"
 
     assert expect in "\n".join(buf)
@@ -136,14 +150,14 @@ def test_workspace_symbol(nvim):
     nvim.command("edit! {}".format(PATH_MAIN_GO))
     time.sleep(1)
     nvim.funcs.cursor(1, 1)
-    nvim.funcs.LanguageClient_workspace_symbol()
+    nvim.funcs.LanguageClient_workspace_symbol('yo')
     time.sleep(1)
 
     assert nvim.funcs.getloclist(0)
 
-    nvim.command("3lnext")
+    nvim.command("lnext")
 
-    assert nvim.current.window.cursor == [17, 0]
+    assert nvim.current.window.cursor == [24, 5]
 
 
 def test_textDocument_references(nvim):
@@ -151,7 +165,7 @@ def test_textDocument_references(nvim):
     time.sleep(1)
     nvim.funcs.cursor(13, 6)
     nvim.funcs.LanguageClient_textDocument_references()
-    time.sleep(2)
+    time.sleep(3)
     expect = ["func greet() int32 {", "log.Println(greet())",
               "log.Println(greet())"]
 
@@ -239,7 +253,7 @@ def test_textDocument_hover_float_window_closed_on_cursor_moved(nvim):
 
     pos = _open_float_window(nvim)
 
-    float_buf = getLanguageClientBuffers(nvim)[0]
+    float_buf = getBufferByName(nvim, HOVER_BUFFER)[0]
 
     # Check if float window is open
     float_winnr = nvim.funcs.bufwinnr(float_buf.number)
@@ -253,7 +267,7 @@ def test_textDocument_hover_float_window_closed_on_cursor_moved(nvim):
     nvim.funcs.cursor(10, 14)
 
     # Check float window buffer was closed by CursorMoved
-    assert len(getLanguageClientBuffers(nvim)) == 0
+    assert len(getBufferByName(nvim, HOVER_BUFFER)) == 0
 
 
 def test_textDocument_hover_float_window_closed_on_entering_window(nvim):
@@ -276,7 +290,7 @@ def test_textDocument_hover_float_window_closed_on_entering_window(nvim):
         assert win_id == nvim.funcs.win_getid()
 
         # Check float window buffer was closed by BufEnter
-        assert len(getLanguageClientBuffers(nvim)) == 0
+        assert len(getBufferByName(nvim, HOVER_BUFFER)) == 0
     finally:
         nvim.command("close!")
 
@@ -298,7 +312,7 @@ def test_textDocument_hover_float_window_closed_on_switching_to_buffer(nvim):
 
         _open_float_window(nvim)
 
-        float_buf = getLanguageClientBuffers(nvim)[0]
+        float_buf = getBufferByName(nvim, HOVER_BUFFER)[0]
         float_winnr = nvim.funcs.bufwinnr(float_buf.number)
         assert float_winnr > 0
 
@@ -309,7 +323,7 @@ def test_textDocument_hover_float_window_closed_on_switching_to_buffer(nvim):
         assert nvim.current.buffer.number == another_bufnr
 
         # Check float window buffer was closed by BufEnter
-        assert len(getLanguageClientBuffers(nvim)) == 0
+        assert len(getBufferByName(nvim, HOVER_BUFFER)) == 0
     finally:
         nvim.command("bdelete! {}".format(another_bufnr))
 
@@ -334,4 +348,4 @@ def test_textDocument_hover_float_window_move_cursor_into_window(nvim):
     assert nvim.current.buffer.number == prev_bufnr
 
     # Check float window buffer was closed by :close in the window
-    assert len(getLanguageClientBuffers(nvim)) == 0
+    assert len(getBufferByName(nvim, HOVER_BUFFER)) == 0

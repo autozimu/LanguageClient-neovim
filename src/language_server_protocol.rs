@@ -3219,64 +3219,64 @@ impl LanguageClient {
         let silent_mode: bool = try_get("silent", params)?.unwrap_or_default();
         let filename = self.vim()?.get_filename(params)?;
         let position = self.vim()?.get_position(params)?;
-        let diag = self.get_state(|state| {
-            state
+        let diagnostics: Result<Vec<Diagnostic>> = self.get_state(|state| {
+            Ok(state
                 .diagnostics
                 .get(&filename)
                 .ok_or_else(|| anyhow!("No diagnostics found: filename: {}", filename,))?
                 .iter()
-                .find(|dn| position >= dn.range.start && position < dn.range.end)
+                .filter(|dn| position >= dn.range.start && position <= dn.range.end)
                 .cloned()
-                .ok_or_else(|| {
-                    anyhow!(
-                        "No diagnostics found: filename: {}, line: {}, character: {}",
-                        filename,
-                        position.line,
-                        position.character
-                    )
-                })
+                .collect::<Vec<Diagnostic>>())
         })?;
 
-        if silent_mode && diag.is_err() {
+        if silent_mode && diagnostics.is_err() {
             return Ok(Value::Null);
         }
-        let diag = diag?;
+        let diagnostics = diagnostics?;
 
         let language_id = self.vim()?.get_language_id(&filename, params)?;
         let root =
             self.get_state(|state| state.roots.get(&language_id).cloned().unwrap_or_default())?;
         let root_uri = root.to_url()?;
 
-        let mut explanation = diag.message;
-        if let Some(source) = diag.source {
-            explanation = format!("{}: {}\n", source, explanation);
-        }
-        if let Some(related_information) = diag.related_information {
-            explanation = format!("{}\n", explanation);
-            for ri in related_information {
-                let prefix = format!("{}/", root_uri);
-                let uri = if ri.location.uri.as_str().starts_with(prefix.as_str()) {
-                    // Heuristic: if start of stringified URI matches rootUri, abbreviate it away
-                    &ri.location.uri.as_str()[root_uri.as_str().len() + 1..]
-                } else {
-                    ri.location.uri.as_str()
-                };
-                if ri.location.uri.scheme() == "file" {
-                    explanation = format!(
-                        "{}\n{}:{}: {}",
-                        explanation,
-                        uri,
-                        &ri.location.range.start.line + 1,
-                        &ri.message
-                    );
-                } else {
-                    // Heuristic: if scheme is not file, don't show line numbers
-                    explanation = format!("{}\n{}: {}", explanation, uri, &ri.message);
+        let mut explanation = vec![];
+        for (idx, diagnostic) in diagnostics.iter().enumerate() {
+            let mut message = diagnostic.message.clone();
+            if let Some(source) = &diagnostic.source {
+                message = format!("{}: {}", source, message);
+            }
+            message = format!("{}. {}", idx + 1, message);
+
+            if let Some(related_information) = &diagnostic.related_information {
+                for ri in related_information {
+                    let prefix = format!("{}/", root_uri);
+                    let uri = if ri.location.uri.as_str().starts_with(prefix.as_str()) {
+                        // Heuristic: if start of stringified URI matches rootUri, abbreviate it away
+                        &ri.location.uri.as_str()[root_uri.as_str().len() + 1..]
+                    } else {
+                        ri.location.uri.as_str()
+                    };
+                    if ri.location.uri.scheme() == "file" {
+                        message = format!(
+                            "{}\n{}:{}:{}: {}",
+                            message,
+                            uri,
+                            &ri.location.range.start.line + 1,
+                            &ri.location.range.start.character + 1,
+                            &ri.message
+                        );
+                    } else {
+                        // Heuristic: if scheme is not file, don't show line numbers
+                        message = format!("{}\n{}: {}", message, uri, &ri.message);
+                    }
                 }
             }
+
+            explanation.push(message);
         }
 
-        self.preview(explanation.as_str(), "__LCNExplainError__")?;
+        self.preview(explanation.join("\n").as_str(), "__LCNExplainError__")?;
         Ok(Value::Null)
     }
 
