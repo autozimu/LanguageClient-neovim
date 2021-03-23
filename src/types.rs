@@ -807,9 +807,15 @@ impl ToDisplay for Hover {
                     if let MarkedString::LanguageString(ref ls) = ms {
                         let mut buf = Vec::new();
 
-                        buf.push(format!("```{}", ls.language));
+                        if ls.language != "plaintext" {
+                            buf.push(format!("```{}", ls.language));
+                        }
+
                         buf.extend(ls.value.lines().map(String::from));
-                        buf.push("```".to_string());
+
+                        if ls.language != "plaintext" {
+                            buf.push("```".to_string());
+                        }
 
                         buf
                     } else {
