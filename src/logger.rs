@@ -17,7 +17,7 @@ pub struct Logger {
 
     #[derivative(Debug = "ignore")]
     #[serde(skip_serializing)]
-    handle: log4rs::Handle,
+    handle: Option<log4rs::Handle>,
 }
 
 impl Logger {
@@ -30,13 +30,24 @@ impl Logger {
         Ok(Logger {
             path,
             level,
-            handle,
+            handle: Some(handle),
         })
+    }
+
+    #[allow(dead_code)]
+    pub fn noop() -> Self {
+        Logger {
+            level: LevelFilter::Debug,
+            path: None,
+            handle: None,
+        }
     }
 
     pub fn update_settings(&mut self, level: LevelFilter, path: Option<PathBuf>) -> Result<()> {
         let config = create_config(&path, level)?;
-        self.handle.set_config(config);
+        if let Some(handle) = &self.handle {
+            handle.set_config(config);
+        }
         self.level = level;
         self.path = path;
         Ok(())
@@ -44,7 +55,9 @@ impl Logger {
 
     pub fn set_level(&mut self, level: LevelFilter) -> Result<()> {
         let config = create_config(&self.path, level)?;
-        self.handle.set_config(config);
+        if let Some(handle) = &self.handle {
+            handle.set_config(config);
+        }
         self.level = level;
         Ok(())
     }
@@ -52,7 +65,9 @@ impl Logger {
     #[allow(dead_code)]
     pub fn set_path(&mut self, path: Option<PathBuf>) -> Result<()> {
         let config = create_config(&path, self.level)?;
-        self.handle.set_config(config);
+        if let Some(handle) = &self.handle {
+            handle.set_config(config);
+        }
         self.path = path;
         Ok(())
     }

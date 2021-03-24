@@ -34,6 +34,12 @@ use std::{
 };
 use thiserror::Error;
 
+#[derive(PartialEq)]
+pub enum Direction {
+    Next,
+    Previous,
+}
+
 #[derive(Debug, Error, PartialEq)]
 pub enum LSError {
     #[error("Content Modified")]
@@ -77,10 +83,6 @@ pub const NOTIFICATION_FZF_SINK_LOCATION: &str = "LanguageClient_FZFSinkLocation
 pub const NOTIFICATION_FZF_SINK_COMMAND: &str = "LanguageClient_FZFSinkCommand";
 pub const NOTIFICATION_SERVER_EXITED: &str = "$languageClient/serverExited";
 pub const NOTIFICATION_CLEAR_DOCUMENT_HL: &str = "languageClient/clearDocumentHighlight";
-pub const NOTIFICATION_RUST_BEGIN_BUILD: &str = "rustDocument/beginBuild";
-pub const NOTIFICATION_RUST_DIAGNOSTICS_BEGIN: &str = "rustDocument/diagnosticsBegin";
-pub const NOTIFICATION_RUST_DIAGNOSTICS_END: &str = "rustDocument/diagnosticsEnd";
-pub const NOTIFICATION_WINDOW_PROGRESS: &str = "window/progress";
 pub const NOTIFICATION_LANGUAGE_STATUS: &str = "language/status";
 pub const NOTIFICATION_DIAGNOSTICS_NEXT: &str = "languageClient/diagnosticsNext";
 pub const NOTIFICATION_DIAGNOSTICS_PREVIOUS: &str = "languageClient/diagnosticsPrevious";
@@ -975,14 +977,6 @@ pub struct LanguageStatusParams {
 pub enum RootMarkers {
     Array(Vec<String>),
     Map(HashMap<String, Vec<String>>),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WindowProgressParams {
-    pub title: Option<String>,
-    pub message: Option<String>,
-    pub percentage: Option<f64>,
-    pub done: Option<bool>,
 }
 
 pub trait Filepath {
