@@ -1,4 +1,4 @@
-use crate::{language_client::LanguageClient, watcher::FSWatch};
+use crate::{language_client::LanguageClient, watcher::FsWatch};
 use anyhow::Result;
 use jsonrpc_core::Value;
 use lsp_types::{
@@ -24,7 +24,7 @@ pub fn register_capability(
                 if !lc.get_state(|state| state.watchers.contains_key(language_id))? {
                     let (watcher_tx, watcher_rx) = mpsc::channel();
                     // TODO: configurable duration.
-                    let watcher = FSWatch::new(watcher_tx, Duration::from_secs(2))?;
+                    let watcher = FsWatch::new(watcher_tx, Duration::from_secs(2))?;
                     lc.update_state(|state| {
                         state.watchers.insert(language_id.to_owned(), watcher);
                         state.watcher_rxs.insert(language_id.to_owned(), watcher_rx);

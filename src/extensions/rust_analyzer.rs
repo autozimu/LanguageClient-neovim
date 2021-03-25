@@ -61,11 +61,11 @@ pub struct InlayHint {
     pub label: String,
 }
 
-impl Into<types::InlayHint> for InlayHint {
-    fn into(self) -> types::InlayHint {
+impl From<InlayHint> for types::InlayHint {
+    fn from(hint: InlayHint) -> Self {
         types::InlayHint {
-            range: self.range,
-            label: self.label,
+            range: hint.range,
+            label: hint.label,
         }
     }
 }

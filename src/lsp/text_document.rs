@@ -2,9 +2,9 @@ use crate::{
     config::SemanticTokenMapping,
     language_client::LanguageClient,
     types::{
-        Bufnr, ClearNamespace, DiagnosticSeverityExt, Filepath, HoverPreviewOption, LCNamespace,
-        LinesLen, TextDocumentItemMetadata, ToDisplay, ToInt, ToString, UseVirtualText,
-        VIM_STATUS_LINE_DIAGNOSTICS_COUNTS,
+        Bufnr, ClearNamespace, DiagnosticSeverityExt, Filepath, HoverPreviewOption,
+        LanguageClientNamespace, LinesLen, TextDocumentItemMetadata, ToDisplay, ToInt, ToString,
+        UseVirtualText, VIM_STATUS_LINE_DIAGNOSTICS_COUNTS,
     },
     utils::{decode_parameter_label, Canonicalize, Combine, ToUrl},
     vim::{try_get, Highlight},
@@ -861,7 +861,7 @@ pub fn semantic_tokens_full(lc: &LanguageClient, params: &Value) -> Result<Value
         SemanticTokensResult::Partial(_) => vec![],
     };
 
-    let ns_id = lc.get_or_create_namespace(&LCNamespace::SemanticHighlight)?;
+    let ns_id = lc.get_or_create_namespace(&LanguageClientNamespace::SemanticHighlight)?;
     let buffer = lc.vim()?.get_bufnr(&filename, &Value::Null)?;
     let clears: Vec<ClearNamespace> = Vec::new();
     lc.vim()?.rpcclient.notify(

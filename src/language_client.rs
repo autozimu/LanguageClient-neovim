@@ -65,7 +65,7 @@ impl LanguageClient {
     pub fn get_client(&self, language_id: &LanguageId) -> Result<Arc<RpcClient>> {
         self.get_state(|state| state.clients.get(language_id).cloned())?
             .ok_or_else(|| {
-                LCError::ServerNotRunning {
+                LanguageClientError::ServerNotRunning {
                     language_id: language_id.clone().unwrap_or_default(),
                 }
                 .into()
@@ -1202,13 +1202,13 @@ impl LanguageClient {
             .collect();
 
         match self.get_config(|c| c.selection_ui)? {
-            SelectionUI::Funcref => {
+            SelectionUi::Funcref => {
                 self.vim()?.rpcclient.notify(
                     "s:selectionUI_funcref",
                     json!([actions?, NOTIFICATION_FZF_SINK_COMMAND]),
                 )?;
             }
-            SelectionUI::Quickfix | SelectionUI::LocationList => {
+            SelectionUi::Quickfix | SelectionUi::LocationList => {
                 let mut actions: Vec<String> = actions?
                     .iter_mut()
                     .enumerate()
@@ -1237,7 +1237,7 @@ impl LanguageClient {
         let selection_ui_auto_open = self.get_config(|c| c.selection_ui_auto_open)?;
 
         match selection_ui {
-            SelectionUI::Funcref => {
+            SelectionUi::Funcref => {
                 let cwd: String = self.vim()?.eval("getcwd()")?;
                 let source: Result<Vec<_>> = items
                     .iter()
@@ -1250,7 +1250,7 @@ impl LanguageClient {
                     json!([source, format!("s:{}", NOTIFICATION_FZF_SINK_LOCATION)]),
                 )?;
             }
-            SelectionUI::Quickfix => {
+            SelectionUi::Quickfix => {
                 let list: Result<Vec<_>> = items
                     .iter()
                     .map(|it| ListItem::quickfix_item(it, self))
@@ -1262,7 +1262,7 @@ impl LanguageClient {
                 }
                 self.vim()?.echo("Populated quickfix list.")?;
             }
-            SelectionUI::LocationList => {
+            SelectionUi::LocationList => {
                 let list: Result<Vec<_>> = items
                     .iter()
                     .map(|it| ListItem::quickfix_item(it, self))
@@ -1687,7 +1687,7 @@ impl LanguageClient {
         let filename = filename.as_str();
         let viewport = self.vim()?.get_viewport(params)?;
         let bufnr = self.vim()?.get_bufnr(&filename, params)?;
-        let namespace_id = self.get_or_create_namespace(&LCNamespace::VirtualText)?;
+        let namespace_id = self.get_or_create_namespace(&LanguageClientNamespace::VirtualText)?;
         let is_insert_mode = self.vim()?.get_mode()? == Mode::Insert;
         if self.get_config(|c| c.hide_virtual_texts_on_insert)? && is_insert_mode {
             self.vim()?.set_virtual_texts(
@@ -1989,8 +1989,8 @@ impl LanguageClient {
 
     #[tracing::instrument(level = "info", skip(self))]
     pub fn ncm_refresh(&self, params: &Value) -> Result<Value> {
-        let params = NCMRefreshParams::deserialize(params)?;
-        let NCMRefreshParams { info, ctx } = params;
+        let params = NcmRefreshParams::deserialize(params)?;
+        let NcmRefreshParams { info, ctx } = params;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
         }
@@ -2033,7 +2033,7 @@ impl LanguageClient {
     #[tracing::instrument(level = "info", skip(self))]
     pub fn ncm2_on_complete(&self, params: &Value) -> Result<Value> {
         let orig_ctx = &params["ctx"];
-        let ctx = NCM2Context::deserialize(orig_ctx)?;
+        let ctx = Ncm2Context::deserialize(orig_ctx)?;
         if ctx.typed.is_empty() {
             return Ok(Value::Null);
         }
@@ -2194,7 +2194,7 @@ impl LanguageClient {
 
         let command = self.get_config(|c| {
             c.server_commands.get(&language_id).cloned().ok_or_else(|| {
-                Error::from(LCError::NoServerCommands {
+                Error::from(LanguageClientError::NoServerCommands {
                     language_id: language_id.clone(),
                 })
             })

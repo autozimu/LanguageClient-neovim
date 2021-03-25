@@ -1,4 +1,6 @@
-use crate::types::{Call, Id, LSError, LanguageId, RawMessage, ToInt, ToParams, ToRpcError};
+use crate::types::{
+    Call, Id, LanguageId, LanguageServerError, RawMessage, ToInt, ToParams, ToRpcError,
+};
 use anyhow::{anyhow, Result};
 use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use log::*;
@@ -118,7 +120,7 @@ impl RpcClient {
             jsonrpc_core::Output::Failure(err)
                 if err.error.code.code() == CONTENT_MODIFIED_ERROR_CODE =>
             {
-                Err(anyhow::Error::from(LSError::ContentModified))
+                Err(anyhow::Error::from(LanguageServerError::ContentModified))
             }
             jsonrpc_core::Output::Failure(err) => Err(anyhow!("Error: {:?}", err)),
         }

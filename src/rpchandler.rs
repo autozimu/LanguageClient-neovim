@@ -10,7 +10,7 @@ use lsp_types::request::{self, Request};
 use serde_json::Value;
 
 fn is_content_modified_error(err: &anyhow::Error) -> bool {
-    matches!(err.downcast_ref::<LSError>(), Some(err) if err == &LSError::ContentModified)
+    matches!(err.downcast_ref::<LanguageServerError>(), Some(err) if err == &LanguageServerError::ContentModified)
 }
 
 impl LanguageClient {
@@ -23,7 +23,7 @@ impl LanguageClient {
                         return Ok(());
                     }
 
-                    if err.downcast_ref::<LCError>().is_none() {
+                    if err.downcast_ref::<LanguageClientError>().is_none() {
                         error!(
                             "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                             err,
@@ -42,7 +42,7 @@ impl LanguageClient {
                         return Ok(());
                     }
 
-                    if err.downcast_ref::<LCError>().is_none() {
+                    if err.downcast_ref::<LanguageClientError>().is_none() {
                         error!(
                             "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                             err,
