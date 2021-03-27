@@ -44,6 +44,8 @@ pub enum Direction {
 pub enum LanguageServerError {
     #[error("Content Modified")]
     ContentModified,
+    #[error("Request Cancelled")]
+    RequestCancelled,
 }
 
 #[derive(Debug, Error)]
