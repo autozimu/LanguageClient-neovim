@@ -672,6 +672,15 @@ function! s:HandleMessage(job, lines, event) abort
                                     \ 'result': l:result,
                                     \ }))
                     endif
+                catch 'Vim:Interrupt'
+                    call LanguageClient#Write(json_encode({
+                                \ 'jsonrpc': '2.0',
+                                \ 'id': l:id,
+                                \ 'error': {
+                                \   'code': -32800,
+                                \   'message': string(v:exception)
+                                \   }
+                                \ }))
                 catch
                     let l:exception = v:exception
                     if l:id isnot v:null

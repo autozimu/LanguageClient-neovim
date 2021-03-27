@@ -9,8 +9,9 @@ use lsp_types::notification::{self, Notification};
 use lsp_types::request::{self, Request};
 use serde_json::Value;
 
-fn is_content_modified_error(err: &anyhow::Error) -> bool {
-    matches!(err.downcast_ref::<LanguageServerError>(), Some(err) if err == &LanguageServerError::ContentModified)
+fn should_ignore_error(err: &anyhow::Error) -> bool {
+    let err = err.downcast_ref::<LanguageServerError>();
+    matches!(err, Some(err) if err == &LanguageServerError::ContentModified || err == &LanguageServerError::RequestCancelled)
 }
 
 impl LanguageClient {
@@ -19,7 +20,7 @@ impl LanguageClient {
             Call::MethodCall(lang_id, method_call) => {
                 let result = self.handle_method_call(lang_id.as_deref(), &method_call);
                 if let Err(ref err) = result {
-                    if is_content_modified_error(err) {
+                    if should_ignore_error(err) {
                         return Ok(());
                     }
 
@@ -38,7 +39,7 @@ impl LanguageClient {
             Call::Notification(lang_id, notification) => {
                 let result = self.handle_notification(lang_id.as_deref(), &notification);
                 if let Err(ref err) = result {
-                    if is_content_modified_error(err) {
+                    if should_ignore_error(err) {
                         return Ok(());
                     }
 
