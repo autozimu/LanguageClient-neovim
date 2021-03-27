@@ -1,9 +1,9 @@
 use crate::language_client::LanguageClient;
-use crate::types::LCNamespace;
+use crate::types::LanguageClientNamespace;
 use anyhow::Result;
 
 impl LanguageClient {
-    pub fn get_or_create_namespace(&self, ns: &LCNamespace) -> Result<i64> {
+    pub fn get_or_create_namespace(&self, ns: &LanguageClientNamespace) -> Result<i64> {
         let ns_name = ns.name();
 
         if let Some(namespace_id) =

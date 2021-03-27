@@ -104,11 +104,9 @@ where
     F: Fn(&Path) -> bool,
 {
     if let Ok(diriter) = path.read_dir() {
-        for entry in diriter {
-            if let Ok(entry) = entry {
-                if predicate(&entry.path()) {
-                    return true;
-                }
+        for entry in diriter.flatten() {
+            if predicate(&entry.path()) {
+                return true;
             }
         }
     }
@@ -145,11 +143,9 @@ fn is_dotnet_root(dir: &Path) -> bool {
         Ok(entries) => entries,
         Err(_) => return false,
     };
-    for entry in entries {
-        if let Ok(entry) = entry {
-            if entry.path().ends_with(".csproj") {
-                return true;
-            }
+    for entry in entries.flatten() {
+        if entry.path().ends_with(".csproj") {
+            return true;
         }
     }
 

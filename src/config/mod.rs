@@ -3,7 +3,7 @@ mod server_command;
 use crate::{
     types::{
         CodeLensDisplay, DiagnosticsDisplay, DiagnosticsList, DocumentHighlightDisplay,
-        HoverPreviewOption, RootMarkers, SelectionUI, UseVirtualText,
+        HoverPreviewOption, RootMarkers, SelectionUi, UseVirtualText,
     },
     vim::Vim,
 };
@@ -55,7 +55,7 @@ impl SemanticTokenMapping {
 pub struct Config {
     pub auto_start: bool,
     pub server_commands: HashMap<String, ServerCommand>,
-    pub selection_ui: SelectionUI,
+    pub selection_ui: SelectionUi,
     pub trace: TraceOption,
     pub settings_path: Vec<String>,
     pub load_settings: bool,
@@ -105,7 +105,7 @@ impl Default for Config {
         Self {
             server_commands: HashMap::new(),
             auto_start: true,
-            selection_ui: SelectionUI::LocationList,
+            selection_ui: SelectionUi::LocationList,
             selection_ui_auto_open: true,
             trace: TraceOption::default(),
             diagnostics_enable: true,
@@ -218,9 +218,9 @@ impl Config {
         let res: DeserializableConfig = vim.eval(req.replace("\n", ""))?;
         let loaded_fzf = vim.eval::<_, i64>("get(g:, 'loaded_fzf')")? == 1;
         let selection_ui = match res.selection_ui {
-            Some(s) => SelectionUI::from_str(&s)?,
-            None if loaded_fzf => SelectionUI::Funcref,
-            None => SelectionUI::default(),
+            Some(s) => SelectionUi::from_str(&s)?,
+            None if loaded_fzf => SelectionUi::Funcref,
+            None => SelectionUi::default(),
         };
 
         let diagnostics_list = match res.diagnostics_list {

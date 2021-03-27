@@ -1,5 +1,8 @@
-use crate::extensions::clangd;
-use crate::{language_client::LanguageClient, language_server_protocol::Direction, types::*};
+use crate::{
+    extensions::{clangd, rls},
+    lsp::{self, client, completion_item, dollar, text_document, window, workspace},
+};
+use crate::{language_client::LanguageClient, types::*};
 use anyhow::{anyhow, Result};
 use log::*;
 use lsp_types::notification::{self, Notification};
@@ -7,7 +10,7 @@ use lsp_types::request::{self, Request};
 use serde_json::Value;
 
 fn is_content_modified_error(err: &anyhow::Error) -> bool {
-    matches!(err.downcast_ref::<LSError>(), Some(err) if err == &LSError::ContentModified)
+    matches!(err.downcast_ref::<LanguageServerError>(), Some(err) if err == &LanguageServerError::ContentModified)
 }
 
 impl LanguageClient {
@@ -20,7 +23,7 @@ impl LanguageClient {
                         return Ok(());
                     }
 
-                    if err.downcast_ref::<LCError>().is_none() {
+                    if err.downcast_ref::<LanguageClientError>().is_none() {
                         error!(
                             "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                             err,
@@ -39,7 +42,7 @@ impl LanguageClient {
                         return Ok(());
                     }
 
-                    if err.downcast_ref::<LCError>().is_none() {
+                    if err.downcast_ref::<LanguageClientError>().is_none() {
                         error!(
                             "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
                             err,
@@ -73,36 +76,38 @@ impl LanguageClient {
         }
 
         match method_call.method.as_str() {
+            request::HoverRequest::METHOD => text_document::hover(self, &params),
+            request::Rename::METHOD => text_document::rename(self, &params),
+            request::DocumentSymbolRequest::METHOD => text_document::document_symbol(self, &params),
+            request::CodeActionRequest::METHOD => text_document::code_action(self, &params),
+            request::Completion::METHOD => text_document::completion(self, &params),
+            request::SignatureHelpRequest::METHOD => text_document::signature_help(self, &params),
+            request::GotoDefinition::METHOD => text_document::definition(self, &params),
+            request::References::METHOD => text_document::references(self, &params),
+            request::Formatting::METHOD => text_document::formatting(self, &params),
+            request::RangeFormatting::METHOD => text_document::range_formatting(self, &params),
+            request::CodeLensRequest::METHOD => text_document::code_lens(self, &params),
+            request::SemanticTokensFullRequest::METHOD => {
+                text_document::semantic_tokens_full(self, &params)
+            }
+            request::DocumentHighlightRequest::METHOD => {
+                text_document::document_highlight(self, &params)
+            }
+
+            request::WorkspaceConfiguration::METHOD => workspace::configuration(self, &params),
+            request::WorkspaceSymbol::METHOD => workspace::symbol(self, &params),
+            request::ExecuteCommand::METHOD => workspace::execute_command(self, &params),
+            request::ApplyWorkspaceEdit::METHOD => workspace::apply_edit(self, &params),
+
             request::RegisterCapability::METHOD => {
-                self.client_register_capability(language_id.unwrap_or_default(), &params)
+                client::register_capability(self, language_id.unwrap_or_default(), &params)
             }
             request::UnregisterCapability::METHOD => {
-                self.client_unregister_capability(language_id.unwrap_or_default(), &params)
+                client::unregister_capability(self, language_id.unwrap_or_default(), &params)
             }
-            request::HoverRequest::METHOD => self.text_document_hover(&params),
-            request::Rename::METHOD => self.text_document_rename(&params),
-            request::DocumentSymbolRequest::METHOD => self.text_document_document_symbol(&params),
-            request::ShowMessageRequest::METHOD => self.window_show_message_request(&params),
-            request::WorkspaceConfiguration::METHOD => self.workspace_configuration(&params),
-            request::WorkspaceSymbol::METHOD => self.workspace_symbol(&params),
-            request::CodeActionRequest::METHOD => self.text_document_code_action(&params),
-            request::Completion::METHOD => self.text_document_completion(&params),
-            request::SignatureHelpRequest::METHOD => self.text_document_signature_help(&params),
-            request::GotoDefinition::METHOD => self.text_document_definition(&params),
-            request::References::METHOD => self.text_document_references(&params),
-            request::Formatting::METHOD => self.text_document_formatting(&params),
-            request::RangeFormatting::METHOD => self.text_document_range_formatting(&params),
-            request::CodeLensRequest::METHOD => self.text_document_code_lens(&params),
-            request::ResolveCompletionItem::METHOD => self.completion_item_resolve(&params),
-            request::ExecuteCommand::METHOD => self.workspace_execute_command(&params),
-            request::ApplyWorkspaceEdit::METHOD => self.workspace_apply_edit(&params),
-            request::SemanticTokensFullRequest::METHOD => {
-                self.text_document_semantic_tokens_full(&params)
-            }
-            request::Shutdown::METHOD => self.shutdown(&params),
-            request::DocumentHighlightRequest::METHOD => {
-                self.text_document_document_highlight(&params)
-            }
+            request::ShowMessageRequest::METHOD => window::show_message_request(self, &params),
+            request::ResolveCompletionItem::METHOD => completion_item::resolve(self, &params),
+            request::Shutdown::METHOD => lsp::shutdown(self, &params),
             // Extensions.
             REQUEST_FIND_LOCATIONS => self.find_locations(&params),
             REQUEST_GET_STATE => self.get_client_state(&params),
@@ -180,39 +185,39 @@ impl LanguageClient {
 
         match notification.method.as_str() {
             notification::DidChangeConfiguration::METHOD => {
-                self.workspace_did_change_configuration(&params)?
+                workspace::did_change_configuration(self, &params)?
             }
             notification::DidOpenTextDocument::METHOD => {
-                self.text_document_did_open(&params)?;
+                text_document::did_open(self, &params)?;
             }
             notification::DidChangeTextDocument::METHOD => {
-                self.text_document_did_change(&params)?;
+                text_document::did_change(self, &params)?;
             }
             notification::DidSaveTextDocument::METHOD => {
-                self.text_document_did_save(&params)?;
+                text_document::did_save(self, &params)?;
             }
-            notification::DidCloseTextDocument::METHOD => self.text_document_did_close(&params)?,
+            notification::DidCloseTextDocument::METHOD => text_document::did_close(self, &params)?,
             notification::PublishDiagnostics::METHOD => {
-                self.text_document_publish_diagnostics(&params)?
+                text_document::publish_diagnostics(self, &params)?
             }
-            notification::Progress::METHOD => self.progress(&params)?,
-            notification::LogMessage::METHOD => self.window_log_message(&params)?,
-            notification::ShowMessage::METHOD => self.window_show_message(&params)?,
-            notification::Exit::METHOD => self.exit(&params)?,
+            notification::Progress::METHOD => dollar::progress(self, &params)?,
+            notification::LogMessage::METHOD => window::log_message(self, &params)?,
+            notification::ShowMessage::METHOD => window::show_message(self, &params)?,
+            notification::Exit::METHOD => lsp::exit(self, &params)?,
             // Extensions.
             NOTIFICATION_HANDLE_FILE_TYPE => {
                 self.handle_file_type(&params)?;
-                self.text_document_semantic_tokens_full(&params)?;
+                text_document::semantic_tokens_full(self, &params)?;
             }
             NOTIFICATION_HANDLE_BUF_NEW_FILE => self.handle_buf_new_file(&params)?,
             NOTIFICATION_HANDLE_BUF_ENTER => {
                 self.handle_buf_enter(&params)?;
-                self.text_document_semantic_tokens_full(&params)?;
+                text_document::semantic_tokens_full(self, &params)?;
             }
             NOTIFICATION_HANDLE_TEXT_CHANGED => self.handle_text_changed(&params)?,
             NOTIFICATION_HANDLE_BUF_WRITE_POST => {
                 self.handle_buf_write_post(&params)?;
-                self.text_document_semantic_tokens_full(&params)?;
+                text_document::semantic_tokens_full(self, &params)?;
             }
             NOTIFICATION_HANDLE_BUF_DELETE => self.handle_buf_delete(&params)?,
             NOTIFICATION_HANDLE_CURSOR_MOVED => self.handle_cursor_moved(&params, false)?,
@@ -221,15 +226,20 @@ impl LanguageClient {
             NOTIFICATION_FZF_SINK_COMMAND => self.fzf_sink_command(&params)?,
             NOTIFICATION_CLEAR_DOCUMENT_HL => self.clear_document_highlight(&params)?,
             NOTIFICATION_LANGUAGE_STATUS => self.language_status(&params)?,
-            NOTIFICATION_WINDOW_PROGRESS => self.window_progress(&params)?,
             NOTIFICATION_SERVER_EXITED => self.handle_server_exited(&params)?,
-            NOTIFICATION_RUST_BEGIN_BUILD => self.rust_handle_begin_build(&params)?,
-            NOTIFICATION_RUST_DIAGNOSTICS_BEGIN => self.rust_handle_diagnostics_begin(&params)?,
-            NOTIFICATION_RUST_DIAGNOSTICS_END => self.rust_handle_diagnostics_end(&params)?,
             NOTIFICATION_DIAGNOSTICS_NEXT => self.cycle_diagnostics(&params, Direction::Next)?,
             NOTIFICATION_DIAGNOSTICS_PREVIOUS => {
                 self.cycle_diagnostics(&params, Direction::Previous)?
             }
+
+            rls::notification::RUST_DOCUMENT_DIAGNOSTICS_BEGIN => {
+                self.rls_handle_diagnostics_begin(&params)?
+            }
+            rls::notification::RUST_DOCUMENT_DIAGNOSTICS_END => {
+                self.rls_handle_diagnostics_end(&params)?
+            }
+            rls::notification::RUST_DOCUMENT_BEGIN_BUILD => self.rls_handle_begin_build(&params)?,
+            rls::notification::WINDOW_PROGRESS => self.rls_window_progress(&params)?,
 
             _ => {
                 let language_id_target = if language_id.is_some() {

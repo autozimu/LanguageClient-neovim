@@ -4,7 +4,7 @@ use crate::{
     language_client::LanguageClient,
     utils::{code_action_kind_as_str, ToUrl},
     vim::Vim,
-    watcher::FSWatch,
+    watcher::FsWatch,
 };
 use crate::{viewport::Viewport, vim::Highlight};
 use anyhow::{anyhow, Result};
@@ -34,14 +34,20 @@ use std::{
 };
 use thiserror::Error;
 
+#[derive(PartialEq)]
+pub enum Direction {
+    Next,
+    Previous,
+}
+
 #[derive(Debug, Error, PartialEq)]
-pub enum LSError {
+pub enum LanguageServerError {
     #[error("Content Modified")]
     ContentModified,
 }
 
 #[derive(Debug, Error)]
-pub enum LCError {
+pub enum LanguageClientError {
     #[error("No language server commands found for filetype: {}", language_id)]
     NoServerCommands { language_id: String },
     #[error("Language server is not running for: {}", language_id)]
@@ -77,10 +83,6 @@ pub const NOTIFICATION_FZF_SINK_LOCATION: &str = "LanguageClient_FZFSinkLocation
 pub const NOTIFICATION_FZF_SINK_COMMAND: &str = "LanguageClient_FZFSinkCommand";
 pub const NOTIFICATION_SERVER_EXITED: &str = "$languageClient/serverExited";
 pub const NOTIFICATION_CLEAR_DOCUMENT_HL: &str = "languageClient/clearDocumentHighlight";
-pub const NOTIFICATION_RUST_BEGIN_BUILD: &str = "rustDocument/beginBuild";
-pub const NOTIFICATION_RUST_DIAGNOSTICS_BEGIN: &str = "rustDocument/diagnosticsBegin";
-pub const NOTIFICATION_RUST_DIAGNOSTICS_END: &str = "rustDocument/diagnosticsEnd";
-pub const NOTIFICATION_WINDOW_PROGRESS: &str = "window/progress";
 pub const NOTIFICATION_LANGUAGE_STATUS: &str = "language/status";
 pub const NOTIFICATION_DIAGNOSTICS_NEXT: &str = "languageClient/diagnosticsNext";
 pub const NOTIFICATION_DIAGNOSTICS_PREVIOUS: &str = "languageClient/diagnosticsPrevious";
@@ -187,7 +189,7 @@ pub struct State {
     /// specific, and user_handlers is global, the handlers are ran for all language servers.
     pub custom_handlers: HashMap<String, HashMap<String, String>>,
     #[serde(skip_serializing)]
-    pub watchers: HashMap<String, FSWatch>,
+    pub watchers: HashMap<String, FsWatch>,
     #[serde(skip_serializing)]
     pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 
@@ -256,26 +258,26 @@ impl State {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum SelectionUI {
+pub enum SelectionUi {
     Funcref,
     Quickfix,
     LocationList,
 }
 
-impl Default for SelectionUI {
+impl Default for SelectionUi {
     fn default() -> Self {
-        SelectionUI::LocationList
+        SelectionUi::LocationList
     }
 }
 
-impl FromStr for SelectionUI {
+impl FromStr for SelectionUi {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
-            "FUNCREF" | "FZF" => Ok(SelectionUI::Funcref),
-            "QUICKFIX" => Ok(SelectionUI::Quickfix),
-            "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
+            "FUNCREF" | "FZF" => Ok(SelectionUi::Funcref),
+            "QUICKFIX" => Ok(SelectionUi::Quickfix),
+            "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUi::LocationList),
             _ => Err(anyhow!(
                 "Invalid option for LanguageClient_selectionUI: {}",
                 s
@@ -284,16 +286,16 @@ impl FromStr for SelectionUI {
     }
 }
 
-pub enum LCNamespace {
+pub enum LanguageClientNamespace {
     VirtualText,
     SemanticHighlight,
 }
 
-impl LCNamespace {
+impl LanguageClientNamespace {
     pub fn name(&self) -> String {
         match self {
-            LCNamespace::VirtualText => "LanguageClient_VirtualText".into(),
-            LCNamespace::SemanticHighlight => "LanguageClient_SemanticHighlight".into(),
+            LanguageClientNamespace::VirtualText => "LanguageClient_VirtualText".into(),
+            LanguageClientNamespace::SemanticHighlight => "LanguageClient_SemanticHighlight".into(),
         }
     }
 }
@@ -490,7 +492,7 @@ pub struct QuickfixEntry {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NCMInfo {
+pub struct NcmInfo {
     pub name: String,
     pub abbreviation: String,
     pub enable: u64,
@@ -505,7 +507,7 @@ pub struct NCMInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NCMContext {
+pub struct NcmContext {
     pub bufnr: u64,
     pub lnum: u32,
     pub col: u32,
@@ -526,13 +528,13 @@ pub struct NCMContext {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NCMRefreshParams {
-    pub info: NCMInfo,
-    pub ctx: NCMContext,
+pub struct NcmRefreshParams {
+    pub info: NcmInfo,
+    pub ctx: NcmContext,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NCM2Context {
+pub struct Ncm2Context {
     pub bufnr: u64,
     pub lnum: u32,
     pub ccol: u32,
@@ -814,9 +816,7 @@ impl ToDisplay for Hover {
                 .iter()
                 .flat_map(|ms| {
                     if let MarkedString::LanguageString(ref ls) = ms {
-                        let mut buf = Vec::new();
-
-                        buf.push(format!("```{}", ls.language));
+                        let mut buf = vec![format!("```{}", ls.language)];
                         buf.extend(ls.value.lines().map(String::from));
                         buf.push("```".to_string());
 
@@ -977,14 +977,6 @@ pub enum RootMarkers {
     Map(HashMap<String, Vec<String>>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WindowProgressParams {
-    pub title: Option<String>,
-    pub message: Option<String>,
-    pub percentage: Option<f64>,
-    pub done: Option<bool>,
-}
-
 pub trait Filepath {
     fn filepath(&self) -> Result<PathBuf>;
 }
@@ -1009,11 +1001,11 @@ impl Default for TextDocumentItemMetadata {
     }
 }
 
-pub trait ToLSP<T> {
+pub trait ToLsp<T> {
     fn to_lsp(&self) -> Result<T>;
 }
 
-impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
+impl ToLsp<Vec<FileEvent>> for notify::DebouncedEvent {
     fn to_lsp(&self) -> Result<Vec<FileEvent>> {
         match self {
             notify::DebouncedEvent::Create(p) => Ok(vec![FileEvent {

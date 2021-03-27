@@ -1,8 +1,8 @@
 mod config;
 mod extensions;
 mod language_client;
-mod language_server_protocol;
 mod logger;
+mod lsp;
 mod rpcclient;
 mod rpchandler;
 mod sign;

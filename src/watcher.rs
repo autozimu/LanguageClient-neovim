@@ -163,7 +163,7 @@ enum UnwatchInfo {
     File(PathBuf, String),
 }
 
-pub struct FSWatch {
+pub struct FsWatch {
     dirs: Arc<Mutex<HashMap<PathBuf, DirWatch>>>,
     watcher: notify::RecommendedWatcher,
 
@@ -175,7 +175,7 @@ pub struct FSWatch {
     unwatch_info: HashMap<PathBuf, UnwatchInfo>,
 }
 
-impl FSWatch {
+impl FsWatch {
     pub fn new(event_sink: mpsc::Sender<DebouncedEvent>, delay: Duration) -> Result<Self> {
         let (funnel_tx, funnel_rx) = mpsc::channel();
         let dirs = Arc::new(Mutex::new(HashMap::new()));
