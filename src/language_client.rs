@@ -527,75 +527,76 @@ impl LanguageClient {
         })?;
 
         if !self.get_config(|c| c.is_nvim)? {
-            // Clear old highlights.
-            let ids = self.get_state(|state| state.highlight_match_ids.clone())?;
-            self.vim()?
-                .rpcclient
-                .notify("s:MatchDelete", json!([ids]))?;
-
-            // Group diagnostics by severity so we can highlight them
-            // in a single call.
-            let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
-
-            for dn in diagnostics {
-                let severity = dn.severity.unwrap_or(DiagnosticSeverity::Hint).to_int()?;
-                match_groups
-                    .entry(severity)
-                    .or_insert_with(Vec::new)
-                    .push(dn);
-            }
-
-            let mut new_match_ids = Vec::new();
-
-            for (severity, dns) in match_groups {
-                let hl_group = diagnostics_display
-                    .get(&severity)
-                    .ok_or_else(|| anyhow!("Failed to get display"))?
-                    .texthl
-                    .clone();
-                let ranges: Vec<Vec<_>> = dns
-                    .iter()
-                    .flat_map(|dn| {
-                        if dn.range.start.line == dn.range.end.line {
-                            let length = dn.range.end.character - dn.range.start.character;
-                            // Vim line numbers are 1 off
-                            // `matchaddpos` expects an array of [line, col, length]
-                            // for each match.
-                            vec![vec![
-                                dn.range.start.line + 1,
-                                dn.range.start.character + 1,
-                                length,
-                            ]]
-                        } else {
-                            let mut middle_lines: Vec<_> = (dn.range.start.line + 1
-                                ..dn.range.end.line)
-                                .map(|l| vec![l + 1])
-                                .collect();
-                            let start_line = vec![
-                                dn.range.start.line + 1,
-                                dn.range.start.character + 1,
-                                999_999, //Clear to the end of the line
-                            ];
-                            let end_line =
-                                vec![dn.range.end.line + 1, 1, dn.range.end.character + 1];
-                            middle_lines.push(start_line);
-                            // For a multi-ringe range ending at the exact start of the last line,
-                            // don't highlight the first character of the last line.
-                            if dn.range.end.character > 0 {
-                                middle_lines.push(end_line);
-                            }
-                            middle_lines
-                        }
-                    })
-                    .collect();
-
-                let match_id = self
-                    .vim()?
-                    .rpcclient
-                    .call("matchaddpos", json!([hl_group, ranges]))?;
-                new_match_ids.push(match_id);
-            }
+            // this needs to be in this locked block so that notifications that arrive too close to
+            // each other do not have the chance to cause any race conditions.
             self.update_state(|state| {
+                // Clear old highlights.
+                let ids = state.highlight_match_ids.clone();
+                state.vim.rpcclient.notify("s:MatchDelete", json!([ids]))?;
+
+                // Group diagnostics by severity so we can highlight them
+                // in a single call.
+                let mut match_groups: HashMap<_, Vec<_>> = HashMap::new();
+
+                for dn in diagnostics {
+                    let severity = dn.severity.unwrap_or(DiagnosticSeverity::Hint).to_int()?;
+                    match_groups
+                        .entry(severity)
+                        .or_insert_with(Vec::new)
+                        .push(dn);
+                }
+
+                let mut new_match_ids = Vec::new();
+
+                for (severity, dns) in match_groups {
+                    let hl_group = diagnostics_display
+                        .get(&severity)
+                        .ok_or_else(|| anyhow!("Failed to get display"))?
+                        .texthl
+                        .clone();
+                    let ranges: Vec<Vec<_>> = dns
+                        .iter()
+                        .flat_map(|dn| {
+                            if dn.range.start.line == dn.range.end.line {
+                                let length = dn.range.end.character - dn.range.start.character;
+                                // Vim line numbers are 1 off
+                                // `matchaddpos` expects an array of [line, col, length]
+                                // for each match.
+                                vec![vec![
+                                    dn.range.start.line + 1,
+                                    dn.range.start.character + 1,
+                                    length,
+                                ]]
+                            } else {
+                                let mut middle_lines: Vec<_> = (dn.range.start.line + 1
+                                    ..dn.range.end.line)
+                                    .map(|l| vec![l + 1])
+                                    .collect();
+                                let start_line = vec![
+                                    dn.range.start.line + 1,
+                                    dn.range.start.character + 1,
+                                    999_999, //Clear to the end of the line
+                                ];
+                                let end_line =
+                                    vec![dn.range.end.line + 1, 1, dn.range.end.character + 1];
+                                middle_lines.push(start_line);
+                                // For a multi-ringe range ending at the exact start of the last line,
+                                // don't highlight the first character of the last line.
+                                if dn.range.end.character > 0 {
+                                    middle_lines.push(end_line);
+                                }
+                                middle_lines
+                            }
+                        })
+                        .collect();
+
+                    let match_id = state
+                        .vim
+                        .rpcclient
+                        .call("matchaddpos", json!([hl_group, ranges]))?;
+                    new_match_ids.push(match_id);
+                }
+
                 state.highlight_match_ids = new_match_ids;
                 Ok(())
             })?;
