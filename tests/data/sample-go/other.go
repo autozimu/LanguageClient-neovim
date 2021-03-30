@@ -1,8 +1,8 @@
 package main
 
-import "log"
+import "fmt"
 
 func otherYo() string {
-	log.Println(greet())
+	fmt.Println(greet())
 	return "yo"
 }

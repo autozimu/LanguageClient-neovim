@@ -22,7 +22,7 @@ def join_path(path: str) -> str:
 
 
 PATH_MAIN_GO = join_path("data/sample-go/main.go")
-print(PATH_MAIN_GO)
+PATH_OTHER_GO = join_path("data/sample-go/other.go")
 
 
 def assertRetry(predicate, retry_max=100):
@@ -161,13 +161,14 @@ def test_workspace_symbol(nvim):
 
 
 def test_textDocument_references(nvim):
+    nvim.command("edit! {}".format(PATH_OTHER_GO))
     nvim.command("edit! {}".format(PATH_MAIN_GO))
     time.sleep(1)
     nvim.funcs.cursor(13, 6)
     nvim.funcs.LanguageClient_textDocument_references()
-    time.sleep(3)
+    time.sleep(1)
     expect = ["func greet() int32 {", "log.Println(greet())",
-              "log.Println(greet())"]
+              "fmt.Println(greet())"]
 
     assert [location["text"]
             for location in nvim.funcs.getloclist(0)] == expect
@@ -212,26 +213,6 @@ def test_languageClient_registerHandlers(nvim):
                  "{'window/progress': 'HandleWindowProgress'}, g:responses)")
     time.sleep(1)
     assert nvim.vars['responses'][0]['result'] is None
-
-
-# def test_languageClient_textDocument_codeAction(nvim):
-#     nvim.command("edit {}".format(PATH_CODEACTION))
-#     nvim.funcs.cursor(4, 14)
-#     assertRetry(lambda: len(nvim.funcs.getqflist()) == 1)
-
-#     nvim.funcs.LanguageClient_textDocument_codeAction()
-#     # Wait for fzf window showup.
-#     assertRetry(lambda:
-#                 next((b for b in nvim.buffers
-#                       if b.name.startswith('term://')), None) is not None)
-#     time.sleep(0.2)
-#     nvim.eval('feedkeys("\<CR>")')
-#     # Wait for fzf window dismiss.
-#     assertRetry(lambda:
-#                 next((b for b in nvim.buffers
-#                       if b.name.startswith('term://')), None) is None)
-
-#     assertRetry(lambda: len(nvim.funcs.getqflist()) == 0)
 
 
 def _open_float_window(nvim):
