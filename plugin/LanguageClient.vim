@@ -175,6 +175,24 @@ function! s:OnFileType()
   call s:ConfigureAutocmds()
 endfunction
 
+function! s:AfterFormat(...) abort
+  noautocmd w
+endfunction
+
+function! s:FormatTextDocument(...)
+  if !LanguageClient#HasCommand(&filetype)
+    return
+  endif
+
+  let l:format_on_save = get(g:, 'LanguageClient_formatOnSave', [])
+  echom index(l:format_on_save, '*') ==# -1
+  if index(l:format_on_save, &filetype) ==# -1 && index(l:format_on_save, '*') ==# -1
+    return 
+  endif
+
+  noautocmd call LanguageClient#textDocument_formatting({}, funcref('s:AfterFormat'))
+endfunction
+
 function! s:ConfigureAutocmds()
   augroup languageClient
     autocmd!
@@ -195,6 +213,10 @@ function! s:ConfigureAutocmds()
     endif
     if exists('##CompleteChanged') && get(g:, 'LanguageClient_showCompletionDocs', 1)
       autocmd CompleteChanged <buffer> call LanguageClient#handleCompleteChanged(deepcopy(v:event))
+    endif
+
+    if len(get(g:, 'LanguageClient_formatOnSave', [])) != 0
+      autocmd BufWritePre <buffer> call  s:FormatTextDocument()
     endif
 
     nnoremap <Plug>(lcn-menu)               :call LanguageClient_contextMenu()<CR>

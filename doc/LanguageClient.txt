@@ -700,6 +700,24 @@ Default: []
 For a full list of the possible token types (name) see the LSP documentation:
 https://microsoft.github.io/language-server-protocol/specifications/specification-current/
 
+2.48 g:LanguageClient_formatOnSave *g:LanguageClient_formatOnSave*
+
+A list of filetypes for which you want to run format after saving the buffer.
+If you include '*' in this list, format will be run on any filetype, ignoring
+any other values in the list.
+
+Default: []
+
+Example:
+
+Format only go and rust filetypes:
+>
+  let g:LanguageClient_formatOnSave = ['go', 'rust']
+
+Format all filetypes:
+>
+  let g:LanguageClient_formatOnSave = ['*']
+
 ==============================================================================
 3. Commands                                           *LanguageClientCommands*
 
