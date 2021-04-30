@@ -1,7 +1,7 @@
 use crate::{
     rpcclient::RpcClient,
     sign::Sign,
-    types::{Bufnr, Pos, QuickfixEntry, TagStack, TagStackItem, VimExp, VirtualText, Winnr},
+    types::{Bufnr, QuickfixEntry, TagStack, TagStackItem, VimExp, VirtualText, Winnr},
     utils::Canonicalize,
     viewport::Viewport,
 };
@@ -282,27 +282,10 @@ impl Vim {
         self.rpcclient.call("s:set_signs", json!([filename, signs]))
     }
 
-    pub fn update_tagstack(
-        &self,
-        winnr: Winnr,
-        bufnr: Bufnr,
-        lnum: u32,
-        col: u32,
-        tagname: &str,
-    ) -> Result<()> {
+    pub fn update_tagstack(&self, winnr: Winnr, item: TagStackItem) -> Result<()> {
         let mut stack: TagStack = self.rpcclient.call("gettagstack", ())?;
         stack.items.clear();
-        stack.items.push(TagStackItem {
-            bufnr,
-            from: Pos {
-                bufnr,
-                lnum,
-                col,
-                off,
-            },
-            matchnr: None,
-            tagname: tagname.to_string(),
-        });
+        stack.items.push(item);
         self.rpcclient
             .notify("settagstack", json!([winnr, stack, "t"]))
     }

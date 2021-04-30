@@ -1072,10 +1072,17 @@ impl LanguageClient {
             1 => {
                 self.vim()?.update_tagstack(
                     winnr,
-                    bufnr,
-                    position.line + 1,
-                    position.character + 1,
-                    &current_word,
+                    TagStackItem {
+                        bufnr,
+                        from: Pos {
+                            bufnr,
+                            lnum: position.line + 1,
+                            col: position.character + 1,
+                            off: 0,
+                        },
+                        matchnr: None,
+                        tagname: current_word.clone(),
+                    },
                 )?;
 
                 let loc = locations.get(0).ok_or_else(|| anyhow!("Not found!"))?;
