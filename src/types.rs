@@ -22,6 +22,7 @@ use maplit::hashmap;
 use pathdiff::diff_paths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_tuple::{Deserialize_tuple, Serialize_tuple};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, BufWriter, Write},
@@ -1200,4 +1201,27 @@ pub struct VirtualText {
 pub struct WorkspaceEditWithCursor {
     pub workspace_edit: WorkspaceEdit,
     pub cursor_position: Option<TextDocumentPositionParams>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagStack {
+    pub curidx: u32,
+    pub items: Vec<TagStackItem>,
+    pub length: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagStackItem {
+    pub bufnr: Bufnr,
+    pub from: Pos,
+    pub matchnr: Option<u32>,
+    pub tagname: String,
+}
+
+#[derive(Debug, Serialize_tuple, Deserialize_tuple)]
+pub struct Pos {
+    pub bufnr: Bufnr,
+    pub lnum: u32,
+    pub col: u32,
+    pub off: u32,
 }
