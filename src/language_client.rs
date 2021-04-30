@@ -1094,7 +1094,7 @@ impl LanguageClient {
                             off: 0,
                         },
                         matchnr: None,
-                        tagname: current_word.clone(),
+                        tagname: current_word,
                     },
                 )?;
             }
