@@ -1036,6 +1036,8 @@ impl LanguageClient {
         let position = self.vim()?.get_position(params)?;
         let current_word = self.vim()?.get_current_word(params)?;
         let goto_cmd = self.vim()?.get_goto_cmd(params)?;
+        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+        let winnr = self.vim()?.get_winnr(params)?;
 
         let params = serde_json::to_value(TextDocumentPositionParams {
             text_document: TextDocumentIdentifier {
@@ -1068,6 +1070,16 @@ impl LanguageClient {
         match locations.len() {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
+                // update the tag stack
+                self.vim()?.appendtagstack(
+                    winnr,
+                    bufnr,
+                    position.line + 1,
+                    position.character + 1,
+                    0,
+                    &current_word,
+                )?;
+
                 let loc = locations.get(0).ok_or_else(|| anyhow!("Not found!"))?;
                 let path = loc.uri.filepath()?.to_string_lossy().into_owned();
                 self.edit(&goto_cmd, path)?;

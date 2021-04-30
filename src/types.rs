@@ -110,6 +110,8 @@ pub type Id = u64;
 pub type LanguageId = Option<String>;
 /// Buffer id/handle.
 pub type Bufnr = i64;
+/// Window id/handle.
+pub type Winnr = u32;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {

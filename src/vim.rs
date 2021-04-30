@@ -1,7 +1,7 @@
 use crate::{
     rpcclient::RpcClient,
     sign::Sign,
-    types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
+    types::{Bufnr, QuickfixEntry, VimExp, VirtualText, Winnr},
     utils::Canonicalize,
     viewport::Viewport,
 };
@@ -129,6 +129,12 @@ impl Vim {
         let key = "bufnr";
 
         try_get(key, params)?.map_or_else(|| self.eval(format!("bufnr('{}')", filename)), Ok)
+    }
+
+    pub fn get_winnr(&self, params: &Value) -> Result<Winnr> {
+        let key = "winnr";
+
+        try_get(key, params)?.map_or_else(|| self.eval("winnr()"), Ok)
     }
 
     pub fn get_viewport(&self, params: &Value) -> Result<Viewport> {
@@ -274,5 +280,22 @@ impl Vim {
 
     pub fn set_signs(&self, filename: &str, signs: &[Sign]) -> Result<i8> {
         self.rpcclient.call("s:set_signs", json!([filename, signs]))
+    }
+
+    pub fn appendtagstack(
+        &self,
+        winnr: Winnr,
+        bufnr: Bufnr,
+        lnum: u32,
+        col: u32,
+        off: u32,
+        tagname: &str,
+    ) -> Result<()> {
+        let mut stack: Value = self.rpcclient.call("gettagstack", ())?;
+        let items = stack.get_mut("items").unwrap().as_array_mut().unwrap();
+        items.clear();
+        items.push(json!({"bufnr": bufnr, "from": [bufnr, lnum, col, off], "tagname": tagname}));
+        self.rpcclient
+            .notify("settagstack", json!([winnr, stack, "a"]))
     }
 }
