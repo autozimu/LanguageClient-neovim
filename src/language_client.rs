@@ -1070,8 +1070,7 @@ impl LanguageClient {
         match locations.len() {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
-                // update the tag stack
-                self.vim()?.appendtagstack(
+                self.vim()?.update_tagstack(
                     winnr,
                     bufnr,
                     position.line + 1,

@@ -282,7 +282,7 @@ impl Vim {
         self.rpcclient.call("s:set_signs", json!([filename, signs]))
     }
 
-    pub fn appendtagstack(
+    pub fn update_tagstack(
         &self,
         winnr: Winnr,
         bufnr: Bufnr,
