@@ -1070,6 +1070,19 @@ impl LanguageClient {
         match locations.len() {
             0 => self.vim()?.echowarn("Not found!")?,
             1 => {
+                let loc = locations.get(0).ok_or_else(|| anyhow!("Not found!"))?;
+                let path = loc.uri.filepath()?.to_string_lossy().into_owned();
+                self.edit(&goto_cmd, path)?;
+                self.vim()?
+                    .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
+                let cur_file: String = self.vim()?.eval("expand('%')")?;
+                self.vim()?.echomsg_ellipsis(format!(
+                    "{} {}:{}",
+                    cur_file,
+                    loc.range.start.line + 1,
+                    loc.range.start.character + 1
+                ))?;
+
                 self.vim()?.update_tagstack(
                     winnr,
                     TagStackItem {
@@ -1084,19 +1097,6 @@ impl LanguageClient {
                         tagname: current_word.clone(),
                     },
                 )?;
-
-                let loc = locations.get(0).ok_or_else(|| anyhow!("Not found!"))?;
-                let path = loc.uri.filepath()?.to_string_lossy().into_owned();
-                self.edit(&goto_cmd, path)?;
-                self.vim()?
-                    .cursor(loc.range.start.line + 1, loc.range.start.character + 1)?;
-                let cur_file: String = self.vim()?.eval("expand('%')")?;
-                self.vim()?.echomsg_ellipsis(format!(
-                    "{} {}:{}",
-                    cur_file,
-                    loc.range.start.line + 1,
-                    loc.range.start.character + 1
-                ))?;
             }
             _ => {
                 let title = format!("[LC]: search for {}", current_word);
