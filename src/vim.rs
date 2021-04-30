@@ -288,7 +288,6 @@ impl Vim {
         bufnr: Bufnr,
         lnum: u32,
         col: u32,
-        off: u32,
         tagname: &str,
     ) -> Result<()> {
         let mut stack: TagStack = self.rpcclient.call("gettagstack", ())?;

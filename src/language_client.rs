@@ -1075,7 +1075,6 @@ impl LanguageClient {
                     bufnr,
                     position.line + 1,
                     position.character + 1,
-                    0,
                     &current_word,
                 )?;
 
