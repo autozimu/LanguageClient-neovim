@@ -286,7 +286,6 @@ impl Vim {
         let mut stack: TagStack = self.rpcclient.call("gettagstack", winnr)?;
         stack.items.clear();
         stack.items.push(item);
-        self.rpcclient
-            .notify("settagstack", json!([winnr, stack, "t"]))
+        self.rpcclient.notify("settagstack", (winnr, stack, "t"))
     }
 }
