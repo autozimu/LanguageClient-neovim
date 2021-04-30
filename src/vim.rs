@@ -283,7 +283,7 @@ impl Vim {
     }
 
     pub fn update_tagstack(&self, winnr: Winnr, item: TagStackItem) -> Result<()> {
-        let mut stack: TagStack = self.rpcclient.call("gettagstack", ())?;
+        let mut stack: TagStack = self.rpcclient.call("gettagstack", winnr)?;
         stack.items.clear();
         stack.items.push(item);
         self.rpcclient
