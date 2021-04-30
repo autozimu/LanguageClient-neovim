@@ -305,6 +305,6 @@ impl Vim {
             tagname: tagname.to_string(),
         });
         self.rpcclient
-            .notify("settagstack", json!([winnr, stack, "a"]))
+            .notify("settagstack", json!([winnr, stack, "t"]))
     }
 }
