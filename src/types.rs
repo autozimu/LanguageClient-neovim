@@ -1218,6 +1218,10 @@ pub struct TagStackItem {
     pub tagname: String,
 }
 
+/// This represents a position in a buffer.
+///
+/// Vim returns this as a List from the `getpos()` function. It is also used as the `from` value in
+/// tag stack items.
 #[derive(Debug, Serialize_tuple, Deserialize_tuple)]
 pub struct Pos {
     pub bufnr: Bufnr,
