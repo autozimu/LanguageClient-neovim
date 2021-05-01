@@ -1,8 +1,13 @@
-use crate::types;
-use crate::{language_client::LanguageClient, types::WorkspaceEditWithCursor, utils::ToUrl};
+use crate::{
+    language_client::LanguageClient,
+    types::{self, WorkspaceEditWithCursor},
+    utils::ToUrl,
+};
 use anyhow::{anyhow, Result};
+use core::iter;
 use jsonrpc_core::Value;
 use lsp_types::{request::Request, Command, Location, Range, TextDocumentIdentifier};
+use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -47,14 +52,14 @@ enum GenericRunnableKind {
     Cargo,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum InlayKind {
     TypeHint,
-    ParameterHint,
     ChainingHint,
+    ParameterHint,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InlayHint {
     pub range: Range,
     pub kind: InlayKind,
@@ -98,39 +103,173 @@ const FILETYPE: &str = "rust";
 pub const SERVER_NAME: &str = "rust-analyzer";
 
 impl LanguageClient {
-    pub fn rust_analyzer_inlay_hints(&self, filename: &str) -> Result<Vec<types::InlayHint>> {
-        let inlay_hints_enabled = self.get_state(|state| {
+    // join hints which belong to the same hint kind
+    fn join_inlay_hints(inlay_hints: &[&InlayHint], prefix: &str, postfix: &str) -> Vec<InlayHint> {
+        let indices: Vec<usize> = iter::once(0)
+            .chain(
+                inlay_hints
+                    .windows(2)
+                    .enumerate()
+                    .filter(|(_, pair)| pair[0].range.end.line != pair[1].range.end.line)
+                    .map(|(i, _)| i + 1),
+            )
+            .collect();
+        indices
+            .windows(2)
+            .map(|pair| &inlay_hints[pair[0]..pair[1]])
+            .map(|hints| InlayHint {
+                label: prefix.to_string()
+                    + &hints
+                        .iter()
+                        .map(|hint| hint.label.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+                    + postfix,
+                range: hints[0].range,
+                kind: hints[0].kind.clone(),
+            })
+            .collect()
+    }
+
+    fn join_hint_groups(inlay_hints: &[InlayHint], groups_sep: &str) -> Vec<types::InlayHint> {
+        let indices: Vec<usize> = iter::once(0)
+            .chain(
+                inlay_hints
+                    .windows(2)
+                    .enumerate()
+                    .filter(|(_, pair)| pair[0].range.end.line != pair[1].range.end.line)
+                    .map(|(i, _)| i + 1),
+            )
+            .collect();
+        indices
+            .windows(2)
+            .map(|pair| &inlay_hints[pair[0]..pair[1]])
+            .map(|hints| types::InlayHint {
+                label: hints
+                    .iter()
+                    .map(|hint| hint.label.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(groups_sep),
+                range: hints[0].range,
+            })
+            .collect()
+    }
+
+    fn get_init_option(&self, opt_pointer: &str) -> Option<Value> {
+        self.get_state(|state| {
             state
                 .initialization_options
                 .get(SERVER_NAME)
-                .as_ref()
-                .map(|opt| {
-                    opt.pointer("/inlayHints/enable")
-                        .unwrap_or(&Value::Bool(false))
-                        == &Value::Bool(true)
-                })
-                .unwrap_or_default()
-        })?;
-        if !inlay_hints_enabled {
-            return Ok(vec![]);
-        }
+                .and_then(|opt| opt.pointer(opt_pointer).cloned())
+        })
+        .unwrap()
+    }
 
-        let result: Vec<InlayHint> = self.get_client(&Some(FILETYPE.into()))?.call(
+    fn get_bool_init_option(&self, opt_pointer: &str) -> Option<bool> {
+        self.get_init_option(opt_pointer)
+            .map(|f| f == Value::Bool(true))
+    }
+
+    fn get_inlay_hints(&self, filename: &str) -> Result<Vec<InlayHint>> {
+        self.get_client(&Some(FILETYPE.into()))?.call(
             request::InlayHintsRequest::METHOD,
             InlayHintsParams {
                 text_document: TextDocumentIdentifier {
                     uri: filename.to_string().to_url()?,
                 },
             },
-        )?;
+        )
+    }
 
-        // we are only able to display chaining hints at the moment, as we can't place virtual texts in
-        // between words
-        Ok(result
-            .into_iter()
-            .filter(|h| h.kind == InlayKind::ChainingHint)
-            .map(InlayHint::into)
-            .collect())
+    fn shorten_chain_hint(chain_hint: &InlayHint) -> InlayHint {
+        lazy_static! {
+            static ref IMPL_ITERATOR_REGEX: Regex =
+                Regex::new("impl Iterator<Item = (.*)>").unwrap();
+        }
+        InlayHint {
+            label: IMPL_ITERATOR_REGEX
+                .replace(&chain_hint.label, |caps: &Captures| {
+                    format!("Iterator<{}>", &caps[1])
+                })
+                .to_string(),
+            range: chain_hint.range,
+            kind: chain_hint.kind.clone(),
+        }
+    }
+
+    fn process_chain_hints(inlay_hints: &[InlayHint]) -> Vec<InlayHint> {
+        let chain_hints: Vec<InlayHint> = inlay_hints
+            .iter()
+            .filter(|hint| hint.kind == InlayKind::ChainingHint)
+            .map(Self::shorten_chain_hint)
+            .collect();
+        let mut chain_hint_refs: Vec<&InlayHint> = chain_hints.iter().collect();
+        chain_hint_refs.sort_unstable_by_key(|h| (h.range.end.line, h.range.end.character));
+        Self::join_inlay_hints(&chain_hint_refs, "", "")
+    }
+
+    fn process_type_hints(inlay_hints: &[InlayHint]) -> Vec<InlayHint> {
+        let mut type_hints: Vec<&InlayHint> = inlay_hints
+            .iter()
+            .filter(|hint| hint.kind == InlayKind::TypeHint)
+            .collect();
+        type_hints.sort_unstable_by_key(|h| (h.range.end.line, h.range.end.character));
+        Self::join_inlay_hints(&type_hints, ": ", "")
+    }
+
+    fn process_param_hints(inlay_hints: &[InlayHint]) -> Vec<InlayHint> {
+        let mut param_hints: Vec<&InlayHint> = inlay_hints
+            .iter()
+            .filter(|hint| hint.kind == InlayKind::ParameterHint)
+            .collect();
+        param_hints.sort_unstable_by_key(|h| (h.range.end.line, h.range.end.character));
+        Self::join_inlay_hints(&param_hints, "𝑓(", ")")
+    }
+
+    pub fn rust_analyzer_inlay_hints(&self, filename: &str) -> Result<Vec<types::InlayHint>> {
+        if !self
+            .get_bool_init_option("/inlayHints/enable")
+            .unwrap_or(true)
+        {
+            return Ok(vec![]);
+        }
+        let is_chain_hints = self
+            .get_bool_init_option("/inlayHints/chainingHints")
+            .unwrap_or(true);
+        let is_type_hints = self
+            .get_bool_init_option("/inlayHints/typeHints")
+            .unwrap_or(true);
+        let is_param_hints = self
+            .get_bool_init_option("/inlayHints/parameterHints")
+            .unwrap_or(true);
+
+        if !is_chain_hints && !is_type_hints && !is_param_hints {
+            return Ok(vec![]);
+        }
+
+        let inlay_hints = self.get_inlay_hints(filename)?;
+        let hint_groups_separator = " | ";
+
+        // NeoVIM doesn't support displaying virtual text in the middle of the line.
+        // As a workaround, we join all inlay hints located on the same line
+        // into single type hint and display it at the end of the line.
+        let mut semi_joined_hints = Vec::with_capacity(inlay_hints.len());
+        if is_chain_hints {
+            semi_joined_hints.extend(Self::process_chain_hints(&inlay_hints));
+        }
+        if is_type_hints {
+            semi_joined_hints.extend(Self::process_type_hints(&inlay_hints));
+        }
+        if is_param_hints {
+            semi_joined_hints.extend(Self::process_param_hints(&inlay_hints));
+        }
+
+        semi_joined_hints
+            .sort_unstable_by_key(|h| (h.range.end.line, h.range.end.character, h.kind.clone()));
+        Ok(Self::join_hint_groups(
+            &semi_joined_hints,
+            hint_groups_separator,
+        ))
     }
 
     pub fn handle_rust_analyzer_command(&self, cmd: &Command) -> Result<bool> {

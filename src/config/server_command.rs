@@ -81,14 +81,14 @@ mod test {
 
     #[test]
     fn test_name_from_command_handles_binary_name() {
-        let name = ServerCommand::name_from_command(&vec!["gopls".into()]);
+        let name = ServerCommand::name_from_command(&["gopls".into()]);
         assert_eq!(name.as_str(), "gopls");
     }
 
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn test_name_from_command_handles_binary_path() {
-        let name = ServerCommand::name_from_command(&vec!["/path/to/gopls".into()]);
+        let name = ServerCommand::name_from_command(&["/path/to/gopls".into()]);
         assert_eq!(name.as_str(), "gopls");
     }
 }
