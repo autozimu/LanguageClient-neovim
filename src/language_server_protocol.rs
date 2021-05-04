@@ -2091,7 +2091,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn text_document_publish_diagnostics(&self, params: &Value) -> Result<()> {
         let params = PublishDiagnosticsParams::deserialize(params)?;
         if !self.get_config(|c| c.diagnostics_enable)? {
@@ -3873,7 +3873,7 @@ impl LanguageClient {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn workspace_did_change_watched_files(&self, params: &Value) -> Result<()> {
         let filename = self.vim()?.get_filename(params)?;
         let language_id = self.vim()?.get_language_id(&filename, params)?;
