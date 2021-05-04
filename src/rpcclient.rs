@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::{
     collections::HashMap,
     io::BufRead,
+    process::Child,
     sync::atomic::{AtomicU64, Ordering},
     thread,
     time::Duration,
@@ -32,7 +33,8 @@ pub struct RpcClient {
     writer_tx: Sender<RawMessage>,
     #[serde(skip_serializing)]
     reader_tx: Sender<(Id, Sender<jsonrpc_core::Output>)>,
-    pub process_id: Option<u32>,
+    #[serde(skip_serializing)] // FIXME
+    pub child_process: Option<Child>,
 }
 
 impl RpcClient {
@@ -41,7 +43,7 @@ impl RpcClient {
         language_id: LanguageId,
         reader: impl BufRead + Send + 'static,
         writer: impl Write + Send + 'static,
-        process_id: Option<u32>,
+        child_process: Option<Child>,
         sink: Sender<Call>,
         on_crash: impl Fn(&LanguageId) + Clone + Send + 'static,
     ) -> Result<Self> {
@@ -86,7 +88,7 @@ impl RpcClient {
         Ok(Self {
             language_id,
             id: AtomicU64::default(),
-            process_id,
+            child_process,
             reader_tx,
             writer_tx,
         })
