@@ -3746,8 +3746,6 @@ impl LanguageClient {
                     Err(e) => error!("Process wait failed: {}", e),
                 }
             }
-            client.child_process = None;
-            state.clients.insert(language_id.clone(), Arc::new(client));
             Ok(())
         })
             .map_err(|err| anyhow!(
@@ -3787,7 +3785,6 @@ impl LanguageClient {
                 restarts = 0;
             };
 
-            state.clients.remove(language_id);
             state.restarts.insert(language_id.clone(), restarts);
             Ok(())
         })?;
