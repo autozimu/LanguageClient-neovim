@@ -792,7 +792,6 @@ impl LanguageClient {
         self.handle_cursor_moved(&Value::Null, true)?;
 
         self.update_state(|state| {
-            state.clients.remove(&Some(language_id.into()));
             state.last_cursor_line = 0;
             state.text_documents.retain(|f, _| !f.starts_with(&root));
             state.roots.remove(language_id);
