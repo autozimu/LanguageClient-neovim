@@ -1036,6 +1036,8 @@ impl LanguageClient {
         let position = self.vim()?.get_position(params)?;
         let current_word = self.vim()?.get_current_word(params)?;
         let goto_cmd = self.vim()?.get_goto_cmd(params)?;
+        let bufnr = self.vim()?.get_bufnr(&filename, params)?;
+        let winnr = self.vim()?.get_winnr(params)?;
 
         let params = serde_json::to_value(TextDocumentPositionParams {
             text_document: TextDocumentIdentifier {
@@ -1080,6 +1082,21 @@ impl LanguageClient {
                     loc.range.start.line + 1,
                     loc.range.start.character + 1
                 ))?;
+
+                self.vim()?.update_tagstack(
+                    winnr,
+                    TagStackItem {
+                        bufnr,
+                        from: Pos {
+                            bufnr,
+                            lnum: position.line + 1,
+                            col: position.character + 1,
+                            off: 0,
+                        },
+                        matchnr: None,
+                        tagname: current_word,
+                    },
+                )?;
             }
             _ => {
                 let title = format!("[LC]: search for {}", current_word);

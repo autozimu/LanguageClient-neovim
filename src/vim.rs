@@ -1,7 +1,7 @@
 use crate::{
     rpcclient::RpcClient,
     sign::Sign,
-    types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
+    types::{Bufnr, QuickfixEntry, TagStack, TagStackItem, VimExp, VirtualText, Winnr},
     utils::Canonicalize,
     viewport::Viewport,
 };
@@ -129,6 +129,12 @@ impl Vim {
         let key = "bufnr";
 
         try_get(key, params)?.map_or_else(|| self.eval(format!("bufnr('{}')", filename)), Ok)
+    }
+
+    pub fn get_winnr(&self, params: &Value) -> Result<Winnr> {
+        let key = "winnr";
+
+        try_get(key, params)?.map_or_else(|| self.eval("winnr()"), Ok)
     }
 
     pub fn get_viewport(&self, params: &Value) -> Result<Viewport> {
@@ -274,5 +280,12 @@ impl Vim {
 
     pub fn set_signs(&self, filename: &str, signs: &[Sign]) -> Result<i8> {
         self.rpcclient.call("s:set_signs", json!([filename, signs]))
+    }
+
+    pub fn update_tagstack(&self, winnr: Winnr, item: TagStackItem) -> Result<()> {
+        let mut stack: TagStack = self.rpcclient.call("gettagstack", winnr)?;
+        stack.items.clear();
+        stack.items.push(item);
+        self.rpcclient.notify("settagstack", (winnr, stack, "t"))
     }
 }

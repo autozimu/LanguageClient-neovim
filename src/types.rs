@@ -22,6 +22,7 @@ use maplit::hashmap;
 use pathdiff::diff_paths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_tuple::{Deserialize_tuple, Serialize_tuple};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, BufWriter, Write},
@@ -110,6 +111,8 @@ pub type Id = u64;
 pub type LanguageId = Option<String>;
 /// Buffer id/handle.
 pub type Bufnr = i64;
+/// Window id/handle.
+pub type Winnr = u32;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
@@ -1198,4 +1201,31 @@ pub struct VirtualText {
 pub struct WorkspaceEditWithCursor {
     pub workspace_edit: WorkspaceEdit,
     pub cursor_position: Option<TextDocumentPositionParams>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagStack {
+    pub curidx: u32,
+    pub items: Vec<TagStackItem>,
+    pub length: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagStackItem {
+    pub bufnr: Bufnr,
+    pub from: Pos,
+    pub matchnr: Option<u32>,
+    pub tagname: String,
+}
+
+/// This represents a position in a buffer.
+///
+/// Vim returns this as a List from the `getpos()` function. It is also used as the `from` value in
+/// tag stack items.
+#[derive(Debug, Serialize_tuple, Deserialize_tuple)]
+pub struct Pos {
+    pub bufnr: Bufnr,
+    pub lnum: u32,
+    pub col: u32,
+    pub off: u32,
 }
