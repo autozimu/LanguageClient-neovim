@@ -2273,7 +2273,15 @@ impl LanguageClient {
                         .stdout
                         .ok_or_else(|| anyhow!("Failed to get subprocess stdout"))?,
                 ));
-                let writer = Box::new(BufWriter::new(
+                // Allocate a much larger buffer size (1 megabyte instead of the BufWriter default of 8kb)
+                // so that Vim's ui doesn't get blocked when waiting to write to a language server
+                // that is doing work instead of reading from stdin
+                // (e.g. if the server is single threaded).
+                //
+                // On linux, the pipe buffer size defaults to 8 kilobytes.
+                // TCP allows much larger buffers than pipe buffers.
+                let writer = Box::new(BufWriter::with_capacity(
+                    1000000,
                     process
                         .stdin
                         .ok_or_else(|| anyhow!("Failed to get subprocess stdin"))?,
