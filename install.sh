@@ -13,7 +13,7 @@ arch=$(uname -sm)
 
 try_curl() {
     command -v curl > /dev/null && \
-        curl --fail --location "$1" --output bin/$name
+        curl --fail --silent --show-error --location "$1" --output bin/$name
 }
 
 try_wget() {
