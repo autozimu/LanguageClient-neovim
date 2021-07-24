@@ -1495,6 +1495,19 @@ function! LanguageClient_filterCompletionItems(item, base) abort
 endfunction
 
 let g:LanguageClient_completeResults = []
+
+function! s:CompleteCallback(base, result) abort
+  let l:result = s:HandleOutput(a:result)
+  let l:result = l:result is v:null ? [] : l:result
+  let l:filtered_items = []
+  for l:item in l:result
+      if LanguageClient_filterCompletionItems(l:item, a:base)
+          call add(l:filtered_items, l:item)
+      endif
+  endfor
+  call complete(col('.'), l:filtered_items)
+endfunction
+
 function! LanguageClient#complete(findstart, base) abort
     if a:findstart
         " Before requesting completion, content between l:start and current cursor is removed.
@@ -1505,20 +1518,11 @@ function! LanguageClient#complete(findstart, base) abort
         return l:start
     else
         " Magic happens that cursor jumps to the previously found l:start.
-        let l:result = LanguageClient_runSync(
-                    \ 'LanguageClient#omniComplete', {
+        call LanguageClient#omniComplete({
                     \ 'character': LSP#character() + len(a:base),
                     \ 'complete_position': LSP#character(),
                     \ 'text': s:completeText,
-                    \ })
-        let l:result = l:result is v:null ? [] : l:result
-        let l:filtered_items = []
-        for l:item in l:result
-            if LanguageClient_filterCompletionItems(l:item, a:base)
-                call add(l:filtered_items, l:item)
-            endif
-        endfor
-        return filtered_items
+                    \ }, function('s:CompleteCallback', [ a:base ]))
     endif
 endfunction
 
