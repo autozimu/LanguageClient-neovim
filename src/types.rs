@@ -1160,7 +1160,7 @@ impl ListItem for SymbolInformation {
     fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
         let start = self.location.range.start;
         let container_name = self.container_name.clone().unwrap_or_default();
-        let text = [self.name.clone(), container_name].join("::");
+        let text = [container_name, self.name.clone()].join("::");
         Ok(QuickfixEntry {
             filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
             lnum: start.line + 1,
@@ -1176,7 +1176,7 @@ impl ListItem for SymbolInformation {
         let relpath = diff_paths(&filename, Path::new(cwd)).unwrap_or(filename);
         let start = self.location.range.start;
         let container_name = self.container_name.clone().unwrap_or_default();
-        let text = [self.name.clone(), container_name].join("::");
+        let text = [container_name, self.name.clone()].join("::");
         Ok(format!(
             "{}:{}:{}:\t{}\t\t{:?}",
             relpath.to_string_lossy(),
