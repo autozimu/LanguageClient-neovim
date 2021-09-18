@@ -1159,12 +1159,13 @@ impl ListItem for lsp_types::DocumentSymbol {
 impl ListItem for SymbolInformation {
     fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
         let start = self.location.range.start;
-
+        let container_name = self.container_name.clone().unwrap_or_default();
+        let text = [self.name.clone(), container_name].join("::");
         Ok(QuickfixEntry {
             filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
             lnum: start.line + 1,
             col: Some(start.character + 1),
-            text: Some(self.name.clone()),
+            text: Some(text),
             nr: None,
             typ: None,
         })
@@ -1174,12 +1175,14 @@ impl ListItem for SymbolInformation {
         let filename = self.location.uri.filepath()?;
         let relpath = diff_paths(&filename, Path::new(cwd)).unwrap_or(filename);
         let start = self.location.range.start;
+        let container_name = self.container_name.clone().unwrap_or_default();
+        let text = [self.name.clone(), container_name].join("::");
         Ok(format!(
             "{}:{}:{}:\t{}\t\t{:?}",
             relpath.to_string_lossy(),
             start.line + 1,
             start.character + 1,
-            self.name,
+            text,
             self.kind
         ))
     }
