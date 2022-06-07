@@ -61,7 +61,7 @@ clean:
 	cargo clean
 	rm -rf bin/languageclient
 
-DATE := $(shell date --utc +%F)
+DATE := $(shell date -u +%F)
 
 build-docker-image: ci/Dockerfile
 	docker build \
