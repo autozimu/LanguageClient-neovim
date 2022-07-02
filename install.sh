@@ -13,18 +13,21 @@ arch=$(uname -sm)
 
 try_curl() {
     command -v curl > /dev/null && \
-        curl --fail --location "$1" --output bin/$name
+        curl --fail --location "$1" --output bin/$name && \
+        curl --fail --location "$1.sha256" --output bin/$name.sha256
 }
 
 try_wget() {
     command -v wget > /dev/null && \
-        wget --output-document=bin/$name "$1"
+        wget --output-document=bin/$name "$1" && \
+        wget --output-document=bin/$name.sha256 "$1.sha256"
 }
 
 download() {
     echo "Trying download bin/${name} ${version}..."
     url=https://github.com/autozimu/LanguageClient-neovim/releases/download/$version/${1}
     if (try_curl "$url" || try_wget "$url"); then
+        sha256sum -c "bin/$name.sha256" || (echo "bin/$name.sha256 file checksum does not match exiting." && exit 1)
         chmod a+x bin/$name
         return
     else
