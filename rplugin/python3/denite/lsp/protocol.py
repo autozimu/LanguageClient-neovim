@@ -50,6 +50,6 @@ for e in SymbolKind:
     if e == SymbolKind.Unknown:
         s = ""
     else:
-        s = re.sub("([a-z])([A-Z])", r"\g<1> \g<2>", str(e).split(".", 1)[1])
+        s = re.sub("([a-z])([A-Z])", r"\g<1> \g<2>", e.name)
 
     SymbolKind._pprint_map[int(e)] = s
