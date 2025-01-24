@@ -64,20 +64,14 @@ Restart neovim and run `:call dein#install()` to install.
 
 ## Manual
 
-Clone this repo into some place, e.g., `~/.vim-plugins`
+Clone this repo into `vim` plugin dir.
 
 ```sh
-mkdir -p ~/.vim-plugins
-cd ~/.vim-plugins
+mkdir -p ~/.vim/pack/git-plugins/start
+cd ~/.vim/pack/git-plugins/start
 git clone --depth 1 https://github.com/autozimu/LanguageClient-neovim.git
 cd LanguageClient-neovim
 bash install.sh
-```
-
-Add this plugin to vim/neovim `runtimepath`,
-
-```vim
-set runtimepath+=~/.vim-plugins/LanguageClient-neovim
 ```
 
 # Install language servers
