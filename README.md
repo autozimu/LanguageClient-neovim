@@ -1,5 +1,12 @@
 > For legacy python implementation, see [branch master](https://github.com/autozimu/LanguageClient-neovim/tree/master).
 
+# ⚠️ Project Unmaintained
+
+This repository is no longer actively maintained.
+Users are encouraged to migrate to Neovim's native LSP client , which now provides built-in functionality that supersedes the purpose of this project.
+
+Issues and pull requests may not be reviewed or merged. Please use this code at your own discretion.
+
 # LanguageClient-neovim
 
 [![CircleCI](https://circleci.com/gh/autozimu/LanguageClient-neovim.svg?style=svg)](https://circleci.com/gh/autozimu/LanguageClient-neovim) [![Join the chat at https://gitter.im/LanguageClient-neovim/LanguageClient-neovim](https://badges.gitter.im/LanguageClient-neovim/LanguageClient-neovim.svg)](https://gitter.im/LanguageClient-neovim/LanguageClient-neovim?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
