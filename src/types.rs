@@ -1156,15 +1156,26 @@ impl ListItem for lsp_types::DocumentSymbol {
     }
 }
 
+fn prepend(
+    text: impl AsRef<str>,
+    optional_head: Option<&String>,
+    divisor: impl AsRef<str>,
+) -> String {
+    return optional_head.filter(|x| x.trim() != "").map_or_else(
+        || text.as_ref().to_string(),
+        |v| format!("{}{}{}", v, divisor.as_ref(), text.as_ref()),
+    );
+}
+
 impl ListItem for SymbolInformation {
     fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
         let start = self.location.range.start;
-
+        let text = prepend(&self.name, self.container_name.as_ref(), "::");
         Ok(QuickfixEntry {
             filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
             lnum: start.line + 1,
             col: Some(start.character + 1),
-            text: Some(self.name.clone()),
+            text: Some(text),
             nr: None,
             typ: None,
         })
@@ -1174,12 +1185,13 @@ impl ListItem for SymbolInformation {
         let filename = self.location.uri.filepath()?;
         let relpath = diff_paths(&filename, Path::new(cwd)).unwrap_or(filename);
         let start = self.location.range.start;
+        let text = prepend(&self.name, self.container_name.as_ref(), "::");
         Ok(format!(
             "{}:{}:{}:\t{}\t\t{:?}",
             relpath.to_string_lossy(),
             start.line + 1,
             start.character + 1,
-            self.name,
+            text,
             self.kind
         ))
     }
