@@ -559,8 +559,19 @@ function! s:OpenHoverPreview(bufname, lines, filetype, ...) abort
         " trigger refresh on plasticboy/vim-markdown
         call win_execute(pop_win_id, 'doautocmd InsertLeave')
     elseif display_approach ==# 'preview'
-        execute 'silent! noswapfile pedit!' a:bufname
+        let loc = s:GetVar('LanguageClient_PreviewWindowLoc', '')
+        let size = s:GetVar('LanguageClient_PreviewHeight', &previewheight)
+        let win_modifiers_from_loc = #{left: ["","vertical"], right: ["botright","vertical"], top:["",""], bottom: ["botright",""]}
+        if has_key(win_modifiers_from_loc, loc)
+            let win_modifiers = win_modifiers_from_loc[loc]
+            let [win_b, win_v] = win_modifiers
+        else
+            let win_b = ""
+            let win_v = ""
+        endif
+        execute 'silent! noswapfile' win_b win_v 'pedit!' a:bufname
         wincmd P
+        execute 'silent!' win_v "resize" size
     else
         call s:Echoerr('Unknown display approach: ' . display_approach)
     endif
